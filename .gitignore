@@ -1,0 +1,41 @@
+# build system stuff
+m4/argz.m4
+m4/libtool.m4
+m4/ltdl.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+.deps
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+compile
+config.*
+configure
+depcomp
+install-sh
+missing
+stamp-h1
+version
+ylwrap
+
+# ltdl stuff
+libltdl
+libtool
+ltmain.sh
+
+# build output
+src/liboconfig/parser.c
+src/liboconfig/parser.h
+src/liboconfig/scanner.c
+.dirstamp
+.libs
+*.la
+*.lo
+*.o
+syscollectord
+syscollectord.1
+syscollector.h
+

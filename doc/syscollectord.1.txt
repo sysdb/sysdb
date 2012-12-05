@@ -1,0 +1,71 @@
+syscollectord(1)
+================
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+syscollectord - system management collection service
+
+SYNOPSIS
+--------
+*syscollectord* ['options']
+
+DESCRIPTION
+-----------
+*syscollectord* is a multi-backend system management and inventory collection
+daemon. It may be used to collect information from various backends (e.g.,
+inventory services, monitoring services, configuration services) and provides
+a uniform combined view of all data.
+
+The main daemon itself is the central instance managing all collected
+information and doing the correlation of objects provided by different
+backends. It can be thought of as a database server. All data retrieval,
+any further processing, storing and exporting of data is done by plugins.
+
+OPTIONS
+-------
+*syscollectord* accepts the following command-line options.
+
+*-C* '<file>'::
+	The main configuration file. This file defines the behavior of
+	*syscollectord* by specifying default settings and the plugins to be
+	loaded.
+
+*-d*::
+	Daemonize on startup: Start *syscollectord* as a background process
+	detached from the current terminal and session.
+
+*-h*::
+	Display a usage and help summary and exit.
+
+*-V*::
+	Display the version number and copyright information.
+
+EXIT CODES
+----------
+*0*::
+	Success.
+
+*1*::
+	Failure (syntax or usage error).
+
+BUGS
+----
+None known.
+
+AUTHOR
+------
+syscollectord was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+
