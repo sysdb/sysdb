@@ -188,6 +188,23 @@ AC_SUBST([STRICT_CFLAGS])
 AC_CHECK_HEADERS(libgen.h)
 
 dnl Check for dependencies.
+AC_ARG_WITH([libdbi],
+		[AS_HELP_STRING([--with-libdbi], [libdbi support (default: auto)])],
+		[with_libdbi="$withval"],
+		[with_libdbi="yes"])
+if test "x$with_libdbi" = "xyes"; then
+	AC_CHECK_HEADERS([dbi/dbi.h],
+			[with_libdbi="yes"],
+			[with_libdbi="no (dbi/dbi.h) not found"])
+fi
+if test "x$with_libdbi" = "xyes"; then
+	AC_CHECK_LIB([dbi], [dbi_initialize],
+			[with_libdbi="yes"],
+			[with_libdbi="no (libdbi or symbol 'dbi_initialize' not found)"])
+fi
+AM_CONDITIONAL([BUILD_WITH_LIBDBI], test "x$with_libdbi" = "xyes")
+
+dnl Feature checks.
 build_documentation="yes"
 
 have_xsltproc="yes"
@@ -237,6 +254,9 @@ AC_MSG_RESULT([    xsltproc: . . . . . . . . . $have_xsltproc])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
+AC_MSG_RESULT()
+AC_MSG_RESULT([  Libraries:])
+AC_MSG_RESULT([     libdbi:  . . . . . . . . . $with_libdbi])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])

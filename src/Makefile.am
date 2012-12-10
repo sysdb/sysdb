@@ -33,6 +33,12 @@ libsyscollector_la_LDFLAGS = -version-info 0:0:0 -pthread
 libsyscollector_la_LIBADD = $(LIBLTDL) -lrt liboconfig/liboconfig.la
 libsyscollector_la_DEPENDENCIES = liboconfig/liboconfig.la
 
+if BUILD_WITH_LIBDBI
+libsyscollector_la_SOURCES += \
+		utils/dbi.c include/utils/dbi.h
+libsyscollector_la_LIBADD += -ldbi
+endif
+
 bin_PROGRAMS = syscollectord
 
 syscollectord_SOURCES = daemon/syscollectord.c include/syscollector.h \
