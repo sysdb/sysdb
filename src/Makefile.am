@@ -59,6 +59,14 @@ libsyscollector_la_LIBADD += -dlopen backend/collectd.la
 libsyscollector_la_DEPENDENCIES += backend/collectd.la
 endif
 
+if BUILD_PLUGIN_PUPPETSTORECONFIGS
+pkgbackendlib_LTLIBRARIES += backend/puppet-storeconfigs.la
+backend_puppet_storeconfigs_la_SOURCES = backend/puppet-storeconfigs.c
+backend_puppet_storeconfigs_la_LDFLAGS = -module -avoid-version
+libsyscollector_la_LIBADD += -dlopen backend/puppet-storeconfigs.la
+libsyscollector_la_DEPENDENCIES += backend/puppet-storeconfigs.la
+endif
+
 include/syscollector.h: include/syscollector.h.in ../version
 	source ../version; sed \
 	    -e "s/@SC_VERSION_MAJOR@/$$VERSION_MAJOR/g" \

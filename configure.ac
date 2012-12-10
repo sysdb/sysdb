@@ -222,12 +222,20 @@ if test "x$A2X" = "x"; then
 fi
 AC_SUBST([A2X])
 
+dnl Plugin checks.
+enable_puppet_storeconfigs=$with_libdbi
+if test "x$enable_puppet_storeconfigs" = "xno"; then
+	enable_puppet_storeconfigs="no (requires libdbi)"
+fi
+
 m4_divert_once([HELP_ENABLE], [
 Backends:])
 
 AC_SC_PLUGIN_INIT
 AC_SC_PLUGIN([collectd], [yes],
 		[backend accessing the system statistics collection daemon])
+AC_SC_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
+		[backend accessing the Puppet stored configuration database])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
 
@@ -260,6 +268,7 @@ AC_MSG_RESULT([     libdbi:  . . . . . . . . . $with_libdbi])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])
+AC_MSG_RESULT([    puppet-storeconfigs:  . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()
 AC_MSG_RESULT([This package is maintained by $PACKAGE_MAINTAINER.])
 AC_MSG_RESULT([Please report bugs to $PACKAGE_BUGREPORT.])
