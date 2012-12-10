@@ -69,7 +69,7 @@ AC_DEFUN([AC_SC_PLUGIN],
 		)
 		if test "x$enable_plugin" = "xyes"; then
 			if test "x$2" = "xyes" || test "x$force" = "xyes"; then
-				AC_DEFINE([HAVE_PLUGIN_]m4_toupper([$1]), 1, [Define to 1 if the $1 plugin is enabled.])
+				AC_DEFINE([HAVE_PLUGIN_]m4_translit(m4_toupper([$1]),[-],[_]), 1, [Define to 1 if the $1 plugin is enabled.])
 				if test "x$2" != "xyes"; then
 					dependency_warning="yes"
 				fi
@@ -78,8 +78,8 @@ AC_DEFUN([AC_SC_PLUGIN],
 				enable_plugin="no (dependency error)"
 			fi
 		fi
-		AM_CONDITIONAL([BUILD_PLUGIN_]m4_toupper([$1]), test "x$enable_plugin" = "xyes")
-		enable_$1="$enable_plugin"
+		AM_CONDITIONAL([BUILD_PLUGIN_]m4_translit(m4_toupper([$1]),[-][_]), test "x$enable_plugin" = "xyes")
+		m4_translit(enable_$1,[-],[_])="$enable_plugin"
 	]
 )
 
