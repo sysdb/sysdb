@@ -218,14 +218,14 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
-	fprintf(stderr, "syscollectord "SC_VERSION_STRING" (pid %i) "
-			"initialized successfully\n", (int)getpid());
+	fprintf(stderr, "syscollectord "SC_VERSION_STRING SC_VERSION_EXTRA
+			" (pid %i) initialized successfully\n", (int)getpid());
 
 	sc_plugin_init_all();
 	sc_plugin_collector_loop(&plugin_main_loop);
 
 	fprintf(stderr, "Shutting down syscollector "SC_VERSION_STRING
-			" (pid %i)\n", (int)getpid());
+			SC_VERSION_EXTRA" (pid %i)\n", (int)getpid());
 
 	fprintf(stderr, "Store dump:\n");
 	sc_store_dump(stderr);
