@@ -59,6 +59,14 @@ libsyscollector_la_LIBADD += -dlopen backend/collectd.la
 libsyscollector_la_DEPENDENCIES += backend/collectd.la
 endif
 
+if BUILD_PLUGIN_MKLIVESTATUS
+pkgbackendlib_LTLIBRARIES += backend/mk-livestatus.la
+backend_mk_livestatus_la_SOURCES = backend/mk-livestatus.c
+backend_mk_livestatus_la_LDFLAGS = -module -avoid-version
+libsyscollector_la_LIBADD += -dlopen backend/mk-livestatus.la
+libsyscollector_la_DEPENDENCIES += backend/mk-livestatus.la
+endif
+
 if BUILD_PLUGIN_PUPPETSTORECONFIGS
 pkgbackendlib_LTLIBRARIES += backend/puppet-storeconfigs.la
 backend_puppet_storeconfigs_la_SOURCES = backend/puppet-storeconfigs.c

@@ -234,6 +234,8 @@ Backends:])
 AC_SC_PLUGIN_INIT
 AC_SC_PLUGIN([collectd], [yes],
 		[backend accessing the system statistics collection daemon])
+AC_SC_PLUGIN([mk-livestatus], [yes],
+		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
 AC_SC_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
 		[backend accessing the Puppet stored configuration database])
 
@@ -268,6 +270,7 @@ AC_MSG_RESULT([     libdbi:  . . . . . . . . . $with_libdbi])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])
+AC_MSG_RESULT([    mk-livestatus:  . . . . . . $enable_mk_livestatus])
 AC_MSG_RESULT([    puppet-storeconfigs:  . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()
 AC_MSG_RESULT([This package is maintained by $PACKAGE_MAINTAINER.])
