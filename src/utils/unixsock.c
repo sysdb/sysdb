@@ -144,10 +144,12 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 		return NULL;
 
 	buffer = fgets(buffer, (int)buflen - 1, client->fh);
-	if ((! buffer) && (! feof(client->fh))) {
-		char errbuf[1024];
-		fprintf(stderr, "unixsock: Failed to read from socket (%s): %s\n",
-				client->path, sc_strerror(errno, errbuf, sizeof(errbuf)));
+	if (! buffer) {
+		if (! feof(client->fh)) {
+			char errbuf[1024];
+			fprintf(stderr, "unixsock: Failed to read from socket (%s): %s\n",
+					client->path, sc_strerror(errno, errbuf, sizeof(errbuf)));
+		}
 		return buffer;
 	}
 	buffer[buflen - 1] = '\0';
