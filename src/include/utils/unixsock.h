@@ -62,6 +62,19 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 int
 sc_unixsock_client_shutdown(sc_unixsock_client_t *client, int how);
 
+/*
+ * sc_unixsock_client_clearerr, sc_unixsock_client_eof,
+ * sc_unixsock_client_error:
+ * Check and reset the client status. See the clearerr(3), feof(3), and
+ * ferror(3) manpages for details.
+ */
+void
+sc_unixsock_client_clearerr(sc_unixsock_client_t *client);
+int
+sc_unixsock_client_eof(sc_unixsock_client_t *client);
+int
+sc_unixsock_client_error(sc_unixsock_client_t *client);
+
 void
 sc_unixsock_client_destroy(sc_unixsock_client_t *client);
 

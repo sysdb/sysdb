@@ -201,6 +201,34 @@ sc_unixsock_client_shutdown(sc_unixsock_client_t *client, int how)
 } /* sc_unixsock_client_shutdown */
 
 void
+sc_unixsock_client_clearerr(sc_unixsock_client_t *client)
+{
+	if ((! client) || (! client->fh))
+		return;
+	clearerr(client->fh);
+} /* sc_unixsock_client_clearerr */
+
+int
+sc_unixsock_client_eof(sc_unixsock_client_t *client)
+{
+	if ((! client) || (! client->fh)) {
+		errno = EBADF;
+		return -1;
+	}
+	return feof(client->fh);
+} /* sc_unixsock_client_eof */
+
+int
+sc_unixsock_client_error(sc_unixsock_client_t *client)
+{
+	if ((! client) || (! client->fh)) {
+		errno = EBADF;
+		return -1;
+	}
+	return ferror(client->fh);
+} /* sc_unixsock_client_error */
+
+void
 sc_unixsock_client_destroy(sc_unixsock_client_t *client)
 {
 	if (! client)
