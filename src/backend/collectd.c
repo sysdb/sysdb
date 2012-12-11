@@ -105,14 +105,20 @@ sc_collectd_add_host(char *hostname, sc_time_t last_update)
 {
 	sc_host_t host = SC_HOST_INIT;
 
+	int status;
+
 	host.host_name = hostname;
 	host.host_last_update = last_update;
 
-	if (sc_store_host(&host)) {
+	status = sc_store_host(&host);
+
+	if (status < 0) {
 		fprintf(stderr, "collectd backend: Failed to store/update "
 				"host '%s'.\n", hostname);
 		return -1;
 	}
+	else if (status > 0) /* value too old */
+		return 0;
 
 	fprintf(stderr, "collectd backend: Added/updated host '%s' "
 			"(last update timestamp = %"PRIscTIME").\n",
@@ -125,11 +131,14 @@ sc_collectd_add_svc(char *hostname, char *name, sc_time_t last_update)
 {
 	sc_service_t svc = SC_SVC_INIT;
 
+	int status;
+
 	svc.hostname = hostname;
 	svc.svc_name = name;
 	svc.svc_last_update = last_update;
 
-	if (sc_store_service(&svc)) {
+	status = sc_store_service(&svc);
+	if (status < 0) {
 		fprintf(stderr, "collectd backend: Failed to store/update "
 				"service '%s/%s'.\n", hostname, name);
 		return -1;

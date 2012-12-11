@@ -53,6 +53,8 @@ sc_puppet_stcfg_get_data(sc_dbi_client_t __attribute__((unused)) *client,
 {
 	sc_host_t host = SC_HOST_INIT;
 
+	int status;
+
 	assert(n == 2);
 	assert((data[0].type == DBI_TYPE_STRING)
 			&& (data[1].type == DBI_TYPE_DATETIME));
@@ -60,16 +62,18 @@ sc_puppet_stcfg_get_data(sc_dbi_client_t __attribute__((unused)) *client,
 	host.host_name = strdup(data[0].data.string);
 	host.host_last_update = data[1].data.datetime;
 
-	if (sc_store_host(&host)) {
+	status = sc_store_host(&host);
+
+	if (status < 0) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to store/update "
 				"host '%s'.\n", host.host_name);
 		free(host.host_name);
 		return -1;
 	}
-
-	fprintf(stderr, "puppet storeconfigs backend: Added/updated host '%s' "
-			"(last update timestamp = %"PRIscTIME").\n",
-			host.host_name, host.host_last_update);
+	else if (! status)
+		fprintf(stderr, "puppet storeconfigs backend: Added/updated host '%s' "
+				"(last update timestamp = %"PRIscTIME").\n",
+				host.host_name, host.host_last_update);
 	free(host.host_name);
 	return 0;
 } /* sc_puppet_stcfg_get_data */

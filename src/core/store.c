@@ -193,7 +193,7 @@ sc_store_host(const sc_host_t *host)
 					host->host_name, last_update, old->host_last_update);
 			/* don't report an error; the host may be updated by multiple
 			 * backends */
-			status = 0;
+			status = 1;
 		}
 		else {
 			old->host_last_update = last_update;
@@ -316,7 +316,7 @@ sc_store_service(const sc_service_t *svc)
 					"value too old (%"PRIscTIME" < %"PRIscTIME")\n",
 					svc->hostname, svc->svc_name, last_update,
 					old->host_last_update);
-			status = -1;
+			status = 1;
 		}
 		else {
 			old->svc_last_update = last_update;

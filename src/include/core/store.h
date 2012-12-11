@@ -74,6 +74,20 @@ sc_host_create(char *name);
 sc_host_t *
 sc_host_clone(const sc_host_t *host);
 
+/*
+ * sc_store_host:
+ * Add/update a host in the store. If the host, identified by its name,
+ * already exists, it will be updated according to the specified 'host'
+ * object. Else, a new entry will be created in the store. Any memory required
+ * for storing the entry will be allocated an managed by the store itself. The
+ * specified host-object will not be referenced or further accessed.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
 int
 sc_store_host(const sc_host_t *host);
 
@@ -86,6 +100,22 @@ sc_service_create(char *hostname, char *name);
 sc_service_t *
 sc_service_clone(const sc_service_t *svc);
 
+/*
+ * sc_store_service:
+ * Add/update a store in the store. If the service, identified by its name,
+ * already exists for the specified host, it will be updated according to the
+ * specified 'service' object. If the referenced host does not exist, an error
+ * will be reported. Else, a new entry will be created in the store. Any
+ * memory required for storing the entry will be allocated an managed by the
+ * store itself. The specified service-object will not be referenced or
+ * further accessed.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
 int
 sc_store_service(const sc_service_t *svc);
 
