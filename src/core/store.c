@@ -191,7 +191,9 @@ sc_store_host(const sc_host_t *host)
 			fprintf(stderr, "store: Cannot update host '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")\n",
 					host->host_name, last_update, old->host_last_update);
-			status = -1;
+			/* don't report an error; the host may be updated by multiple
+			 * backends */
+			status = 0;
 		}
 		else {
 			old->host_last_update = last_update;
