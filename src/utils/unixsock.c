@@ -46,7 +46,13 @@
 struct sc_unixsock_client {
 	char *path;
 	FILE *fh;
+
+	int shutdown;
 };
+
+#define SC_SHUT_RD   (1 << SHUT_RD)
+#define SC_SHUT_WR   (1 << SHUT_WR)
+#define SC_SHUT_RDWR (SC_SHUT_RD | SC_SHUT_WR)
 
 /*
  * public API
@@ -71,6 +77,8 @@ sc_unixsock_client_create(const char *path)
 		sc_unixsock_client_destroy(client);
 		return NULL;
 	}
+
+	client->shutdown = 0;
 	return client;
 } /* sc_unixsock_client_create */
 
@@ -116,6 +124,8 @@ sc_unixsock_client_connect(sc_unixsock_client_t *client)
 		close(fd);
 		return -1;
 	}
+
+	client->shutdown = 0;
 	return 0;
 } /* sc_unixsock_client_connect */
 
@@ -126,6 +136,9 @@ sc_unixsock_client_send(sc_unixsock_client_t *client, const char *msg)
 
 	if ((! client) || (! client->fh))
 		return -1;
+
+	if (client->shutdown & SC_SHUT_WR) /* reconnect */
+		sc_unixsock_client_connect(client);
 
 	status = fprintf(client->fh, "%s\r\n", msg);
 	if (status < 0) {
@@ -142,6 +155,9 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 {
 	if ((! client) || (! client->fh) || (! buffer))
 		return NULL;
+
+	if (client->shutdown & SC_SHUT_RD) /* reconnect */
+		sc_unixsock_client_connect(client);
 
 	buffer = fgets(buffer, (int)buflen - 1, client->fh);
 	if (! buffer) {
@@ -161,6 +177,28 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 	}
 	return buffer;
 } /* sc_unixsock_client_recv */
+
+int
+sc_unixsock_client_shutdown(sc_unixsock_client_t *client, int how)
+{
+	int status;
+
+	if (! client) {
+		errno = ENOTSOCK;
+		return -1;
+	}
+
+	fflush(client->fh);
+	status = shutdown(fileno(client->fh), how);
+
+	if (! status) {
+		if (how == SHUT_RDWR)
+			client->shutdown |= SC_SHUT_RDWR;
+		else
+			client->shutdown |= 1 << how;
+	}
+	return status;
+} /* sc_unixsock_client_shutdown */
 
 void
 sc_unixsock_client_destroy(sc_unixsock_client_t *client)

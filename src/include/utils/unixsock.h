@@ -28,6 +28,8 @@
 #ifndef SC_UTILS_UNIXSOCK_H
 #define SC_UTILS_UNIXSOCK_H 1
 
+#include <sys/socket.h>
+
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -48,6 +50,17 @@ sc_unixsock_client_send(sc_unixsock_client_t *client, const char *msg);
 
 char *
 sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t buflen);
+
+/*
+ * sc_unixsock_client_shutdown:
+ * Shut down the client's send and/or receive operations. If appropriate, the
+ * client will automatically re-connect on the next send / receive operation
+ * after that.
+ *
+ * See shutdown(3) for details.
+ */
+int
+sc_unixsock_client_shutdown(sc_unixsock_client_t *client, int how);
 
 void
 sc_unixsock_client_destroy(sc_unixsock_client_t *client);
