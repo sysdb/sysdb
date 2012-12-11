@@ -49,15 +49,15 @@ SC_PLUGIN_MAGIC;
 
 static int
 sc_puppet_stcfg_get_data(sc_dbi_client_t __attribute__((unused)) *client,
-		size_t n, sc_dbi_data_t *data)
+		size_t n, sc_data_t *data)
 {
 	sc_host_t host = SC_HOST_INIT;
 
 	int status;
 
 	assert(n == 2);
-	assert((data[0].type == DBI_TYPE_STRING)
-			&& (data[1].type == DBI_TYPE_DATETIME));
+	assert((data[0].type == SC_TYPE_STRING)
+			&& (data[1].type == SC_TYPE_DATETIME));
 
 	host.host_name = strdup(data[0].data.string);
 	host.host_last_update = data[1].data.datetime;
@@ -113,7 +113,7 @@ sc_puppet_stcfg_collect(sc_object_t *user_data)
 	client = SC_OBJ_WRAPPER(user_data)->data;
 	if (sc_dbi_exec_query(client, "SELECT name, updated_at FROM hosts;",
 				sc_puppet_stcfg_get_data, /* #columns = */ 2,
-				/* col types = */ DBI_TYPE_STRING, DBI_TYPE_DATETIME)) {
+				/* col types = */ SC_TYPE_STRING, SC_TYPE_DATETIME)) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to retrieve "
 				"hosts from the storeconfigs DB.\n");
 		return -1;

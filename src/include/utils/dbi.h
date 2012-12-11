@@ -28,35 +28,26 @@
 #ifndef SC_UTILS_DBI_H
 #define SC_UTILS_DBI_H 1
 
-#include "utils/time.h"
+#include "utils/data.h"
 
-#include <inttypes.h>
 #include <stddef.h>
+
+/* translate libdbi types to syscollector types */
+#define DBI_TYPE_TO_SC(dt) \
+	(((dt) == DBI_TYPE_INTEGER) \
+		? SC_TYPE_INTEGER \
+		: ((dt) == DBI_TYPE_DECIMAL) \
+			? SC_TYPE_DECIMAL \
+			: ((dt) == DBI_TYPE_STRING) \
+				? SC_TYPE_STRING \
+				: ((dt) == DBI_TYPE_DATETIME) \
+					? SC_TYPE_DATETIME \
+					: ((dt) == DBI_TYPE_BINARY) \
+						? SC_TYPE_BINARY : 0)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
- * sc_dbi_data_t:
- * A datum retrieved from a single field of a query result row.
- *
- * The string and binary objects are managed by libdbi, thus, they must not be
- * freed or modified. If you want to keep them, make sure to make a copy.
- */
-typedef struct {
-	int type;
-	union {
-		int64_t     integer;  /* DBI_TYPE_INTEGER */
-		double      decimal;  /* DBI_TYPE_DECIMAL */
-		const char *string;   /* DBI_TYPE_STRING  */
-		sc_time_t   datetime; /* DBI_TYPE_DATETIME */
-		struct {
-			size_t length;
-			const unsigned char *datum;
-		} binary;             /* DBI_TYPE_BINARY */
-	} data;
-} sc_dbi_data_t;
 
 struct sc_dbi_options;
 typedef struct sc_dbi_options sc_dbi_options_t;
@@ -64,7 +55,7 @@ typedef struct sc_dbi_options sc_dbi_options_t;
 struct sc_dbi_client;
 typedef struct sc_dbi_client sc_dbi_client_t;
 
-typedef int (*sc_dbi_data_cb)(sc_dbi_client_t *, size_t, sc_dbi_data_t *);
+typedef int (*sc_dbi_data_cb)(sc_dbi_client_t *, size_t, sc_data_t *);
 
 /*
  * sc_dbi_options_t:

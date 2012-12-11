@@ -73,26 +73,26 @@ sc_dbi_strerror(dbi_conn conn)
 
 static int
 sc_dbi_get_field(dbi_result res, unsigned int i,
-		int type, sc_dbi_data_t *data)
+		int type, sc_data_t *data)
 {
 	switch (type) {
-		case DBI_TYPE_INTEGER:
+		case SC_TYPE_INTEGER:
 			data->data.integer = dbi_result_get_longlong_idx(res, i);
 			break;
-		case DBI_TYPE_DECIMAL:
+		case SC_TYPE_DECIMAL:
 			data->data.decimal = dbi_result_get_double_idx(res, i);
 			break;
-		case DBI_TYPE_STRING:
+		case SC_TYPE_STRING:
 			data->data.string = dbi_result_get_string_idx(res, i);
 			break;
-		case DBI_TYPE_DATETIME:
+		case SC_TYPE_DATETIME:
 			{
 				/* libdbi does not provide any higher resolutions than that */
 				time_t datetime = dbi_result_get_datetime_idx(res, i);
 				data->data.datetime = SECS_TO_SC_TIME(datetime);
 			}
 			break;
-		case DBI_TYPE_BINARY:
+		case SC_TYPE_BINARY:
 			{
 				size_t length = dbi_result_get_field_length_idx(res, i);
 				const unsigned char *datum = dbi_result_get_binary_idx(res, i);
@@ -114,7 +114,7 @@ static int
 sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 		unsigned int num_fields, sc_dbi_data_cb callback)
 {
-	sc_dbi_data_t data[num_fields];
+	sc_data_t data[num_fields];
 	int types[num_fields];
 	unsigned int i;
 
@@ -131,6 +131,7 @@ sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 					sc_dbi_strerror(client->conn));
 			return -1;
 		}
+		types[i] = DBI_TYPE_TO_SC(types[i]);
 	}
 
 	num_rows = dbi_result_get_numrows(res);
@@ -397,6 +398,8 @@ sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
 					(unsigned int)(i + 1));
 
 			unsigned int type = va_arg(types, unsigned int);
+
+			field_type = DBI_TYPE_TO_SC(field_type);
 
 			/* column count starts at 1 */
 			if ((unsigned int)field_type != type) {
