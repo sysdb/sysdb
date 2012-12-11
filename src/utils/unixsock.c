@@ -28,10 +28,14 @@
 #include "utils/unixsock.h"
 #include "utils/string.h"
 
+#include <assert.h>
 #include <errno.h>
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <string.h>
 #include <strings.h>
 
 #include <unistd.h>
@@ -53,6 +57,132 @@ struct sc_unixsock_client {
 #define SC_SHUT_RD   (1 << SHUT_RD)
 #define SC_SHUT_WR   (1 << SHUT_WR)
 #define SC_SHUT_RDWR (SC_SHUT_RD | SC_SHUT_WR)
+
+/*
+ * private helper functions
+ */
+
+static int
+sc_unixsock_get_column_count(const char *string, const char *delim)
+{
+	int count = 1;
+
+	assert(string);
+
+	if ((! delim) || (*string == '\0'))
+		return 1;
+
+	if ((delim[0] == '\0') || (delim[1] == '\0')) {
+		while ((string = strchr(string, (int)delim[0]))) {
+			++string;
+			++count;
+		}
+	}
+	else {
+		while ((string = strpbrk(string, delim))) {
+			++string;
+			++count;
+		}
+	}
+	return count;
+} /* sc_unixsock_get_column_count */
+
+static int
+sc_unixsock_parse_cell(char *string, int type, sc_data_t *data)
+{
+	char *endptr = NULL;
+
+	switch (type) {
+		case SC_TYPE_INTEGER:
+			errno = 0;
+			data->data.integer = strtoll(string, &endptr, 0);
+			break;
+		case SC_TYPE_DECIMAL:
+			errno = 0;
+			data->data.decimal = strtod(string, &endptr);
+			break;
+		case SC_TYPE_STRING:
+			data->data.string = string;
+			break;
+		case SC_TYPE_DATETIME:
+			{
+				double datetime = strtod(string, &endptr);
+				data->data.datetime = DOUBLE_TO_SC_TIME(datetime);
+			}
+			break;
+		case SC_TYPE_BINARY:
+			/* we don't support any binary information containing 0-bytes */
+			data->data.binary.length = strlen(string);
+			data->data.binary.datum = (const unsigned char *)string;
+			break;
+		default:
+			fprintf(stderr, "unixsock: Unexpected type %i while "
+					"parsing query result.\n", type);
+			return -1;
+	}
+
+	if ((type == SC_TYPE_INTEGER) || (type == SC_TYPE_DECIMAL)
+			|| (type == SC_TYPE_DATETIME)) {
+		if (errno || (string == endptr)) {
+			char errbuf[1024];
+			fprintf(stderr, "unixsock: Failed to parse string '%s' "
+					"as numeric value (type %i): %s\n", string, type,
+					sc_strerror(errno, errbuf, sizeof(errbuf)));
+			return -1;
+		}
+		else if (endptr && (*endptr != '\0'))
+			fprintf(stderr, "unixsock: Ignoring garbage after number "
+					"while parsing numeric value (type %i): %s.\n",
+					type, endptr);
+	}
+
+	data->type = type;
+	return 0;
+} /* sc_unixsock_parse_cell */
+
+static int
+sc_unixsock_client_process_one_line(sc_unixsock_client_t *client,
+		char *line, sc_unixsock_client_data_cb callback,
+		const char *delim, int column_count, int *types)
+{
+	sc_data_t data[column_count];
+	char *orig_line = line;
+
+	int i;
+
+	assert(column_count > 0);
+
+	for (i = 0; i < column_count; ++i) {
+		char *next;
+
+		if (! line) { /* this must no happen */
+			fprintf(stderr, "unixsock: Unexpected EOL while parsing line "
+					"(expected %i columns delimited by '%s'; got %i): %s\n",
+					column_count, delim, /* last line number */ i, orig_line);
+			return -1;
+		}
+
+		if ((delim[0] == '\0') || (delim[1] == '\0'))
+			next = strchr(line, (int)delim[0]);
+		else
+			next = strpbrk(line, delim);
+
+		if (next) {
+			*next = '\0';
+			++next;
+		}
+
+		if (sc_unixsock_parse_cell(line,
+					types ? types[i] : SC_TYPE_STRING, &data[i]))
+			return -1;
+
+		line = next;
+	}
+
+	if (callback(client, (size_t)column_count, data))
+		return -1;
+	return 0;
+} /* sc_unixsock_client_process_one_line */
 
 /*
  * public API
@@ -177,6 +307,95 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 	}
 	return buffer;
 } /* sc_unixsock_client_recv */
+
+int
+sc_unixsock_client_process_lines(sc_unixsock_client_t *client,
+		sc_unixsock_client_data_cb callback, long int max_lines,
+		const char *delim, int n_cols, ...)
+{
+	int *types = NULL;
+	int success = 0;
+
+	if ((! client) || (! client->fh) || (! callback))
+		return -1;
+
+	if (n_cols > 0) {
+		va_list ap;
+		int i;
+
+		types = calloc((size_t)n_cols, sizeof(*types));
+		if (! types)
+			return -1;
+
+		va_start(ap, n_cols);
+
+		for (i = 0; i < n_cols; ++i) {
+			types[i] = va_arg(ap, int);
+
+			if ((types[i] < 1) || (types[i] > SC_TYPE_BINARY)) {
+				fprintf(stderr, "unixsock: Unknown column type %i while "
+						"processing response from the UNIX socket @ %s.\n",
+						types[i], client->path);
+				va_end(ap);
+				free(types);
+				return -1;
+			}
+		}
+
+		va_end(ap);
+	}
+
+	while (42) {
+		char  buffer[1024];
+		char *line;
+
+		int column_count;
+
+		if (! max_lines)
+			break;
+
+		if (max_lines > 0)
+			--max_lines;
+
+		sc_unixsock_client_clearerr(client);
+		line = sc_unixsock_client_recv(client, buffer, sizeof(buffer));
+
+		if (! line)
+			break;
+
+		column_count = sc_unixsock_get_column_count(line, delim);
+
+		if ((n_cols >= 0) && (n_cols != column_count)) {
+			fprintf(stderr, "unixsock: number of columns (%i) does not "
+					"match the number of requested columns (%i) while "
+					"processing response from the UNIX socket @ %s: %s\n",
+					column_count, n_cols, client->path, line);
+			continue;
+		}
+
+		if (column_count <= 0) /* no data */
+			continue;
+
+		if (! sc_unixsock_client_process_one_line(client, line, callback,
+					delim, column_count, types))
+			++success;
+	}
+
+	free(types);
+
+	if ((max_lines > 0)
+			|| ((max_lines < 0) && (! sc_unixsock_client_eof(client)))
+			|| sc_unixsock_client_error(client)) {
+		char errbuf[1024];
+		fprintf(stderr, "unixsock: Unexpected end of data while reading "
+				"from socket (%s): %s\n", client->path,
+				sc_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	if (! success)
+		return -1;
+	return 0;
+} /* sc_unixsock_client_process_lines */
 
 int
 sc_unixsock_client_shutdown(sc_unixsock_client_t *client, int how)

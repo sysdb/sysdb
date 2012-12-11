@@ -28,6 +28,8 @@
 #ifndef SC_UTILS_UNIXSOCK_H
 #define SC_UTILS_UNIXSOCK_H 1
 
+#include "utils/data.h"
+
 #include <sys/socket.h>
 
 #include <stddef.h>
@@ -38,6 +40,9 @@ extern "C" {
 
 struct sc_unixsock_client;
 typedef struct sc_unixsock_client sc_unixsock_client_t;
+
+typedef int (*sc_unixsock_client_data_cb)(sc_unixsock_client_t *,
+		size_t, sc_data_t *);
 
 sc_unixsock_client_t *
 sc_unixsock_client_create(const char *path);
@@ -50,6 +55,26 @@ sc_unixsock_client_send(sc_unixsock_client_t *client, const char *msg);
 
 char *
 sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t buflen);
+
+/*
+ * sc_unixsock_client_process_lines:
+ * Reads up to 'max_lines' lines from the socket, splits each line at the
+ * specified 'delim' and passes the data on to the specified 'callback'. If
+ * 'max_lines' is less than zero, the function will read until EOF or an error
+ * is encountered. If 'n_cols' is greater than zero, the function will expect
+ * that number of columns to appear in each line. Also, it will expect that
+ * number of further arguments, specifying the data-type to be returned for
+ * the respective column (see sc_data_t). The content of each column will then
+ * be converted accordingly.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sc_unixsock_client_process_lines(sc_unixsock_client_t *client,
+		sc_unixsock_client_data_cb callback, long int max_lines,
+		const char *delim, int n_cols, ...);
 
 /*
  * sc_unixsock_client_shutdown:
