@@ -143,7 +143,8 @@ sc_unixsock_parse_cell(char *string, int type, sc_data_t *data)
 static int
 sc_unixsock_client_process_one_line(sc_unixsock_client_t *client,
 		char *line, sc_unixsock_client_data_cb callback,
-		const char *delim, int column_count, int *types)
+		sc_object_t *user_data, const char *delim,
+		int column_count, int *types)
 {
 	sc_data_t data[column_count];
 	char *orig_line = line;
@@ -179,7 +180,7 @@ sc_unixsock_client_process_one_line(sc_unixsock_client_t *client,
 		line = next;
 	}
 
-	if (callback(client, (size_t)column_count, data))
+	if (callback(client, (size_t)column_count, data, user_data))
 		return -1;
 	return 0;
 } /* sc_unixsock_client_process_one_line */
@@ -310,8 +311,8 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
 
 int
 sc_unixsock_client_process_lines(sc_unixsock_client_t *client,
-		sc_unixsock_client_data_cb callback, long int max_lines,
-		const char *delim, int n_cols, ...)
+		sc_unixsock_client_data_cb callback, sc_object_t *user_data,
+		long int max_lines, const char *delim, int n_cols, ...)
 {
 	int *types = NULL;
 	int success = 0;
@@ -377,7 +378,7 @@ sc_unixsock_client_process_lines(sc_unixsock_client_t *client,
 			continue;
 
 		if (! sc_unixsock_client_process_one_line(client, line, callback,
-					delim, column_count, types))
+					user_data, delim, column_count, types))
 			++success;
 	}
 

@@ -28,6 +28,7 @@
 #ifndef SC_UTILS_DBI_H
 #define SC_UTILS_DBI_H 1
 
+#include "core/object.h"
 #include "utils/data.h"
 
 #include <stddef.h>
@@ -55,7 +56,8 @@ typedef struct sc_dbi_options sc_dbi_options_t;
 struct sc_dbi_client;
 typedef struct sc_dbi_client sc_dbi_client_t;
 
-typedef int (*sc_dbi_data_cb)(sc_dbi_client_t *, size_t, sc_data_t *);
+typedef int (*sc_dbi_data_cb)(sc_dbi_client_t *,
+		size_t, sc_data_t *, sc_object_t *);
 
 /*
  * sc_dbi_options_t:
@@ -133,7 +135,7 @@ sc_dbi_client_connect(sc_dbi_client_t *client);
  */
 int
 sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
-		sc_dbi_data_cb callback, int n, ...);
+		sc_dbi_data_cb callback, sc_object_t *user_data, int n, ...);
 
 /*
  * sc_dbi_client_destroy:

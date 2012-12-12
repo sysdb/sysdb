@@ -112,7 +112,8 @@ sc_dbi_get_field(dbi_result res, unsigned int i,
 
 static int
 sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
-		unsigned int num_fields, sc_dbi_data_cb callback)
+		unsigned int num_fields, sc_dbi_data_cb callback,
+		sc_object_t *user_data)
 {
 	sc_data_t data[num_fields];
 	int types[num_fields];
@@ -150,7 +151,7 @@ sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 						types[i], &data[i]))
 				continue;
 
-		if (callback(client, num_fields, data))
+		if (callback(client, num_fields, data, user_data))
 			continue;
 
 		++success;
@@ -347,7 +348,7 @@ sc_dbi_client_connect(sc_dbi_client_t *client)
 
 int
 sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
-		sc_dbi_data_cb callback, int n, ...)
+		sc_dbi_data_cb callback, sc_object_t *user_data, int n, ...)
 {
 	dbi_result res;
 	unsigned int num_fields;
@@ -424,7 +425,7 @@ sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
 		return 0;
 	}
 
-	status = sc_dbi_get_data(client, res, num_fields, callback);
+	status = sc_dbi_get_data(client, res, num_fields, callback, user_data);
 
 	dbi_result_free(res);
 	return status;

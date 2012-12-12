@@ -28,6 +28,7 @@
 #ifndef SC_UTILS_UNIXSOCK_H
 #define SC_UTILS_UNIXSOCK_H 1
 
+#include "core/object.h"
 #include "utils/data.h"
 
 #include <sys/socket.h>
@@ -42,7 +43,7 @@ struct sc_unixsock_client;
 typedef struct sc_unixsock_client sc_unixsock_client_t;
 
 typedef int (*sc_unixsock_client_data_cb)(sc_unixsock_client_t *,
-		size_t, sc_data_t *);
+		size_t, sc_data_t *, sc_object_t *);
 
 sc_unixsock_client_t *
 sc_unixsock_client_create(const char *path);
@@ -73,8 +74,8 @@ sc_unixsock_client_recv(sc_unixsock_client_t *client, char *buffer, size_t bufle
  */
 int
 sc_unixsock_client_process_lines(sc_unixsock_client_t *client,
-		sc_unixsock_client_data_cb callback, long int max_lines,
-		const char *delim, int n_cols, ...);
+		sc_unixsock_client_data_cb callback, sc_object_t *user_data,
+		long int max_lines, const char *delim, int n_cols, ...);
 
 /*
  * sc_unixsock_client_shutdown:
