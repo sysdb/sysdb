@@ -41,6 +41,17 @@
 #include <pthread.h>
 
 /*
+ * private data types
+ */
+
+/* type used for looking up named objects */
+typedef struct {
+	sc_object_t parent;
+	const char *obj_name;
+} sc_store_lookup_obj_t;
+#define SC_STORE_LOOKUP_OBJ_INIT { SC_OBJECT_INIT, NULL }
+
+/*
  * private variables
  */
 
@@ -62,9 +73,19 @@ sc_store_obj_cmp_by_name(const sc_object_t *a, const sc_object_t *b)
 } /* sc_store_obj_cmp_by_name */
 
 static int
+sc_cmp_store_obj_with_name(const sc_object_t *a, const sc_object_t *b)
+{
+	const sc_store_obj_t *obj = (const sc_store_obj_t *)a;
+	const sc_store_lookup_obj_t *lookup = (const sc_store_lookup_obj_t *)b;
+
+	assert(obj && lookup);
+	return strcasecmp(obj->name, lookup->obj_name);
+} /* sc_cmp_store_obj_with_name */
+
+static int
 sc_host_init(sc_object_t *obj, va_list ap)
 {
-	char *name = va_arg(ap, char *);
+	const char *name = va_arg(ap, const char *);
 
 	SC_HOST(obj)->host_name = strdup(name);
 	if (! SC_HOST(obj)->host_name)
@@ -94,8 +115,8 @@ sc_host_destroy(sc_object_t *obj)
 static int
 sc_svc_init(sc_object_t *obj, va_list ap)
 {
-	char *hostname = va_arg(ap, char *);
-	char *name = va_arg(ap, char *);
+	const char *hostname = va_arg(ap, const char *);
+	const char *name = va_arg(ap, const char *);
 
 	SC_SVC(obj)->hostname = strdup(hostname);
 	SC_SVC(obj)->svc_name = strdup(name);
@@ -123,7 +144,7 @@ sc_svc_destroy(sc_object_t *obj)
  */
 
 sc_host_t *
-sc_host_create(char *name)
+sc_host_create(const char *name)
 {
 	sc_object_t *obj;
 
@@ -162,6 +183,7 @@ sc_host_clone(const sc_host_t *host)
 int
 sc_store_host(const sc_host_t *host)
 {
+	sc_store_lookup_obj_t lookup = SC_STORE_LOOKUP_OBJ_INIT;
 	sc_time_t last_update;
 
 	sc_host_t *old;
@@ -183,8 +205,9 @@ sc_store_host(const sc_host_t *host)
 		}
 	}
 
-	old = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)host,
-				sc_store_obj_cmp_by_name));
+	lookup.obj_name = host->host_name;
+	old = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&lookup,
+				sc_cmp_store_obj_with_name));
 
 	if (old) {
 		if (old->host_last_update > last_update) {
@@ -231,17 +254,17 @@ sc_store_host(const sc_host_t *host)
 } /* sc_store_host */
 
 const sc_host_t *
-sc_store_get_host(char *name)
+sc_store_get_host(const char *name)
 {
-	sc_host_t  tmp = SC_HOST_INIT;
+	sc_store_lookup_obj_t lookup = SC_STORE_LOOKUP_OBJ_INIT;
 	sc_host_t *host;
 
 	if (! name)
 		return NULL;
 
-	tmp.host_name = name;
-	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&tmp,
-				sc_store_obj_cmp_by_name));
+	lookup.obj_name = name;
+	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&lookup,
+				sc_cmp_store_obj_with_name));
 
 	if (! host)
 		return NULL;
@@ -249,7 +272,7 @@ sc_store_get_host(char *name)
 } /* sc_store_get_host */
 
 sc_service_t *
-sc_service_create(char *hostname, char *name)
+sc_service_create(const char *hostname, const char *name)
 {
 	sc_object_t *obj;
 
@@ -279,7 +302,7 @@ sc_service_clone(const sc_service_t *svc)
 int
 sc_store_service(const sc_service_t *svc)
 {
-	sc_host_t  tmp = SC_HOST_INIT;
+	sc_store_lookup_obj_t lookup = SC_STORE_LOOKUP_OBJ_INIT;
 	sc_host_t *host;
 
 	sc_service_t *old;
@@ -300,15 +323,16 @@ sc_store_service(const sc_service_t *svc)
 
 	pthread_rwlock_wrlock(&host_lock);
 
-	tmp.host_name = svc->hostname;
-	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&tmp,
-				sc_store_obj_cmp_by_name));
+	lookup.obj_name = svc->hostname;
+	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&lookup,
+				sc_cmp_store_obj_with_name));
 
 	if (! host)
 		return -1;
 
-	old = SC_SVC(sc_llist_search(host->services, (const sc_object_t *)svc,
-				sc_store_obj_cmp_by_name));
+	lookup.obj_name = svc->svc_name;
+	old = SC_SVC(sc_llist_search(host->services, (const sc_object_t *)&lookup,
+				sc_cmp_store_obj_with_name));
 
 	if (old) {
 		if (old->host_last_update > last_update) {
@@ -343,17 +367,17 @@ sc_store_service(const sc_service_t *svc)
 } /* sc_store_service */
 
 const sc_service_t *
-sc_store_get_service(const sc_host_t *host, char *name)
+sc_store_get_service(const sc_host_t *host, const char *name)
 {
-	sc_service_t  tmp = SC_SVC_INIT;
+	sc_store_lookup_obj_t lookup = SC_STORE_LOOKUP_OBJ_INIT;
 	sc_service_t *svc;
 
 	if ((! host) || (! name))
 		return NULL;
 
-	tmp.svc_name = name;
-	svc = SC_SVC(sc_llist_search(host->services, (const sc_object_t *)&tmp,
-				sc_store_obj_cmp_by_name));
+	lookup.obj_name = name;
+	svc = SC_SVC(sc_llist_search(host->services, (const sc_object_t *)&lookup,
+				sc_cmp_store_obj_with_name));
 
 	if (! svc)
 		return NULL;

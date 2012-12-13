@@ -69,7 +69,7 @@ typedef struct {
 #define SC_HOST(obj) ((sc_host_t *)(obj))
 
 sc_host_t *
-sc_host_create(char *name);
+sc_host_create(const char *name);
 
 sc_host_t *
 sc_host_clone(const sc_host_t *host);
@@ -92,10 +92,10 @@ int
 sc_store_host(const sc_host_t *host);
 
 const sc_host_t *
-sc_store_get_host(char *name);
+sc_store_get_host(const char *name);
 
 sc_service_t *
-sc_service_create(char *hostname, char *name);
+sc_service_create(const char *hostname, const char *name);
 
 sc_service_t *
 sc_service_clone(const sc_service_t *svc);
@@ -120,7 +120,7 @@ int
 sc_store_service(const sc_service_t *svc);
 
 const sc_service_t *
-sc_store_get_service(const sc_host_t *host, char *name);
+sc_store_get_service(const sc_host_t *host, const char *name);
 
 int
 sc_store_dump(FILE *fh);
