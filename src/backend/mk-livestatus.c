@@ -48,7 +48,7 @@ SC_PLUGIN_MAGIC;
  */
 
 static int
-sc_livestatus_get_data(sc_unixsock_client_t __attribute__((unused)) *client,
+sc_livestatus_get_host(sc_unixsock_client_t __attribute__((unused)) *client,
 		size_t n, sc_data_t *data, sc_object_t __attribute__((unused)) *user_data)
 {
 	char *hostname = NULL;
@@ -84,7 +84,52 @@ sc_livestatus_get_data(sc_unixsock_client_t __attribute__((unused)) *client,
 			hostname, timestamp);
 	free(hostname);
 	return 0;
-} /* sc_livestatus_get_data */
+} /* sc_livestatus_get_host */
+
+static int
+sc_livestatus_get_svc(sc_unixsock_client_t __attribute__((unused)) *client,
+		size_t n, sc_data_t *data, sc_object_t __attribute__((unused)) *user_data)
+{
+	char *hostname = NULL;
+	char *svcname = NULL;
+	sc_time_t timestamp = 0;
+
+	sc_service_t svc = SC_SVC_INIT;
+
+	int status;
+
+	assert(n == 3);
+	assert((data[0].type == SC_TYPE_STRING)
+			&& (data[1].type == SC_TYPE_STRING)
+			&& (data[2].type == SC_TYPE_DATETIME));
+
+	hostname  = strdup(data[0].data.string);
+	svcname   = strdup(data[1].data.string);
+	timestamp = data[2].data.datetime;
+
+	svc.hostname = hostname;
+	svc.svc_name = svcname;
+	svc.svc_last_update = timestamp;
+
+	status = sc_store_service(&svc);
+
+	if (status < 0) {
+		fprintf(stderr, "MK Livestatus backend: Failed to store/update "
+				"service '%s / %s'.\n", hostname, svcname);
+		free(hostname);
+		free(svcname);
+		return -1;
+	}
+	else if (status > 0) /* value too old */
+		return 0;
+
+	fprintf(stderr, "MK Livestatus backend: Added/updated service '%s / %s' "
+			"(last update timestamp = %"PRIscTIME").\n",
+			hostname, svcname, timestamp);
+	free(hostname);
+	free(svcname);
+	return 0;
+} /* sc_livestatus_get_svc */
 
 /*
  * plugin API
@@ -135,11 +180,12 @@ sc_livestatus_collect(sc_object_t *user_data)
 
 	sc_unixsock_client_shutdown(client, SHUT_WR);
 
-	if (sc_unixsock_client_process_lines(client, sc_livestatus_get_data,
+	if (sc_unixsock_client_process_lines(client, sc_livestatus_get_host,
 				/* user data */ NULL, /* -> EOF */ -1, /* delim */ ";",
 				/* column count */ 2, SC_TYPE_STRING, SC_TYPE_DATETIME)) {
 		fprintf(stderr, "MK Livestatus backend: Failed to read response "
-				"from livestatus @ %s.\n", sc_unixsock_client_path(client));
+				"from livestatus @ %s while reading hosts.\n",
+				sc_unixsock_client_path(client));
 		return -1;
 	}
 
@@ -147,6 +193,37 @@ sc_livestatus_collect(sc_object_t *user_data)
 			|| sc_unixsock_client_error(client)) {
 		char errbuf[1024];
 		fprintf(stderr, "MK Livestatus backend: Failed to read host "
+				"from livestatus @ %s: %s\n",
+				sc_unixsock_client_path(client),
+				sc_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+
+	status = sc_unixsock_client_send(client, "GET services\r\n"
+			"Columns: host_name description last_check");
+	if (status <= 0) {
+		fprintf(stderr, "MK Livestatus backend: Failed to send "
+				"'GET services' command to livestatus @ %s.\n",
+				sc_unixsock_client_path(client));
+		return -1;
+	}
+
+	sc_unixsock_client_shutdown(client, SHUT_WR);
+
+	if (sc_unixsock_client_process_lines(client, sc_livestatus_get_svc,
+				/* user data */ NULL, /* -> EOF */ -1, /* delim */ ";",
+				/* column count */ 3, SC_TYPE_STRING, SC_TYPE_STRING,
+				SC_TYPE_DATETIME)) {
+		fprintf(stderr, "MK Livestatus backend: Failed to read response "
+				"from livestatus @ %s while reading services.\n",
+				sc_unixsock_client_path(client));
+		return -1;
+	}
+
+	if ((! sc_unixsock_client_eof(client))
+			|| sc_unixsock_client_error(client)) {
+		char errbuf[1024];
+		fprintf(stderr, "MK Livestatus backend: Failed to read services "
 				"from livestatus @ %s: %s\n",
 				sc_unixsock_client_path(client),
 				sc_strerror(errno, errbuf, sizeof(errbuf)));
