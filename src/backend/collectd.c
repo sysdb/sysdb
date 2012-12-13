@@ -44,77 +44,39 @@
 SC_PLUGIN_MAGIC;
 
 /*
+ * private data types
+ */
+
+typedef struct {
+	char *current_host;
+	sc_time_t current_timestamp;
+	int svc_updated;
+	int svc_failed;
+} sc_collectd_state_t;
+#define SC_COLLECTD_STATE_INIT { NULL, 0, 0, 0 }
+
+/*
  * private helper functions
  */
 
 static int
-sc_collectd_parse_value(char *line,
-		sc_time_t *timestamp, char **host, char **svc)
-{
-	char *timestamp_str;
-	double timestamp_dbl;
-
-	char *hostname, *service;
-
-	char *endptr = NULL;
-
-	timestamp_str = line;
-	hostname = strchr(timestamp_str, ' ');
-
-	if (! hostname) {
-		fprintf(stderr, "collectd backend: Failed to find hostname "
-				"in LISTVAL output, line: %s\n", line);
-		return -1;
-	}
-
-	*hostname = '\0';
-	++hostname;
-
-	service = strchr(hostname, '/');
-
-	if (! service)
-		fprintf(stderr, "collectd backend: Failed to find service name "
-				"in LISTVAL output, line: %s\n", line);
-	else {
-		*service = '\0';
-		++service;
-	}
-
-	errno = 0;
-	timestamp_dbl = strtod(timestamp_str, &endptr);
-	if (errno || (timestamp_str == endptr)) {
-		char errbuf[1024];
-		fprintf(stderr, "collectd backend: Failed to "
-				"parse timestamp (%s): %s\n", timestamp_str,
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
-		return -1;
-	}
-	if (endptr && (*endptr != '\0'))
-		fprintf(stderr, "collectd backend: Ignoring garbage "
-				"after number when parsing timestamp: %s.\n",
-				endptr);
-
-	*timestamp = DOUBLE_TO_SC_TIME(timestamp_dbl);
-	*host = hostname;
-	*svc  = service;
-	return 0;
-} /* sc_collectd_parse_value */
-
-static int
-sc_collectd_add_host(char *hostname, sc_time_t last_update)
+sc_collectd_add_host(const char *hostname, sc_time_t last_update)
 {
 	sc_host_t host = SC_HOST_INIT;
+	char name[strlen(hostname) + 1];
 
 	int status;
 
-	host.host_name = hostname;
+	strncpy(name, hostname, sizeof(name));
+
+	host.host_name = name;
 	host.host_last_update = last_update;
 
 	status = sc_store_host(&host);
 
 	if (status < 0) {
 		fprintf(stderr, "collectd backend: Failed to store/update "
-				"host '%s'.\n", hostname);
+				"host '%s'.\n", name);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
@@ -122,29 +84,103 @@ sc_collectd_add_host(char *hostname, sc_time_t last_update)
 
 	fprintf(stderr, "collectd backend: Added/updated host '%s' "
 			"(last update timestamp = %"PRIscTIME").\n",
-			hostname, last_update);
+			name, last_update);
 	return 0;
 } /* sc_collectd_add_host */
 
 static int
-sc_collectd_add_svc(char *hostname, char *name, sc_time_t last_update)
+sc_collectd_add_svc(const char *hostname, const char *plugin,
+		const char *type, sc_time_t last_update)
 {
 	sc_service_t svc = SC_SVC_INIT;
+	char host[strlen(hostname) + 1];
+	char name[strlen(plugin) + strlen(type) + 2];
 
 	int status;
 
-	svc.hostname = hostname;
+	strncpy(host, hostname, sizeof(host));
+	snprintf(name, sizeof(name), "%s/%s", plugin, type);
+
+	svc.hostname = host;
 	svc.svc_name = name;
 	svc.svc_last_update = last_update;
 
 	status = sc_store_service(&svc);
 	if (status < 0) {
 		fprintf(stderr, "collectd backend: Failed to store/update "
-				"service '%s/%s'.\n", hostname, name);
+				"service '%s/%s'.\n", host, name);
 		return -1;
 	}
 	return 0;
 } /* sc_collectd_add_svc */
+
+static int
+sc_collectd_get_data(sc_unixsock_client_t __attribute__((unused)) *client,
+		size_t n, sc_data_t *data, sc_object_t *user_data)
+{
+	sc_collectd_state_t *state;
+
+	const char *hostname;
+	const char *plugin;
+	const char *type;
+	sc_time_t last_update;
+
+	assert(user_data);
+
+	assert(n == 4);
+	assert((data[0].type == SC_TYPE_DATETIME)
+			&& (data[1].type == SC_TYPE_STRING)
+			&& (data[2].type == SC_TYPE_STRING)
+			&& (data[3].type == SC_TYPE_STRING));
+
+	last_update = data[0].data.datetime;
+	hostname = data[1].data.string;
+	plugin   = data[2].data.string;
+	type     = data[3].data.string;
+
+	state = SC_OBJ_WRAPPER(user_data)->data;
+
+	if (! state->current_host) {
+		state->current_host = strdup(hostname);
+		state->current_timestamp = last_update;
+	}
+
+	if (! state->current_host) {
+		char errbuf[1024];
+		fprintf(stderr, "collectd backend: Failed to allocate "
+				"string buffer: %s\n",
+				sc_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+
+	if (! sc_store_get_host(hostname))
+		sc_collectd_add_host(hostname, last_update);
+
+	if (sc_collectd_add_svc(hostname, plugin, type, last_update))
+		++state->svc_failed;
+	else
+		++state->svc_updated;
+
+	if (! strcasecmp(state->current_host, hostname)) {
+		if (last_update > state->current_timestamp)
+			state->current_timestamp = last_update;
+		return 0;
+	}
+
+	/* new host */
+	sc_collectd_add_host(hostname, last_update);
+
+	fprintf(stderr, "collectd backend: Added/updated "
+			"%i service%s (%i failed) for host '%s'.\n",
+			state->svc_updated, state->svc_updated == 1 ? "" : "s",
+			state->svc_failed, state->current_host);
+	state->svc_updated = state->svc_failed = 0;
+
+	free(state->current_host);
+	state->current_host = strdup(hostname);
+	state->current_timestamp = last_update;
+	return 0;
+} /* sc_collectd_get_data */
 
 /*
  * plugin API
@@ -187,13 +223,11 @@ sc_collectd_collect(sc_object_t *user_data)
 	char *msg;
 
 	char *endptr = NULL;
-	long int count, i;
+	long int count;
 
-	char *current_host = NULL;
-	sc_time_t current_timestamp = 0;
-
-	int svc_updated = 0;
-	int svc_failed  = 0;
+	sc_collectd_state_t state = SC_COLLECTD_STATE_INIT;
+	sc_object_wrapper_t state_obj = SC_OBJECT_WRAPPER_STATIC(&state,
+			/* destructor = */ NULL);
 
 	if (! user_data)
 		return -1;
@@ -236,60 +270,22 @@ sc_collectd_collect(sc_object_t *user_data)
 		return -1;
 	}
 
-	for (i = 0; i < count; ++i) {
-		char *hostname = NULL, *service = NULL;
-		sc_time_t last_update = 0;
-
-		line = sc_unixsock_client_recv(client, buffer, sizeof(buffer));
-
-		if (sc_collectd_parse_value(line, &last_update, &hostname, &service))
-			continue;
-
-		if (! current_host)
-			current_host = strdup(hostname);
-		if (! current_host) {
-			char errbuf[1024];
-			fprintf(stderr, "collectd backend: Failed to allocate "
-					"string buffer: %s\n",
-					sc_strerror(errno, errbuf, sizeof(errbuf)));
-			return -1;
-		}
-
-		if (! sc_store_get_host(hostname))
-			sc_collectd_add_host(hostname, last_update);
-
-		if (sc_collectd_add_svc(hostname, service, last_update))
-			++svc_failed;
-		else
-			++svc_updated;
-
-		assert(hostname && service);
-		if (! strcasecmp(current_host, hostname)) {
-			if (last_update > current_timestamp)
-				current_timestamp = last_update;
-			continue;
-		}
-
-		/* new host */
-		sc_collectd_add_host(current_host, current_timestamp);
-
-		fprintf(stderr, "collectd backend: Added/updated "
-				"%i service%s (%i failed) for host '%s'.\n",
-				svc_updated, svc_updated == 1 ? "" : "s",
-				svc_failed, current_host);
-		svc_updated = svc_failed = 0;
-
-		free(current_host);
-		current_host = strdup(hostname);
-		current_timestamp = last_update;
+	if (sc_unixsock_client_process_lines(client, sc_collectd_get_data,
+				SC_OBJ(&state_obj), count, /* delim */ " /",
+				/* column count = */ 4,
+				SC_TYPE_DATETIME, SC_TYPE_STRING,
+				SC_TYPE_STRING, SC_TYPE_STRING)) {
+		fprintf(stderr, "collectd backend: Failed to read response "
+				"from collectd @ %s.\n", sc_unixsock_client_path(client));
+		return -1;
 	}
 
-	if (current_host) {
-		sc_collectd_add_host(current_host, current_timestamp);
+	if (state.current_host) {
+		sc_collectd_add_host(state.current_host, state.current_timestamp);
 		fprintf(stderr, "collectd backend: Added/updated "
 				"%i service%s (%i failed) for host '%s'.\n",
-				svc_updated, svc_updated == 1 ? "" : "s",
-				svc_failed, current_host);
+				state.svc_updated, state.svc_updated == 1 ? "" : "s",
+				state.svc_failed, state.current_host);
 	}
 	return 0;
 } /* sc_collectd_collect */
