@@ -82,6 +82,9 @@ sc_object_create(size_t size, int (*init)(sc_object_t *, va_list),
 sc_object_t *
 sc_object_create_wrapper(void *data, void (*destructor)(void *));
 
+#define SC_OBJECT_WRAPPER_STATIC(obj, destructor) \
+	{ SC_OBJECT_INIT, (obj), (destructor) }
+
 /*
  * sc_object_deref:
  * Dereference the object and free the allocated memory in case the ref-count
