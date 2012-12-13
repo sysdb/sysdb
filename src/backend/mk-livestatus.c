@@ -48,46 +48,43 @@ SC_PLUGIN_MAGIC;
  */
 
 static int
-sc_livestatus_parse_line(char *line,
-		char **host, sc_time_t *timestamp)
+sc_livestatus_get_data(sc_unixsock_client_t __attribute__((unused)) *client,
+		size_t n, sc_data_t *data, sc_object_t __attribute__((unused)) *user_data)
 {
-	char *timestamp_str;
-	double timestamp_dbl;
+	char *hostname = NULL;
+	sc_time_t timestamp = 0;
 
-	char *hostname;
+	sc_host_t host = SC_HOST_INIT;
 
-	char *endptr = NULL;
+	int status;
 
-	hostname = line;
-	timestamp_str = strchr(hostname, ';');
+	assert(n == 2);
+	assert((data[0].type == SC_TYPE_STRING)
+			&& (data[1].type == SC_TYPE_DATETIME));
 
-	if (! timestamp_str) {
-		fprintf(stderr, "MK Livestatus backend: Failed to find timestamp "
-				"in 'GET hosts' output, line: %s\n", line);
+	hostname  = strdup(data[0].data.string);
+	timestamp = data[1].data.datetime;
+
+	host.host_name = hostname;
+	host.host_last_update = timestamp;
+
+	status = sc_store_host(&host);
+
+	if (status < 0) {
+		fprintf(stderr, "MK Livestatus backend: Failed to store/update "
+				"host '%s'.\n", hostname);
+		free(hostname);
 		return -1;
 	}
+	else if (status > 0) /* value too old */
+		return 0;
 
-	*timestamp_str = '\0';
-	++timestamp_str;
-
-	errno = 0;
-	timestamp_dbl = strtod(timestamp_str, &endptr);
-	if (errno || (timestamp_str == endptr)) {
-		char errbuf[1024];
-		fprintf(stderr, "MK Livestatus backend: Failed to "
-				"parse timestamp (%s): %s\n", timestamp_str,
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
-		return -1;
-	}
-	if (endptr && (*endptr != '\0'))
-		fprintf(stderr, "MK Livestatus backend: Ignoring garbage "
-				"after number when parsing timestamp: %s.\n",
-				endptr);
-
-	*timestamp = DOUBLE_TO_SC_TIME(timestamp_dbl);
-	*host = hostname;
+	fprintf(stderr, "MK Livestatus backend: Added/updated host '%s' "
+			"(last update timestamp = %"PRIscTIME").\n",
+			hostname, timestamp);
+	free(hostname);
 	return 0;
-} /* sc_livestatus_parse_line */
+} /* sc_livestatus_get_data */
 
 /*
  * plugin API
@@ -138,43 +135,12 @@ sc_livestatus_collect(sc_object_t *user_data)
 
 	sc_unixsock_client_shutdown(client, SHUT_WR);
 
-	while (42) {
-		char  buffer[1024];
-		char *line;
-
-		char *hostname = NULL;
-		sc_time_t timestamp = 0;
-
-		sc_host_t host = SC_HOST_INIT;
-
-		sc_unixsock_client_clearerr(client);
-		line = sc_unixsock_client_recv(client, buffer, sizeof(buffer));
-
-		if (! line)
-			break;
-
-		if (sc_livestatus_parse_line(line, &hostname, &timestamp)) {
-			fprintf(stderr, "MK Livestatus backend: Failed to parse "
-					"hosts line: %s\n", line);
-			continue;
-		}
-
-		host.host_name = hostname;
-		host.host_last_update = timestamp;
-
-		status = sc_store_host(&host);
-
-		if (status < 0) {
-			fprintf(stderr, "MK Livestatus backend: Failed to store/update "
-					"host '%s'.\n", hostname);
-			continue;
-		}
-		else if (status > 0) /* value too old */
-			continue;
-
-		fprintf(stderr, "MK Livestatus backend: Added/updated host '%s' "
-				"(last update timestamp = %"PRIscTIME").\n",
-				hostname, timestamp);
+	if (sc_unixsock_client_process_lines(client, sc_livestatus_get_data,
+				/* user data */ NULL, /* -> EOF */ -1, /* delim */ ";",
+				/* column count */ 2, SC_TYPE_STRING, SC_TYPE_DATETIME)) {
+		fprintf(stderr, "MK Livestatus backend: Failed to read response "
+				"from livestatus @ %s.\n", sc_unixsock_client_path(client));
+		return -1;
 	}
 
 	if ((! sc_unixsock_client_eof(client))
