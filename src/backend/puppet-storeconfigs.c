@@ -48,7 +48,7 @@ SC_PLUGIN_MAGIC;
  */
 
 static int
-sc_puppet_stcfg_get_data(sc_dbi_client_t __attribute__((unused)) *client,
+sc_puppet_stcfg_get_hosts(sc_dbi_client_t __attribute__((unused)) *client,
 		size_t n, sc_data_t *data,
 		sc_object_t __attribute__((unused)) *user_data)
 {
@@ -77,7 +77,45 @@ sc_puppet_stcfg_get_data(sc_dbi_client_t __attribute__((unused)) *client,
 				host.host_name, host.host_last_update);
 	free(host.host_name);
 	return 0;
-} /* sc_puppet_stcfg_get_data */
+} /* sc_puppet_stcfg_get_hosts */
+
+static int
+sc_puppet_stcfg_get_attrs(sc_dbi_client_t __attribute__((unused)) *client,
+		size_t n, sc_data_t *data,
+		sc_object_t __attribute__((unused)) *user_data)
+{
+	sc_attribute_t attr = SC_ATTR_INIT;
+
+	int status;
+
+	assert(n == 4);
+	assert((data[0].type == SC_TYPE_STRING)
+			&& (data[1].type == SC_TYPE_STRING)
+			&& (data[2].type == SC_TYPE_STRING)
+			&& (data[3].type == SC_TYPE_DATETIME));
+
+	attr.hostname = strdup(data[0].data.string);
+	attr.attr_name = strdup(data[1].data.string);
+	attr.attr_value = strdup(data[2].data.string);
+	attr.attr_last_update = data[3].data.datetime;
+
+	status = sc_store_attribute(&attr);
+
+	if (status < 0) {
+		fprintf(stderr, "puppet storeconfigs backend: Failed to store/update "
+				"host attribute '%s' for host '%s'.\n", attr.attr_name,
+				attr.hostname);
+		free(attr.hostname);
+		free(attr.attr_name);
+		free(attr.attr_value);
+		return -1;
+	}
+
+	free(attr.hostname);
+	free(attr.attr_name);
+	free(attr.attr_value);
+	return 0;
+} /* sc_puppet_stcfg_get_attrs */
 
 /*
  * plugin API
@@ -113,10 +151,28 @@ sc_puppet_stcfg_collect(sc_object_t *user_data)
 
 	client = SC_OBJ_WRAPPER(user_data)->data;
 	if (sc_dbi_exec_query(client, "SELECT name, updated_at FROM hosts;",
-				sc_puppet_stcfg_get_data, NULL, /* #columns = */ 2,
+				sc_puppet_stcfg_get_hosts, NULL, /* #columns = */ 2,
 				/* col types = */ SC_TYPE_STRING, SC_TYPE_DATETIME)) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to retrieve "
 				"hosts from the storeconfigs DB.\n");
+		return -1;
+	}
+
+	if (sc_dbi_exec_query(client, "SELECT "
+					"hosts.name AS hostname, "
+					"fact_names.name AS name, "
+					"fact_values.value AS value, "
+					"fact_values.updated_at AS updated_at "
+				"FROM fact_values "
+				"INNER JOIN hosts "
+					"ON fact_values.host_id = hosts.id "
+				"INNER JOIN fact_names "
+					"ON fact_values.fact_name_id = fact_names.id;",
+				sc_puppet_stcfg_get_attrs, NULL, /* #columns = */ 4,
+				/* col types = */ SC_TYPE_STRING, SC_TYPE_STRING,
+				SC_TYPE_STRING, SC_TYPE_DATETIME)) {
+		fprintf(stderr, "puppet storeconfigs backend: Failed to retrieve "
+				"host attributes from the storeconfigs DB.\n");
 		return -1;
 	}
 	return 0;
