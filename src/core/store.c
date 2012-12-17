@@ -427,7 +427,7 @@ sc_store_dump(FILE *fh)
 			assert(svc);
 
 			if (! sc_strftime(time_str, sizeof(time_str),
-						"%F %T %z", host->host_last_update))
+						"%F %T %z", svc->svc_last_update))
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
