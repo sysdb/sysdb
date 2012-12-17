@@ -60,12 +60,24 @@ typedef struct {
 
 typedef struct {
 	sc_store_obj_t parent;
+#define attr_last_update parent.last_update
+#define attr_name parent.name
+
+	char *attr_value;
+	char *hostname;
+} sc_attribute_t;
+#define SC_ATTR_INIT { SC_STORE_OBJ_INIT, NULL, NULL }
+#define SC_ATTR(obj) ((sc_attribute_t *)(obj))
+
+typedef struct {
+	sc_store_obj_t parent;
 #define host_last_update parent.last_update
 #define host_name parent.name
 
+	sc_llist_t *attributes;
 	sc_llist_t *services;
 } sc_host_t;
-#define SC_HOST_INIT { SC_STORE_OBJ_INIT, NULL }
+#define SC_HOST_INIT { SC_STORE_OBJ_INIT, NULL, NULL }
 #define SC_HOST(obj) ((sc_host_t *)(obj))
 
 sc_host_t *
@@ -93,6 +105,32 @@ sc_store_host(const sc_host_t *host);
 
 const sc_host_t *
 sc_store_get_host(const char *name);
+
+sc_attribute_t *
+sc_attribute_create(const char *hostname,
+		const char *name, const char *value);
+
+sc_attribute_t *
+sc_attribute_clone(const sc_attribute_t *attr);
+
+/*
+ * sc_store_attribute:
+ * Add/update a host's attribute in the store. If the attribute, identified by
+ * its name, already exists for the specified host, it will be updated
+ * according to the specified 'attr' object. If the referenced host does not
+ * exist, an error will be reported. Else, a new entry will be created in the
+ * store. Any memory required for storing the entry will be allocated and
+ * managed by the store itself. The specified attribute-object will not be
+ * referenced or further accessed.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
+int
+sc_store_attribute(const sc_attribute_t *attr);
 
 sc_service_t *
 sc_service_create(const char *hostname, const char *name);
