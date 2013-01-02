@@ -274,6 +274,7 @@ sc_store_host(const sc_host_t *host)
 			char errbuf[1024];
 			fprintf(stderr, "store: Failed to clone host object: %s\n",
 					sc_strerror(errno, errbuf, sizeof(errbuf)));
+			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
 
@@ -284,6 +285,7 @@ sc_store_host(const sc_host_t *host)
 						"host object '%s': %s\n", host->host_name,
 						sc_strerror(errno, errbuf, sizeof(errbuf)));
 				sc_object_deref(SC_OBJ(new));
+				pthread_rwlock_unlock(&host_lock);
 				return -1;
 			}
 		}
@@ -295,6 +297,7 @@ sc_store_host(const sc_host_t *host)
 						"host object '%s': %s\n", host->host_name,
 						sc_strerror(errno, errbuf, sizeof(errbuf)));
 				sc_object_deref(SC_OBJ(new));
+				pthread_rwlock_unlock(&host_lock);
 				return -1;
 			}
 		}
@@ -386,8 +389,10 @@ sc_store_attribute(const sc_attribute_t *attr)
 	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&lookup,
 				sc_cmp_store_obj_with_name));
 
-	if (! host)
+	if (! host) {
+		pthread_rwlock_unlock(&host_lock);
 		return -1;
+	}
 
 	lookup.obj_name = attr->attr_name;
 	old = SC_ATTR(sc_llist_search(host->attributes,
@@ -412,6 +417,7 @@ sc_store_attribute(const sc_attribute_t *attr)
 			char errbuf[1024];
 			fprintf(stderr, "store: Failed to clone attribute object: %s\n",
 					sc_strerror(errno, errbuf, sizeof(errbuf)));
+			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
 
@@ -482,8 +488,10 @@ sc_store_service(const sc_service_t *svc)
 	host = SC_HOST(sc_llist_search(host_list, (const sc_object_t *)&lookup,
 				sc_cmp_store_obj_with_name));
 
-	if (! host)
+	if (! host) {
+		pthread_rwlock_unlock(&host_lock);
 		return -1;
+	}
 
 	lookup.obj_name = svc->svc_name;
 	old = SC_SVC(sc_llist_search(host->services, (const sc_object_t *)&lookup,
@@ -507,6 +515,7 @@ sc_store_service(const sc_service_t *svc)
 			char errbuf[1024];
 			fprintf(stderr, "store: Failed to clone service object: %s\n",
 					sc_strerror(errno, errbuf, sizeof(errbuf)));
+			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
 
@@ -550,8 +559,10 @@ sc_store_dump(FILE *fh)
 	pthread_rwlock_rdlock(&host_lock);
 
 	host_iter = sc_llist_get_iter(host_list);
-	if (! host_iter)
+	if (! host_iter) {
+		pthread_rwlock_unlock(&host_lock);
 		return -1;
+	}
 
 	while (sc_llist_iter_has_next(host_iter)) {
 		sc_host_t *host = SC_HOST(sc_llist_iter_get_next(host_iter));
@@ -618,6 +629,7 @@ sc_store_dump(FILE *fh)
 	}
 
 	sc_llist_iter_destroy(host_iter);
+	pthread_rwlock_unlock(&host_lock);
 	return 0;
 } /* sc_store_dump */
 
