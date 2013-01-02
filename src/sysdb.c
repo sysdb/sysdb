@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/syscollector.h
+ * SysDB - src/sysdb.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,45 +25,29 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSCOLLECTOR_H
-#define SYSCOLLECTOR_H 1
+#include "sysdb.h"
 
-#define SC_VERSION_MAJOR @SC_VERSION_MAJOR@
-#define SC_VERSION_MINOR @SC_VERSION_MINOR@
-#define SC_VERSION_PATCH @SC_VERSION_PATCH@
-
-#define SC_VERSION_EXTRA "@SC_VERSION_EXTRA@"
-
-#define SC_VERSION_STRING "@SC_VERSION_STRING@"
-
-#define SC_VERSION_ENCODE(major, minor, patch) \
-	((major) * 10000 + (minor) * 100 + (patch))
-#define SC_VERSION_DECODE(version) \
-	(int)((version) / 10000), \
-	(int)((version) / 100) - (int)((version) / 10000) * 100, \
-	(int)(version) - (int)((version) / 100) * 100
-
-#define SC_VERSION SC_VERSION_ENCODE(SC_VERSION_MAJOR, SC_VERSION_MINOR, \
-		SC_VERSION_PATCH)
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+/*
+ * public API
+ */
 
 unsigned int
-sc_version(void);
+sdb_version(void)
+{
+	return SDB_VERSION;
+} /* sdb_version */
 
 const char *
-sc_version_string(void);
+sdb_version_string(void)
+{
+	return SDB_VERSION_STRING;
+} /* sdb_version_string */
 
 const char *
-sc_version_extra(void);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
-#endif /* ! SYSCOLLECTOR_H */
+sdb_version_extra(void)
+{
+	return SDB_VERSION_EXTRA;
+} /* sdb_version_extra */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

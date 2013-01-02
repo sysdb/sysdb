@@ -3,7 +3,7 @@
 DEFAULT_VERSION="0.0.0.git"
 
 VERSION="$( git describe --tags 2> /dev/null \
-	| sed -e 's/syscollector-//' || true )"
+	| sed -e 's/sysdb-//' || true )"
 
 if test -z "$VERSION"; then
 	VERSION="$DEFAULT_VERSION"

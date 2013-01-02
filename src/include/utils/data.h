@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/utils/data.h
+ * SysDB - src/include/utils/data.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_UTILS_DATA_H
-#define SC_UTILS_DATA_H 1
+#ifndef SDB_UTILS_DATA_H
+#define SDB_UTILS_DATA_H 1
 
 #include "utils/time.h"
 
@@ -38,15 +38,15 @@ extern "C" {
 #endif
 
 enum {
-	SC_TYPE_INTEGER = 1,
-	SC_TYPE_DECIMAL,
-	SC_TYPE_STRING,
-	SC_TYPE_DATETIME,
-	SC_TYPE_BINARY,
+	SDB_TYPE_INTEGER = 1,
+	SDB_TYPE_DECIMAL,
+	SDB_TYPE_STRING,
+	SDB_TYPE_DATETIME,
+	SDB_TYPE_BINARY,
 };
 
 /*
- * sc_data_t:
+ * sdb_data_t:
  * A datum retrieved from an arbitrary data source.
  *
  * The string and binary objects are managed by whoever creates the data
@@ -56,22 +56,22 @@ enum {
 typedef struct {
 	int type;
 	union {
-		int64_t     integer;  /* SC_TYPE_INTEGER */
-		double      decimal;  /* SC_TYPE_DECIMAL */
-		const char *string;   /* SC_TYPE_STRING  */
-		sc_time_t   datetime; /* SC_TYPE_DATETIME */
+		int64_t     integer;  /* SDB_TYPE_INTEGER */
+		double      decimal;  /* SDB_TYPE_DECIMAL */
+		const char *string;   /* SDB_TYPE_STRING  */
+		sdb_time_t  datetime; /* SDB_TYPE_DATETIME */
 		struct {
 			size_t length;
 			const unsigned char *datum;
-		} binary;             /* SC_TYPE_BINARY */
+		} binary;             /* SDB_TYPE_BINARY */
 	} data;
-} sc_data_t;
+} sdb_data_t;
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_UTILS_DATA_H */
+#endif /* ! SDB_UTILS_DATA_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

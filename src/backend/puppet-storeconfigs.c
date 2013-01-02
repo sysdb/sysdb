@@ -1,5 +1,5 @@
 /*
- * syscollector - src/backend/puppet-storeconfigs.c
+ * SysDB - src/backend/puppet-storeconfigs.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "syscollector.h"
+#include "sysdb.h"
 #include "core/plugin.h"
 #include "core/store.h"
 #include "utils/dbi.h"
@@ -41,29 +41,29 @@
 #include <string.h>
 #include <strings.h>
 
-SC_PLUGIN_MAGIC;
+SDB_PLUGIN_MAGIC;
 
 /*
  * private helper functions
  */
 
 static int
-sc_puppet_stcfg_get_hosts(sc_dbi_client_t __attribute__((unused)) *client,
-		size_t n, sc_data_t *data,
-		sc_object_t __attribute__((unused)) *user_data)
+sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
+		size_t n, sdb_data_t *data,
+		sdb_object_t __attribute__((unused)) *user_data)
 {
-	sc_host_t host = SC_HOST_INIT;
+	sdb_host_t host = SDB_HOST_INIT;
 
 	int status;
 
 	assert(n == 2);
-	assert((data[0].type == SC_TYPE_STRING)
-			&& (data[1].type == SC_TYPE_DATETIME));
+	assert((data[0].type == SDB_TYPE_STRING)
+			&& (data[1].type == SDB_TYPE_DATETIME));
 
 	host.host_name = strdup(data[0].data.string);
 	host.host_last_update = data[1].data.datetime;
 
-	status = sc_store_host(&host);
+	status = sdb_store_host(&host);
 
 	if (status < 0) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to store/update "
@@ -77,29 +77,29 @@ sc_puppet_stcfg_get_hosts(sc_dbi_client_t __attribute__((unused)) *client,
 				host.host_name, host.host_last_update);
 	free(host.host_name);
 	return 0;
-} /* sc_puppet_stcfg_get_hosts */
+} /* sdb_puppet_stcfg_get_hosts */
 
 static int
-sc_puppet_stcfg_get_attrs(sc_dbi_client_t __attribute__((unused)) *client,
-		size_t n, sc_data_t *data,
-		sc_object_t __attribute__((unused)) *user_data)
+sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
+		size_t n, sdb_data_t *data,
+		sdb_object_t __attribute__((unused)) *user_data)
 {
-	sc_attribute_t attr = SC_ATTR_INIT;
+	sdb_attribute_t attr = SDB_ATTR_INIT;
 
 	int status;
 
 	assert(n == 4);
-	assert((data[0].type == SC_TYPE_STRING)
-			&& (data[1].type == SC_TYPE_STRING)
-			&& (data[2].type == SC_TYPE_STRING)
-			&& (data[3].type == SC_TYPE_DATETIME));
+	assert((data[0].type == SDB_TYPE_STRING)
+			&& (data[1].type == SDB_TYPE_STRING)
+			&& (data[2].type == SDB_TYPE_STRING)
+			&& (data[3].type == SDB_TYPE_DATETIME));
 
 	attr.hostname = strdup(data[0].data.string);
 	attr.attr_name = strdup(data[1].data.string);
 	attr.attr_value = strdup(data[2].data.string);
 	attr.attr_last_update = data[3].data.datetime;
 
-	status = sc_store_attribute(&attr);
+	status = sdb_store_attribute(&attr);
 
 	if (status < 0) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to store/update "
@@ -115,22 +115,22 @@ sc_puppet_stcfg_get_attrs(sc_dbi_client_t __attribute__((unused)) *client,
 	free(attr.attr_name);
 	free(attr.attr_value);
 	return 0;
-} /* sc_puppet_stcfg_get_attrs */
+} /* sdb_puppet_stcfg_get_attrs */
 
 /*
  * plugin API
  */
 
 static int
-sc_puppet_stcfg_init(sc_object_t *user_data)
+sdb_puppet_stcfg_init(sdb_object_t *user_data)
 {
-	sc_dbi_client_t *client;
+	sdb_dbi_client_t *client;
 
 	if (! user_data)
 		return -1;
 
-	client = SC_OBJ_WRAPPER(user_data)->data;
-	if (sc_dbi_client_connect(client)) {
+	client = SDB_OBJ_WRAPPER(user_data)->data;
+	if (sdb_dbi_client_connect(client)) {
 		fprintf(stderr, "puppet storeconfigs backend: "
 				"Failed to connect to the storeconfigs DB.\n");
 		return -1;
@@ -139,26 +139,26 @@ sc_puppet_stcfg_init(sc_object_t *user_data)
 	fprintf(stderr, "puppet storeconfigs backend: Successfully "
 			"connected to the storeconfigs DB.\n");
 	return 0;
-} /* sc_collectd_init */
+} /* sdb_puppet_stcfg_init */
 
 static int
-sc_puppet_stcfg_collect(sc_object_t *user_data)
+sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 {
-	sc_dbi_client_t *client;
+	sdb_dbi_client_t *client;
 
 	if (! user_data)
 		return -1;
 
-	client = SC_OBJ_WRAPPER(user_data)->data;
-	if (sc_dbi_exec_query(client, "SELECT name, updated_at FROM hosts;",
-				sc_puppet_stcfg_get_hosts, NULL, /* #columns = */ 2,
-				/* col types = */ SC_TYPE_STRING, SC_TYPE_DATETIME)) {
+	client = SDB_OBJ_WRAPPER(user_data)->data;
+	if (sdb_dbi_exec_query(client, "SELECT name, updated_at FROM hosts;",
+				sdb_puppet_stcfg_get_hosts, NULL, /* #columns = */ 2,
+				/* col types = */ SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to retrieve "
 				"hosts from the storeconfigs DB.\n");
 		return -1;
 	}
 
-	if (sc_dbi_exec_query(client, "SELECT "
+	if (sdb_dbi_exec_query(client, "SELECT "
 					"hosts.name AS hostname, "
 					"fact_names.name AS name, "
 					"fact_values.value AS value, "
@@ -168,25 +168,25 @@ sc_puppet_stcfg_collect(sc_object_t *user_data)
 					"ON fact_values.host_id = hosts.id "
 				"INNER JOIN fact_names "
 					"ON fact_values.fact_name_id = fact_names.id;",
-				sc_puppet_stcfg_get_attrs, NULL, /* #columns = */ 4,
-				/* col types = */ SC_TYPE_STRING, SC_TYPE_STRING,
-				SC_TYPE_STRING, SC_TYPE_DATETIME)) {
+				sdb_puppet_stcfg_get_attrs, NULL, /* #columns = */ 4,
+				/* col types = */ SDB_TYPE_STRING, SDB_TYPE_STRING,
+				SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
 		fprintf(stderr, "puppet storeconfigs backend: Failed to retrieve "
 				"host attributes from the storeconfigs DB.\n");
 		return -1;
 	}
 	return 0;
-} /* sc_collectd_collect */
+} /* sdb_collectd_collect */
 
 static int
-sc_puppet_stcfg_config_conn(oconfig_item_t *ci)
+sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 {
 	char *name = NULL;
 	char cb_name[1024];
 
-	sc_object_t *user_data;
-	sc_dbi_client_t *client;
-	sc_dbi_options_t *options = NULL;
+	sdb_object_t *user_data;
+	sdb_dbi_client_t *client;
+	sdb_dbi_options_t *options = NULL;
 
 	char *driver = NULL;
 	char *database = NULL;
@@ -272,20 +272,20 @@ sc_puppet_stcfg_config_conn(oconfig_item_t *ci)
 		assert(key && value);
 
 		if (! options) {
-			if (! (options = sc_dbi_options_create())) {
+			if (! (options = sdb_dbi_options_create())) {
 				char errmsg[1024];
 				fprintf(stderr, "puppet storeconfigs backend: Failed to "
 						"create DBI options object: %s\n",
-						sc_strerror(errno, errmsg, sizeof(errmsg)));
+						sdb_strerror(errno, errmsg, sizeof(errmsg)));
 				continue;
 			}
 		}
 
-		if (sc_dbi_options_add(options, key, value)) {
+		if (sdb_dbi_options_add(options, key, value)) {
 			char errmsg[1024];
 			fprintf(stderr, "puppet storeconfigs backend: Failed to add "
 					"option '%s': %s\n", key,
-					sc_strerror(errno, errmsg, sizeof(errmsg)));
+					sdb_strerror(errno, errmsg, sizeof(errmsg)));
 			continue;
 		}
 	}
@@ -304,37 +304,37 @@ sc_puppet_stcfg_config_conn(oconfig_item_t *ci)
 	snprintf(cb_name, sizeof(cb_name), "puppet-storeconfigs-%s", name);
 	cb_name[sizeof(cb_name) - 1] = '\0';
 
-	client = sc_dbi_client_create(driver, database);
+	client = sdb_dbi_client_create(driver, database);
 	if (! client) {
 		char errbuf[1024];
 		fprintf(stderr, "puppet storeconfigs backend: "
 				"Failed to create DBI client: %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
 
-	sc_dbi_client_set_options(client, options);
+	sdb_dbi_client_set_options(client, options);
 
-	user_data = sc_object_create_wrapper(client,
-			(void (*)(void *))sc_dbi_client_destroy);
+	user_data = sdb_object_create_wrapper(client,
+			(void (*)(void *))sdb_dbi_client_destroy);
 	if (! user_data) {
-		sc_dbi_client_destroy(client);
+		sdb_dbi_client_destroy(client);
 		fprintf(stderr, "puppet storeconfigs backend: "
-				"Failed to allocate sc_object_t\n");
+				"Failed to allocate sdb_object_t\n");
 		return -1;
 	}
 
-	sc_plugin_register_init(cb_name, sc_puppet_stcfg_init, user_data);
-	sc_plugin_register_collector(cb_name, sc_puppet_stcfg_collect,
+	sdb_plugin_register_init(cb_name, sdb_puppet_stcfg_init, user_data);
+	sdb_plugin_register_collector(cb_name, sdb_puppet_stcfg_collect,
 			/* interval */ NULL, user_data);
 
 	/* pass control to the list */
-	sc_object_deref(user_data);
+	sdb_object_deref(user_data);
 	return 0;
-} /* sc_puppet_stcfg_config_conn */
+} /* sdb_puppet_stcfg_config_conn */
 
 static int
-sc_puppet_stcfg_config(oconfig_item_t *ci)
+sdb_puppet_stcfg_config(oconfig_item_t *ci)
 {
 	int i;
 
@@ -342,25 +342,25 @@ sc_puppet_stcfg_config(oconfig_item_t *ci)
 		oconfig_item_t *child = ci->children + i;
 
 		if (! strcasecmp(child->key, "Connection"))
-			sc_puppet_stcfg_config_conn(child);
+			sdb_puppet_stcfg_config_conn(child);
 		else
 			fprintf(stderr, "puppet storeconfigs backend: Ignoring unknown "
 					"config option '%s'.\n", child->key);
 	}
 	return 0;
-} /* sc_puppet_stcfg_config */
+} /* sdb_puppet_stcfg_config */
 
 int
-sc_module_init(sc_plugin_info_t *info)
+sdb_module_init(sdb_plugin_info_t *info)
 {
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_NAME, "puppet-storeconfigs");
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_DESC,
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_NAME, "puppet-storeconfigs");
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC,
 			"backend accessing the Puppet stored configuration database");
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_COPYRIGHT,
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,
 			"Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>");
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_LICENSE, "BSD");
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_VERSION, SC_VERSION);
-	sc_plugin_set_info(info, SC_PLUGIN_INFO_PLUGIN_VERSION, SC_VERSION);
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_LICENSE, "BSD");
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_VERSION, SDB_VERSION);
+	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
 	if (dbi_initialize(/* driver dir = */ NULL) < 0) {
 		fprintf(stderr, "puppet storeconfigs backend: failed to initialize "
@@ -368,9 +368,10 @@ sc_module_init(sc_plugin_info_t *info)
 		return -1;
 	}
 
-	sc_plugin_register_config("puppet-storeconfigs", sc_puppet_stcfg_config);
+	sdb_plugin_register_config("puppet-storeconfigs",
+			sdb_puppet_stcfg_config);
 	return 0;
-} /* sc_version_extra */
+} /* sdb_version_extra */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

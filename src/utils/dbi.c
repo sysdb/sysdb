@@ -1,5 +1,5 @@
 /*
- * syscollector - src/utils/dbi.c
+ * SysDB - src/utils/dbi.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -43,20 +43,20 @@
 typedef struct {
 	char *key;
 	char *value;
-} sc_dbi_option_t;
+} sdb_dbi_option_t;
 
-struct sc_dbi_options {
-	sc_dbi_option_t *options;
+struct sdb_dbi_options {
+	sdb_dbi_option_t *options;
 	size_t options_num;
 };
 
-struct sc_dbi_client {
+struct sdb_dbi_client {
 	char *driver;
 	char *database;
 
 	dbi_conn conn;
 
-	sc_dbi_options_t *options;
+	sdb_dbi_options_t *options;
 };
 
 /*
@@ -64,35 +64,35 @@ struct sc_dbi_client {
  */
 
 static const char *
-sc_dbi_strerror(dbi_conn conn)
+sdb_dbi_strerror(dbi_conn conn)
 {
 	const char *errmsg = NULL;
 	dbi_conn_error(conn, &errmsg);
 	return errmsg;
-} /* sc_dbi_strerror */
+} /* sdb_dbi_strerror */
 
 static int
-sc_dbi_get_field(dbi_result res, unsigned int i,
-		int type, sc_data_t *data)
+sdb_dbi_get_field(dbi_result res, unsigned int i,
+		int type, sdb_data_t *data)
 {
 	switch (type) {
-		case SC_TYPE_INTEGER:
+		case SDB_TYPE_INTEGER:
 			data->data.integer = dbi_result_get_longlong_idx(res, i);
 			break;
-		case SC_TYPE_DECIMAL:
+		case SDB_TYPE_DECIMAL:
 			data->data.decimal = dbi_result_get_double_idx(res, i);
 			break;
-		case SC_TYPE_STRING:
+		case SDB_TYPE_STRING:
 			data->data.string = dbi_result_get_string_idx(res, i);
 			break;
-		case SC_TYPE_DATETIME:
+		case SDB_TYPE_DATETIME:
 			{
 				/* libdbi does not provide any higher resolutions than that */
 				time_t datetime = dbi_result_get_datetime_idx(res, i);
-				data->data.datetime = SECS_TO_SC_TIME(datetime);
+				data->data.datetime = SECS_TO_SDB_TIME(datetime);
 			}
 			break;
-		case SC_TYPE_BINARY:
+		case SDB_TYPE_BINARY:
 			{
 				size_t length = dbi_result_get_field_length_idx(res, i);
 				const unsigned char *datum = dbi_result_get_binary_idx(res, i);
@@ -108,14 +108,14 @@ sc_dbi_get_field(dbi_result res, unsigned int i,
 
 	data->type = type;
 	return 0;
-} /* sc_dbi_get_field */
+} /* sdb_dbi_get_field */
 
 static int
-sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
-		unsigned int num_fields, sc_dbi_data_cb callback,
-		sc_object_t *user_data)
+sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
+		unsigned int num_fields, sdb_dbi_data_cb callback,
+		sdb_object_t *user_data)
 {
-	sc_data_t data[num_fields];
+	sdb_data_t data[num_fields];
 	int types[num_fields];
 	unsigned int i;
 
@@ -129,7 +129,7 @@ sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 		types[i] = dbi_result_get_field_type_idx(res, i + 1);
 		if (types[i] == DBI_TYPE_ERROR) {
 			fprintf(stderr, "dbi: failed to fetch data: %s\n",
-					sc_dbi_strerror(client->conn));
+					sdb_dbi_strerror(client->conn));
 			return -1;
 		}
 		types[i] = DBI_TYPE_TO_SC(types[i]);
@@ -142,12 +142,12 @@ sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 	for (n = 0; n < num_rows; ++n) {
 		if (! dbi_result_seek_row(res, n + 1)) {
 			fprintf(stderr, "dbi: Failed to retrieve row %llu: %s\n",
-					n, sc_dbi_strerror(client->conn));
+					n, sdb_dbi_strerror(client->conn));
 			continue;
 		}
 
 		for (i = 0; i < num_fields; ++i)
-			if (sc_dbi_get_field(res, (unsigned int)(i + 1),
+			if (sdb_dbi_get_field(res, (unsigned int)(i + 1),
 						types[i], &data[i]))
 				continue;
 
@@ -160,16 +160,16 @@ sc_dbi_get_data(sc_dbi_client_t *client, dbi_result res,
 	if (! success)
 		return -1;
 	return 0;
-} /* sc_dbi_get_data */
+} /* sdb_dbi_get_data */
 
 /*
  * public API
  */
 
-sc_dbi_options_t *
-sc_dbi_options_create(void)
+sdb_dbi_options_t *
+sdb_dbi_options_create(void)
 {
-	sc_dbi_options_t *options;
+	sdb_dbi_options_t *options;
 
 	options = malloc(sizeof(options));
 	if (! options)
@@ -178,13 +178,13 @@ sc_dbi_options_create(void)
 	options->options = NULL;
 	options->options_num = 0;
 	return options;
-} /* sc_dbi_options_create */
+} /* sdb_dbi_options_create */
 
 int
-sc_dbi_options_add(sc_dbi_options_t *options,
+sdb_dbi_options_add(sdb_dbi_options_t *options,
 		const char *key, const char *value)
 {
-	sc_dbi_option_t *new;
+	sdb_dbi_option_t *new;
 
 	if ((! options) || (! key) || (! value))
 		return -1;
@@ -210,10 +210,10 @@ sc_dbi_options_add(sc_dbi_options_t *options,
 
 	++options->options_num;
 	return 0;
-} /* sc_dbi_options_add */
+} /* sdb_dbi_options_add */
 
 void
-sc_dbi_options_destroy(sc_dbi_options_t *options)
+sdb_dbi_options_destroy(sdb_dbi_options_t *options)
 {
 	size_t i;
 
@@ -221,7 +221,7 @@ sc_dbi_options_destroy(sc_dbi_options_t *options)
 		return;
 
 	for (i = 0; i < options->options_num; ++i) {
-		sc_dbi_option_t *opt = options->options + i;
+		sdb_dbi_option_t *opt = options->options + i;
 
 		if (opt->key)
 			free(opt->key);
@@ -234,12 +234,12 @@ sc_dbi_options_destroy(sc_dbi_options_t *options)
 	options->options = NULL;
 	options->options_num = 0;
 	free(options);
-} /* sc_dbi_options_destroy */
+} /* sdb_dbi_options_destroy */
 
-sc_dbi_client_t *
-sc_dbi_client_create(const char *driver, const char *database)
+sdb_dbi_client_t *
+sdb_dbi_client_create(const char *driver, const char *database)
 {
-	sc_dbi_client_t *client;
+	sdb_dbi_client_t *client;
 
 	if ((! driver) || (! database))
 		return NULL;
@@ -255,27 +255,27 @@ sc_dbi_client_create(const char *driver, const char *database)
 	client->driver = strdup(driver);
 	client->database = strdup(database);
 	if ((! client->driver) || (! client->database)) {
-		sc_dbi_client_destroy(client);
+		sdb_dbi_client_destroy(client);
 		return NULL;
 	}
 	return client;
-} /* sc_dbi_client_create */
+} /* sdb_dbi_client_create */
 
 int
-sc_dbi_client_set_options(sc_dbi_client_t *client,
-		sc_dbi_options_t *options)
+sdb_dbi_client_set_options(sdb_dbi_client_t *client,
+		sdb_dbi_options_t *options)
 {
 	if (! client)
 		return -1;
 
 	if (client->options)
-		sc_dbi_options_destroy(client->options);
+		sdb_dbi_options_destroy(client->options);
 	client->options = options;
 	return 0;
-} /* sc_dbi_client_set_options */
+} /* sdb_dbi_client_set_options */
 
 int
-sc_dbi_client_connect(sc_dbi_client_t *client)
+sdb_dbi_client_connect(sdb_dbi_client_t *client)
 {
 	dbi_driver driver;
 	size_t i;
@@ -318,7 +318,7 @@ sc_dbi_client_connect(sc_dbi_client_t *client)
 
 			fprintf(stderr, "dbi: failed to set option '%s': %s\n",
 					client->options->options[i].key,
-					sc_dbi_strerror(client->conn));
+					sdb_dbi_strerror(client->conn));
 
 			fprintf(stderr, "dbi: known driver options:\n");
 			for (opt = dbi_conn_get_option_list(client->conn, NULL); opt;
@@ -332,23 +332,23 @@ sc_dbi_client_connect(sc_dbi_client_t *client)
 
 	if (dbi_conn_set_option(client->conn, "dbname", client->database)) {
 		fprintf(stderr, "dbi: failed to set option 'dbname': %s\n",
-				sc_dbi_strerror(client->conn));
+				sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
 		return -1;
 	}
 
 	if (dbi_conn_connect(client->conn) < 0) {
 		fprintf(stderr, "dbi: failed to connect to database '%s': %s\n",
-				client->database, sc_dbi_strerror(client->conn));
+				client->database, sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
 		return -1;
 	}
 	return 0;
-} /* sc_dbi_client_connect */
+} /* sdb_dbi_client_connect */
 
 int
-sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
-		sc_dbi_data_cb callback, sc_object_t *user_data, int n, ...)
+sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
+		sdb_dbi_data_cb callback, sdb_object_t *user_data, int n, ...)
 {
 	dbi_result res;
 	unsigned int num_fields;
@@ -361,13 +361,13 @@ sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
 	res = dbi_conn_query(client->conn, query);
 	if (! res) {
 		fprintf(stderr, "dbi: failed to execute query '%s': %s\n",
-				query, sc_dbi_strerror(client->conn));
+				query, sdb_dbi_strerror(client->conn));
 		return -1;
 	}
 
 	if (dbi_result_get_numrows(res) == DBI_ROW_ERROR) {
 		fprintf(stderr, "dbi: failed to fetch rows for query '%s': %s\n",
-				query, sc_dbi_strerror(client->conn));
+				query, sdb_dbi_strerror(client->conn));
 		dbi_result_free(res);
 		return -1;
 	}
@@ -425,14 +425,14 @@ sc_dbi_exec_query(sc_dbi_client_t *client, const char *query,
 		return 0;
 	}
 
-	status = sc_dbi_get_data(client, res, num_fields, callback, user_data);
+	status = sdb_dbi_get_data(client, res, num_fields, callback, user_data);
 
 	dbi_result_free(res);
 	return status;
-} /* sc_dbi_exec_query */
+} /* sdb_dbi_exec_query */
 
 void
-sc_dbi_client_destroy(sc_dbi_client_t *client)
+sdb_dbi_client_destroy(sdb_dbi_client_t *client)
 {
 	if (! client)
 		return;
@@ -449,11 +449,11 @@ sc_dbi_client_destroy(sc_dbi_client_t *client)
 		dbi_conn_close(client->conn);
 
 	if (client->options)
-		sc_dbi_options_destroy(client->options);
+		sdb_dbi_options_destroy(client->options);
 	client->options = NULL;
 
 	free(client);
-} /* sc_dbi_client_destroy */
+} /* sdb_dbi_client_destroy */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

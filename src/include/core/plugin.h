@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/core/plugin.h
+ * SysDB - src/include/core/plugin.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,10 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_CORE_PLUGIN_H
-#define SC_CORE_PLUGIN_H 1
+#ifndef SDB_CORE_PLUGIN_H
+#define SDB_CORE_PLUGIN_H 1
 
-#include "syscollector.h"
+#include "sysdb.h"
 #include "core/object.h"
 #include "utils/time.h"
 
@@ -39,62 +39,62 @@ extern "C" {
 #endif
 
 typedef struct {
-	sc_time_t interval;
-} sc_plugin_ctx_t;
-#define SC_PLUGIN_CTX_INIT { 0 }
+	sdb_time_t interval;
+} sdb_plugin_ctx_t;
+#define SDB_PLUGIN_CTX_INIT { 0 }
 
-struct sc_plugin_info;
-typedef struct sc_plugin_info sc_plugin_info_t;
+struct sdb_plugin_info;
+typedef struct sdb_plugin_info sdb_plugin_info_t;
 
 /* this should be used in the header of a plugin to avoid
  * missing prototype warnings/errors for the plugin init
  * function */
-#define SC_PLUGIN_MAGIC \
-	int sc_module_init(sc_plugin_info_t *info);
+#define SDB_PLUGIN_MAGIC \
+	int sdb_module_init(sdb_plugin_info_t *info);
 
 typedef struct {
 	_Bool do_loop;
-	sc_time_t default_interval;
-} sc_plugin_loop_t;
-#define SC_PLUGIN_LOOP_INIT { 1, 0 }
+	sdb_time_t default_interval;
+} sdb_plugin_loop_t;
+#define SDB_PLUGIN_LOOP_INIT { 1, 0 }
 
 /*
- * sc_plugin_load:
+ * sdb_plugin_load:
  * Load (any type of) plugin by loading the shared object file and calling the
- * sc_module_init function.
+ * sdb_module_init function.
  */
 int
-sc_plugin_load(const char *name);
+sdb_plugin_load(const char *name);
 
 /*
- * sc_plugin_set_info:
- * Fill in the fields of the sc_plugin_info_t object passed to the
- * sc_module_init function. This information is used to identify the plugin
+ * sdb_plugin_set_info:
+ * Fill in the fields of the sdb_plugin_info_t object passed to the
+ * sdb_module_init function. This information is used to identify the plugin
  * and also to provide additional information to the user.
  */
 enum {
-	SC_PLUGIN_INFO_NAME,          /* plugin name: string */
-	SC_PLUGIN_INFO_DESC,          /* plugin description: string */
-	SC_PLUGIN_INFO_COPYRIGHT,     /* plugin copyright: string */
-	SC_PLUGIN_INFO_LICENSE,       /* plugin license: string */
-	SC_PLUGIN_INFO_VERSION,       /* libsyscollector version: integer */
-	SC_PLUGIN_INFO_PLUGIN_VERSION /* plugin version: integer */
+	SDB_PLUGIN_INFO_NAME,          /* plugin name: string */
+	SDB_PLUGIN_INFO_DESC,          /* plugin description: string */
+	SDB_PLUGIN_INFO_COPYRIGHT,     /* plugin copyright: string */
+	SDB_PLUGIN_INFO_LICENSE,       /* plugin license: string */
+	SDB_PLUGIN_INFO_VERSION,       /* libsysdb version: integer */
+	SDB_PLUGIN_INFO_PLUGIN_VERSION /* plugin version: integer */
 };
 
 int
-sc_plugin_set_info(sc_plugin_info_t *info, int type, ...);
+sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...);
 
 /*
  * plugin callback functions
  */
 
-typedef int (*sc_plugin_config_cb)(oconfig_item_t *ci);
-typedef int (*sc_plugin_init_cb)(sc_object_t *user_data);
-typedef int (*sc_plugin_collector_cb)(sc_object_t *user_data);
-typedef int (*sc_plugin_shutdown_cb)(sc_object_t *user_data);
+typedef int (*sdb_plugin_config_cb)(oconfig_item_t *ci);
+typedef int (*sdb_plugin_init_cb)(sdb_object_t *user_data);
+typedef int (*sdb_plugin_collector_cb)(sdb_object_t *user_data);
+typedef int (*sdb_plugin_shutdown_cb)(sdb_object_t *user_data);
 
 /*
- * sc_plugin_register_config:
+ * sdb_plugin_register_config:
  * Register a "config" function. This will be used to pass on the
  * configuration for a plugin. The plugin has to make sure that the function
  * can be called multiple times in order to process multiple <Plugin> blocks
@@ -105,10 +105,10 @@ typedef int (*sc_plugin_shutdown_cb)(sc_object_t *user_data);
  *  - a negative value else
  */
 int
-sc_plugin_register_config(const char *name, sc_plugin_config_cb callback);
+sdb_plugin_register_config(const char *name, sdb_plugin_config_cb callback);
 
 /*
- * sc_plugin_register_init:
+ * sdb_plugin_register_init:
  * Register an "init" function. All "init" functions will be called after
  * finishing the config parsing and before starting any other work. The
  * functions will be called in the same order as they have been registered,
@@ -129,11 +129,11 @@ sc_plugin_register_config(const char *name, sc_plugin_config_cb callback);
  *  - a negative value else
  */
 int
-sc_plugin_register_init(const char *name, sc_plugin_init_cb callback,
-		sc_object_t *user_data);
+sdb_plugin_register_init(const char *name, sdb_plugin_init_cb callback,
+		sdb_object_t *user_data);
 
 /*
- * sc_plugin_register_collector:
+ * sdb_plugin_register_collector:
  * Register a "collector" function. This is where a backend is doing its main
  * work. This function will be called whenever an update of a backend has been
  * requested (either by regular interval or by user request). The backend
@@ -153,11 +153,12 @@ sc_plugin_register_init(const char *name, sc_plugin_init_cb callback,
  *  - a negative value else
  */
 int
-sc_plugin_register_collector(const char *name, sc_plugin_collector_cb callback,
-		const sc_time_t *interval, sc_object_t *user_data);
+sdb_plugin_register_collector(const char *name,
+		sdb_plugin_collector_cb callback,
+		const sdb_time_t *interval, sdb_object_t *user_data);
 
 /*
- * sc_plugin_register_shutdown:
+ * sdb_plugin_register_shutdown:
  * Register a "shutdown" function to be called after stopping all update
  * processes and before shutting down the daemon.
  *
@@ -168,23 +169,24 @@ sc_plugin_register_collector(const char *name, sc_plugin_collector_cb callback,
  *    use the object for other purposes, it should thus deref it.
  */
 int
-sc_plugin_register_shutdown(const char *name, sc_plugin_shutdown_cb callback,
-		sc_object_t *user_data);
+sdb_plugin_register_shutdown(const char *name,
+		sdb_plugin_shutdown_cb callback,
+		sdb_object_t *user_data);
 
 /*
- * sc_plugin_get_ctx, sc_plugin_set_ctx:
+ * sdb_plugin_get_ctx, sdb_plugin_set_ctx:
  * The plugin context defines a set of settings that are available whenever a
  * plugin has been called. It may be used to pass around various information
  * between the different component of the library without having each and
  * every plugin care about it.
  */
-sc_plugin_ctx_t
-sc_plugin_get_ctx(void);
-sc_plugin_ctx_t
-sc_plugin_set_ctx(sc_plugin_ctx_t ctx);
+sdb_plugin_ctx_t
+sdb_plugin_get_ctx(void);
+sdb_plugin_ctx_t
+sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx);
 
 /*
- * sc_plugin_configure:
+ * sdb_plugin_configure:
  * Configure the plugin called 'name' (according to the registered config
  * callback) using the config tree 'ci'.
  *
@@ -193,17 +195,17 @@ sc_plugin_set_ctx(sc_plugin_ctx_t ctx);
  *  - a negative value else
  */
 int
-sc_plugin_configure(const char *name, oconfig_item_t *ci);
+sdb_plugin_configure(const char *name, oconfig_item_t *ci);
 
 /*
- * sc_plugin_init_all:
+ * sdb_plugin_init_all:
  * Initialize all plugins using their registered "init" function.
  */
 int
-sc_plugin_init_all(void);
+sdb_plugin_init_all(void);
 
 /*
- * sc_plugin_collector_loop:
+ * sdb_plugin_collector_loop:
  * Loop until loop->do_loop is false, calling the next collector function on
  * each iteration and once its next update interval is passed.
  *
@@ -212,13 +214,13 @@ sc_plugin_init_all(void);
  *  - a negative value else
  */
 int
-sc_plugin_collector_loop(sc_plugin_loop_t *loop);
+sdb_plugin_collector_loop(sdb_plugin_loop_t *loop);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_CORE_PLUGIN_H */
+#endif /* ! SDB_CORE_PLUGIN_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

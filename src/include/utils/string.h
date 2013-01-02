@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/utils/string.h
+ * SysDB - src/include/utils/string.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_UTILS_STRING_H
-#define SC_UTILS_STRING_H 1
+#ifndef SDB_UTILS_STRING_H
+#define SDB_UTILS_STRING_H 1
 
 #include <stddef.h>
 
@@ -35,13 +35,13 @@ extern "C" {
 #endif
 
 char *
-sc_strerror(int errnum, char *strerrbuf, size_t buflen);
+sdb_strerror(int errnum, char *strerrbuf, size_t buflen);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_UTILS_STRING_H */
+#endif /* ! SDB_UTILS_STRING_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

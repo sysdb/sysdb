@@ -1,5 +1,5 @@
 /*
- * syscollector - src/daemon/config.h
+ * SysDB - src/daemon/config.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

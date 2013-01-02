@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/utils/time.h
+ * SysDB - src/include/utils/time.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_UTILS_TIME_H
-#define SC_UTILS_TIME_H 1
+#ifndef SDB_UTILS_TIME_H
+#define SDB_UTILS_TIME_H 1
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -37,37 +37,37 @@ extern "C" {
 #endif
 
 /*
- * sc_time_t:
+ * sdb_time_t:
  * The time, in nano-seconds, since the epoch.
  */
-typedef uint64_t sc_time_t;
+typedef uint64_t sdb_time_t;
 #define PRIscTIME PRIu64
 
-#define SECS_TO_SC_TIME(s) ((sc_time_t)(s) * (sc_time_t)1000000000)
-#define SC_TIME_TO_SECS(t) ((t) / (sc_time_t)1000000000)
+#define SECS_TO_SDB_TIME(s) ((sdb_time_t)(s) * (sdb_time_t)1000000000)
+#define SDB_TIME_TO_SECS(t) ((t) / (sdb_time_t)1000000000)
 
-#define NSECS_TO_SC_TIME(ns) ((sc_time_t)ns)
+#define NSECS_TO_SDB_TIME(ns) ((sdb_time_t)ns)
 
-#define DOUBLE_TO_SC_TIME(d) ((sc_time_t)((d) * 1000000000.0))
-#define SC_TIME_TO_DOUBLE(t) ((double)(t) / 1000000000.0)
+#define DOUBLE_TO_SDB_TIME(d) ((sdb_time_t)((d) * 1000000000.0))
+#define SDB_TIME_TO_DOUBLE(t) ((double)(t) / 1000000000.0)
 
-#define TIMESPEC_TO_SC_TIME(ts) (SECS_TO_SC_TIME((ts).tv_sec) \
-		+ NSECS_TO_SC_TIME((ts).tv_nsec))
+#define TIMESPEC_TO_SDB_TIME(ts) (SECS_TO_SDB_TIME((ts).tv_sec) \
+		+ NSECS_TO_SDB_TIME((ts).tv_nsec))
 
-sc_time_t
-sc_gettime(void);
+sdb_time_t
+sdb_gettime(void);
 
 int
-sc_sleep(sc_time_t reg, sc_time_t *rem);
+sdb_sleep(sdb_time_t reg, sdb_time_t *rem);
 
 size_t
-sc_strftime(char *s, size_t len, const char *format, sc_time_t);
+sdb_strftime(char *s, size_t len, const char *format, sdb_time_t);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_UTILS_TIME_H */
+#endif /* ! SDB_UTILS_TIME_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

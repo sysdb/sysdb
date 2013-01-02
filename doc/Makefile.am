@@ -1,9 +1,9 @@
-EXTRA_DIST = syscollectord.1.txt
-CLEANFILES = syscollectord.1
+EXTRA_DIST = sysdbd.1.txt
+CLEANFILES = sysdbd.1
 
-man_MANS = syscollectord.1
+man_MANS = sysdbd.1
 
-syscollectord.1: syscollectord.1.txt ../version
+sysdbd.1: sysdbd.1.txt ../version
 
 %.1: %.1.txt
 	@A2X@ -d manpage -f manpage \

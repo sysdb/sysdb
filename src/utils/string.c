@@ -1,5 +1,5 @@
 /*
- * syscollector - src/utils/string.c
+ * SysDB - src/utils/string.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -35,7 +35,7 @@
  */
 
 char *
-sc_strerror(int errnum, char *strerrbuf, size_t buflen)
+sdb_strerror(int errnum, char *strerrbuf, size_t buflen)
 {
 #if STRERROR_R_CHAR_P
 	{
@@ -57,7 +57,7 @@ sc_strerror(int errnum, char *strerrbuf, size_t buflen)
 
 	strerrbuf[buflen - 1] = '\0';
 	return strerrbuf;
-} /* sc_strerror */
+} /* sdb_strerror */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -1,5 +1,5 @@
 /*
- * syscollector - src/utils/llist.c
+ * SysDB - src/utils/llist.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -36,28 +36,28 @@
  * private data types
  */
 
-struct sc_llist_elem;
-typedef struct sc_llist_elem sc_llist_elem_t;
+struct sdb_llist_elem;
+typedef struct sdb_llist_elem sdb_llist_elem_t;
 
-struct sc_llist_elem {
-	sc_object_t *obj;
+struct sdb_llist_elem {
+	sdb_object_t *obj;
 
-	sc_llist_elem_t *next;
-	sc_llist_elem_t *prev;
+	sdb_llist_elem_t *next;
+	sdb_llist_elem_t *prev;
 };
 
-struct sc_llist {
+struct sdb_llist {
 	pthread_rwlock_t lock;
 
-	sc_llist_elem_t *head;
-	sc_llist_elem_t *tail;
+	sdb_llist_elem_t *head;
+	sdb_llist_elem_t *tail;
 
 	size_t length;
 };
 
-struct sc_llist_iter {
-	sc_llist_t *list;
-	sc_llist_elem_t *elem;
+struct sdb_llist_iter {
+	sdb_llist_t *list;
+	sdb_llist_elem_t *elem;
 };
 
 /*
@@ -67,10 +67,10 @@ struct sc_llist_iter {
 /* Insert a new element after 'elem'. If 'elem' is NULL, insert at the head of
  * the list. */
 static int
-sc_llist_insert_after(sc_llist_t *list, sc_llist_elem_t *elem,
-		sc_object_t *obj)
+sdb_llist_insert_after(sdb_llist_t *list, sdb_llist_elem_t *elem,
+		sdb_object_t *obj)
 {
-	sc_llist_elem_t *new;
+	sdb_llist_elem_t *new;
 
 	assert(list);
 
@@ -109,15 +109,15 @@ sc_llist_insert_after(sc_llist_t *list, sc_llist_elem_t *elem,
 		assert(list->head == list->tail);
 	}
 
-	sc_object_ref(obj);
+	sdb_object_ref(obj);
 	++list->length;
 	return 0;
-} /* sc_llist_insert_after */
+} /* sdb_llist_insert_after */
 
-static sc_object_t *
-sc_llist_remove_elem(sc_llist_t *list, sc_llist_elem_t *elem)
+static sdb_object_t *
+sdb_llist_remove_elem(sdb_llist_t *list, sdb_llist_elem_t *elem)
 {
-	sc_object_t *obj;
+	sdb_object_t *obj;
 
 	assert(list && elem);
 
@@ -142,16 +142,16 @@ sc_llist_remove_elem(sc_llist_t *list, sc_llist_elem_t *elem)
 
 	--list->length;
 	return obj;
-} /* sc_llist_remove_elem */
+} /* sdb_llist_remove_elem */
 
 /*
  * public API
  */
 
-sc_llist_t *
-sc_llist_create(void)
+sdb_llist_t *
+sdb_llist_create(void)
 {
-	sc_llist_t *list;
+	sdb_llist_t *list;
 
 	list = malloc(sizeof(*list));
 	if (! list)
@@ -162,18 +162,18 @@ sc_llist_create(void)
 	list->head = list->tail = NULL;
 	list->length = 0;
 	return list;
-} /* sc_llist_create */
+} /* sdb_llist_create */
 
-sc_llist_t *
-sc_llist_clone(sc_llist_t *list)
+sdb_llist_t *
+sdb_llist_clone(sdb_llist_t *list)
 {
-	sc_llist_t *clone;
-	sc_llist_elem_t *elem;
+	sdb_llist_t *clone;
+	sdb_llist_elem_t *elem;
 
 	if (! list)
 		return NULL;
 
-	clone = sc_llist_create();
+	clone = sdb_llist_create();
 	if (! clone)
 		return NULL;
 
@@ -183,18 +183,18 @@ sc_llist_clone(sc_llist_t *list)
 	}
 
 	for (elem = list->head; elem; elem = elem->next) {
-		if (sc_llist_append(clone, elem->obj)) {
-			sc_llist_destroy(clone);
+		if (sdb_llist_append(clone, elem->obj)) {
+			sdb_llist_destroy(clone);
 			return NULL;
 		}
 	}
 	return clone;
-} /* sc_llist_clone */
+} /* sdb_llist_clone */
 
 void
-sc_llist_destroy(sc_llist_t *list)
+sdb_llist_destroy(sdb_llist_t *list)
 {
-	sc_llist_elem_t *elem;
+	sdb_llist_elem_t *elem;
 
 	if (! list)
 		return;
@@ -203,9 +203,9 @@ sc_llist_destroy(sc_llist_t *list)
 
 	elem = list->head;
 	while (elem) {
-		sc_llist_elem_t *tmp = elem->next;
+		sdb_llist_elem_t *tmp = elem->next;
 
-		sc_object_deref(elem->obj);
+		sdb_object_deref(elem->obj);
 		free(elem);
 
 		elem = tmp;
@@ -217,10 +217,10 @@ sc_llist_destroy(sc_llist_t *list)
 	pthread_rwlock_unlock(&list->lock);
 	pthread_rwlock_destroy(&list->lock);
 	free(list);
-} /* sc_llist_destroy */
+} /* sdb_llist_destroy */
 
 int
-sc_llist_append(sc_llist_t *list, sc_object_t *obj)
+sdb_llist_append(sdb_llist_t *list, sdb_object_t *obj)
 {
 	int status;
 
@@ -228,16 +228,16 @@ sc_llist_append(sc_llist_t *list, sc_object_t *obj)
 		return -1;
 
 	pthread_rwlock_wrlock(&list->lock);
-	status = sc_llist_insert_after(list, list->tail, obj);
+	status = sdb_llist_insert_after(list, list->tail, obj);
 	pthread_rwlock_unlock(&list->lock);
 	return status;
-} /* sc_llist_append */
+} /* sdb_llist_append */
 
 int
-sc_llist_insert(sc_llist_t *list, sc_object_t *obj, size_t index)
+sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t index)
 {
-	sc_llist_elem_t *prev;
-	sc_llist_elem_t *next;
+	sdb_llist_elem_t *prev;
+	sdb_llist_elem_t *next;
 
 	int status;
 
@@ -255,17 +255,17 @@ sc_llist_insert(sc_llist_t *list, sc_object_t *obj, size_t index)
 		prev = next;
 		next = next->next;
 	}
-	status = sc_llist_insert_after(list, prev, obj);
+	status = sdb_llist_insert_after(list, prev, obj);
 	pthread_rwlock_unlock(&list->lock);
 	return status;
-} /* sc_llist_insert */
+} /* sdb_llist_insert */
 
 int
-sc_llist_insert_sorted(sc_llist_t *list, sc_object_t *obj,
-		int (*compare)(const sc_object_t *, const sc_object_t *))
+sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
+		int (*compare)(const sdb_object_t *, const sdb_object_t *))
 {
-	sc_llist_elem_t *prev;
-	sc_llist_elem_t *next;
+	sdb_llist_elem_t *prev;
+	sdb_llist_elem_t *next;
 
 	int status;
 
@@ -284,16 +284,16 @@ sc_llist_insert_sorted(sc_llist_t *list, sc_object_t *obj,
 		prev = next;
 		next = next->next;
 	}
-	status = sc_llist_insert_after(list, prev, obj);
+	status = sdb_llist_insert_after(list, prev, obj);
 	pthread_rwlock_unlock(&list->lock);
 	return status;
-} /* sc_llist_insert_sorted */
+} /* sdb_llist_insert_sorted */
 
-sc_object_t *
-sc_llist_search(sc_llist_t *list, const sc_object_t *key,
-		int (*compare)(const sc_object_t *, const sc_object_t *))
+sdb_object_t *
+sdb_llist_search(sdb_llist_t *list, const sdb_object_t *key,
+		int (*compare)(const sdb_object_t *, const sdb_object_t *))
 {
-	sc_llist_elem_t *elem;
+	sdb_llist_elem_t *elem;
 
 	if ((! list) || (! compare))
 		return NULL;
@@ -309,26 +309,26 @@ sc_llist_search(sc_llist_t *list, const sc_object_t *key,
 	if (elem)
 		return elem->obj;
 	return NULL;
-} /* sc_llist_search */
+} /* sdb_llist_search */
 
-sc_object_t *
-sc_llist_shift(sc_llist_t *list)
+sdb_object_t *
+sdb_llist_shift(sdb_llist_t *list)
 {
-	sc_object_t *obj;
+	sdb_object_t *obj;
 
 	if ((! list) || (! list->head))
 		return NULL;
 
 	pthread_rwlock_wrlock(&list->lock);
-	obj = sc_llist_remove_elem(list, list->head);
+	obj = sdb_llist_remove_elem(list, list->head);
 	pthread_rwlock_unlock(&list->lock);
 	return obj;
-} /* sc_llist_shift */
+} /* sdb_llist_shift */
 
-sc_llist_iter_t *
-sc_llist_get_iter(sc_llist_t *list)
+sdb_llist_iter_t *
+sdb_llist_get_iter(sdb_llist_t *list)
 {
-	sc_llist_iter_t *iter;
+	sdb_llist_iter_t *iter;
 
 	if (! list)
 		return NULL;
@@ -345,10 +345,10 @@ sc_llist_get_iter(sc_llist_t *list)
 	/* XXX: keep lock until destroying the iterator? */
 	pthread_rwlock_unlock(&list->lock);
 	return iter;
-} /* sc_llist_get_iter */
+} /* sdb_llist_get_iter */
 
 void
-sc_llist_iter_destroy(sc_llist_iter_t *iter)
+sdb_llist_iter_destroy(sdb_llist_iter_t *iter)
 {
 	if (! iter)
 		return;
@@ -356,20 +356,20 @@ sc_llist_iter_destroy(sc_llist_iter_t *iter)
 	iter->list = NULL;
 	iter->elem = NULL;
 	free(iter);
-} /* sc_llist_iter_destroy */
+} /* sdb_llist_iter_destroy */
 
 _Bool
-sc_llist_iter_has_next(sc_llist_iter_t *iter)
+sdb_llist_iter_has_next(sdb_llist_iter_t *iter)
 {
 	if (! iter)
 		return 0;
 	return iter->elem != NULL;
-} /* sc_llist_iter_has_next */
+} /* sdb_llist_iter_has_next */
 
-sc_object_t *
-sc_llist_iter_get_next(sc_llist_iter_t *iter)
+sdb_object_t *
+sdb_llist_iter_get_next(sdb_llist_iter_t *iter)
 {
-	sc_object_t *obj;
+	sdb_object_t *obj;
 
 	if ((! iter) || (! iter->elem))
 		return NULL;
@@ -381,7 +381,7 @@ sc_llist_iter_get_next(sc_llist_iter_t *iter)
 
 	pthread_rwlock_unlock(&iter->list->lock);
 	return obj;
-} /* sc_llist_iter_get_next */
+} /* sdb_llist_iter_get_next */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

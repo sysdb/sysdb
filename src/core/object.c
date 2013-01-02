@@ -1,5 +1,5 @@
 /*
- * syscollector - src/core/object.c
+ * SysDB - src/core/object.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -37,40 +37,40 @@
  */
 
 static int
-sc_object_wrapper_init(sc_object_t *obj, va_list ap)
+sdb_object_wrapper_init(sdb_object_t *obj, va_list ap)
 {
 	void *data = va_arg(ap, void *);
 	void (*destructor)(void *) = va_arg(ap, void (*)(void *));
 
 	assert(obj);
 
-	SC_OBJ_WRAPPER(obj)->data = data;
-	SC_OBJ_WRAPPER(obj)->destructor = destructor;
+	SDB_OBJ_WRAPPER(obj)->data = data;
+	SDB_OBJ_WRAPPER(obj)->destructor = destructor;
 	return 0;
-} /* sc_object_wrapper_init */
+} /* sdb_object_wrapper_init */
 
 static void
-sc_object_wrapper_destroy(sc_object_t *obj)
+sdb_object_wrapper_destroy(sdb_object_t *obj)
 {
 	if (! obj)
 		return;
 
 	assert(obj->ref_cnt <= 0);
 
-	if (SC_OBJ_WRAPPER(obj)->destructor && SC_OBJ_WRAPPER(obj)->data)
-		SC_OBJ_WRAPPER(obj)->destructor(SC_OBJ_WRAPPER(obj)->data);
-	SC_OBJ_WRAPPER(obj)->data = NULL;
-} /* sc_object_wrapper_destroy */
+	if (SDB_OBJ_WRAPPER(obj)->destructor && SDB_OBJ_WRAPPER(obj)->data)
+		SDB_OBJ_WRAPPER(obj)->destructor(SDB_OBJ_WRAPPER(obj)->data);
+	SDB_OBJ_WRAPPER(obj)->data = NULL;
+} /* sdb_object_wrapper_destroy */
 
 /*
  * public API
  */
 
-sc_object_t *
-sc_object_create(size_t size, int (*init)(sc_object_t *, va_list),
-		void (*destructor)(sc_object_t *), ...)
+sdb_object_t *
+sdb_object_create(size_t size, int (*init)(sdb_object_t *, va_list),
+		void (*destructor)(sdb_object_t *), ...)
 {
-	sc_object_t *obj;
+	sdb_object_t *obj;
 
 	obj = malloc(size);
 	if (! obj)
@@ -83,7 +83,7 @@ sc_object_create(size_t size, int (*init)(sc_object_t *, va_list),
 
 		if (init(obj, ap)) {
 			obj->ref_cnt = 1;
-			sc_object_deref(obj);
+			sdb_object_deref(obj);
 			va_end(ap);
 			return NULL;
 		}
@@ -95,18 +95,18 @@ sc_object_create(size_t size, int (*init)(sc_object_t *, va_list),
 	obj->destructor = destructor;
 	obj->size = size;
 	return obj;
-} /* sc_object_create */
+} /* sdb_object_create */
 
-sc_object_t *
-sc_object_create_wrapper(void *data, void (*destructor)(void *))
+sdb_object_t *
+sdb_object_create_wrapper(void *data, void (*destructor)(void *))
 {
-	return sc_object_create(sizeof(sc_object_wrapper_t),
-			sc_object_wrapper_init, sc_object_wrapper_destroy,
+	return sdb_object_create(sizeof(sdb_object_wrapper_t),
+			sdb_object_wrapper_init, sdb_object_wrapper_destroy,
 			data, destructor);
-} /* sc_object_create_wrapper */
+} /* sdb_object_create_wrapper */
 
 void
-sc_object_deref(sc_object_t *obj)
+sdb_object_deref(sdb_object_t *obj)
 {
 	if (! obj)
 		return;
@@ -119,16 +119,16 @@ sc_object_deref(sc_object_t *obj)
 		obj->destructor(obj);
 
 	free(obj);
-} /* sc_object_deref */
+} /* sdb_object_deref */
 
 void
-sc_object_ref(sc_object_t *obj)
+sdb_object_ref(sdb_object_t *obj)
 {
 	if (! obj)
 		return;
 	assert(obj->ref_cnt > 0);
 	++obj->ref_cnt;
-} /* sc_object_ref */
+} /* sdb_object_ref */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

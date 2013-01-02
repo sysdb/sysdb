@@ -1,4 +1,4 @@
-dnl Autoconf helper functions for the syscollector plugin handling.
+dnl Autoconf helper functions for the SysDB plugin handling.
 dnl
 dnl Copyright (C) 2005-2012 Florian 'octo' Forster <octo@verplant.org>
 dnl Copyright (C) 2009-2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU General Public License along
 dnl with this program; if not, write to the Free Software Foundation, Inc.,
 dnl 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-AC_DEFUN([AC_SC_PLUGIN_INIT],
+AC_DEFUN([AC_SDB_PLUGIN_INIT],
 	[
 		dependency_error="no"
 		dependency_warning="no"
@@ -37,10 +37,10 @@ AC_DEFUN([AC_SC_PLUGIN_INIT],
 	]
 )
 
-dnl AC_SC_PLUGIN(name, default, info)
+dnl AC_SDB_PLUGIN(name, default, info)
 dnl
 dnl Based on AC_PLUGIN of the collectd package.
-AC_DEFUN([AC_SC_PLUGIN],
+AC_DEFUN([AC_SDB_PLUGIN],
 	[
 		enable_plugin="no"
 		force="no"

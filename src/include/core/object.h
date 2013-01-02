@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/core/object.h
+ * SysDB - src/include/core/object.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_CORE_OBJECT_H
-#define SC_CORE_OBJECT_H 1
+#ifndef SDB_CORE_OBJECT_H
+#define SDB_CORE_OBJECT_H 1
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -35,28 +35,28 @@
 extern "C" {
 #endif
 
-struct sc_object;
-typedef struct sc_object sc_object_t;
+struct sdb_object;
+typedef struct sdb_object sdb_object_t;
 
-struct sc_object {
+struct sdb_object {
 	int    ref_cnt;
-	void (*destructor)(sc_object_t *);
+	void (*destructor)(sdb_object_t *);
 	size_t size;
 };
-#define SC_OBJECT_INIT { 1, NULL, 0 }
+#define SDB_OBJECT_INIT { 1, NULL, 0 }
 
 typedef struct {
-	sc_object_t super;
+	sdb_object_t super;
 	void *data;
 	void (*destructor)(void *);
-} sc_object_wrapper_t;
+} sdb_object_wrapper_t;
 
-#define SC_OBJ(obj) ((sc_object_t *)(obj))
-#define SC_OBJ_WRAPPER(obj) ((sc_object_wrapper_t *)(obj))
+#define SDB_OBJ(obj) ((sdb_object_t *)(obj))
+#define SDB_OBJ_WRAPPER(obj) ((sdb_object_wrapper_t *)(obj))
 
 /*
- * sc_object_create:
- * Allocates a new sc_object_t of the specified 'size'. The object will be
+ * sdb_object_create:
+ * Allocates a new sdb_object_t of the specified 'size'. The object will be
  * initialized to zero and then passed on to the 'init' function (if
  * specified). If specified, the 'destructor' will be called, when the
  * reference count drops to zero and before freeing the memory allocated by
@@ -71,42 +71,42 @@ typedef struct {
  *  - the newly allocated object
  *  - NULL on error
  */
-sc_object_t *
-sc_object_create(size_t size, int (*init)(sc_object_t *, va_list),
-		void (*destructor)(sc_object_t *), ...);
+sdb_object_t *
+sdb_object_create(size_t size, int (*init)(sdb_object_t *, va_list),
+		void (*destructor)(sdb_object_t *), ...);
 
 /*
- * sc_object_create_wrapper:
- * Create a new sc_object_t wrapping some arbitrary other object.
+ * sdb_object_create_wrapper:
+ * Create a new sdb_object_t wrapping some arbitrary other object.
  */
-sc_object_t *
-sc_object_create_wrapper(void *data, void (*destructor)(void *));
+sdb_object_t *
+sdb_object_create_wrapper(void *data, void (*destructor)(void *));
 
-#define SC_OBJECT_WRAPPER_STATIC(obj, destructor) \
-	{ SC_OBJECT_INIT, (obj), (destructor) }
+#define SDB_OBJECT_WRAPPER_STATIC(obj, destructor) \
+	{ SDB_OBJECT_INIT, (obj), (destructor) }
 
 /*
- * sc_object_deref:
+ * sdb_object_deref:
  * Dereference the object and free the allocated memory in case the ref-count
  * drops to zero. In case a 'destructor' had been registered with the object,
  * it will be called before freeing the memory.
  */
 void
-sc_object_deref(sc_object_t *obj);
+sdb_object_deref(sdb_object_t *obj);
 
 /*
- * sc_object_ref:
+ * sdb_object_ref:
  * Take ownership of the specified object, that is, increment the reference
  * count by one.
  */
 void
-sc_object_ref(sc_object_t *obj);
+sdb_object_ref(sdb_object_t *obj);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_CORE_OBJECT_H */
+#endif /* ! SDB_CORE_OBJECT_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

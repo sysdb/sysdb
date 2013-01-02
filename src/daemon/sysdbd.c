@@ -1,5 +1,5 @@
 /*
- * syscollector - src/syscollecord.c
+ * SysDB - src/sysdbd.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -29,7 +29,7 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#include "syscollector.h"
+#include "sysdb.h"
 #include "core/plugin.h"
 #include "core/store.h"
 #include "utils/string.h"
@@ -56,10 +56,10 @@
 #include <unistd.h>
 
 #ifndef CONFIGFILE
-#	define CONFIGFILE SYSCONFDIR"/syscollector/syscollectord.conf"
+#	define CONFIGFILE SYSCONFDIR"/sysdb/sysdbd.conf"
 #endif
 
-static sc_plugin_loop_t plugin_main_loop = SC_PLUGIN_LOOP_INIT;
+static sdb_plugin_loop_t plugin_main_loop = SDB_PLUGIN_LOOP_INIT;
 
 static void
 sigintterm_handler(int __attribute__((unused)) signo)
@@ -81,7 +81,7 @@ exit_usage(char *name, int status)
 "  -h        display this help and exit\n"
 "  -V        display the version number and copyright\n"
 
-"\nsyscollectord "SC_VERSION_STRING SC_VERSION_EXTRA", "PACKAGE_URL"\n",
+"\nSysDB daemon "SDB_VERSION_STRING SDB_VERSION_EXTRA", "PACKAGE_URL"\n",
 basename(name));
 	exit(status);
 } /* exit_usage */
@@ -89,15 +89,15 @@ basename(name));
 static void
 exit_version(void)
 {
-	printf("syscollectord version "SC_VERSION_STRING SC_VERSION_EXTRA", "
+	printf("SysDBd version "SDB_VERSION_STRING SDB_VERSION_EXTRA", "
 			"built "BUILD_DATE"\n"
-			"using libsyscollection verion %s%s\n"
+			"using libsysdb verion %s%s\n"
 			"Copyright (C) 2012 "PACKAGE_MAINTAINER"\n"
 
 			"\nThis is free software under the terms of the BSD license, see "
 			"the source for\ncopying conditions. There is NO WARRANTY; not "
 			"even for MERCHANTABILITY or\nFITNESS FOR A PARTICULAR "
-			"PURPOSE.\n", sc_version_string(), sc_version_extra());
+			"PURPOSE.\n", sdb_version_string(), sdb_version_extra());
 	exit(0);
 } /* exit_version */
 
@@ -109,7 +109,7 @@ daemonize(void)
 	if ((pid = fork()) < 0) {
 		char errbuf[1024];
 		fprintf(stderr, "Failed to fork to background: %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 	else if (pid != 0) {
@@ -120,7 +120,7 @@ daemonize(void)
 	if (chdir("/")) {
 		char errbuf[1024];
 		fprintf(stderr, "Failed to change working directory to /: %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 
@@ -131,7 +131,7 @@ daemonize(void)
 	if (open("/dev/null", O_RDWR)) {
 		char errbuf[1024];
 		fprintf(stderr, "Failed to connect stdin to '/dev/null': %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 
@@ -139,7 +139,7 @@ daemonize(void)
 	if (dup(0) != 1) {
 		char errbuf[1024];
 		fprintf(stderr, "Could not connect stdout to '/dev/null': %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 
@@ -147,7 +147,7 @@ daemonize(void)
 	if (dup(0) != 2) {
 		char errbuf[1024];
 		fprintf(stdout, "Could not connect stderr to '/dev/null': %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 	return 0;
@@ -204,13 +204,13 @@ main(int argc, char **argv)
 	if (sigaction(SIGINT, &sa_intterm, /* old action */ NULL)) {
 		char errbuf[1024];
 		fprintf(stderr, "Failed to install signal handler for SIGINT: %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		exit(1);
 	}
 	if (sigaction(SIGTERM, &sa_intterm, /* old action */ NULL)) {
 		char errbuf[1024];
 		fprintf(stderr, "Failed to install signal handler for SIGTERM: %s\n",
-				sc_strerror(errno, errbuf, sizeof(errbuf)));
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		exit(1);
 	}
 
@@ -218,17 +218,17 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
-	fprintf(stderr, "syscollectord "SC_VERSION_STRING SC_VERSION_EXTRA
+	fprintf(stderr, "SysDB daemon "SDB_VERSION_STRING SDB_VERSION_EXTRA
 			" (pid %i) initialized successfully\n", (int)getpid());
 
-	sc_plugin_init_all();
-	sc_plugin_collector_loop(&plugin_main_loop);
+	sdb_plugin_init_all();
+	sdb_plugin_collector_loop(&plugin_main_loop);
 
-	fprintf(stderr, "Shutting down syscollector "SC_VERSION_STRING
-			SC_VERSION_EXTRA" (pid %i)\n", (int)getpid());
+	fprintf(stderr, "Shutting down SysDB daemon "SDB_VERSION_STRING
+			SDB_VERSION_EXTRA" (pid %i)\n", (int)getpid());
 
 	fprintf(stderr, "Store dump:\n");
-	sc_store_dump(stderr);
+	sdb_store_dump(stderr);
 	return 0;
 } /* main */
 

@@ -1,5 +1,5 @@
 /*
- * syscollector - src/include/core/store.h
+ * SysDB - src/include/core/store.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,10 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SC_CORE_STORE_H
-#define SC_CORE_STORE_H 1
+#ifndef SDB_CORE_STORE_H
+#define SDB_CORE_STORE_H 1
 
-#include "syscollector.h"
+#include "sysdb.h"
 #include "core/object.h"
 #include "utils/time.h"
 #include "utils/llist.h"
@@ -40,54 +40,54 @@ extern "C" {
 #endif
 
 typedef struct {
-	sc_object_t parent;
+	sdb_object_t parent;
 
-	sc_time_t last_update;
+	sdb_time_t last_update;
 	char *name;
-} sc_store_obj_t;
-#define SC_STORE_OBJ_INIT { SC_OBJECT_INIT, 0, NULL }
-#define SC_STORE_OBJ(obj) ((sc_store_obj_t *)(obj))
+} sdb_store_obj_t;
+#define SDB_STORE_OBJ_INIT { SDB_OBJECT_INIT, 0, NULL }
+#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
 
 typedef struct {
-	sc_store_obj_t parent;
+	sdb_store_obj_t parent;
 #define svc_last_update parent.last_update
 #define svc_name parent.name
 
 	char *hostname;
-} sc_service_t;
-#define SC_SVC_INIT { SC_STORE_OBJ_INIT, NULL }
-#define SC_SVC(obj) ((sc_service_t *)(obj))
+} sdb_service_t;
+#define SDB_SVC_INIT { SDB_STORE_OBJ_INIT, NULL }
+#define SDB_SVC(obj) ((sdb_service_t *)(obj))
 
 typedef struct {
-	sc_store_obj_t parent;
+	sdb_store_obj_t parent;
 #define attr_last_update parent.last_update
 #define attr_name parent.name
 
 	char *attr_value;
 	char *hostname;
-} sc_attribute_t;
-#define SC_ATTR_INIT { SC_STORE_OBJ_INIT, NULL, NULL }
-#define SC_ATTR(obj) ((sc_attribute_t *)(obj))
+} sdb_attribute_t;
+#define SDB_ATTR_INIT { SDB_STORE_OBJ_INIT, NULL, NULL }
+#define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
 
 typedef struct {
-	sc_store_obj_t parent;
+	sdb_store_obj_t parent;
 #define host_last_update parent.last_update
 #define host_name parent.name
 
-	sc_llist_t *attributes;
-	sc_llist_t *services;
-} sc_host_t;
-#define SC_HOST_INIT { SC_STORE_OBJ_INIT, NULL, NULL }
-#define SC_HOST(obj) ((sc_host_t *)(obj))
+	sdb_llist_t *attributes;
+	sdb_llist_t *services;
+} sdb_host_t;
+#define SDB_HOST_INIT { SDB_STORE_OBJ_INIT, NULL, NULL }
+#define SDB_HOST(obj) ((sdb_host_t *)(obj))
 
-sc_host_t *
-sc_host_create(const char *name);
+sdb_host_t *
+sdb_host_create(const char *name);
 
-sc_host_t *
-sc_host_clone(const sc_host_t *host);
+sdb_host_t *
+sdb_host_clone(const sdb_host_t *host);
 
 /*
- * sc_store_host:
+ * sdb_store_host:
  * Add/update a host in the store. If the host, identified by its name,
  * already exists, it will be updated according to the specified 'host'
  * object. Else, a new entry will be created in the store. Any memory required
@@ -101,20 +101,20 @@ sc_host_clone(const sc_host_t *host);
  *  - a negative value on error
  */
 int
-sc_store_host(const sc_host_t *host);
+sdb_store_host(const sdb_host_t *host);
 
-const sc_host_t *
-sc_store_get_host(const char *name);
+const sdb_host_t *
+sdb_store_get_host(const char *name);
 
-sc_attribute_t *
-sc_attribute_create(const char *hostname,
+sdb_attribute_t *
+sdb_attribute_create(const char *hostname,
 		const char *name, const char *value);
 
-sc_attribute_t *
-sc_attribute_clone(const sc_attribute_t *attr);
+sdb_attribute_t *
+sdb_attribute_clone(const sdb_attribute_t *attr);
 
 /*
- * sc_store_attribute:
+ * sdb_store_attribute:
  * Add/update a host's attribute in the store. If the attribute, identified by
  * its name, already exists for the specified host, it will be updated
  * according to the specified 'attr' object. If the referenced host does not
@@ -130,16 +130,16 @@ sc_attribute_clone(const sc_attribute_t *attr);
  *  - a negative value on error
  */
 int
-sc_store_attribute(const sc_attribute_t *attr);
+sdb_store_attribute(const sdb_attribute_t *attr);
 
-sc_service_t *
-sc_service_create(const char *hostname, const char *name);
+sdb_service_t *
+sdb_service_create(const char *hostname, const char *name);
 
-sc_service_t *
-sc_service_clone(const sc_service_t *svc);
+sdb_service_t *
+sdb_service_clone(const sdb_service_t *svc);
 
 /*
- * sc_store_service:
+ * sdb_store_service:
  * Add/update a store in the store. If the service, identified by its name,
  * already exists for the specified host, it will be updated according to the
  * specified 'service' object. If the referenced host does not exist, an error
@@ -155,19 +155,19 @@ sc_service_clone(const sc_service_t *svc);
  *  - a negative value on error
  */
 int
-sc_store_service(const sc_service_t *svc);
+sdb_store_service(const sdb_service_t *svc);
 
-const sc_service_t *
-sc_store_get_service(const sc_host_t *host, const char *name);
+const sdb_service_t *
+sdb_store_get_service(const sdb_host_t *host, const char *name);
 
 int
-sc_store_dump(FILE *fh);
+sdb_store_dump(FILE *fh);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SC_CORE_STORE_H */
+#endif /* ! SDB_CORE_STORE_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

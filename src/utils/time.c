@@ -1,5 +1,5 @@
 /*
- * syscollector - src/utils/time.c
+ * SysDB - src/utils/time.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -36,45 +36,45 @@
  * public API
  */
 
-sc_time_t
-sc_gettime(void)
+sdb_time_t
+sdb_gettime(void)
 {
 	struct timespec ts_now = { 0, 0 };
 
 	if (clock_gettime(CLOCK_REALTIME, &ts_now))
 		return 0;
-	return TIMESPEC_TO_SC_TIME(ts_now);
-} /* sc_gettime */
+	return TIMESPEC_TO_SDB_TIME(ts_now);
+} /* sdb_gettime */
 
 int
-sc_sleep(sc_time_t reg, sc_time_t *rem)
+sdb_sleep(sdb_time_t reg, sdb_time_t *rem)
 {
 	struct timespec ts_reg, ts_rem = { 0, 0 };
 	int status;
 
-	ts_reg.tv_sec  = (time_t)SC_TIME_TO_SECS(reg);
-	ts_reg.tv_nsec = (long int)(reg % (sc_time_t)1000000000);
+	ts_reg.tv_sec  = (time_t)SDB_TIME_TO_SECS(reg);
+	ts_reg.tv_nsec = (long int)(reg % (sdb_time_t)1000000000);
 
 	status = nanosleep(&ts_reg, &ts_rem);
 	if (rem)
-		*rem = TIMESPEC_TO_SC_TIME(ts_rem);
+		*rem = TIMESPEC_TO_SDB_TIME(ts_rem);
 	return status;
-} /* sc_sleep */
+} /* sdb_sleep */
 
 size_t
-sc_strftime(char *s, size_t len, const char *format, sc_time_t t)
+sdb_strftime(char *s, size_t len, const char *format, sdb_time_t t)
 {
 	time_t tstamp;
 	struct tm tm;
 
 	memset(&tm, 0, sizeof(tm));
 
-	tstamp = (time_t)SC_TIME_TO_SECS(t);
+	tstamp = (time_t)SDB_TIME_TO_SECS(t);
 	if (! localtime_r (&tstamp, &tm))
 		return 0;
 
 	return strftime(s, len, format, &tm);
-} /* sc_strftime */
+} /* sdb_strftime */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

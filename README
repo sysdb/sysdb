@@ -1,21 +1,21 @@
-     syscollector -- a system management / inventory collection service
-    ====================================================================
+        SysDB -- a system management and inventory collection service
+       ===============================================================
 
-  “System Collector” (syscollector) is a multi-backend system management and
-  inventory collection service. It may be used to collect information from
-  various backends (inventory services, monitoring services, etc.) and
-  provides a unique interface to access the information independent of the
-  active backends. This is done by mapping the backend objects to generic
-  objects and correlating the attributes to create a single hierarchy of your
-  infrastructure.
+  “System DataBase” (SysDB) is a multi-backend system management and inventory
+  collection service. It may be used to (continuously) collect information
+  about your systems from various backends (inventory services, monitoring
+  services, etc.) and provides a unique interface to access the information
+  independent of the active backends. This is done by storing and mapping the
+  backend objects to generic objects and correlating the attributes to create
+  a single hierarchical view of your infrastructure.
 
-  This is free and open source software, licensed under the 2-clause BSD
+  SysDB is free and open source software, licensed under the 2-clause BSD
   license. See COPYING for details.
 
 Prerequisites
 -------------
 
-  To compile the syscollector package from source you need:
+  To compile the SysDB package from source you need:
 
   * A build environment: autotools, libtool, C compiler, ...
 
@@ -27,16 +27,16 @@ Prerequisites
 Configuring / Compiling / Installing
 ------------------------------------
 
-  To configure, build and install syscollector with the default settings, run
+  To configure, build and install SysDB with the default settings, run
   `./configure && make && make install'. For detailed, generic instructions
   see INSTALL. For a complete list of configure options and their description,
   run `./configure --help'.
 
-  By default, syscollector will be installed into `/opt/syscollector'. You can
-  adjust this setting by specifying the `--prefix' configure option - see
-  INSTALL for details. If you pass DESTDIR=<path> to `make install', <path>
-  will be prefixed to all installation directories. This might be useful when
-  creating packages for syscollector.
+  By default, SysDB will be installed into `/opt/sysdb'. You can adjust this
+  setting by specifying the `--prefix' configure option - see INSTALL for
+  details. If you pass DESTDIR=<path> to `make install', <path> will be
+  prefixed to all installation directories. This might be useful when creating
+  packages for SysDB.
 
 Author
 ------

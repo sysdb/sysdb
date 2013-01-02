@@ -1,5 +1,5 @@
 /*
- * syscollector - src/daemon_config.c
+ * SysDB - src/daemon/config.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "syscollector.h"
+#include "sysdb.h"
 #include "core/plugin.h"
 #include "utils/time.h"
 
@@ -41,14 +41,14 @@
  * private variables
  */
 
-static sc_time_t default_interval = 0;
+static sdb_time_t default_interval = 0;
 
 /*
  * private helper functions
  */
 
 static int
-config_get_interval(oconfig_item_t *ci, sc_time_t *interval)
+config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
 {
 	double interval_dbl = 0.0;
 
@@ -68,7 +68,7 @@ config_get_interval(oconfig_item_t *ci, sc_time_t *interval)
 		return -1;
 	}
 
-	*interval = DOUBLE_TO_SC_TIME(interval_dbl);
+	*interval = DOUBLE_TO_SDB_TIME(interval_dbl);
 	return 0;
 } /* config_get_interval */
 
@@ -93,8 +93,8 @@ daemon_load_backend(oconfig_item_t *ci)
 	char  plugin_name[1024];
 	char *name;
 
-	sc_plugin_ctx_t ctx = SC_PLUGIN_CTX_INIT;
-	sc_plugin_ctx_t old_ctx;
+	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
+	sdb_plugin_ctx_t old_ctx;
 
 	int status, i;
 
@@ -123,9 +123,9 @@ daemon_load_backend(oconfig_item_t *ci)
 		}
 	}
 
-	old_ctx = sc_plugin_set_ctx(ctx);
-	status = sc_plugin_load(plugin_name);
-	sc_plugin_set_ctx(old_ctx);
+	old_ctx = sdb_plugin_set_ctx(ctx);
+	status = sdb_plugin_load(plugin_name);
+	sdb_plugin_set_ctx(old_ctx);
 	return status;
 } /* daemon_load_backend */
 
@@ -144,7 +144,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 		return -1;
 	}
 
-	return sc_plugin_configure(name, ci);
+	return sdb_plugin_configure(name, ci);
 } /* daemon_configure_backend */
 
 static token_parser_t token_parser_list[] = {

@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl
-dnl This is the syscollector configure script.
+dnl This is the SysDB configure script.
 dnl
 dnl Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
 dnl All rights reserved.
@@ -26,16 +26,16 @@ dnl WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 dnl OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 dnl ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-AC_INIT([system collector],[m4_esyscmd(./version-gen.sh)],
+AC_INIT([System DataBase],[m4_esyscmd(./version-gen.sh)],
 		[sh@tokkee.org],
-		[syscollector],
-		[http://git.tokkee.org/?p=syscollector.git])
+		[SysDB],
+		[http://git.tokkee.org/?p=sysdb.git])
 PACKAGE_MAINTAINER="Sebastian 'tokkee' Harl <sh@tokkee.org>"
 AC_DEFINE_UNQUOTED([PACKAGE_MAINTAINER], ["$PACKAGE_MAINTAINER"],
 		[Define to the name of the maintainer of this package.])
-AC_CONFIG_SRCDIR([src/syscollector.c])
+AC_CONFIG_SRCDIR([src/sysdb.c])
 AC_CONFIG_HEADERS([src/config.h])
-AC_PREFIX_DEFAULT([/opt/syscollector])
+AC_PREFIX_DEFAULT([/opt/sysdb])
 
 AM_INIT_AUTOMAKE([foreign -Wall])
 
@@ -231,12 +231,12 @@ fi
 m4_divert_once([HELP_ENABLE], [
 Backends:])
 
-AC_SC_PLUGIN_INIT
-AC_SC_PLUGIN([collectd], [yes],
+AC_SDB_PLUGIN_INIT
+AC_SDB_PLUGIN([collectd], [yes],
 		[backend accessing the system statistics collection daemon])
-AC_SC_PLUGIN([mk-livestatus], [yes],
+AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
-AC_SC_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
+AC_SDB_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
 		[backend accessing the Puppet stored configuration database])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
