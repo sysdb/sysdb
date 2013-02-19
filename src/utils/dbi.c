@@ -355,7 +355,7 @@ sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 
 	int status;
 
-	if ((! client) || (! query))
+	if ((! client) || (! client->conn) || (! query))
 		return -1;
 
 	res = dbi_conn_query(client->conn, query);
