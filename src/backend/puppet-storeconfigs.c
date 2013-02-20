@@ -150,6 +150,12 @@ sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 		return -1;
 
 	client = SDB_OBJ_WRAPPER(user_data)->data;
+	if (sdb_dbi_client_check_conn(client)) {
+		fprintf(stderr, "puppet storeconfigs backend: "
+				"Connection to storeconfigs DB failed.\n");
+		return -1;
+	}
+
 	if (sdb_dbi_exec_query(client, "SELECT name, updated_at FROM hosts;",
 				sdb_puppet_stcfg_get_hosts, NULL, /* #columns = */ 2,
 				/* col types = */ SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
