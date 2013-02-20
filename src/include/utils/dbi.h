@@ -114,6 +114,17 @@ int
 sdb_dbi_client_connect(sdb_dbi_client_t *client);
 
 /*
+ * sdb_dbi_client_check_conn:
+ * Check the database-connection and try to reconnect if that fails.
+ *
+ * Returns:
+ *  - 0 on success (the connection is connected after the call)
+ *  - a negative value else (failed to reconnect)
+ */
+int
+sdb_dbi_client_check_conn(sdb_dbi_client_t *client);
+
+/*
  * sdb_dbi_exec_query:
  * Execute an SQL query on the database. The specified 'callback' will be
  * called for each row returned from the query. If 'n' is a value equal to or

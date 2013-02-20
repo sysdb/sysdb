@@ -347,6 +347,20 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 } /* sdb_dbi_client_connect */
 
 int
+sdb_dbi_client_check_conn(sdb_dbi_client_t *client)
+{
+	if (! client)
+		return -1;
+
+	if (! client->conn)
+		return sdb_dbi_client_connect(client);
+
+	if (dbi_conn_ping(client->conn))
+		return 0;
+	return sdb_dbi_client_connect(client);
+} /* sdb_dbi_client_check_conn */
+
+int
 sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 		sdb_dbi_data_cb callback, sdb_object_t *user_data, int n, ...)
 {
