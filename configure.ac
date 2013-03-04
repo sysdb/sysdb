@@ -223,9 +223,9 @@ fi
 AC_SUBST([A2X])
 
 dnl Plugin checks.
-enable_puppet_storeconfigs=$with_libdbi
-if test "x$enable_puppet_storeconfigs" = "xno"; then
-	enable_puppet_storeconfigs="no (requires libdbi)"
+puppet_storeconfigs_default=$with_libdbi
+if test "x$puppet_storeconfigs_default" = "xno"; then
+	puppet_storeconfigs_default="no (requires libdbi)"
 fi
 
 m4_divert_once([HELP_ENABLE], [
@@ -236,7 +236,7 @@ AC_SDB_PLUGIN([collectd], [yes],
 		[backend accessing the system statistics collection daemon])
 AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
-AC_SDB_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
+AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
