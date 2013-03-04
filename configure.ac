@@ -171,8 +171,7 @@ if test "x$enable_strict_checks" = "xyes"; then
 			-Wmissing-prototypes \
 			-Wpointer-arith \
 			-Wshadow \
-			-Wstrict-prototypes \
-			-Wunreachable-code; do
+			-Wstrict-prototypes; do
 		AC_MSG_CHECKING([whether $CC accepts $flag])
 
 		if test_cc_flags $flag; then
