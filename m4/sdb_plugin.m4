@@ -60,7 +60,7 @@ AC_DEFUN([AC_SDB_PLUGIN],
 				if test "x$2" = "xyes"; then
 					enable_plugin="yes"
 				else
-					enable_plugin="no"
+					enable_plugin="$2"
 				fi
 			 else
 				enable_plugin="$enable_all_plugins"
