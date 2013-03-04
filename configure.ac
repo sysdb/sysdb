@@ -224,7 +224,7 @@ AC_SUBST([A2X])
 
 dnl Plugin checks.
 puppet_storeconfigs_default=$with_libdbi
-if test "x$puppet_storeconfigs_default" = "xno"; then
+if test "x$puppet_storeconfigs_default" != "xyes"; then
 	puppet_storeconfigs_default="no (requires libdbi)"
 fi
 
