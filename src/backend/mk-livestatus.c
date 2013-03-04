@@ -238,7 +238,7 @@ static int
 sdb_livestatus_config_instance(oconfig_item_t *ci)
 {
 	char *name = NULL;
-	char *socket = NULL;
+	char *socket_path = NULL;
 
 	char cb_name[1024];
 
@@ -257,14 +257,14 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 		oconfig_item_t *child = ci->children + i;
 
 		if (! strcasecmp(child->key, "Socket"))
-			oconfig_get_string(child, &socket);
+			oconfig_get_string(child, &socket_path);
 		else
 			fprintf(stderr, "MK Livestatus backend: Ignoring unknown config "
 					"option '%s' inside <Instance %s>.\n",
 					child->key, name);
 	}
 
-	if (! socket) {
+	if (! socket_path) {
 		fprintf(stderr, "MK Livestatus backend: Instance '%s' missing "
 				"the 'Socket' option.\n", name);
 		return -1;
@@ -273,7 +273,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 	snprintf(cb_name, sizeof(cb_name), "mk-livestatus-%s", name);
 	cb_name[sizeof(cb_name) - 1] = '\0';
 
-	client = sdb_unixsock_client_create(socket);
+	client = sdb_unixsock_client_create(socket_path);
 	if (! client) {
 		char errbuf[1024];
 		fprintf(stderr, "MK Livestatus backend: Failed to create unixsock "

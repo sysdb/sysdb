@@ -157,7 +157,7 @@ int
 main(int argc, char **argv)
 {
 	char *config_filename = NULL;
-	_Bool daemon = 0;
+	_Bool do_daemonize = 0;
 
 	struct sigaction sa_intterm;
 
@@ -172,7 +172,7 @@ main(int argc, char **argv)
 				config_filename = optarg;
 				break;
 			case 'd':
-				daemon = 1;
+				do_daemonize = 1;
 				break;
 
 			case 'h':
@@ -214,7 +214,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (daemon)
+	if (do_daemonize)
 		if (daemonize())
 			exit(1);
 
