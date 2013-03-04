@@ -206,6 +206,13 @@ AM_CONDITIONAL([BUILD_WITH_LIBDBI], test "x$with_libdbi" = "xyes")
 dnl Feature checks.
 build_documentation="yes"
 
+have_xmlto="yes"
+AC_PATH_PROG([XMLTO], [xmlto])
+if test "x$XMLTO" = "x"; then
+	have_xmlto="no"
+	build_documentation="no (missing xmlto)"
+fi
+
 have_xsltproc="yes"
 AC_PATH_PROG([XSLTPROC], [xsltproc])
 if test "x$XSLTPROC" = "x"; then
@@ -259,7 +266,7 @@ AC_MSG_RESULT([  build date: $BUILD_DATE])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Tools:])
 AC_MSG_RESULT([    AsciiDoc (a2x): . . . . . . $have_a2x])
-AC_MSG_RESULT([    xsltproc: . . . . . . . . . $have_xsltproc])
+AC_MSG_RESULT([    xmlto / xsltproc: . . . . . $have_xmlto / $have_xsltproc])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])

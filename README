@@ -21,7 +21,7 @@ Prerequisites
 
   * A POSIX + Single UNIX Specification compatible C library.
 
-  * asciidoc, xsltproc:
+  * asciidoc, xsltproc, xmlto:
     The AsciiDoc text document format is used to write the manpages.
 
 Configuring / Compiling / Installing
