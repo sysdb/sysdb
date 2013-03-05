@@ -197,33 +197,33 @@ sdb_host_create(const char *name)
 sdb_host_t *
 sdb_host_clone(const sdb_host_t *host)
 {
-	sdb_host_t *clone;
+	sdb_host_t *new;
 
-	clone = sdb_host_create(host->host_name);
-	if (! clone)
+	new = sdb_host_create(host->host_name);
+	if (! new)
 		return NULL;
 
 	/* make sure these are initialized; else sdb_object_deref() might access
 	 * arbitrary memory in case of an error */
-	clone->services = clone->attributes = NULL;
+	new->services = new->attributes = NULL;
 
 	if (host->attributes) {
-		clone->attributes = sdb_llist_clone(host->attributes);
-		if (! clone->attributes) {
-			sdb_object_deref(SDB_OBJ(clone));
+		new->attributes = sdb_llist_clone(host->attributes);
+		if (! new->attributes) {
+			sdb_object_deref(SDB_OBJ(new));
 			return NULL;
 		}
 	}
 
-	clone->host_last_update = host->host_last_update;
+	new->host_last_update = host->host_last_update;
 	if (host->services) {
-		clone->services = sdb_llist_clone(host->services);
-		if (! clone->services) {
-			sdb_object_deref(SDB_OBJ(clone));
+		new->services = sdb_llist_clone(host->services);
+		if (! new->services) {
+			sdb_object_deref(SDB_OBJ(new));
 			return NULL;
 		}
 	}
-	return clone;
+	return new;
 } /* sdb_host_clone */
 
 int
@@ -350,15 +350,15 @@ sdb_attribute_create(const char *hostname,
 sdb_attribute_t *
 sdb_attribute_clone(const sdb_attribute_t *attr)
 {
-	sdb_attribute_t *clone;
+	sdb_attribute_t *new;
 
-	clone = sdb_attribute_create(attr->hostname,
+	new = sdb_attribute_create(attr->hostname,
 			attr->attr_name, attr->attr_value);
-	if (! clone)
+	if (! new)
 		return NULL;
 
-	clone->attr_last_update = attr->attr_last_update;
-	return clone;
+	new->attr_last_update = attr->attr_last_update;
+	return new;
 } /* sdb_attribute_clone */
 
 int
@@ -450,14 +450,14 @@ sdb_service_create(const char *hostname, const char *name)
 sdb_service_t *
 sdb_service_clone(const sdb_service_t *svc)
 {
-	sdb_service_t *clone;
+	sdb_service_t *new;
 
-	clone = sdb_service_create(svc->hostname, svc->svc_name);
-	if (! clone)
+	new = sdb_service_create(svc->hostname, svc->svc_name);
+	if (! new)
 		return NULL;
 
-	clone->svc_last_update = svc->svc_last_update;
-	return clone;
+	new->svc_last_update = svc->svc_last_update;
+	return new;
 } /* sdb_service_clone */
 
 int

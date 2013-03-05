@@ -167,28 +167,28 @@ sdb_llist_create(void)
 sdb_llist_t *
 sdb_llist_clone(sdb_llist_t *list)
 {
-	sdb_llist_t *clone;
+	sdb_llist_t *new;
 	sdb_llist_elem_t *elem;
 
 	if (! list)
 		return NULL;
 
-	clone = sdb_llist_create();
-	if (! clone)
+	new = sdb_llist_create();
+	if (! new)
 		return NULL;
 
 	if (! list->length) {
 		assert((! list->head) && (! list->tail));
-		return clone;
+		return new;
 	}
 
 	for (elem = list->head; elem; elem = elem->next) {
-		if (sdb_llist_append(clone, elem->obj)) {
-			sdb_llist_destroy(clone);
+		if (sdb_llist_append(new, elem->obj)) {
+			sdb_llist_destroy(new);
 			return NULL;
 		}
 	}
-	return clone;
+	return new;
 } /* sdb_llist_clone */
 
 void

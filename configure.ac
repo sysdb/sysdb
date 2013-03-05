@@ -171,8 +171,7 @@ if test "x$enable_strict_checks" = "xyes"; then
 			-Wmissing-prototypes \
 			-Wpointer-arith \
 			-Wshadow \
-			-Wstrict-prototypes \
-			-Wunreachable-code; do
+			-Wstrict-prototypes; do
 		AC_MSG_CHECKING([whether $CC accepts $flag])
 
 		if test_cc_flags $flag; then
@@ -207,6 +206,13 @@ AM_CONDITIONAL([BUILD_WITH_LIBDBI], test "x$with_libdbi" = "xyes")
 dnl Feature checks.
 build_documentation="yes"
 
+have_xmlto="yes"
+AC_PATH_PROG([XMLTO], [xmlto])
+if test "x$XMLTO" = "x"; then
+	have_xmlto="no"
+	build_documentation="no (missing xmlto)"
+fi
+
 have_xsltproc="yes"
 AC_PATH_PROG([XSLTPROC], [xsltproc])
 if test "x$XSLTPROC" = "x"; then
@@ -223,9 +229,9 @@ fi
 AC_SUBST([A2X])
 
 dnl Plugin checks.
-enable_puppet_storeconfigs=$with_libdbi
-if test "x$enable_puppet_storeconfigs" = "xno"; then
-	enable_puppet_storeconfigs="no (requires libdbi)"
+puppet_storeconfigs_default=$with_libdbi
+if test "x$puppet_storeconfigs_default" != "xyes"; then
+	puppet_storeconfigs_default="no (requires libdbi)"
 fi
 
 m4_divert_once([HELP_ENABLE], [
@@ -236,7 +242,7 @@ AC_SDB_PLUGIN([collectd], [yes],
 		[backend accessing the system statistics collection daemon])
 AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
-AC_SDB_PLUGIN([puppet-storeconfigs], [$enable_puppet_storeconfigs],
+AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
@@ -260,7 +266,7 @@ AC_MSG_RESULT([  build date: $BUILD_DATE])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Tools:])
 AC_MSG_RESULT([    AsciiDoc (a2x): . . . . . . $have_a2x])
-AC_MSG_RESULT([    xsltproc: . . . . . . . . . $have_xsltproc])
+AC_MSG_RESULT([    xmlto / xsltproc: . . . . . $have_xmlto / $have_xsltproc])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])

@@ -19,9 +19,13 @@ Prerequisites
 
   * A build environment: autotools, libtool, C compiler, ...
 
+  * When building from Git, you also need the flex lexical analyzer generator
+    and bison parser generator (other lex and yacc compatible tools might work
+    as well if you are lucky).
+
   * A POSIX + Single UNIX Specification compatible C library.
 
-  * asciidoc, xsltproc:
+  * asciidoc, xsltproc, xmlto:
     The AsciiDoc text document format is used to write the manpages.
 
 Configuring / Compiling / Installing
