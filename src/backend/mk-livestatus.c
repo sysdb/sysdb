@@ -270,7 +270,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 		return -1;
 	}
 
-	snprintf(cb_name, sizeof(cb_name), "mk-livestatus-%s", name);
+	snprintf(cb_name, sizeof(cb_name), "mk-livestatus::%s", name);
 	cb_name[sizeof(cb_name) - 1] = '\0';
 
 	client = sdb_unixsock_client_create(socket_path);
