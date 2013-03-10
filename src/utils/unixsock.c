@@ -26,6 +26,7 @@
  */
 
 #include "utils/unixsock.h"
+#include "utils/error.h"
 #include "utils/string.h"
 
 #include <assert.h>
@@ -116,7 +117,7 @@ sdb_unixsock_parse_cell(char *string, int type, sdb_data_t *data)
 			data->data.binary.datum = (const unsigned char *)string;
 			break;
 		default:
-			fprintf(stderr, "unixsock: Unexpected type %i while "
+			sdb_error_set(SDB_LOG_ERR, "unixsock: Unexpected type %i while "
 					"parsing query result.\n", type);
 			return -1;
 	}
@@ -125,14 +126,14 @@ sdb_unixsock_parse_cell(char *string, int type, sdb_data_t *data)
 			|| (type == SDB_TYPE_DATETIME)) {
 		if (errno || (string == endptr)) {
 			char errbuf[1024];
-			fprintf(stderr, "unixsock: Failed to parse string '%s' "
-					"as numeric value (type %i): %s\n", string, type,
+			sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to parse string "
+					"'%s' as numeric value (type %i): %s\n", string, type,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			return -1;
 		}
 		else if (endptr && (*endptr != '\0'))
-			fprintf(stderr, "unixsock: Ignoring garbage after number "
-					"while parsing numeric value (type %i): %s.\n",
+			sdb_error_set(SDB_LOG_WARNING, "unixsock: Ignoring garbage after "
+					"number while parsing numeric value (type %i): %s.\n",
 					type, endptr);
 	}
 
@@ -157,9 +158,10 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 		char *next;
 
 		if (! line) { /* this must no happen */
-			fprintf(stderr, "unixsock: Unexpected EOL while parsing line "
-					"(expected %i columns delimited by '%s'; got %i): %s\n",
-					column_count, delim, /* last line number */ i, orig_line);
+			sdb_error_set(SDB_LOG_ERR, "unixsock: Unexpected EOL while "
+					"parsing line (expected %i columns delimited by '%s'; "
+					"got %i): %s\n", column_count, delim,
+					/* last line number */ i, orig_line);
 			return -1;
 		}
 
@@ -230,7 +232,7 @@ sdb_unixsock_client_connect(sdb_unixsock_client_t *client)
 	fd = socket(AF_UNIX, SOCK_STREAM, /* protocol = */ 0);
 	if (fd < 0) {
 		char errbuf[1024];
-		fprintf(stderr, "unixsock: Failed to open socket: %s\n",
+		sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to open socket: %s\n",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -241,7 +243,7 @@ sdb_unixsock_client_connect(sdb_unixsock_client_t *client)
 
 	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa))) {
 		char errbuf[1024];
-		fprintf(stderr, "unixsock: Failed to connect to %s: %s\n",
+		sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to connect to %s: %s\n",
 				sa.sun_path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		close(fd);
 		return -1;
@@ -250,8 +252,9 @@ sdb_unixsock_client_connect(sdb_unixsock_client_t *client)
 	client->fh = fdopen(fd, "r+");
 	if (! client->fh) {
 		char errbuf[1024];
-		fprintf(stderr, "unixsock: Failed to open I/O stream for %s: %s\n",
-				sa.sun_path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to open I/O "
+				"stream for %s: %s\n", sa.sun_path,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		close(fd);
 		return -1;
 	}
@@ -275,8 +278,9 @@ sdb_unixsock_client_send(sdb_unixsock_client_t *client,
 	status = fprintf(client->fh, "%s\r\n", msg);
 	if (status < 0) {
 		char errbuf[1024];
-		fprintf(stderr, "unixsock: Failed to write to socket (%s): %s\n",
-				client->path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to write to "
+				"socket (%s): %s\n", client->path,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return status;
 	}
 	return status;
@@ -296,8 +300,9 @@ sdb_unixsock_client_recv(sdb_unixsock_client_t *client,
 	if (! buffer) {
 		if (! feof(client->fh)) {
 			char errbuf[1024];
-			fprintf(stderr, "unixsock: Failed to read from socket (%s): %s\n",
-					client->path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_error_set(SDB_LOG_ERR, "unixsock: Failed to read "
+					"from socket (%s): %s\n", client->path,
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		}
 		return buffer;
 	}
@@ -336,9 +341,9 @@ sdb_unixsock_client_process_lines(sdb_unixsock_client_t *client,
 			types[i] = va_arg(ap, int);
 
 			if ((types[i] < 1) || (types[i] > SDB_TYPE_BINARY)) {
-				fprintf(stderr, "unixsock: Unknown column type %i while "
-						"processing response from the UNIX socket @ %s.\n",
-						types[i], client->path);
+				sdb_error_set(SDB_LOG_ERR, "unixsock: Unknown column "
+						"type %i while processing response from the "
+						"UNIX socket @ %s.\n", types[i], client->path);
 				va_end(ap);
 				free(types);
 				return -1;
@@ -369,10 +374,10 @@ sdb_unixsock_client_process_lines(sdb_unixsock_client_t *client,
 		column_count = sdb_unixsock_get_column_count(line, delim);
 
 		if ((n_cols >= 0) && (n_cols != column_count)) {
-			fprintf(stderr, "unixsock: number of columns (%i) does not "
-					"match the number of requested columns (%i) while "
-					"processing response from the UNIX socket @ %s: %s\n",
-					column_count, n_cols, client->path, line);
+			sdb_error_set(SDB_LOG_ERR, "unixsock: number of columns (%i) "
+					"does not match the number of requested columns (%i) "
+					"while processing response from the UNIX socket @ %s: "
+					"%s\n", column_count, n_cols, client->path, line);
 			continue;
 		}
 
@@ -390,8 +395,8 @@ sdb_unixsock_client_process_lines(sdb_unixsock_client_t *client,
 			|| ((max_lines < 0) && (! sdb_unixsock_client_eof(client)))
 			|| sdb_unixsock_client_error(client)) {
 		char errbuf[1024];
-		fprintf(stderr, "unixsock: Unexpected end of data while reading "
-				"from socket (%s): %s\n", client->path,
+		sdb_error_set(SDB_LOG_ERR, "unixsock: Unexpected end of data while "
+				"reading from socket (%s): %s\n", client->path,
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}

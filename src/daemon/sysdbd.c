@@ -32,6 +32,7 @@
 #include "sysdb.h"
 #include "core/plugin.h"
 #include "core/store.h"
+#include "utils/error.h"
 #include "utils/string.h"
 
 #include "daemon/config.h"
@@ -108,7 +109,7 @@ daemonize(void)
 
 	if ((pid = fork()) < 0) {
 		char errbuf[1024];
-		fprintf(stderr, "Failed to fork to background: %s\n",
+		sdb_error_set(SDB_LOG_ERR, "Failed to fork to background: %s\n",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
@@ -119,7 +120,8 @@ daemonize(void)
 
 	if (chdir("/")) {
 		char errbuf[1024];
-		fprintf(stderr, "Failed to change working directory to /: %s\n",
+		sdb_error_set(SDB_LOG_ERR, "Failed to change working directory to "
+				"the root directory: %s\n",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
@@ -130,24 +132,24 @@ daemonize(void)
 	close(0);
 	if (open("/dev/null", O_RDWR)) {
 		char errbuf[1024];
-		fprintf(stderr, "Failed to connect stdin to '/dev/null': %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "Failed to connect stdin to '/dev/null': "
+				"%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 
 	close(1);
 	if (dup(0) != 1) {
 		char errbuf[1024];
-		fprintf(stderr, "Could not connect stdout to '/dev/null': %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "Could not connect stdout to '/dev/null': "
+				"%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 
 	close(2);
 	if (dup(0) != 2) {
 		char errbuf[1024];
-		fprintf(stdout, "Could not connect stderr to '/dev/null': %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "Could not connect stderr to '/dev/null': "
+				"%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return errno;
 	}
 	return 0;
@@ -193,7 +195,7 @@ main(int argc, char **argv)
 		config_filename = CONFIGFILE;
 
 	if (daemon_parse_config(config_filename)) {
-		fprintf(stderr, "Failed to parse configuration file.\n");
+		sdb_error_set(SDB_LOG_ERR, "Failed to parse configuration file.\n");
 		exit(1);
 	}
 
@@ -203,14 +205,14 @@ main(int argc, char **argv)
 
 	if (sigaction(SIGINT, &sa_intterm, /* old action */ NULL)) {
 		char errbuf[1024];
-		fprintf(stderr, "Failed to install signal handler for SIGINT: %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "Failed to install signal handler for "
+				"SIGINT: %s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		exit(1);
 	}
 	if (sigaction(SIGTERM, &sa_intterm, /* old action */ NULL)) {
 		char errbuf[1024];
-		fprintf(stderr, "Failed to install signal handler for SIGTERM: %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_error_set(SDB_LOG_ERR, "Failed to install signal handler for "
+				"SIGTERM: %s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		exit(1);
 	}
 
@@ -218,13 +220,14 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
-	fprintf(stderr, "SysDB daemon "SDB_VERSION_STRING SDB_VERSION_EXTRA
-			" (pid %i) initialized successfully\n", (int)getpid());
+	sdb_error_set(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
+			SDB_VERSION_EXTRA " (pid %i) initialized successfully\n",
+			(int)getpid());
 
 	sdb_plugin_init_all();
 	sdb_plugin_collector_loop(&plugin_main_loop);
 
-	fprintf(stderr, "Shutting down SysDB daemon "SDB_VERSION_STRING
+	sdb_error_set(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
 			SDB_VERSION_EXTRA" (pid %i)\n", (int)getpid());
 
 	fprintf(stderr, "Store dump:\n");

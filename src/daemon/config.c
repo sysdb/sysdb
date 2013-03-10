@@ -27,6 +27,7 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
+#include "utils/error.h"
 #include "utils/time.h"
 
 #include "daemon/config.h"
@@ -55,14 +56,14 @@ config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
 	assert(ci && interval);
 
 	if (oconfig_get_number(ci, &interval_dbl)) {
-		fprintf(stderr, "config: Interval requires "
+		sdb_error_set(SDB_LOG_ERR, "config: Interval requires "
 				"a single numeric argument\n"
 				"\tUsage: Interval SECONDS\n");
 		return -1;
 	}
 
 	if (interval_dbl <= 0.0) {
-		fprintf(stderr, "config: Invalid interval: %f\n"
+		sdb_error_set(SDB_LOG_ERR, "config: Invalid interval: %f\n"
 				"\tInterval may not be less than or equal to zero.\n",
 				interval_dbl);
 		return -1;
@@ -101,7 +102,7 @@ daemon_load_backend(oconfig_item_t *ci)
 	ctx.interval = default_interval;
 
 	if (oconfig_get_string(ci, &name)) {
-		fprintf(stderr, "config: LoadBackend requires a single "
+		sdb_error_set(SDB_LOG_ERR, "config: LoadBackend requires a single "
 				"string argument\n"
 				"\tUsage: LoadBackend BACKEND\n");
 		return -1;
@@ -117,9 +118,10 @@ daemon_load_backend(oconfig_item_t *ci)
 				return -1;
 		}
 		else {
-			fprintf(stderr, "config: Unknown option '%s' inside 'LoadBackend' "
-					"-- see the documentation for details.\n", child->key);
-			return -1;
+			sdb_error_set(SDB_LOG_WARNING, "config: Unknown option '%s' "
+					"inside 'LoadBackend' -- see the documentation for "
+					"details.\n", child->key);
+			continue;
 		}
 	}
 
@@ -137,7 +139,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 	assert(ci);
 
 	if (oconfig_get_string(ci, &name)) {
-		fprintf(stderr, "config: %s requires a single "
+		sdb_error_set(SDB_LOG_ERR, "config: %s requires a single "
 				"string argument\n"
 				"\tUsage: LoadBackend BACKEND\n",
 				ci->key);
@@ -179,12 +181,13 @@ daemon_parse_config(const char *filename)
 		}
 
 		if (status) {
-			fprintf(stderr, "config: Failed to parse option '%s'\n",
-					child->key);
+			sdb_error_start(SDB_LOG_ERR, "config: Failed to parse option "
+					"'%s'\n", child->key);
 			if (status > 0)
-				fprintf(stderr, "\tUnknown option '%s' -- "
+				sdb_error_append("\tUnknown option '%s' -- "
 						"see the documentation for details\n",
 						child->key);
+			sdb_error_finish();
 			retval = -1;
 		}
 	}

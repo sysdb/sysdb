@@ -27,6 +27,7 @@
 
 #include "sysdb.h"
 #include "core/store.h"
+#include "utils/error.h"
 #include "utils/llist.h"
 #include "utils/string.h"
 
@@ -257,7 +258,7 @@ sdb_store_host(const sdb_host_t *host)
 
 	if (old) {
 		if (old->host_last_update > last_update) {
-			fprintf(stderr, "store: Cannot update host '%s' - "
+			sdb_error_set(SDB_LOG_DEBUG, "store: Cannot update host '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")\n",
 					host->host_name, last_update, old->host_last_update);
 			/* don't report an error; the host may be updated by multiple
@@ -272,8 +273,8 @@ sdb_store_host(const sdb_host_t *host)
 		sdb_host_t *new = sdb_host_clone(host);
 		if (! new) {
 			char errbuf[1024];
-			fprintf(stderr, "store: Failed to clone host object: %s\n",
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_error_set(SDB_LOG_ERR, "store: Failed to clone host object: "
+					"%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
@@ -281,7 +282,7 @@ sdb_store_host(const sdb_host_t *host)
 		if (! new->attributes) {
 			if (! (new->attributes = sdb_llist_create())) {
 				char errbuf[1024];
-				fprintf(stderr, "store: Failed to initialize "
+				sdb_error_set(SDB_LOG_ERR, "store: Failed to initialize "
 						"host object '%s': %s\n", host->host_name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
@@ -293,7 +294,7 @@ sdb_store_host(const sdb_host_t *host)
 		if (! new->services) {
 			if (! (new->services = sdb_llist_create())) {
 				char errbuf[1024];
-				fprintf(stderr, "store: Failed to initialize "
+				sdb_error_set(SDB_LOG_ERR, "store: Failed to initialize "
 						"host object '%s': %s\n", host->host_name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
@@ -401,8 +402,8 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 
 	if (old) {
 		if (old->host_last_update > last_update) {
-			fprintf(stderr, "store: Cannot update attribute '%s/%s' - "
-					"value too old (%"PRIscTIME" < %"PRIscTIME")\n",
+			sdb_error_set(SDB_LOG_DEBUG, "store: Cannot update attribute "
+					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")\n",
 					attr->hostname, attr->attr_name, last_update,
 					old->host_last_update);
 			status = 1;
@@ -415,8 +416,8 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 		sdb_attribute_t *new = sdb_attribute_clone(attr);
 		if (! new) {
 			char errbuf[1024];
-			fprintf(stderr, "store: Failed to clone attribute object: %s\n",
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_error_set(SDB_LOG_ERR, "store: Failed to clone attribute "
+					"object: %s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
@@ -499,8 +500,8 @@ sdb_store_service(const sdb_service_t *svc)
 
 	if (old) {
 		if (old->host_last_update > last_update) {
-			fprintf(stderr, "store: Cannot update service '%s/%s' - "
-					"value too old (%"PRIscTIME" < %"PRIscTIME")\n",
+			sdb_error_set(SDB_LOG_DEBUG, "store: Cannot update service "
+					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")\n",
 					svc->hostname, svc->svc_name, last_update,
 					old->host_last_update);
 			status = 1;
@@ -513,8 +514,8 @@ sdb_store_service(const sdb_service_t *svc)
 		sdb_service_t *new = sdb_service_clone(svc);
 		if (! new) {
 			char errbuf[1024];
-			fprintf(stderr, "store: Failed to clone service object: %s\n",
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_error_set(SDB_LOG_ERR, "store: Failed to clone service "
+					"object: %s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			pthread_rwlock_unlock(&host_lock);
 			return -1;
 		}
