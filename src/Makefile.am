@@ -24,6 +24,7 @@ libsysdb_la_SOURCES = \
 		core/plugin.c include/core/plugin.h \
 		core/store.c include/core/store.h \
 		include/utils/data.h \
+		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \
 		utils/string.c include/utils/string.h \
 		utils/time.c include/utils/time.h \
