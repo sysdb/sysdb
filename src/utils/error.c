@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h>
+
 /*
  * private data types
  */
@@ -58,12 +60,20 @@ static _Bool         error_ctx_key_initialized = 0;
  */
 
 static void
+sdb_error_ctx_destructor(void *ctx)
+{
+	if (! ctx)
+		return;
+	free(ctx);
+} /* sdb_error_ctx_destructor */
+
+static void
 sdb_error_ctx_init(void)
 {
 	if (error_ctx_key_initialized)
 		return;
 
-	pthread_key_create(&error_ctx_key, NULL);
+	pthread_key_create(&error_ctx_key, sdb_error_ctx_destructor);
 	error_ctx_key_initialized = 1;
 } /* sdb_error_init */
 
