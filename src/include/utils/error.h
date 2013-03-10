@@ -60,34 +60,42 @@ enum {
 };
 #define SDB_LOG_PRIO_TO_STRING(prio) \
 	(((prio) == SDB_LOG_EMERG) ? "EMERG" \
-		: ((prio) == SDB_LOG_ERR) ? "ERR" \
+		: ((prio) == SDB_LOG_ERR) ? "ERROR" \
 		: ((prio) == SDB_LOG_WARNING) ? "WARNING" \
 		: ((prio) == SDB_LOG_NOTICE) ? "NOTICE" \
 		: ((prio) == SDB_LOG_INFO) ? "INFO" \
 		: ((prio) == SDB_LOG_DEBUG) ? "DEBUG" : "UNKNOWN")
 
 /*
- * sdb_error_set:
- * Set the current error message. The string will be formated in printf-style
+ * sdb_log:
+ * Log the specified message. The string will be formatted in printf-style
  * using the specified format and arguments and logged with the specified
- * priority. XXX: SDB_LOG_EMERG might, at some point and/or depending on
- * configuration, try a clean shut-down of the process.
+ * priority. In addition, the error message will be stored as the current
+ * error message. This function is basically the same as calling sdb_error_set
+ * and sdb_error_log. XXX: SDB_LOG_EMERG might, at some point and/or depending
+ * on configuration, try a clean shut-down of the process.
  */
 int
-sdb_error_set(int prio, const char *fmt, ...);
+sdb_log(int prio, const char *fmt, ...);
 
 /*
- * sdb_error_start, sdb_error_append, sdb_error_end:
- * Compose the current error message from multiple parts. The error message
- * will only be logged after calling sdb_error_finish().
- * See sdb_error_set for details.
+ * sdb_error_set, sdb_error_append:
+ * Compose the current error message. The string will be formatted in printf-
+ * style using the specified format and arguments. No automatic logging will
+ * be done.
  */
 int
-sdb_error_start(int prio, const char *fmt, ...);
+sdb_error_set(const char *fmt, ...);
 int
 sdb_error_append(const char *fmt, ...);
+
+/*
+ * sdb_error_log:
+ * Log the current error message with the specified priority. See sdb_log for
+ * more information.
+ */
 int
-sdb_error_finish(void);
+sdb_error_log(int prio);
 
 /*
  * sdb_error_get:
@@ -100,8 +108,8 @@ sdb_error_get(void);
 
 /*
  * sdb_error_get_prio:
- * Get the priority of the current error message -- see the SDB_LOG_ constants
- * for details.
+ * Get the priority of the last logged error message -- see the SDB_LOG_
+ * constants for details.
  */
 int
 sdb_error_get_prio(void);

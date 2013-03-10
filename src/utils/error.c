@@ -42,7 +42,7 @@
 typedef struct {
 	int   prio;
 	char  msg[SDB_MAX_ERROR];
-	_Bool finalized;
+	_Bool logged;
 } sdb_error_ctx_t;
 #define SDB_ERROR_INIT { -1, "", 1 }
 
@@ -121,12 +121,12 @@ sdb_error_clear(void)
 
 	ctx->prio = -1;
 	ctx->msg[0] = '\0';
-	ctx->finalized = 1;
+	ctx->logged = 1;
 	return 0;
 } /* sdb_error_clear */
 
 static int
-sdb_error_vappend(int prio, const char *fmt, va_list ap)
+sdb_error_vappend(const char *fmt, va_list ap)
 {
 	sdb_error_ctx_t *ctx;
 	size_t len;
@@ -139,15 +139,12 @@ sdb_error_vappend(int prio, const char *fmt, va_list ap)
 	if (len >= sizeof(ctx->msg))
 		return 0; /* nothing written */
 
-	if (prio >= 0)
-		ctx->prio = prio;
-
-	ctx->finalized = 0;
+	ctx->logged = 0;
 	return vsnprintf(ctx->msg + len, sizeof(ctx->msg) - len, fmt, ap);
 } /* sdb_error_vappend */
 
 static int
-sdb_error_log(void)
+sdb_do_log(int prio)
 {
 	sdb_error_ctx_t *ctx;
 	int ret;
@@ -156,21 +153,24 @@ sdb_error_log(void)
 	if (! ctx)
 		return -1;
 
-	if (ctx->finalized)
+	if (prio >= 0)
+		ctx->prio = prio;
+
+	if (ctx->logged)
 		return 0;
 
 	ret = fprintf(stderr, "[%s] %s\n",
-			SDB_LOG_PRIO_TO_STRING(ctx->prio), ctx->msg);
-	ctx->finalized = 1;
+			SDB_LOG_PRIO_TO_STRING(prio), ctx->msg);
+	ctx->logged = 1;
 	return ret;
-} /* sdb_error_log */
+} /* sdb_do_log */
 
 /*
  * public API
  */
 
 int
-sdb_error_set(int prio, const char *fmt, ...)
+sdb_log(int prio, const char *fmt, ...)
 {
 	va_list ap;
 	int ret;
@@ -179,15 +179,15 @@ sdb_error_set(int prio, const char *fmt, ...)
 		return -1;
 
 	va_start(ap, fmt);
-	ret = sdb_error_vappend(prio, fmt, ap);
+	ret = sdb_error_vappend(fmt, ap);
 	va_end(ap);
 
-	sdb_error_log();
+	sdb_do_log(prio);
 	return ret;
-} /* sdb_error_set */
+} /* sdb_log */
 
 int
-sdb_error_start(int prio, const char *fmt, ...)
+sdb_error_set(const char *fmt, ...)
 {
 	va_list ap;
 	int ret;
@@ -196,11 +196,11 @@ sdb_error_start(int prio, const char *fmt, ...)
 		return -1;
 
 	va_start(ap, fmt);
-	ret = sdb_error_vappend(prio, fmt, ap);
+	ret = sdb_error_vappend(fmt, ap);
 	va_end(ap);
 
 	return ret;
-} /* sdb_error_start */
+} /* sdb_error_set */
 
 int
 sdb_error_append(const char *fmt, ...)
@@ -209,17 +209,17 @@ sdb_error_append(const char *fmt, ...)
 	int ret;
 
 	va_start(ap, fmt);
-	ret = sdb_error_vappend(/* dont change prio */ -1, fmt, ap);
+	ret = sdb_error_vappend(fmt, ap);
 	va_end(ap);
 
 	return ret;
 } /* sdb_error_append */
 
 int
-sdb_error_finish(void)
+sdb_error_log(int prio)
 {
-	return sdb_error_log();
-} /* sdb_error_finish */
+	return sdb_do_log(prio);
+} /* sdb_error_log */
 
 const char *
 sdb_error_get(void)
