@@ -51,15 +51,17 @@ sdbconfdir = $(sysconfdir)/sysdb
 dist_sdbconf_DATA = daemon/sysdbd.conf.sample
 
 pkgbackendlibdir = $(pkglibdir)/backend
+pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
 
 pkgbackendlib_LTLIBRARIES =
+pkgbackendcollectdlib_LTLIBRARIES =
 
 if BUILD_PLUGIN_COLLECTD
-pkgbackendlib_LTLIBRARIES += backend/collectd.la
-backend_collectd_la_SOURCES = backend/collectd.c
-backend_collectd_la_LDFLAGS = -module -avoid-version
-libsysdb_la_LIBADD += -dlopen backend/collectd.la
-libsysdb_la_DEPENDENCIES += backend/collectd.la
+pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
+backend_collectd_unixsock_la_SOURCES = backend/collectd/unixsock.c
+backend_collectd_unixsock_la_LDFLAGS = -module -avoid-version
+libsysdb_la_LIBADD += -dlopen backend/collectd/unixsock.la
+libsysdb_la_DEPENDENCIES += backend/collectd/unixsock.la
 endif
 
 if BUILD_PLUGIN_MKLIVESTATUS

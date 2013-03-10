@@ -182,7 +182,7 @@ sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 		return -1;
 	}
 	return 0;
-} /* sdb_collectd_collect */
+} /* sdb_puppet_stcfg_collect */
 
 static int
 sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
