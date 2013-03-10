@@ -26,7 +26,7 @@ Interval 300
 
 LoadBackend "collectd::unixsock"
 LoadBackend "mk-livestatus"
-LoadBackend "puppet-storeconfigs"
+LoadBackend "puppet::store-configs"
 
 #----------------------------------------------------------------------------#
 # Plugin configuration:                                                      #
@@ -44,7 +44,7 @@ LoadBackend "puppet-storeconfigs"
 	</Instance>
 </Backend>
 
-<Backend "puppet-storeconfigs">
+<Backend "puppet::store-configs">
 	<Connection "puppet">
 		DBAdapter "pgsql"
 		DBName "puppet"

@@ -52,9 +52,11 @@ dist_sdbconf_DATA = daemon/sysdbd.conf.sample
 
 pkgbackendlibdir = $(pkglibdir)/backend
 pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
+pkgbackendpuppetlibdir = $(pkgbackendlibdir)/puppet
 
 pkgbackendlib_LTLIBRARIES =
 pkgbackendcollectdlib_LTLIBRARIES =
+pkgbackendpuppetlib_LTLIBRARIES =
 
 if BUILD_PLUGIN_COLLECTD
 pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
@@ -73,11 +75,11 @@ libsysdb_la_DEPENDENCIES += backend/mk-livestatus.la
 endif
 
 if BUILD_PLUGIN_PUPPETSTORECONFIGS
-pkgbackendlib_LTLIBRARIES += backend/puppet-storeconfigs.la
-backend_puppet_storeconfigs_la_SOURCES = backend/puppet-storeconfigs.c
-backend_puppet_storeconfigs_la_LDFLAGS = -module -avoid-version
-libsysdb_la_LIBADD += -dlopen backend/puppet-storeconfigs.la
-libsysdb_la_DEPENDENCIES += backend/puppet-storeconfigs.la
+pkgbackendpuppetlib_LTLIBRARIES += backend/puppet/store-configs.la
+backend_puppet_store_configs_la_SOURCES = backend/puppet/store-configs.c
+backend_puppet_store_configs_la_LDFLAGS = -module -avoid-version
+libsysdb_la_LIBADD += -dlopen backend/puppet/store-configs.la
+libsysdb_la_DEPENDENCIES += backend/puppet/store-configs.la
 endif
 
 include/sysdb.h: include/sysdb.h.in ../version
