@@ -108,7 +108,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		return -1;
 	}
 
-	snprintf(plugin_name, sizeof(plugin_name), "backend/%s", name);
+	snprintf(plugin_name, sizeof(plugin_name), "backend::%s", name);
 
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;

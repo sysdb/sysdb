@@ -264,6 +264,10 @@ sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
 int
 sdb_plugin_load(const char *name)
 {
+	char  real_name[strlen(name) > 0 ? strlen(name) : 1];
+	const char *name_ptr;
+	char *tmp;
+
 	char filename[1024];
 
 	lt_dlhandle lh;
@@ -273,14 +277,27 @@ sdb_plugin_load(const char *name)
 
 	int status;
 
+	if ((! name) || (! *name))
+		return -1;
+
+	real_name[0] = '\0';
+	name_ptr = name;
+
+	while ((tmp = strstr(name_ptr, "::"))) {
+		strncat(real_name, name_ptr, (size_t)(tmp - name_ptr));
+		strcat(real_name, "/");
+		name_ptr = tmp + strlen("::");
+	}
+	strcat(real_name, name_ptr);
+
 	snprintf(filename, sizeof(filename), "%s/%s.so",
-			PKGLIBDIR, name);
+			PKGLIBDIR, real_name);
 	filename[sizeof(filename) - 1] = '\0';
 
 	if (access(filename, R_OK)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to load plugin '%s': %s\n",
-				name, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "plugin: Failed to load plugin '%s' (%s): %s\n",
+				name, filename, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
 
