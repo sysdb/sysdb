@@ -13,8 +13,7 @@ pkgcoreinclude_HEADERS = \
 		include/core/plugin.h
 pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
-		include/utils/llist.h \
-		include/utils/string.h
+		include/utils/llist.h
 
 lib_LTLIBRARIES = libsysdb.la
 
@@ -26,7 +25,6 @@ libsysdb_la_SOURCES = \
 		include/utils/data.h \
 		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \
-		utils/string.c include/utils/string.h \
 		utils/time.c include/utils/time.h \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)

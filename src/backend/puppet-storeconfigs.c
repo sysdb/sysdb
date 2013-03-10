@@ -30,7 +30,6 @@
 #include "core/store.h"
 #include "utils/error.h"
 #include "utils/dbi.h"
-#include "utils/string.h"
 
 #include "liboconfig/utils.h"
 

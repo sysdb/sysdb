@@ -29,7 +29,6 @@
 #include "core/plugin.h"
 #include "utils/error.h"
 #include "utils/llist.h"
-#include "utils/string.h"
 #include "utils/time.h"
 
 #include <assert.h>

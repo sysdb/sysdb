@@ -243,5 +243,30 @@ sdb_error_get_prio(void)
 	return ctx->prio;
 } /* sdb_error_get_prio */
 
+char *
+sdb_strerror(int errnum, char *strerrbuf, size_t buflen)
+{
+#if STRERROR_R_CHAR_P
+	{
+		char *tmp = strerror_r(errnum, strerrbuf, buflen);
+		if (*strerrbuf = '\0') {
+			if (tmp && (tmp != strerrbuf) && (*tmp != '\0'))
+				strncpy(strerrbuf, tmp, buflen);
+			else
+				snprintf(strerrbuf, buflen, "unknown error #%i "
+						"(strerror_r(3) did not return an error message)",
+						errnum);
+		}
+	}
+#else
+	if (strerror_r(errnum, strerrbuf, buflen))
+		snprintf(strerrbuf, buflen, "unknown error #%i "
+				"(strerror_r(3) failed)", errnum);
+#endif
+
+	strerrbuf[buflen - 1] = '\0';
+	return strerrbuf;
+} /* sdb_strerror */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

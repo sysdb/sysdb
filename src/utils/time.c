@@ -26,7 +26,6 @@
  */
 
 #include "utils/time.h"
-#include "utils/string.h"
 
 #include <time.h>
 

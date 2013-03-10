@@ -39,6 +39,8 @@
 #ifndef SDB_UTILS_ERROR_H
 #define SDB_UTILS_ERROR_H 1
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,6 +115,14 @@ sdb_error_get(void);
  */
 int
 sdb_error_get_prio(void);
+
+/*
+ * sdb_strerror:
+ * This is a wrapper around the system's strerror function which ensures that
+ * a pointer to the formatted error message is returned.
+ */
+char *
+sdb_strerror(int errnum, char *strerrbuf, size_t buflen);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -33,7 +33,6 @@
 #include "core/plugin.h"
 #include "core/store.h"
 #include "utils/error.h"
-#include "utils/string.h"
 
 #include "daemon/config.h"
 

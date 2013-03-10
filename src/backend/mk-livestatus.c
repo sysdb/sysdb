@@ -29,7 +29,6 @@
 #include "core/plugin.h"
 #include "core/store.h"
 #include "utils/error.h"
-#include "utils/string.h"
 #include "utils/unixsock.h"
 
 #include "liboconfig/utils.h"
