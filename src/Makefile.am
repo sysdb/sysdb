@@ -48,6 +48,9 @@ sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdbd_LDADD = libsysdb.la liboconfig/liboconfig.la
 sysdbd_DEPENDENCIES = liboconfig/liboconfig.la
 
+sdbconfdir = $(sysconfdir)/sysdb
+dist_sdbconf_DATA = daemon/sysdbd.conf.sample
+
 pkgbackendlibdir = $(pkglibdir)/backend
 
 pkgbackendlib_LTLIBRARIES =
@@ -84,14 +87,4 @@ include/sysdb.h: include/sysdb.h.in ../version
 	    -e "s/@SDB_VERSION_EXTRA@/$$VERSION_EXTRA/g" \
 	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
 	    include/sysdb.h.in > include/sysdb.h
-
-install-exec-hook:
-	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/sysdb
-	if test -e $(DESTDIR)$(sysconfdir)/sysdb/sysdbd.conf; then \
-		$(INSTALL) -m 0640 daemon/sysdbd.conf \
-			$(DESTDIR)$(sysconfdir)/sysdb/sysdbd.conf.pkg-orig; \
-	else \
-		$(INSTALL) -m 0640 daemon/sysdbd.conf \
-			$(DESTDIR)$(sysconfdir)/sysdb/sysdbd.conf; \
-	fi
 
