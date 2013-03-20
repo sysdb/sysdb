@@ -224,6 +224,7 @@ main(int argc, char **argv)
 			(int)getpid());
 
 	sdb_plugin_init_all();
+	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 	sdb_plugin_collector_loop(&plugin_main_loop);
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
