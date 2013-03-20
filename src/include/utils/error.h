@@ -92,6 +92,13 @@ int
 sdb_error_append(const char *fmt, ...);
 
 /*
+ * sdb_error_chomp:
+ * Remove all consecutive newline characters at the end of the error message.
+ */
+int
+sdb_error_chomp(void);
+
+/*
  * sdb_error_log:
  * Log the current error message with the specified priority. See sdb_log for
  * more information.

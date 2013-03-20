@@ -94,6 +94,18 @@ ssize_t
 sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...);
 
 /*
+ * sdb_strbuf_chomp:
+ * Remove all consecutive newline characters from the end of the string buffer
+ * content.
+ *
+ * Returns:
+ *  - the number of bytes removed
+ *  - a negative value on error
+ */
+ssize_t
+sdb_strbuf_chomp(sdb_strbuf_t *strbuf);
+
+/*
  * sdb_strbuf_string:
  * Returns the content of the string buffer. The caller may not modify the
  * string.

@@ -215,6 +215,19 @@ sdb_error_append(const char *fmt, ...)
 } /* sdb_error_append */
 
 int
+sdb_error_chomp(void)
+{
+	sdb_error_ctx_t *ctx;
+
+	ctx = sdb_error_get_ctx();
+	if (! ctx)
+		return -1;
+
+	sdb_strbuf_chomp(ctx->msg);
+	return 0;
+} /* sdb_error_chomp */
+
+int
 sdb_error_log(int prio)
 {
 	return sdb_do_log(prio);

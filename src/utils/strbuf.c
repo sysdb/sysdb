@@ -179,6 +179,24 @@ sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
 	return status;
 } /* sdb_strbuf_sprintf */
 
+ssize_t
+sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
+{
+	ssize_t ret = 0;
+
+	if (! strbuf)
+		return -1;
+
+	while ((strbuf->pos > 0)
+			&& (strbuf->string[strbuf->pos - 1] == '\n')) {
+		--strbuf->pos;
+		strbuf->string[strbuf->pos] = '\0';
+		++ret;
+	}
+
+	return ret;
+} /* sdb_strbuf_chomp */
+
 const char *
 sdb_strbuf_string(sdb_strbuf_t *strbuf)
 {
