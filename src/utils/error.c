@@ -26,6 +26,7 @@
  */
 
 #include "utils/error.h"
+#include "utils/strbuf.h"
 
 #include <pthread.h>
 
@@ -41,10 +42,10 @@
 
 typedef struct {
 	int   prio;
-	char  msg[SDB_MAX_ERROR];
+	sdb_strbuf_t *msg;
 	_Bool logged;
 } sdb_error_ctx_t;
-#define SDB_ERROR_INIT { -1, "", 1 }
+#define SDB_ERROR_INIT { -1, NULL, 1 }
 
 /*
  * private variables
@@ -60,10 +61,14 @@ static _Bool         error_ctx_key_initialized = 0;
  */
 
 static void
-sdb_error_ctx_destructor(void *ctx)
+sdb_error_ctx_destructor(void *p)
 {
+	sdb_error_ctx_t *ctx = p;
+
 	if (! ctx)
 		return;
+
+	sdb_strbuf_destroy(ctx->msg);
 	free(ctx);
 } /* sdb_error_ctx_destructor */
 
@@ -87,6 +92,11 @@ sdb_error_ctx_create(void)
 		return NULL;
 
 	*ctx = default_error_ctx;
+	ctx->msg = sdb_strbuf_create(64);
+	if (! ctx->msg) {
+		free(ctx);
+		return NULL;
+	}
 
 	if (! error_ctx_key_initialized)
 		sdb_error_ctx_init();
@@ -111,7 +121,7 @@ sdb_error_get_ctx(void)
 } /* sdb_error_get_ctx */
 
 static int
-sdb_error_clear(void)
+sdb_error_vprintf(const char *fmt, va_list ap)
 {
 	sdb_error_ctx_t *ctx;
 
@@ -119,28 +129,21 @@ sdb_error_clear(void)
 	if (! ctx)
 		return -1;
 
-	ctx->prio = -1;
-	ctx->msg[0] = '\0';
-	ctx->logged = 1;
-	return 0;
-} /* sdb_error_clear */
+	ctx->logged = 0;
+	return (int)sdb_strbuf_vsprintf(ctx->msg, fmt, ap);
+} /* sdb_error_vprintf */
 
 static int
 sdb_error_vappend(const char *fmt, va_list ap)
 {
 	sdb_error_ctx_t *ctx;
-	size_t len;
 
 	ctx = sdb_error_get_ctx();
 	if (! ctx)
 		return -1;
 
-	len = strlen(ctx->msg);
-	if (len >= sizeof(ctx->msg))
-		return 0; /* nothing written */
-
 	ctx->logged = 0;
-	return vsnprintf(ctx->msg + len, sizeof(ctx->msg) - len, fmt, ap);
+	return (int)sdb_strbuf_vappend(ctx->msg, fmt, ap);
 } /* sdb_error_vappend */
 
 static int
@@ -160,7 +163,8 @@ sdb_do_log(int prio)
 		return 0;
 
 	ret = fprintf(stderr, "[%s] %s\n",
-			SDB_LOG_PRIO_TO_STRING(prio), ctx->msg);
+			SDB_LOG_PRIO_TO_STRING(prio),
+			sdb_strbuf_string(ctx->msg));
 	ctx->logged = 1;
 	return ret;
 } /* sdb_do_log */
@@ -175,14 +179,12 @@ sdb_log(int prio, const char *fmt, ...)
 	va_list ap;
 	int ret;
 
-	if (sdb_error_clear())
-		return -1;
-
 	va_start(ap, fmt);
-	ret = sdb_error_vappend(fmt, ap);
+	ret = sdb_error_vprintf(fmt, ap);
 	va_end(ap);
 
-	sdb_do_log(prio);
+	if (ret > 0)
+		sdb_do_log(prio);
 	return ret;
 } /* sdb_log */
 
@@ -192,11 +194,8 @@ sdb_error_set(const char *fmt, ...)
 	va_list ap;
 	int ret;
 
-	if (sdb_error_clear())
-		return -1;
-
 	va_start(ap, fmt);
-	ret = sdb_error_vappend(fmt, ap);
+	ret = sdb_error_vprintf(fmt, ap);
 	va_end(ap);
 
 	return ret;
@@ -229,7 +228,7 @@ sdb_error_get(void)
 	ctx = sdb_error_get_ctx();
 	if (! ctx)
 		return "success";
-	return ctx->msg;
+	return sdb_strbuf_string(ctx->msg);
 } /* sdb_error_get */
 
 int
