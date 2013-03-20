@@ -25,6 +25,7 @@ libsysdb_la_SOURCES = \
 		include/utils/data.h \
 		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \
+		utils/strbuf.c include/utils/strbuf.h \
 		utils/time.c include/utils/time.h \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
