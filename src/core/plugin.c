@@ -567,7 +567,13 @@ sdb_plugin_init_all(void)
 int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 {
-	if ((! collector_list) || (! loop))
+	if (! collector_list) {
+		sdb_log(SDB_LOG_WARNING, "plugin: No collectors registered. "
+				"Quiting main loop.");
+		return -1;
+	}
+
+	if (! loop)
 		return -1;
 
 	while (loop->do_loop) {
