@@ -298,6 +298,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 				driver = dbi_driver_list(driver)) {
 			sdb_error_append("\t- %s\n", dbi_driver_get_name(driver));
 		}
+		sdb_error_chomp();
 		sdb_error_log(SDB_LOG_ERR);
 		return -1;
 	}
@@ -327,6 +328,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 			for (opt = dbi_conn_get_option_list(client->conn, NULL); opt;
 					opt = dbi_conn_get_option_list(client->conn, opt))
 				sdb_error_append("\t- %s\n", opt);
+			sdb_error_chomp();
 			sdb_error_log(SDB_LOG_ERR);
 
 			dbi_conn_close(client->conn);

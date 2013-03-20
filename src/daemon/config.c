@@ -187,6 +187,7 @@ daemon_parse_config(const char *filename)
 				sdb_error_append("\tUnknown option '%s' -- "
 						"see the documentation for details\n",
 						child->key);
+			sdb_error_chomp();
 			sdb_error_log(SDB_LOG_ERR);
 			retval = -1;
 		}
