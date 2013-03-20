@@ -103,7 +103,7 @@ sdb_dbi_get_field(dbi_result res, unsigned int i,
 			break;
 		default:
 			sdb_log(SDB_LOG_ERR, "dbi: Unexpected type %i while "
-					"parsing query result.\n", type);
+					"parsing query result.", type);
 			return -1;
 	}
 
@@ -129,7 +129,7 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 	for (i = 0; i < num_fields; ++i) {
 		types[i] = dbi_result_get_field_type_idx(res, i + 1);
 		if (types[i] == DBI_TYPE_ERROR) {
-			sdb_log(SDB_LOG_ERR, "dbi: failed to fetch data: %s\n",
+			sdb_log(SDB_LOG_ERR, "dbi: failed to fetch data: %s",
 					sdb_dbi_strerror(client->conn));
 			return -1;
 		}
@@ -142,8 +142,8 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 
 	for (n = 0; n < num_rows; ++n) {
 		if (! dbi_result_seek_row(res, n + 1)) {
-			sdb_log(SDB_LOG_ERR, "dbi: Failed to retrieve row %llu: "
-					"%s\n", n, sdb_dbi_strerror(client->conn));
+			sdb_log(SDB_LOG_ERR, "dbi: Failed to retrieve row %llu: %s",
+					n, sdb_dbi_strerror(client->conn));
 			continue;
 		}
 
@@ -305,7 +305,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 	client->conn = dbi_conn_open(driver);
 	if (! client->conn) {
 		sdb_log(SDB_LOG_ERR, "dbi: failed to open connection "
-				"object.\n");
+				"object.");
 		return -1;
 	}
 
@@ -319,8 +319,8 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 				continue;
 			/* else: error */
 
-			sdb_error_set("dbi: failed to set option '%s': "
-					"%s\n", client->options->options[i].key,
+			sdb_error_set("dbi: failed to set option '%s': %s\n",
+					client->options->options[i].key,
 					sdb_dbi_strerror(client->conn));
 
 			sdb_error_append("dbi: known driver options:\n");
@@ -335,15 +335,15 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 	}
 
 	if (dbi_conn_set_option(client->conn, "dbname", client->database)) {
-		sdb_log(SDB_LOG_ERR, "dbi: failed to set option 'dbname': %s\n",
+		sdb_log(SDB_LOG_ERR, "dbi: failed to set option 'dbname': %s",
 				sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
 		return -1;
 	}
 
 	if (dbi_conn_connect(client->conn) < 0) {
-		sdb_log(SDB_LOG_ERR, "dbi: failed to connect to database '%s': "
-				"%s\n", client->database, sdb_dbi_strerror(client->conn));
+		sdb_log(SDB_LOG_ERR, "dbi: failed to connect to database '%s': %s",
+				client->database, sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
 		return -1;
 	}
@@ -378,14 +378,14 @@ sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 
 	res = dbi_conn_query(client->conn, query);
 	if (! res) {
-		sdb_log(SDB_LOG_ERR, "dbi: failed to execute query '%s': %s\n",
+		sdb_log(SDB_LOG_ERR, "dbi: failed to execute query '%s': %s",
 				query, sdb_dbi_strerror(client->conn));
 		return -1;
 	}
 
 	if (dbi_result_get_numrows(res) == DBI_ROW_ERROR) {
 		sdb_log(SDB_LOG_ERR, "dbi: failed to fetch rows for query "
-				"'%s': %s\n", query, sdb_dbi_strerror(client->conn));
+				"'%s': %s", query, sdb_dbi_strerror(client->conn));
 		dbi_result_free(res);
 		return -1;
 	}
@@ -404,7 +404,7 @@ sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 		if (n != (int)num_fields) {
 			sdb_log(SDB_LOG_ERR, "dbi: number of returned fields (%i) "
 					"does not match the number of requested fields (%i) "
-					"for query '%s'.\n", num_fields, n, query);
+					"for query '%s'.", num_fields, n, query);
 			dbi_result_free(res);
 			return -1;
 		}
@@ -423,7 +423,7 @@ sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 			/* column count starts at 1 */
 			if ((unsigned int)field_type != type) {
 				sdb_log(SDB_LOG_ERR, "dbi: type of column '%s' (%u) "
-						"does not match requested type (%u).\n",
+						"does not match requested type (%u).",
 						dbi_result_get_field_name(res, (unsigned int)i + 1),
 						field_type, type);
 				status = -1;

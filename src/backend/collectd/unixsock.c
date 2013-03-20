@@ -76,14 +76,14 @@ sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update host '%s'.\n", name);
+				"store/update host '%s'.", name);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-			"host '%s' (last update timestamp = %"PRIscTIME").\n",
+			"host '%s' (last update timestamp = %"PRIscTIME").",
 			name, last_update);
 	return 0;
 } /* sdb_collectd_add_host */
@@ -108,7 +108,7 @@ sdb_collectd_add_svc(const char *hostname, const char *plugin,
 	status = sdb_store_service(&svc);
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update service '%s/%s'.\n", host, name);
+				"store/update service '%s/%s'.", host, name);
 		return -1;
 	}
 	return 0;
@@ -148,7 +148,7 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 	if (! state->current_host) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"string buffer: %s\n",
+				"string buffer: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -171,7 +171,7 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 	sdb_collectd_add_host(hostname, last_update);
 
 	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-			"%i service%s (%i failed) for host '%s'.\n",
+			"%i service%s (%i failed) for host '%s'.",
 			state->svc_updated, state->svc_updated == 1 ? "" : "s",
 			state->svc_failed, state->current_host);
 	state->svc_updated = state->svc_failed = 0;
@@ -197,12 +197,12 @@ sdb_collectd_init(sdb_object_t *user_data)
 	client = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_unixsock_client_connect(client)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: "
-				"Failed to connect to collectd.\n");
+				"Failed to connect to collectd.");
 		return -1;
 	}
 
 	sdb_log(SDB_LOG_INFO, "collectd::unixsock backend: Successfully "
-			"connected to collectd @ %s.\n",
+			"connected to collectd @ %s.",
 			sdb_unixsock_client_path(client));
 	return 0;
 } /* sdb_collectd_init */
@@ -236,7 +236,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 
 	if (sdb_unixsock_client_send(client, "LISTVAL") <= 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to send "
-				"LISTVAL command to collectd @ %s.\n",
+				"LISTVAL command to collectd @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -244,7 +244,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	line = sdb_unixsock_client_recv(client, buffer, sizeof(buffer));
 	if (! line) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to read "
-				"status of LISTVAL command from collectd @ %s.\n",
+				"status of LISTVAL command from collectd @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -259,14 +259,14 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	count = strtol(line, &endptr, /* base */ 0);
 	if (errno || (line == endptr)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to parse "
-				"status of LISTVAL command from collectd @ %s.\n",
+				"status of LISTVAL command from collectd @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
 
 	if (count < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to get "
-				"value list from collectd @ %s: %s\n",
+				"value list from collectd @ %s: %s",
 				sdb_unixsock_client_path(client),
 				msg ? msg : line);
 		return -1;
@@ -278,7 +278,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 				SDB_TYPE_DATETIME, SDB_TYPE_STRING,
 				SDB_TYPE_STRING, SDB_TYPE_STRING)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
-				"to read response from collectd @ %s.\n",
+				"to read response from collectd @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -286,7 +286,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	if (state.current_host) {
 		sdb_collectd_add_host(state.current_host, state.current_timestamp);
 		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-				"%i service%s (%i failed) for host '%s'.\n",
+				"%i service%s (%i failed) for host '%s'.",
 				state.svc_updated, state.svc_updated == 1 ? "" : "s",
 				state.svc_failed, state.current_host);
 	}
@@ -308,7 +308,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance requires "
-				"a single string argument\n\tUsage: <Instance NAME>\n");
+				"a single string argument\n\tUsage: <Instance NAME>");
 		return -1;
 	}
 
@@ -319,13 +319,13 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 			oconfig_get_string(child, &socket_path);
 		else
 			sdb_log(SDB_LOG_WARNING, "collectd::unixsock backend: Ignoring "
-					"unknown config option '%s' inside <Instance %s>.\n",
+					"unknown config option '%s' inside <Instance %s>.",
 					child->key, name);
 	}
 
 	if (! socket_path) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance '%s' "
-				"missing the 'Socket' option.\n", name);
+				"missing the 'Socket' option.", name);
 		return -1;
 	}
 
@@ -336,7 +336,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	if (! client) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to create "
-				"unixsock client: %s\n",
+				"unixsock client: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -346,7 +346,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	if (! user_data) {
 		sdb_unixsock_client_destroy(client);
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"sdb_object_t\n");
+				"sdb_object_t");
 		return -1;
 	}
 
@@ -373,7 +373,7 @@ sdb_collectd_config(oconfig_item_t *ci)
 			sdb_collectd_config_instance(child);
 		else
 			sdb_log(SDB_LOG_WARNING, "collectd::unixsock backend: Ignoring "
-					"unknown config option '%s'.\n", child->key);
+					"unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* sdb_collectd_config */

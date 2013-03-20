@@ -58,13 +58,13 @@ config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
 	if (oconfig_get_number(ci, &interval_dbl)) {
 		sdb_log(SDB_LOG_ERR, "config: Interval requires "
 				"a single numeric argument\n"
-				"\tUsage: Interval SECONDS\n");
+				"\tUsage: Interval SECONDS");
 		return -1;
 	}
 
 	if (interval_dbl <= 0.0) {
 		sdb_log(SDB_LOG_ERR, "config: Invalid interval: %f\n"
-				"\tInterval may not be less than or equal to zero.\n",
+				"\tInterval may not be less than or equal to zero.",
 				interval_dbl);
 		return -1;
 	}
@@ -104,7 +104,7 @@ daemon_load_backend(oconfig_item_t *ci)
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "config: LoadBackend requires a single "
 				"string argument\n"
-				"\tUsage: LoadBackend BACKEND\n");
+				"\tUsage: LoadBackend BACKEND");
 		return -1;
 	}
 
@@ -120,7 +120,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		else {
 			sdb_log(SDB_LOG_WARNING, "config: Unknown option '%s' "
 					"inside 'LoadBackend' -- see the documentation for "
-					"details.\n", child->key);
+					"details.", child->key);
 			continue;
 		}
 	}
@@ -141,7 +141,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "config: %s requires a single "
 				"string argument\n"
-				"\tUsage: LoadBackend BACKEND\n",
+				"\tUsage: LoadBackend BACKEND",
 				ci->key);
 		return -1;
 	}

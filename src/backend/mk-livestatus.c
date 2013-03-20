@@ -73,7 +73,7 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
-				"store/update host '%s'.\n", hostname);
+				"store/update host '%s'.", hostname);
 		free(hostname);
 		return -1;
 	}
@@ -81,7 +81,7 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
-			"host '%s' (last update timestamp = %"PRIscTIME").\n",
+			"host '%s' (last update timestamp = %"PRIscTIME").",
 			hostname, timestamp);
 	free(hostname);
 	return 0;
@@ -117,7 +117,7 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
-				"store/update service '%s / %s'.\n", hostname, svcname);
+				"store/update service '%s / %s'.", hostname, svcname);
 		free(hostname);
 		free(svcname);
 		return -1;
@@ -126,7 +126,7 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
-			"service '%s / %s' (last update timestamp = %"PRIscTIME").\n",
+			"service '%s / %s' (last update timestamp = %"PRIscTIME").",
 			hostname, svcname, timestamp);
 	free(hostname);
 	free(svcname);
@@ -148,13 +148,13 @@ sdb_livestatus_init(sdb_object_t *user_data)
 	client = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_unixsock_client_connect(client)) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: "
-				"Failed to connect to livestatus @ %s.\n",
+				"Failed to connect to livestatus @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
 
 	sdb_log(SDB_LOG_INFO, "MK Livestatus backend: Successfully "
-			"connected to livestatus @ %s.\n",
+			"connected to livestatus @ %s.",
 			sdb_unixsock_client_path(client));
 	return 0;
 } /* sdb_livestatus_init */
@@ -175,7 +175,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 			"Columns: name last_check");
 	if (status <= 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to send "
-				"'GET hosts' command to livestatus @ %s.\n",
+				"'GET hosts' command to livestatus @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -186,7 +186,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 				/* user data */ NULL, /* -> EOF */ -1, /* delim */ ";",
 				/* column count */ 2, SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to read "
-				"response from livestatus @ %s while reading hosts.\n",
+				"response from livestatus @ %s while reading hosts.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -195,7 +195,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 			|| sdb_unixsock_client_error(client)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to read "
-				"host from livestatus @ %s: %s\n",
+				"host from livestatus @ %s: %s",
 				sdb_unixsock_client_path(client),
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
@@ -205,7 +205,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 			"Columns: host_name description last_check");
 	if (status <= 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to send "
-				"'GET services' command to livestatus @ %s.\n",
+				"'GET services' command to livestatus @ %s.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -217,7 +217,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 				/* column count */ 3, SDB_TYPE_STRING, SDB_TYPE_STRING,
 				SDB_TYPE_DATETIME)) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to read "
-				"response from livestatus @ %s while reading services.\n",
+				"response from livestatus @ %s while reading services.",
 				sdb_unixsock_client_path(client));
 		return -1;
 	}
@@ -226,7 +226,7 @@ sdb_livestatus_collect(sdb_object_t *user_data)
 			|| sdb_unixsock_client_error(client)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to read "
-				"services from livestatus @ %s: %s\n",
+				"services from livestatus @ %s: %s",
 				sdb_unixsock_client_path(client),
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
@@ -249,7 +249,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Instance requires "
-				"a single string argument\n\tUsage: <Instance NAME>\n");
+				"a single string argument\n\tUsage: <Instance NAME>");
 		return -1;
 	}
 
@@ -260,13 +260,13 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 			oconfig_get_string(child, &socket_path);
 		else
 			sdb_log(SDB_LOG_WARNING, "MK Livestatus backend: Ignoring "
-					"unknown config option '%s' inside <Instance %s>.\n",
+					"unknown config option '%s' inside <Instance %s>.",
 					child->key, name);
 	}
 
 	if (! socket_path) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Instance '%s' "
-				"missing the 'Socket' option.\n", name);
+				"missing the 'Socket' option.", name);
 		return -1;
 	}
 
@@ -277,7 +277,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 	if (! client) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to create "
-				"unixsock client: %s\n",
+				"unixsock client: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -287,7 +287,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 	if (! user_data) {
 		sdb_unixsock_client_destroy(client);
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
-				"allocate sdb_object_t\n");
+				"allocate sdb_object_t");
 		return -1;
 	}
 
@@ -312,7 +312,7 @@ sdb_livestatus_config(oconfig_item_t *ci)
 			sdb_livestatus_config_instance(child);
 		else
 			sdb_log(SDB_LOG_WARNING, "MK Livestatus backend: Ignoring "
-					"unknown config option '%s'.\n", child->key);
+					"unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* sdb_livestatus_config */

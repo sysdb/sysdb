@@ -67,14 +67,14 @@ sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"store/update host '%s'.\n", host.host_name);
+				"store/update host '%s'.", host.host_name);
 		free(host.host_name);
 		return -1;
 	}
 	else if (! status)
 		sdb_log(SDB_LOG_DEBUG, "puppet::store-configs backend: "
 				"Added/updated host '%s' (last update timestamp = "
-				"%"PRIscTIME").\n", host.host_name, host.host_last_update);
+				"%"PRIscTIME").", host.host_name, host.host_last_update);
 	free(host.host_name);
 	return 0;
 } /* sdb_puppet_stcfg_get_hosts */
@@ -103,7 +103,7 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"store/update host attribute '%s' for host '%s'.\n",
+				"store/update host attribute '%s' for host '%s'.",
 				attr.attr_name, attr.hostname);
 		free(attr.hostname);
 		free(attr.attr_name);
@@ -132,12 +132,12 @@ sdb_puppet_stcfg_init(sdb_object_t *user_data)
 	client = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_dbi_client_connect(client)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Failed to connect to the storeconfigs DB.\n");
+				"Failed to connect to the storeconfigs DB.");
 		return -1;
 	}
 
 	sdb_log(SDB_LOG_INFO, "puppet::store-configs backend: Successfully "
-			"connected to the storeconfigs DB.\n");
+			"connected to the storeconfigs DB.");
 	return 0;
 } /* sdb_puppet_stcfg_init */
 
@@ -152,7 +152,7 @@ sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 	client = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_dbi_client_check_conn(client)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Connection to storeconfigs DB failed.\n");
+				"Connection to storeconfigs DB failed.");
 		return -1;
 	}
 
@@ -160,7 +160,7 @@ sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 				sdb_puppet_stcfg_get_hosts, NULL, /* #columns = */ 2,
 				/* col types = */ SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"retrieve hosts from the storeconfigs DB.\n");
+				"retrieve hosts from the storeconfigs DB.");
 		return -1;
 	}
 
@@ -178,7 +178,7 @@ sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 				/* col types = */ SDB_TYPE_STRING, SDB_TYPE_STRING,
 				SDB_TYPE_STRING, SDB_TYPE_DATETIME)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"retrieve host attributes from the storeconfigs DB.\n");
+				"retrieve host attributes from the storeconfigs DB.");
 		return -1;
 	}
 	return 0;
@@ -202,7 +202,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Connection "
 				"requires a single string argument\n"
-				"\tUsage: <Connection NAME>\n");
+				"\tUsage: <Connection NAME>");
 		return -1;
 	}
 
@@ -216,7 +216,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 			if (oconfig_get_string(child, &driver)) {
 				sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
 						"DBAdapter requires a single string argument inside "
-						"<Connection %s>\n\tUsage: DBAdapter NAME\n",
+						"<Connection %s>\n\tUsage: DBAdapter NAME",
 						name);
 			}
 			continue;
@@ -225,7 +225,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 			if (oconfig_get_string(child, &database)) {
 				sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
 						"DBName requires a single string argument inside "
-						"<Connection %s>\n\tUsage: DBName NAME\n",
+						"<Connection %s>\n\tUsage: DBName NAME",
 						name);
 			}
 			continue;
@@ -253,7 +253,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 				sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
 						"DBIOption requires exactly two string arguments "
 						"inside <Connection %s>\n"
-						"\tUsage: DBIOption KEY VALUE\n", name);
+						"\tUsage: DBIOption KEY VALUE", name);
 				continue;
 			}
 
@@ -264,14 +264,14 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 		else {
 			sdb_log(SDB_LOG_WARNING, "puppet::store-configs backend: "
 					"Ignoring unknown config option '%s' inside "
-					"<Connection %s>.\n", child->key, name);
+					"<Connection %s>.", child->key, name);
 			continue;
 		}
 
 		if (status) {
 			sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Option "
 					"'%s' requires a single string argument inside "
-					"<Connection %s>\n\tUsage: DBAdapter NAME\n",
+					"<Connection %s>\n\tUsage: DBAdapter NAME",
 					child->key, name);
 			continue;
 		}
@@ -282,7 +282,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 			if (! (options = sdb_dbi_options_create())) {
 				char errmsg[1024];
 				sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-						"Failed to create DBI options object: %s\n",
+						"Failed to create DBI options object: %s",
 						sdb_strerror(errno, errmsg, sizeof(errmsg)));
 				continue;
 			}
@@ -291,7 +291,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 		if (sdb_dbi_options_add(options, key, value)) {
 			char errmsg[1024];
 			sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-					"Failed to add option '%s': %s\n", key,
+					"Failed to add option '%s': %s", key,
 					sdb_strerror(errno, errmsg, sizeof(errmsg)));
 			continue;
 		}
@@ -299,13 +299,13 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 
 	if (! driver) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Connection '%s' " "missing the 'DBAdapter' option.\n",
+				"Connection '%s' " "missing the 'DBAdapter' option.",
 				name);
 		return -1;
 	}
 	if (! database) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Connection '%s' missing the 'DBName' option.\n", name);
+				"Connection '%s' missing the 'DBName' option.", name);
 		return -1;
 	}
 
@@ -316,7 +316,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 	if (! client) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Failed to create DBI client: %s\n",
+				"Failed to create DBI client: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -328,7 +328,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 	if (! user_data) {
 		sdb_dbi_client_destroy(client);
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: "
-				"Failed to allocate sdb_object_t\n");
+				"Failed to allocate sdb_object_t");
 		return -1;
 	}
 
@@ -353,7 +353,7 @@ sdb_puppet_stcfg_config(oconfig_item_t *ci)
 			sdb_puppet_stcfg_config_conn(child);
 		else
 			sdb_log(SDB_LOG_WARNING, "puppet::store-configs backend: "
-					"Ignoring unknown config option '%s'.\n", child->key);
+					"Ignoring unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* sdb_puppet_stcfg_config */
@@ -373,7 +373,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 	if (dbi_initialize(/* driver dir = */ NULL) < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: failed to "
 				"initialize DBI; possibly you don't have any drivers "
-				"installed.\n");
+				"installed.");
 		return -1;
 	}
 
