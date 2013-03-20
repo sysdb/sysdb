@@ -105,6 +105,7 @@ sdb_strbuf_destroy(sdb_strbuf_t *strbuf)
 ssize_t
 sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 {
+	va_list aq;
 	int status;
 
 	if ((! strbuf) || (! fmt))
@@ -116,21 +117,27 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 		if (strbuf_resize(strbuf))
 			return -1;
 
+	/* 'ap' is invalid after calling vsnprintf; thus copy before using it */
+	va_copy(aq, ap);
 	status = vsnprintf(strbuf->string + strbuf->pos,
 			strbuf->size - strbuf->pos, fmt, ap);
 
-	if (status < 0)
+	if (status < 0) {
+		va_end(aq);
 		return status;
+	}
 
 	if ((size_t)status >= strbuf->size - strbuf->pos) {
 		strbuf_resize(strbuf);
 
 		/* reset string and try again */
 		strbuf->string[strbuf->pos] = '\0';
-		return sdb_strbuf_vappend(strbuf, fmt, ap);
+		status = (int)sdb_strbuf_vappend(strbuf, fmt, aq);
 	}
+	else
+		strbuf->pos += (size_t)status;
 
-	strbuf->pos += (size_t)status;
+	va_end(aq);
 	return (ssize_t)status;
 } /* sdb_strbuf_vappend */
 
