@@ -87,11 +87,11 @@ sdb_host_init(sdb_object_t *obj, va_list ap)
 {
 	const char *name = va_arg(ap, const char *);
 
-	SDB_HOST(obj)->host_name = strdup(name);
-	if (! SDB_HOST(obj)->host_name)
+	SDB_HOST(obj)->_name = strdup(name);
+	if (! SDB_HOST(obj)->_name)
 		return -1;
 
-	SDB_HOST(obj)->host_last_update = sdb_gettime();
+	SDB_HOST(obj)->_last_update = sdb_gettime();
 	/* ignore errors -> last_update will be updated later */
 
 	SDB_HOST(obj)->attributes = sdb_llist_create();
@@ -108,8 +108,8 @@ sdb_host_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 
-	if (SDB_HOST(obj)->host_name)
-		free(SDB_HOST(obj)->host_name);
+	if (SDB_HOST(obj)->_name)
+		free(SDB_HOST(obj)->_name);
 
 	if (SDB_HOST(obj)->attributes)
 		sdb_llist_destroy(SDB_HOST(obj)->attributes);
@@ -125,13 +125,13 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 	const char *value = va_arg(ap, const char *);
 
 	SDB_ATTR(obj)->hostname = strdup(hostname);
-	SDB_ATTR(obj)->attr_name = strdup(name);
+	SDB_ATTR(obj)->_name = strdup(name);
 	SDB_ATTR(obj)->attr_value = strdup(value);
 	if ((! SDB_ATTR(obj)->hostname)
-			|| (! SDB_ATTR(obj)->attr_name) || (! SDB_ATTR(obj)->attr_value))
+			|| (! SDB_ATTR(obj)->_name) || (! SDB_ATTR(obj)->attr_value))
 		return -1;
 
-	SDB_ATTR(obj)->attr_last_update = sdb_gettime();
+	SDB_ATTR(obj)->_last_update = sdb_gettime();
 	return 0;
 } /* sdb_attr_init */
 
@@ -142,8 +142,8 @@ sdb_attr_destroy(sdb_object_t *obj)
 
 	if (SDB_ATTR(obj)->hostname)
 		free(SDB_ATTR(obj)->hostname);
-	if (SDB_ATTR(obj)->attr_name)
-		free(SDB_ATTR(obj)->attr_name);
+	if (SDB_ATTR(obj)->_name)
+		free(SDB_ATTR(obj)->_name);
 	if (SDB_ATTR(obj)->attr_value)
 		free(SDB_ATTR(obj)->attr_value);
 } /* sdb_attr_destroy */
@@ -155,11 +155,11 @@ sdb_svc_init(sdb_object_t *obj, va_list ap)
 	const char *name = va_arg(ap, const char *);
 
 	SDB_SVC(obj)->hostname = strdup(hostname);
-	SDB_SVC(obj)->svc_name = strdup(name);
-	if ((! SDB_SVC(obj)->hostname) || (! SDB_SVC(obj)->svc_name))
+	SDB_SVC(obj)->_name = strdup(name);
+	if ((! SDB_SVC(obj)->hostname) || (! SDB_SVC(obj)->_name))
 		return -1;
 
-	SDB_SVC(obj)->svc_last_update = sdb_gettime();
+	SDB_SVC(obj)->_last_update = sdb_gettime();
 	/* ignore errors -> last_update will be updated later */
 	return 0;
 } /* sdb_svc_init */
@@ -171,8 +171,8 @@ sdb_svc_destroy(sdb_object_t *obj)
 
 	if (SDB_SVC(obj)->hostname)
 		free(SDB_SVC(obj)->hostname);
-	if (SDB_SVC(obj)->svc_name)
-		free(SDB_SVC(obj)->svc_name);
+	if (SDB_SVC(obj)->_name)
+		free(SDB_SVC(obj)->_name);
 } /* sdb_svc_destroy */
 
 /*
@@ -199,7 +199,7 @@ sdb_host_clone(const sdb_host_t *host)
 {
 	sdb_host_t *new;
 
-	new = sdb_host_create(host->host_name);
+	new = sdb_host_create(host->_name);
 	if (! new)
 		return NULL;
 
@@ -215,7 +215,7 @@ sdb_host_clone(const sdb_host_t *host)
 		}
 	}
 
-	new->host_last_update = host->host_last_update;
+	new->_last_update = host->_last_update;
 	if (host->services) {
 		new->services = sdb_llist_clone(host->services);
 		if (! new->services) {
@@ -235,10 +235,10 @@ sdb_store_host(const sdb_host_t *host)
 	sdb_host_t *old;
 	int status = 0;
 
-	if ((! host) || (! host->host_name))
+	if ((! host) || (! host->_name))
 		return -1;
 
-	last_update = host->host_last_update;
+	last_update = host->_last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -251,21 +251,21 @@ sdb_store_host(const sdb_host_t *host)
 		}
 	}
 
-	lookup.obj_name = host->host_name;
+	lookup.obj_name = host->_name;
 	old = SDB_HOST(sdb_llist_search(host_list, (const sdb_object_t *)&lookup,
 				sdb_cmp_store_obj_with_name));
 
 	if (old) {
-		if (old->host_last_update > last_update) {
+		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update host '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")",
-					host->host_name, last_update, old->host_last_update);
+					host->_name, last_update, old->_last_update);
 			/* don't report an error; the host may be updated by multiple
 			 * backends */
 			status = 1;
 		}
 		else {
-			old->host_last_update = last_update;
+			old->_last_update = last_update;
 		}
 	}
 	else {
@@ -282,7 +282,7 @@ sdb_store_host(const sdb_host_t *host)
 			if (! (new->attributes = sdb_llist_create())) {
 				char errbuf[1024];
 				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", host->host_name,
+						"host object '%s': %s", host->_name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
 				pthread_rwlock_unlock(&host_lock);
@@ -294,7 +294,7 @@ sdb_store_host(const sdb_host_t *host)
 			if (! (new->services = sdb_llist_create())) {
 				char errbuf[1024];
 				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", host->host_name,
+						"host object '%s': %s", host->_name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
 				pthread_rwlock_unlock(&host_lock);
@@ -353,11 +353,11 @@ sdb_attribute_clone(const sdb_attribute_t *attr)
 	sdb_attribute_t *new;
 
 	new = sdb_attribute_create(attr->hostname,
-			attr->attr_name, attr->attr_value);
+			attr->_name, attr->attr_value);
 	if (! new)
 		return NULL;
 
-	new->attr_last_update = attr->attr_last_update;
+	new->_last_update = attr->_last_update;
 	return new;
 } /* sdb_attribute_clone */
 
@@ -376,7 +376,7 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 	if (! attr)
 		return -1;
 
-	last_update = attr->attr_last_update;
+	last_update = attr->_last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -394,21 +394,21 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 		return -1;
 	}
 
-	lookup.obj_name = attr->attr_name;
+	lookup.obj_name = attr->_name;
 	old = SDB_ATTR(sdb_llist_search(host->attributes,
 				(const sdb_object_t *)&lookup,
 				sdb_cmp_store_obj_with_name));
 
 	if (old) {
-		if (old->host_last_update > last_update) {
+		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update attribute "
 					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")",
-					attr->hostname, attr->attr_name, last_update,
-					old->host_last_update);
+					attr->hostname, attr->_name, last_update,
+					old->_last_update);
 			status = 1;
 		}
 		else {
-			old->attr_last_update = last_update;
+			old->_last_update = last_update;
 		}
 	}
 	else {
@@ -452,11 +452,11 @@ sdb_service_clone(const sdb_service_t *svc)
 {
 	sdb_service_t *new;
 
-	new = sdb_service_create(svc->hostname, svc->svc_name);
+	new = sdb_service_create(svc->hostname, svc->_name);
 	if (! new)
 		return NULL;
 
-	new->svc_last_update = svc->svc_last_update;
+	new->_last_update = svc->_last_update;
 	return new;
 } /* sdb_service_clone */
 
@@ -475,7 +475,7 @@ sdb_store_service(const sdb_service_t *svc)
 	if (! svc)
 		return -1;
 
-	last_update = svc->svc_last_update;
+	last_update = svc->_last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -493,20 +493,20 @@ sdb_store_service(const sdb_service_t *svc)
 		return -1;
 	}
 
-	lookup.obj_name = svc->svc_name;
+	lookup.obj_name = svc->_name;
 	old = SDB_SVC(sdb_llist_search(host->services, (const sdb_object_t *)&lookup,
 				sdb_cmp_store_obj_with_name));
 
 	if (old) {
-		if (old->host_last_update > last_update) {
+		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update service "
 					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")",
-					svc->hostname, svc->svc_name, last_update,
-					old->host_last_update);
+					svc->hostname, svc->_name, last_update,
+					old->_last_update);
 			status = 1;
 		}
 		else {
-			old->svc_last_update = last_update;
+			old->_last_update = last_update;
 		}
 	}
 	else {
@@ -575,12 +575,12 @@ sdb_store_dump(FILE *fh)
 		assert(host);
 
 		if (! sdb_strftime(time_str, sizeof(time_str),
-					"%F %T %z", host->host_last_update))
+					"%F %T %z", host->_last_update))
 			snprintf(time_str, sizeof(time_str), "<error>");
 		time_str[sizeof(time_str) - 1] = '\0';
 
 		fprintf(fh, "Host '%s' (last updated: %s):\n",
-				host->host_name, time_str);
+				host->_name, time_str);
 
 		attr_iter = sdb_llist_get_iter(host->attributes);
 		if (! attr_iter) {
@@ -595,12 +595,12 @@ sdb_store_dump(FILE *fh)
 			assert(attr);
 
 			if (! sdb_strftime(time_str, sizeof(time_str),
-						"%F %T %z", attr->attr_last_update))
+						"%F %T %z", attr->_last_update))
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
 			fprintf(fh, "\tAttribute '%s' -> '%s' (last updated: %s)\n",
-					attr->attr_name, attr->attr_value, time_str);
+					attr->_name, attr->attr_value, time_str);
 		}
 
 		sdb_llist_iter_destroy(attr_iter);
@@ -618,12 +618,12 @@ sdb_store_dump(FILE *fh)
 			assert(svc);
 
 			if (! sdb_strftime(time_str, sizeof(time_str),
-						"%F %T %z", svc->svc_last_update))
+						"%F %T %z", svc->_last_update))
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
 			fprintf(fh, "\tService '%s' (last updated: %s)\n",
-					svc->svc_name, time_str);
+					svc->_name, time_str);
 		}
 
 		sdb_llist_iter_destroy(svc_iter);

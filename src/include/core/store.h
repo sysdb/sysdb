@@ -50,8 +50,6 @@ typedef struct {
 
 typedef struct {
 	sdb_store_obj_t parent;
-#define svc_last_update parent.last_update
-#define svc_name parent.name
 
 	char *hostname;
 } sdb_service_t;
@@ -60,8 +58,6 @@ typedef struct {
 
 typedef struct {
 	sdb_store_obj_t parent;
-#define attr_last_update parent.last_update
-#define attr_name parent.name
 
 	char *attr_value;
 	char *hostname;
@@ -71,14 +67,17 @@ typedef struct {
 
 typedef struct {
 	sdb_store_obj_t parent;
-#define host_last_update parent.last_update
-#define host_name parent.name
 
 	sdb_llist_t *attributes;
 	sdb_llist_t *services;
 } sdb_host_t;
 #define SDB_HOST_INIT { SDB_STORE_OBJ_INIT, NULL, NULL }
 #define SDB_HOST(obj) ((sdb_host_t *)(obj))
+
+/* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
+ * objects */
+#define _last_update parent.last_update
+#define _name parent.name
 
 sdb_host_t *
 sdb_host_create(const char *name);

@@ -69,8 +69,8 @@ sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 
 	strncpy(name, hostname, sizeof(name));
 
-	host.host_name = name;
-	host.host_last_update = last_update;
+	host._name = name;
+	host._last_update = last_update;
 
 	status = sdb_store_host(&host);
 
@@ -102,8 +102,8 @@ sdb_collectd_add_svc(const char *hostname, const char *plugin,
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
 
 	svc.hostname = host;
-	svc.svc_name = name;
-	svc.svc_last_update = last_update;
+	svc._name = name;
+	svc._last_update = last_update;
 
 	status = sdb_store_service(&svc);
 	if (status < 0) {
