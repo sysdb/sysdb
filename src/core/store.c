@@ -121,6 +121,39 @@ sdb_host_destroy(sdb_object_t *obj)
 		sdb_llist_destroy(SDB_HOST(obj)->services);
 } /* sdb_host_destroy */
 
+static sdb_object_t *
+sdb_host_do_clone(const sdb_object_t *obj)
+{
+	const sdb_host_t *host = (const sdb_host_t *)obj;
+	sdb_host_t *new;
+
+	new = sdb_host_create(host->_name);
+	if (! new)
+		return NULL;
+
+	/* make sure these are initialized; else sdb_object_deref() might access
+	 * arbitrary memory in case of an error */
+	new->services = new->attributes = NULL;
+
+	if (host->attributes) {
+		new->attributes = sdb_llist_clone(host->attributes);
+		if (! new->attributes) {
+			sdb_object_deref(SDB_OBJ(new));
+			return NULL;
+		}
+	}
+
+	new->_last_update = host->_last_update;
+	if (host->services) {
+		new->services = sdb_llist_clone(host->services);
+		if (! new->services) {
+			sdb_object_deref(SDB_OBJ(new));
+			return NULL;
+		}
+	}
+	return SDB_OBJ(new);
+} /* sdb_host_do_clone */
+
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
 {
@@ -152,6 +185,21 @@ sdb_attr_destroy(sdb_object_t *obj)
 		free(SDB_ATTR(obj)->attr_value);
 } /* sdb_attr_destroy */
 
+static sdb_object_t *
+sdb_attr_clone(const sdb_object_t *obj)
+{
+	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
+	sdb_attribute_t *new;
+
+	new = sdb_attribute_create(attr->hostname,
+			attr->_name, attr->attr_value);
+	if (! new)
+		return NULL;
+
+	new->_last_update = attr->_last_update;
+	return SDB_OBJ(new);
+} /* sdb_attr_clone */
+
 static int
 sdb_svc_init(sdb_object_t *obj, va_list ap)
 {
@@ -179,25 +227,42 @@ sdb_svc_destroy(sdb_object_t *obj)
 		free(SDB_SVC(obj)->_name);
 } /* sdb_svc_destroy */
 
+static sdb_object_t *
+sdb_svc_clone(const sdb_object_t *obj)
+{
+	const sdb_service_t *svc = (const sdb_service_t *)obj;
+	sdb_service_t *new;
+
+	new = sdb_service_create(svc->hostname, svc->_name);
+	if (! new)
+		return NULL;
+
+	new->_last_update = svc->_last_update;
+	return SDB_OBJ(new);
+} /* sdb_svc_clone */
+
 static sdb_type_t sdb_host_type = {
 	sizeof(sdb_host_t),
 
 	sdb_host_init,
-	sdb_host_destroy
+	sdb_host_destroy,
+	sdb_host_do_clone
 };
 
 static sdb_type_t sdb_attr_type = {
 	sizeof(sdb_attribute_t),
 
 	sdb_attr_init,
-	sdb_attr_destroy
+	sdb_attr_destroy,
+	sdb_attr_clone
 };
 
 static sdb_type_t sdb_svc_type = {
 	sizeof(sdb_service_t),
 
 	sdb_svc_init,
-	sdb_svc_destroy
+	sdb_svc_destroy,
+	sdb_svc_clone
 };
 
 /*
@@ -221,33 +286,7 @@ sdb_host_create(const char *name)
 sdb_host_t *
 sdb_host_clone(const sdb_host_t *host)
 {
-	sdb_host_t *new;
-
-	new = sdb_host_create(host->_name);
-	if (! new)
-		return NULL;
-
-	/* make sure these are initialized; else sdb_object_deref() might access
-	 * arbitrary memory in case of an error */
-	new->services = new->attributes = NULL;
-
-	if (host->attributes) {
-		new->attributes = sdb_llist_clone(host->attributes);
-		if (! new->attributes) {
-			sdb_object_deref(SDB_OBJ(new));
-			return NULL;
-		}
-	}
-
-	new->_last_update = host->_last_update;
-	if (host->services) {
-		new->services = sdb_llist_clone(host->services);
-		if (! new->services) {
-			sdb_object_deref(SDB_OBJ(new));
-			return NULL;
-		}
-	}
-	return new;
+	return SDB_HOST(sdb_host_do_clone((const sdb_object_t *)host));
 } /* sdb_host_clone */
 
 int
@@ -373,15 +412,7 @@ sdb_attribute_create(const char *hostname,
 sdb_attribute_t *
 sdb_attribute_clone(const sdb_attribute_t *attr)
 {
-	sdb_attribute_t *new;
-
-	new = sdb_attribute_create(attr->hostname,
-			attr->_name, attr->attr_value);
-	if (! new)
-		return NULL;
-
-	new->_last_update = attr->_last_update;
-	return new;
+	return SDB_ATTR(sdb_attr_clone((const sdb_object_t *)attr));
 } /* sdb_attribute_clone */
 
 int
@@ -472,14 +503,7 @@ sdb_service_create(const char *hostname, const char *name)
 sdb_service_t *
 sdb_service_clone(const sdb_service_t *svc)
 {
-	sdb_service_t *new;
-
-	new = sdb_service_create(svc->hostname, svc->_name);
-	if (! new)
-		return NULL;
-
-	new->_last_update = svc->_last_update;
-	return new;
+	return SDB_SVC(sdb_svc_clone((const sdb_object_t *)svc));
 } /* sdb_service_clone */
 
 int

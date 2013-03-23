@@ -66,7 +66,8 @@ static sdb_type_t sdb_object_wrapper_type = {
 	sizeof(sdb_object_wrapper_t),
 
 	sdb_object_wrapper_init,
-	sdb_object_wrapper_destroy
+	sdb_object_wrapper_destroy,
+	/* clone = */ NULL
 };
 
 /*

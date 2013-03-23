@@ -46,8 +46,9 @@ struct sdb_type {
 
 	int (*init)(sdb_object_t *, va_list);
 	void (*destroy)(sdb_object_t *);
+	sdb_object_t *(*clone)(const sdb_object_t *);
 };
-#define SDB_TYPE_INIT { 0, NULL, NULL }
+#define SDB_TYPE_INIT { 0, NULL, NULL, NULL }
 
 struct sdb_object {
 	sdb_type_t type;
