@@ -137,5 +137,13 @@ sdb_object_ref(sdb_object_t *obj)
 	++obj->ref_cnt;
 } /* sdb_object_ref */
 
+sdb_object_t *
+sdb_object_clone(const sdb_object_t *obj)
+{
+	if ((! obj) || (! obj->type.clone))
+		return NULL;
+	return obj->type.clone(obj);
+} /* sdb_object_clone */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

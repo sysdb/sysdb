@@ -116,6 +116,19 @@ sdb_object_deref(sdb_object_t *obj);
 void
 sdb_object_ref(sdb_object_t *obj);
 
+/*
+ * sdb_object_clone:
+ * Clone an existing object using its type's 'clone' callback. The callback is
+ * responsible for correctly initializing a new object (which may be done
+ * using the object create function or the object's type's init function).
+ *
+ * Returns:
+ *  - the cloned object on success
+ *  - NULL on error or if no clone callback is available
+ */
+sdb_object_t *
+sdb_object_clone(const sdb_object_t *obj);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
