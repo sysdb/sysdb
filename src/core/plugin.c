@@ -184,6 +184,10 @@ sdb_plugin_find_by_name(sdb_llist_t *list, const char *name)
 	return SDB_PLUGIN_CB(obj);
 } /* sdb_plugin_find_by_name */
 
+/*
+ * private types
+ */
+
 static int
 sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
 {
@@ -223,6 +227,20 @@ sdb_plugin_cb_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_PLUGIN_CB(obj)->cb_user_data);
 } /* sdb_plugin_cb_destroy */
 
+static sdb_type_t sdb_plugin_cb_type = {
+	sizeof(sdb_plugin_cb_t),
+
+	sdb_plugin_cb_init,
+	sdb_plugin_cb_destroy
+};
+
+static sdb_type_t sdb_plugin_collector_cb_type = {
+	sizeof(sdb_plugin_collector_cb_t),
+
+	sdb_plugin_cb_init,
+	sdb_plugin_cb_destroy
+};
+
 static int
 sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
 		const char *name, void *callback, sdb_object_t *user_data)
@@ -239,8 +257,8 @@ sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
 	if (! *list)
 		return -1;
 
-	obj = sdb_object_create(sizeof(sdb_plugin_cb_t), sdb_plugin_cb_init,
-			sdb_plugin_cb_destroy, list, type, name, callback, user_data);
+	obj = sdb_object_create(sdb_plugin_cb_type,
+			list, type, name, callback, user_data);
 	if (! obj)
 		return -1;
 
@@ -435,8 +453,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	if (! collector_list)
 		return -1;
 
-	obj = sdb_object_create(sizeof(sdb_plugin_collector_cb_t),
-			sdb_plugin_cb_init, sdb_plugin_cb_destroy,
+	obj = sdb_object_create(sdb_plugin_collector_cb_type,
 			&collector_list, "collector", name, callback, user_data);
 	if (! obj)
 		return -1;

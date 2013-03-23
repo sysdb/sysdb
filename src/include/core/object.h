@@ -35,15 +35,25 @@
 extern "C" {
 #endif
 
+struct sdb_type;
+typedef struct sdb_type sdb_type_t;
+
 struct sdb_object;
 typedef struct sdb_object sdb_object_t;
 
-struct sdb_object {
-	int    ref_cnt;
-	void (*destructor)(sdb_object_t *);
+struct sdb_type {
 	size_t size;
+
+	int (*init)(sdb_object_t *, va_list);
+	void (*destroy)(sdb_object_t *);
 };
-#define SDB_OBJECT_INIT { 1, NULL, 0 }
+#define SDB_TYPE_INIT { 0, NULL, NULL }
+
+struct sdb_object {
+	sdb_type_t type;
+	int ref_cnt;
+};
+#define SDB_OBJECT_INIT { SDB_TYPE_INIT, 1 }
 
 typedef struct {
 	sdb_object_t super;
@@ -56,14 +66,15 @@ typedef struct {
 
 /*
  * sdb_object_create:
- * Allocates a new sdb_object_t of the specified 'size'. The object will be
+ * Allocates a new sdb_object_t of the specified 'type'. The object will be
  * initialized to zero and then passed on to the 'init' function (if
- * specified). If specified, the 'destructor' will be called, when the
+ * specified). If specified, the 'destroy' callback will be called, when the
  * reference count drops to zero and before freeing the memory allocated by
  * the object itself.
  *
- * If the init function fails (returns a non-zero value), the object will be
- * destructed and destroyed.
+ * The init function will be called with the remaining arguments passed to
+ * sdb_object_create. If the init function fails (returns a non-zero value),
+ * the object will be destructed and destroyed.
  *
  * The reference count of the new object will be 1.
  *
@@ -72,12 +83,14 @@ typedef struct {
  *  - NULL on error
  */
 sdb_object_t *
-sdb_object_create(size_t size, int (*init)(sdb_object_t *, va_list),
-		void (*destructor)(sdb_object_t *), ...);
+sdb_object_create(sdb_type_t type, ...);
 
 /*
  * sdb_object_create_wrapper:
  * Create a new sdb_object_t wrapping some arbitrary other object.
+ *
+ * Creation and initialization of the wrapped object needs to happen outside
+ * of the SysDB object system.
  */
 sdb_object_t *
 sdb_object_create_wrapper(void *data, void (*destructor)(void *));

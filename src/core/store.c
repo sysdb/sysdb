@@ -82,6 +82,10 @@ sdb_cmp_store_obj_with_name(const sdb_object_t *a, const sdb_object_t *b)
 	return strcasecmp(obj->name, lookup->obj_name);
 } /* sdb_cmp_store_obj_with_name */
 
+/*
+ * private types
+ */
+
 static int
 sdb_host_init(sdb_object_t *obj, va_list ap)
 {
@@ -175,6 +179,27 @@ sdb_svc_destroy(sdb_object_t *obj)
 		free(SDB_SVC(obj)->_name);
 } /* sdb_svc_destroy */
 
+static sdb_type_t sdb_host_type = {
+	sizeof(sdb_host_t),
+
+	sdb_host_init,
+	sdb_host_destroy
+};
+
+static sdb_type_t sdb_attr_type = {
+	sizeof(sdb_attribute_t),
+
+	sdb_attr_init,
+	sdb_attr_destroy
+};
+
+static sdb_type_t sdb_svc_type = {
+	sizeof(sdb_service_t),
+
+	sdb_svc_init,
+	sdb_svc_destroy
+};
+
 /*
  * public API
  */
@@ -187,8 +212,7 @@ sdb_host_create(const char *name)
 	if (! name)
 		return NULL;
 
-	obj = sdb_object_create(sizeof(sdb_host_t), sdb_host_init,
-			sdb_host_destroy, name);
+	obj = sdb_object_create(sdb_host_type, name);
 	if (! obj)
 		return NULL;
 	return SDB_HOST(obj);
@@ -340,8 +364,7 @@ sdb_attribute_create(const char *hostname,
 	if ((! hostname) || (! name) || (! value))
 		return NULL;
 
-	obj = sdb_object_create(sizeof(sdb_attribute_t), sdb_attr_init,
-			sdb_attr_destroy, hostname, name, value);
+	obj = sdb_object_create(sdb_attr_type, hostname, name, value);
 	if (! obj)
 		return NULL;
 	return SDB_ATTR(obj);
@@ -440,8 +463,7 @@ sdb_service_create(const char *hostname, const char *name)
 	if ((! hostname) || (! name))
 		return NULL;
 
-	obj = sdb_object_create(sizeof(sdb_service_t), sdb_svc_init,
-			sdb_svc_destroy, hostname, name);
+	obj = sdb_object_create(sdb_svc_type, hostname, name);
 	if (! obj)
 		return NULL;
 	return SDB_SVC(obj);

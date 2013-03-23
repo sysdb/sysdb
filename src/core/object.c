@@ -33,7 +33,7 @@
 #include <string.h>
 
 /*
- * private helper functions
+ * private types
  */
 
 static int
@@ -62,26 +62,35 @@ sdb_object_wrapper_destroy(sdb_object_t *obj)
 	SDB_OBJ_WRAPPER(obj)->data = NULL;
 } /* sdb_object_wrapper_destroy */
 
+static sdb_type_t sdb_object_wrapper_type = {
+	sizeof(sdb_object_wrapper_t),
+
+	sdb_object_wrapper_init,
+	sdb_object_wrapper_destroy
+};
+
 /*
  * public API
  */
 
 sdb_object_t *
-sdb_object_create(size_t size, int (*init)(sdb_object_t *, va_list),
-		void (*destructor)(sdb_object_t *), ...)
+sdb_object_create(sdb_type_t type, ...)
 {
 	sdb_object_t *obj;
 
-	obj = malloc(size);
+	if (type.size <= 0)
+		return NULL;
+
+	obj = malloc(type.size);
 	if (! obj)
 		return NULL;
 	memset(obj, 0, sizeof(*obj));
 
-	if (init) {
+	if (type.init) {
 		va_list ap;
-		va_start(ap, destructor);
+		va_start(ap, type);
 
-		if (init(obj, ap)) {
+		if (type.init(obj, ap)) {
 			obj->ref_cnt = 1;
 			sdb_object_deref(obj);
 			va_end(ap);
@@ -91,18 +100,15 @@ sdb_object_create(size_t size, int (*init)(sdb_object_t *, va_list),
 		va_end(ap);
 	}
 
+	obj->type = type;
 	obj->ref_cnt = 1;
-	obj->destructor = destructor;
-	obj->size = size;
 	return obj;
 } /* sdb_object_create */
 
 sdb_object_t *
 sdb_object_create_wrapper(void *data, void (*destructor)(void *))
 {
-	return sdb_object_create(sizeof(sdb_object_wrapper_t),
-			sdb_object_wrapper_init, sdb_object_wrapper_destroy,
-			data, destructor);
+	return sdb_object_create(sdb_object_wrapper_type, data, destructor);
 } /* sdb_object_create_wrapper */
 
 void
@@ -115,8 +121,8 @@ sdb_object_deref(sdb_object_t *obj)
 	if (obj->ref_cnt > 0)
 		return;
 
-	if (obj->destructor)
-		obj->destructor(obj);
+	if (obj->type.destroy)
+		obj->type.destroy(obj);
 
 	free(obj);
 } /* sdb_object_deref */
