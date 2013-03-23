@@ -283,12 +283,6 @@ sdb_host_create(const char *name)
 	return SDB_HOST(obj);
 } /* sdb_host_create */
 
-sdb_host_t *
-sdb_host_clone(const sdb_host_t *host)
-{
-	return SDB_HOST(sdb_host_do_clone((const sdb_object_t *)host));
-} /* sdb_host_clone */
-
 int
 sdb_store_host(const sdb_host_t *host)
 {
@@ -332,7 +326,7 @@ sdb_store_host(const sdb_host_t *host)
 		}
 	}
 	else {
-		sdb_host_t *new = sdb_host_clone(host);
+		sdb_host_t *new = SDB_HOST(sdb_host_do_clone(SDB_CONST_OBJ(host)));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone host object: %s",
@@ -409,12 +403,6 @@ sdb_attribute_create(const char *hostname,
 	return SDB_ATTR(obj);
 } /* sdb_attribute_create */
 
-sdb_attribute_t *
-sdb_attribute_clone(const sdb_attribute_t *attr)
-{
-	return SDB_ATTR(sdb_attr_clone((const sdb_object_t *)attr));
-} /* sdb_attribute_clone */
-
 int
 sdb_store_attribute(const sdb_attribute_t *attr)
 {
@@ -466,7 +454,7 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 		}
 	}
 	else {
-		sdb_attribute_t *new = sdb_attribute_clone(attr);
+		sdb_attribute_t *new = SDB_ATTR(sdb_attr_clone(SDB_CONST_OBJ(attr)));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone attribute "
@@ -499,12 +487,6 @@ sdb_service_create(const char *hostname, const char *name)
 		return NULL;
 	return SDB_SVC(obj);
 } /* sdb_service_create */
-
-sdb_service_t *
-sdb_service_clone(const sdb_service_t *svc)
-{
-	return SDB_SVC(sdb_svc_clone((const sdb_object_t *)svc));
-} /* sdb_service_clone */
 
 int
 sdb_store_service(const sdb_service_t *svc)
@@ -556,7 +538,7 @@ sdb_store_service(const sdb_service_t *svc)
 		}
 	}
 	else {
-		sdb_service_t *new = sdb_service_clone(svc);
+		sdb_service_t *new = SDB_SVC(sdb_svc_clone(SDB_CONST_OBJ(svc)));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone service "

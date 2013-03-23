@@ -47,6 +47,7 @@ typedef struct {
 } sdb_store_obj_t;
 #define SDB_STORE_OBJ_INIT { SDB_OBJECT_INIT, 0, NULL }
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
+#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
 typedef struct {
 	sdb_store_obj_t parent;
@@ -55,6 +56,7 @@ typedef struct {
 } sdb_service_t;
 #define SDB_SVC_INIT { SDB_STORE_OBJ_INIT, NULL }
 #define SDB_SVC(obj) ((sdb_service_t *)(obj))
+#define SDB_CONST_SVC(obj) ((const sdb_service_t *)(obj))
 
 typedef struct {
 	sdb_store_obj_t parent;
@@ -64,6 +66,7 @@ typedef struct {
 } sdb_attribute_t;
 #define SDB_ATTR_INIT { SDB_STORE_OBJ_INIT, NULL, NULL }
 #define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
+#define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
 
 typedef struct {
 	sdb_store_obj_t parent;
@@ -73,6 +76,7 @@ typedef struct {
 } sdb_host_t;
 #define SDB_HOST_INIT { SDB_STORE_OBJ_INIT, NULL, NULL }
 #define SDB_HOST(obj) ((sdb_host_t *)(obj))
+#define SDB_CONST_HOST(obj) ((const sdb_host_t *)(obj))
 
 /* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
  * objects */
@@ -81,9 +85,6 @@ typedef struct {
 
 sdb_host_t *
 sdb_host_create(const char *name);
-
-sdb_host_t *
-sdb_host_clone(const sdb_host_t *host);
 
 /*
  * sdb_store_host:
@@ -109,9 +110,6 @@ sdb_attribute_t *
 sdb_attribute_create(const char *hostname,
 		const char *name, const char *value);
 
-sdb_attribute_t *
-sdb_attribute_clone(const sdb_attribute_t *attr);
-
 /*
  * sdb_store_attribute:
  * Add/update a host's attribute in the store. If the attribute, identified by
@@ -133,9 +131,6 @@ sdb_store_attribute(const sdb_attribute_t *attr);
 
 sdb_service_t *
 sdb_service_create(const char *hostname, const char *name);
-
-sdb_service_t *
-sdb_service_clone(const sdb_service_t *svc);
 
 /*
  * sdb_store_service:

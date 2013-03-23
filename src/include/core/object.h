@@ -63,7 +63,9 @@ typedef struct {
 } sdb_object_wrapper_t;
 
 #define SDB_OBJ(obj) ((sdb_object_t *)(obj))
+#define SDB_CONST_OBJ(obj) ((const sdb_object_t *)(obj))
 #define SDB_OBJ_WRAPPER(obj) ((sdb_object_wrapper_t *)(obj))
+#define SDB_CONST_OBJ_WRAPPER(obj) ((const sdb_object_wrapper_t *)(obj))
 
 /*
  * sdb_object_create:
