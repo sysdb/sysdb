@@ -83,7 +83,7 @@ sdb_cmp_store_obj_with_name(const sdb_object_t *a, const sdb_object_t *b)
 } /* sdb_cmp_store_obj_with_name */
 
 /*
- * private types
+ * public types
  */
 
 static int
@@ -241,7 +241,7 @@ sdb_svc_clone(const sdb_object_t *obj)
 	return SDB_OBJ(new);
 } /* sdb_svc_clone */
 
-static sdb_type_t sdb_host_type = {
+const sdb_type_t sdb_host_type = {
 	sizeof(sdb_host_t),
 
 	sdb_host_init,
@@ -249,7 +249,7 @@ static sdb_type_t sdb_host_type = {
 	sdb_host_do_clone
 };
 
-static sdb_type_t sdb_attr_type = {
+const sdb_type_t sdb_attribute_type = {
 	sizeof(sdb_attribute_t),
 
 	sdb_attr_init,
@@ -257,7 +257,7 @@ static sdb_type_t sdb_attr_type = {
 	sdb_attr_clone
 };
 
-static sdb_type_t sdb_svc_type = {
+const sdb_type_t sdb_service_type = {
 	sizeof(sdb_service_t),
 
 	sdb_svc_init,
@@ -397,7 +397,7 @@ sdb_attribute_create(const char *hostname,
 	if ((! hostname) || (! name) || (! value))
 		return NULL;
 
-	obj = sdb_object_create(sdb_attr_type, hostname, name, value);
+	obj = sdb_object_create(sdb_attribute_type, hostname, name, value);
 	if (! obj)
 		return NULL;
 	return SDB_ATTR(obj);
@@ -482,7 +482,7 @@ sdb_service_create(const char *hostname, const char *name)
 	if ((! hostname) || (! name))
 		return NULL;
 
-	obj = sdb_object_create(sdb_svc_type, hostname, name);
+	obj = sdb_object_create(sdb_service_type, hostname, name);
 	if (! obj)
 		return NULL;
 	return SDB_SVC(obj);

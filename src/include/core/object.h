@@ -55,6 +55,7 @@ struct sdb_object {
 	int ref_cnt;
 };
 #define SDB_OBJECT_INIT { SDB_TYPE_INIT, 1 }
+#define SDB_OBJECT_TYPED_INIT(t) { (t), 1 }
 
 typedef struct {
 	sdb_object_t super;
