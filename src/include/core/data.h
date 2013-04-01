@@ -1,5 +1,5 @@
 /*
- * SysDB - src/include/utils/data.h
+ * SysDB - src/include/core/data.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SDB_UTILS_DATA_H
-#define SDB_UTILS_DATA_H 1
+#ifndef SDB_CORE_DATA_H
+#define SDB_CORE_DATA_H 1
 
 #include "core/time.h"
 
@@ -71,7 +71,7 @@ typedef struct {
 } /* extern "C" */
 #endif
 
-#endif /* ! SDB_UTILS_DATA_H */
+#endif /* ! SDB_CORE_DATA_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

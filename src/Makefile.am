@@ -22,7 +22,7 @@ libsysdb_la_SOURCES = \
 		core/object.c include/core/object.h \
 		core/plugin.c include/core/plugin.h \
 		core/store.c include/core/store.h \
-		include/utils/data.h \
+		include/core/data.h \
 		core/error.c include/core/error.h \
 		utils/llist.c include/utils/llist.h \
 		utils/strbuf.c include/utils/strbuf.h \
