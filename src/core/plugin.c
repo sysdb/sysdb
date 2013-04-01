@@ -27,9 +27,9 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
-#include "utils/error.h"
+#include "core/error.h"
+#include "core/time.h"
 #include "utils/llist.h"
-#include "utils/time.h"
 
 #include <assert.h>
 

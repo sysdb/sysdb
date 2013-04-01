@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "utils/error.h"
+#include "core/error.h"
 #include "utils/dbi.h"
 
 #include <assert.h>

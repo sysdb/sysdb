@@ -1,5 +1,5 @@
 /*
- * SysDB - src/utils/time.c
+ * SysDB - src/include/core/time.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,55 +25,49 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "utils/time.h"
+#ifndef SDB_CORE_TIME_H
+#define SDB_CORE_TIME_H 1
 
-#include <time.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <stddef.h>
 
-#include <string.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
- * public API
+ * sdb_time_t:
+ * The time, in nano-seconds, since the epoch.
  */
+typedef uint64_t sdb_time_t;
+#define PRIscTIME PRIu64
+
+#define SECS_TO_SDB_TIME(s) ((sdb_time_t)(s) * (sdb_time_t)1000000000)
+#define SDB_TIME_TO_SECS(t) ((t) / (sdb_time_t)1000000000)
+
+#define NSECS_TO_SDB_TIME(ns) ((sdb_time_t)ns)
+
+#define DOUBLE_TO_SDB_TIME(d) ((sdb_time_t)((d) * 1000000000.0))
+#define SDB_TIME_TO_DOUBLE(t) ((double)(t) / 1000000000.0)
+
+#define TIMESPEC_TO_SDB_TIME(ts) (SECS_TO_SDB_TIME((ts).tv_sec) \
+		+ NSECS_TO_SDB_TIME((ts).tv_nsec))
 
 sdb_time_t
-sdb_gettime(void)
-{
-	struct timespec ts_now = { 0, 0 };
-
-	if (clock_gettime(CLOCK_REALTIME, &ts_now))
-		return 0;
-	return TIMESPEC_TO_SDB_TIME(ts_now);
-} /* sdb_gettime */
+sdb_gettime(void);
 
 int
-sdb_sleep(sdb_time_t reg, sdb_time_t *rem)
-{
-	struct timespec ts_reg, ts_rem = { 0, 0 };
-	int status;
-
-	ts_reg.tv_sec  = (time_t)SDB_TIME_TO_SECS(reg);
-	ts_reg.tv_nsec = (long int)(reg % (sdb_time_t)1000000000);
-
-	status = nanosleep(&ts_reg, &ts_rem);
-	if (rem)
-		*rem = TIMESPEC_TO_SDB_TIME(ts_rem);
-	return status;
-} /* sdb_sleep */
+sdb_sleep(sdb_time_t reg, sdb_time_t *rem);
 
 size_t
-sdb_strftime(char *s, size_t len, const char *format, sdb_time_t t)
-{
-	time_t tstamp;
-	struct tm tm;
+sdb_strftime(char *s, size_t len, const char *format, sdb_time_t);
 
-	memset(&tm, 0, sizeof(tm));
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
-	tstamp = (time_t)SDB_TIME_TO_SECS(t);
-	if (! localtime_r (&tstamp, &tm))
-		return 0;
-
-	return strftime(s, len, format, &tm);
-} /* sdb_strftime */
+#endif /* ! SDB_CORE_TIME_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

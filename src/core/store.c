@@ -27,7 +27,7 @@
 
 #include "sysdb.h"
 #include "core/store.h"
-#include "utils/error.h"
+#include "core/error.h"
 #include "utils/llist.h"
 
 #include <assert.h>
