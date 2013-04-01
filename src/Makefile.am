@@ -22,11 +22,11 @@ libsysdb_la_SOURCES = \
 		core/object.c include/core/object.h \
 		core/plugin.c include/core/plugin.h \
 		core/store.c include/core/store.h \
-		include/utils/data.h \
-		utils/error.c include/utils/error.h \
+		include/core/data.h \
+		core/error.c include/core/error.h \
 		utils/llist.c include/utils/llist.h \
 		utils/strbuf.c include/utils/strbuf.h \
-		utils/time.c include/utils/time.h \
+		core/time.c include/core/time.h \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)

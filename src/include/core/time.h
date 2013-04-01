@@ -1,5 +1,5 @@
 /*
- * SysDB - src/include/utils/data.h
+ * SysDB - src/include/core/time.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,53 +25,49 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SDB_UTILS_DATA_H
-#define SDB_UTILS_DATA_H 1
-
-#include "utils/time.h"
+#ifndef SDB_CORE_TIME_H
+#define SDB_CORE_TIME_H 1
 
 #include <inttypes.h>
+#include <stdint.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-enum {
-	SDB_TYPE_INTEGER = 1,
-	SDB_TYPE_DECIMAL,
-	SDB_TYPE_STRING,
-	SDB_TYPE_DATETIME,
-	SDB_TYPE_BINARY,
-};
-
 /*
- * sdb_data_t:
- * A datum retrieved from an arbitrary data source.
- *
- * The string and binary objects are managed by whoever creates the data
- * object, thus, they must not be freed or modified. If you want to keep them,
- * make sure to make a copy.
+ * sdb_time_t:
+ * The time, in nano-seconds, since the epoch.
  */
-typedef struct {
-	int type;
-	union {
-		int64_t     integer;  /* SDB_TYPE_INTEGER */
-		double      decimal;  /* SDB_TYPE_DECIMAL */
-		const char *string;   /* SDB_TYPE_STRING  */
-		sdb_time_t  datetime; /* SDB_TYPE_DATETIME */
-		struct {
-			size_t length;
-			const unsigned char *datum;
-		} binary;             /* SDB_TYPE_BINARY */
-	} data;
-} sdb_data_t;
+typedef uint64_t sdb_time_t;
+#define PRIscTIME PRIu64
+
+#define SECS_TO_SDB_TIME(s) ((sdb_time_t)(s) * (sdb_time_t)1000000000)
+#define SDB_TIME_TO_SECS(t) ((t) / (sdb_time_t)1000000000)
+
+#define NSECS_TO_SDB_TIME(ns) ((sdb_time_t)ns)
+
+#define DOUBLE_TO_SDB_TIME(d) ((sdb_time_t)((d) * 1000000000.0))
+#define SDB_TIME_TO_DOUBLE(t) ((double)(t) / 1000000000.0)
+
+#define TIMESPEC_TO_SDB_TIME(ts) (SECS_TO_SDB_TIME((ts).tv_sec) \
+		+ NSECS_TO_SDB_TIME((ts).tv_nsec))
+
+sdb_time_t
+sdb_gettime(void);
+
+int
+sdb_sleep(sdb_time_t reg, sdb_time_t *rem);
+
+size_t
+sdb_strftime(char *s, size_t len, const char *format, sdb_time_t);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ! SDB_UTILS_DATA_H */
+#endif /* ! SDB_CORE_TIME_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

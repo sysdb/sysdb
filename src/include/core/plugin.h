@@ -30,7 +30,7 @@
 
 #include "sysdb.h"
 #include "core/object.h"
-#include "utils/time.h"
+#include "core/time.h"
 
 #include "liboconfig/oconfig.h"
 

@@ -1,5 +1,5 @@
 /*
- * SysDB - src/utils/time.c
+ * SysDB - src/core/time.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "utils/time.h"
+#include "core/time.h"
 
 #include <time.h>
 

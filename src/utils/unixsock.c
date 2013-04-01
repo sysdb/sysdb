@@ -26,7 +26,7 @@
  */
 
 #include "utils/unixsock.h"
-#include "utils/error.h"
+#include "core/error.h"
 
 #include <assert.h>
 #include <errno.h>

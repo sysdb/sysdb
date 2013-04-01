@@ -29,7 +29,7 @@
 #define SDB_UTILS_DBI_H 1
 
 #include "core/object.h"
-#include "utils/data.h"
+#include "core/data.h"
 
 #include <stddef.h>
 

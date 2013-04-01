@@ -1,5 +1,5 @@
 /*
- * SysDB - src/utils/error.c
+ * SysDB - src/core/error.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "utils/error.h"
+#include "core/error.h"
 #include "utils/strbuf.h"
 
 #include <pthread.h>
