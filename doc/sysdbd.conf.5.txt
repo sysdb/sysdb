@@ -1,0 +1,104 @@
+sysdbd.conf(5)
+==============
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+sysdbd.conf - configuration for the system management and inventory collection
+service
+
+SYNOPSIS
+--------
+  Interval 300
+
+  LoadBackend "collectd::unixsock"
+  LoadBackend "mk-livestatus"
+
+  <LoadBackend "puppet::store-configs">
+      Interval 1800
+  </LoadBackend>
+
+  <Backend "collectd::unixsock">
+      <Instance "central-collector">
+          Socket "/var/run/collectd-unixsock"
+      </Instance>
+  </Backend>
+
+DESCRIPTION
+-----------
+The *sysdbd.conf* file controls the behavior of the system management and
+inventory collection daemon (*sysdbd*). As the daemon itself does not provide
+any real (user-facing) functionality, the most important part of the
+configuration is loading and configuring plugins.
+
+The syntax of this configuration file is similar to that of the Apache
+webserver. It is made up of _options_ and _sections_. Each option contains a
+_key_ and one or more _values_ separated by spaces and terminated by a newline
+character. Sections are enclosed in a start- and end-tag, each on a line of
+their own. These tags are enclosed in angle brackets and also contain a key
+and value. Section end-tags only contain the key of the start-tag prepended by
+a forward-slash ("/"). Empty lines are ignored as well as any unquoted hash
+symbol ("#") including anything following up to the following newline. Keys
+are unquoted strings consisting only of alphanumeric characters and the
+underscore character ("_"). Values may either be unquoted strings, quoted
+strings enclosed in double quotes, numbers or boolean values (*true* or
+*false*). In order to include a double-quote character in a quoted string,
+escape it using a backslash character ("\"). Floating point numbers use a dot
+(".") as decimal separator.
+
+Lines may be wrapped by using a backslash character ("\") as the last
+character before the newline. This allows long lines to be split into multiple
+lines. Quoted strings may be wrapped as well. However, those are treated
+special in that whitespace at the beginning of the following lines will be
+ignored, which allows for nicely indenting the wrapped lines.
+
+GLOBAL SETTINGS
+---------------
+*sysdbd* accepts the following global options:
+
+*Interval* '<seconds>'::
+	Sets the interval at which to query backends by default. The interval is
+	specified in seconds and might be a floating-point value. This option will
+	be used by any "active" backend, that is, those that actively query some
+	external system rather than receiving some stream of events.
+
+*LoadBackend* '<name>'::
+	Loads the backend named '<name>'. Backends are special plugins taking care
+	of collecting values from external systems. This may optionally be a
+	section containing any of the following options:
+
+	*Interval* '<seconds>';;
+		Overwrite the global interval setting by setting a custom interval to
+		be used for this backend. See the global *Interval* option for more
+		details.
+
+PLUGINS
+-------
+Some plugins support additional configuration options. Each of these are
+enclosed in a *Plugin* or *Backend* section. The following plugins are shipped
+with SysDB. See *sysdb*-'<name>'(5) manpages for more details.
+
+* *collectd::unixsock*
+* *mk-livestatus*
+* *puppet::store-configs*
+
+SEE ALSO
+--------
+*sysdbd*(1)
+
+AUTHOR
+------
+sysdbd was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+

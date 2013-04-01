@@ -54,6 +54,10 @@ BUGS
 ----
 None known.
 
+SEE ALSO
+--------
+*sysdb.conf*(5)
+
 AUTHOR
 ------
 sysdbd was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
