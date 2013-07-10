@@ -31,9 +31,7 @@
  * will use its own memory region to store information about the last reported
  * error.
  * Once the error message has been passed to SysDB, it will log the entire
- * message at once. XXX: currently, SysDB only supports printing the error to
- * the standard error channel; support for other logging backends will be
- * added later in a modular fashion.
+ * message at once. The message will be sent to all registered log functions.
  */
 
 #ifndef SDB_CORE_ERROR_H
