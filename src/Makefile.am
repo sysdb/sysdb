@@ -55,6 +55,7 @@ pkgbackendlibdir = $(pkglibdir)/backend
 pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
 pkgbackendpuppetlibdir = $(pkgbackendlibdir)/puppet
 
+pkglib_LTLIBRARIES =
 pkgbackendlib_LTLIBRARIES =
 pkgbackendcollectdlib_LTLIBRARIES =
 pkgbackendpuppetlib_LTLIBRARIES =
@@ -81,6 +82,14 @@ backend_puppet_store_configs_la_SOURCES = backend/puppet/store-configs.c
 backend_puppet_store_configs_la_LDFLAGS = -module -avoid-version
 libsysdb_la_LIBADD += -dlopen backend/puppet/store-configs.la
 libsysdb_la_DEPENDENCIES += backend/puppet/store-configs.la
+endif
+
+if BUILD_PLUGIN_SYSLOG
+pkglib_LTLIBRARIES += plugins/syslog.la
+plugins_syslog_la_SOURCE = plugins/syslog.c
+plugins_syslog_la_LDFLAGS = -module -avoid-version
+libsysdb_la_LIBADD += -dlopen plugins/syslog.la
+libsysdb_la_DEPENDENCIES += plugins/syslog.la
 endif
 
 include/sysdb.h: include/sysdb.h.in ../version

@@ -244,6 +244,8 @@ AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
 AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
+AC_SDB_PLUGIN([syslog], [yes],
+		[plugin logging to syslog])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
 

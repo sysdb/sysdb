@@ -11,6 +11,14 @@
 Interval 300
 
 #----------------------------------------------------------------------------#
+# Logging settings:                                                          #
+# These plugins should be loaded first. Else, any log messages will be       #
+# written to the standard error channel which is closed after the daemon has #
+# started.                                                                   #
+#----------------------------------------------------------------------------#
+LoadPlugin "syslog"
+
+#----------------------------------------------------------------------------#
 # Plugins:                                                                   #
 # Plugins are the working horses of SysDB. Load any of the following plugins #
 # to active the respective feature.                                          #
