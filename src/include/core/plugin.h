@@ -92,6 +92,8 @@ typedef int (*sdb_plugin_config_cb)(oconfig_item_t *ci);
 typedef int (*sdb_plugin_init_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_collector_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_shutdown_cb)(sdb_object_t *user_data);
+typedef int (*sdb_plugin_log_cb)(int prio, const char *msg,
+		sdb_object_t *user_data);
 
 /*
  * sdb_plugin_register_config:
@@ -174,6 +176,20 @@ sdb_plugin_register_shutdown(const char *name,
 		sdb_object_t *user_data);
 
 /*
+ * sdb_plugin_register_log:
+ * Register a "log" function to be called whenever logging is to be done.
+ *
+ * Arguments:
+ *  - user_data: If specified, this will be passed on to each call of the
+ *    callback. The function will take ownership of the object, that is,
+ *    increment the reference count by one. In case the caller does not longer
+ *    use the object for other purposes, it should thus deref it.
+ */
+int
+sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
+		sdb_object_t *user_data);
+
+/*
  * sdb_plugin_get_ctx, sdb_plugin_set_ctx:
  * The plugin context defines a set of settings that are available whenever a
  * plugin has been called. It may be used to pass around various information
@@ -215,6 +231,14 @@ sdb_plugin_init_all(void);
  */
 int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop);
+
+/*
+ * sdb_plugin_log:
+ * Log the specified message using all registered log callbacks. The message
+ * will be logged with the specified priority.
+ */
+int
+sdb_plugin_log(int prio, const char *msg);
 
 #ifdef __cplusplus
 } /* extern "C" */

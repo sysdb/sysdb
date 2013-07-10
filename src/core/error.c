@@ -26,6 +26,7 @@
  */
 
 #include "core/error.h"
+#include "core/plugin.h"
 #include "utils/strbuf.h"
 
 #include <pthread.h>
@@ -162,9 +163,7 @@ sdb_do_log(int prio)
 	if (ctx->logged)
 		return 0;
 
-	ret = fprintf(stderr, "[%s] %s\n",
-			SDB_LOG_PRIO_TO_STRING(prio),
-			sdb_strbuf_string(ctx->msg));
+	ret = sdb_plugin_log(prio, sdb_strbuf_string(ctx->msg));
 	ctx->logged = 1;
 	return ret;
 } /* sdb_do_log */

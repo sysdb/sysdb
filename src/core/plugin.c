@@ -100,6 +100,7 @@ static sdb_llist_t      *config_list = NULL;
 static sdb_llist_t      *init_list = NULL;
 static sdb_llist_t      *collector_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
+static sdb_llist_t      *log_list = NULL;
 
 /*
  * private helper functions
@@ -442,6 +443,14 @@ sdb_plugin_register_shutdown(const char *name, sdb_plugin_shutdown_cb callback,
 } /* sdb_plugin_register_shutdown */
 
 int
+sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
+		sdb_object_t *user_data)
+{
+	return sdb_plugin_add_callback(&log_list, "log", name, callback,
+			user_data);
+} /* sdb_plugin_register_log */
+
+int
 sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback,
 		const sdb_time_t *interval, sdb_object_t *user_data)
 {
@@ -580,6 +589,7 @@ sdb_plugin_init_all(void)
 		}
 		sdb_plugin_set_ctx(old_ctx);
 	}
+	sdb_llist_iter_destroy(iter);
 	return 0;
 } /* sdb_plugin_init_all */
 
@@ -680,6 +690,32 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 	}
 	return 0;
 } /* sdb_plugin_read_loop */
+
+int
+sdb_plugin_log(int prio, const char *msg)
+{
+	sdb_llist_iter_t *iter;
+	int ret = -1;
+
+	if (! log_list)
+		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
+
+	iter = sdb_llist_get_iter(log_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_log_cb callback;
+		int tmp;
+
+		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+		assert(obj);
+
+		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		tmp = callback(prio, msg, SDB_PLUGIN_CB(obj)->cb_user_data);
+		if (tmp > ret)
+			ret = tmp;
+	}
+	sdb_llist_iter_destroy(iter);
+	return ret;
+} /* sdb_plugin_log */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
