@@ -13,6 +13,8 @@ SYNOPSIS
 --------
   Interval 300
 
+  LoadPlugin "syslog"
+
   LoadBackend "collectd::unixsock"
   LoadBackend "mk-livestatus"
 
@@ -83,6 +85,7 @@ with SysDB. See *sysdb*-'<name>'(5) manpages for more details.
 * *collectd::unixsock*
 * *mk-livestatus*
 * *puppet::store-configs*
+* *syslog*
 
 SEE ALSO
 --------
