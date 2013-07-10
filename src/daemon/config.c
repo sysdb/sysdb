@@ -89,6 +89,39 @@ daemon_set_interval(oconfig_item_t *ci)
 } /* daemon_set_interval */
 
 static int
+daemon_load_plugin(oconfig_item_t *ci)
+{
+	char *name;
+
+	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
+	sdb_plugin_ctx_t old_ctx;
+
+	int status, i;
+
+	if (oconfig_get_string(ci, &name)) {
+		sdb_log(SDB_LOG_ERR, "config: LoadPlugin requires a single "
+				"string argument\n"
+				"\tUsage: LoadPlugin PLUGIN");
+		return -1;
+	}
+
+	for (i = 0; i < ci->children_num; ++i) {
+		oconfig_item_t *child = ci->children + i;
+
+		/* we don't currently support any options */
+		sdb_log(SDB_LOG_WARNING, "config: Unknown option '%s' "
+				"inside 'LoadPlugin' -- see the documentation for "
+				"details.", child->key);
+		continue;
+	}
+
+	old_ctx = sdb_plugin_set_ctx(ctx);
+	status = sdb_plugin_load(name);
+	sdb_plugin_set_ctx(old_ctx);
+	return status;
+} /* daemon_load_plugin */
+
+static int
 daemon_load_backend(oconfig_item_t *ci)
 {
 	char  plugin_name[1024];
@@ -151,6 +184,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 
 static token_parser_t token_parser_list[] = {
 	{ "Interval", daemon_set_interval },
+	{ "LoadPlugin", daemon_load_plugin },
 	{ "LoadBackend", daemon_load_backend },
 	{ "Backend", daemon_configure_plugin },
 	{ "Plugin", daemon_configure_plugin },
