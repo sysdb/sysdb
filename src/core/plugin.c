@@ -154,27 +154,6 @@ sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 		? -1 : 0;
 } /* sdb_plugin_cmp_next_update */
 
-static sdb_plugin_cb_t *
-sdb_plugin_find_by_name(sdb_llist_t *list, const char *name)
-{
-	sdb_object_t tmp = SDB_OBJECT_INIT;
-
-	sdb_object_t *obj;
-	assert(name);
-
-	if (! list)
-		return NULL;
-
-	tmp.name = strdup(name);
-	if (! tmp.name)
-		return NULL;
-	obj = sdb_llist_search(list, &tmp, sdb_object_cmp_by_name);
-	free(tmp.name);
-	if (! obj)
-		return NULL;
-	return SDB_PLUGIN_CB(obj);
-} /* sdb_plugin_find_by_name */
-
 /*
  * private types
  */
@@ -191,7 +170,7 @@ sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
 	assert(type);
 	assert(obj);
 
-	if (sdb_plugin_find_by_name(*list, obj->name)) {
+	if (sdb_llist_search_by_name(*list, obj->name)) {
 		sdb_log(SDB_LOG_WARNING, "plugin: %s callback '%s' "
 				"has already been registered. Ignoring newly "
 				"registered version.", type, obj->name);
@@ -537,7 +516,7 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	if ((! name) || (! ci))
 		return -1;
 
-	plugin = sdb_plugin_find_by_name(config_list, name);
+	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(config_list, name));
 	if (! plugin) {
 		/* XXX: check if any such plugin has been loaded */
 		sdb_log(SDB_LOG_ERR, "plugin: Plugin '%s' did not register "
