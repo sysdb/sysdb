@@ -53,9 +53,10 @@ struct sdb_type {
 struct sdb_object {
 	sdb_type_t type;
 	int ref_cnt;
+	char *name;
 };
-#define SDB_OBJECT_INIT { SDB_TYPE_INIT, 1 }
-#define SDB_OBJECT_TYPED_INIT(t) { (t), 1 }
+#define SDB_OBJECT_INIT { SDB_TYPE_INIT, 1, NULL }
+#define SDB_OBJECT_TYPED_INIT(t) { (t), 1, NULL }
 
 typedef struct {
 	sdb_object_t super;
@@ -70,8 +71,8 @@ typedef struct {
 
 /*
  * sdb_object_create:
- * Allocates a new sdb_object_t of the specified 'type'. The object will be
- * initialized to zero and then passed on to the 'init' function (if
+ * Allocates a new sdb_object_t of the specified 'name' and 'type'. The object
+ * will be initialized to zero and then passed on to the 'init' function (if
  * specified). If specified, the 'destroy' callback will be called, when the
  * reference count drops to zero and before freeing the memory allocated by
  * the object itself.
@@ -87,7 +88,7 @@ typedef struct {
  *  - NULL on error
  */
 sdb_object_t *
-sdb_object_create(sdb_type_t type, ...);
+sdb_object_create(const char *name, sdb_type_t type, ...);
 
 /*
  * sdb_object_create_wrapper:
@@ -97,7 +98,8 @@ sdb_object_create(sdb_type_t type, ...);
  * of the SysDB object system.
  */
 sdb_object_t *
-sdb_object_create_wrapper(void *data, void (*destructor)(void *));
+sdb_object_create_wrapper(const char *name,
+		void *data, void (*destructor)(void *));
 
 #define SDB_OBJECT_WRAPPER_STATIC(obj, destructor) \
 	{ SDB_OBJECT_INIT, (obj), (destructor) }
@@ -131,6 +133,18 @@ sdb_object_ref(sdb_object_t *obj);
  */
 sdb_object_t *
 sdb_object_clone(const sdb_object_t *obj);
+
+/*
+ * sdb_object_cmp_by_name:
+ * Compare two objects by their name ignoring the case of the characters.
+ *
+ * Returns:
+ *  - a negative value if o1 compares less than o2
+ *  - zero if o1 matches o2
+ *  - a positive value if o1 compares greater than o2
+ */
+int
+sdb_object_cmp_by_name(const sdb_object_t *o1, const sdb_object_t *o2);
 
 #ifdef __cplusplus
 } /* extern "C" */

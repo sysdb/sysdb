@@ -65,18 +65,16 @@ struct sdb_plugin_info {
 
 typedef struct {
 	sdb_object_t super;
-	char cb_name[64];
 	void *cb_callback;
 	sdb_object_t *cb_user_data;
 	sdb_plugin_ctx_t cb_ctx;
 } sdb_plugin_cb_t;
-#define SDB_PLUGIN_CB_INIT { SDB_OBJECT_INIT, /* name = */ "", \
+#define SDB_PLUGIN_CB_INIT { SDB_OBJECT_INIT, \
 	/* callback = */ NULL, /* user_data = */ NULL, \
 	SDB_PLUGIN_CTX_INIT }
 
 typedef struct {
 	sdb_plugin_cb_t super;
-#define ccb_name super.cb_name
 #define ccb_callback super.cb_callback
 #define ccb_user_data super.cb_user_data
 #define ccb_ctx super.cb_ctx
@@ -142,16 +140,6 @@ sdb_plugin_ctx_create(void)
 } /* sdb_plugin_ctx_create */
 
 static int
-sdb_plugin_cmp_name(const sdb_object_t *a, const sdb_object_t *b)
-{
-	const sdb_plugin_cb_t *cb1 = (const sdb_plugin_cb_t *)a;
-	const sdb_plugin_cb_t *cb2 = (const sdb_plugin_cb_t *)b;
-
-	assert(cb1 && cb2);
-	return strcasecmp(cb1->cb_name, cb2->cb_name);
-} /* sdb_plugin_cmp_name */
-
-static int
 sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 {
 	const sdb_plugin_collector_cb_t *ccb1
@@ -169,7 +157,7 @@ sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 static sdb_plugin_cb_t *
 sdb_plugin_find_by_name(sdb_llist_t *list, const char *name)
 {
-	sdb_plugin_cb_t tmp = SDB_PLUGIN_CB_INIT;
+	sdb_object_t tmp = SDB_OBJECT_INIT;
 
 	sdb_object_t *obj;
 	assert(name);
@@ -177,9 +165,11 @@ sdb_plugin_find_by_name(sdb_llist_t *list, const char *name)
 	if (! list)
 		return NULL;
 
-	snprintf(tmp.cb_name, sizeof(tmp.cb_name), "%s", name);
-	tmp.cb_name[sizeof(tmp.cb_name) - 1] = '\0';
-	obj = sdb_llist_search(list, SDB_OBJ(&tmp), sdb_plugin_cmp_name);
+	tmp.name = strdup(name);
+	if (! tmp.name)
+		return NULL;
+	obj = sdb_llist_search(list, &tmp, sdb_object_cmp_by_name);
+	free(tmp.name);
 	if (! obj)
 		return NULL;
 	return SDB_PLUGIN_CB(obj);
@@ -193,26 +183,21 @@ static int
 sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_llist_t **list = va_arg(ap, sdb_llist_t **);
-	const char  *type = va_arg(ap, const char *);
-	const char  *name = va_arg(ap, const char *);
-	void    *callback = va_arg(ap, void *);
+	const char   *type = va_arg(ap, const char *);
+	void     *callback = va_arg(ap, void *);
 	sdb_object_t   *ud = va_arg(ap, sdb_object_t *);
 
 	assert(list);
 	assert(type);
 	assert(obj);
 
-	if (sdb_plugin_find_by_name(*list, name)) {
+	if (sdb_plugin_find_by_name(*list, obj->name)) {
 		sdb_log(SDB_LOG_WARNING, "plugin: %s callback '%s' "
 				"has already been registered. Ignoring newly "
-				"registered version.", type, name);
+				"registered version.", type, obj->name);
 		return -1;
 	}
 
-	snprintf(SDB_PLUGIN_CB(obj)->cb_name,
-			sizeof(SDB_PLUGIN_CB(obj)->cb_name),
-			"%s", name);
-	SDB_PLUGIN_CB(obj)->cb_name[sizeof(SDB_PLUGIN_CB(obj)->cb_name) - 1] = '\0';
 	SDB_PLUGIN_CB(obj)->cb_callback = callback;
 	SDB_PLUGIN_CB(obj)->cb_ctx      = sdb_plugin_get_ctx();
 
@@ -260,8 +245,8 @@ sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
 	if (! *list)
 		return -1;
 
-	obj = sdb_object_create(sdb_plugin_cb_type,
-			list, type, name, callback, user_data);
+	obj = sdb_object_create(name, sdb_plugin_cb_type,
+			list, type, callback, user_data);
 	if (! obj)
 		return -1;
 
@@ -464,8 +449,8 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	if (! collector_list)
 		return -1;
 
-	obj = sdb_object_create(sdb_plugin_collector_cb_type,
-			&collector_list, "collector", name, callback, user_data);
+	obj = sdb_object_create(name, sdb_plugin_collector_cb_type,
+			&collector_list, "collector", callback, user_data);
 	if (! obj)
 		return -1;
 
@@ -654,7 +639,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (! interval) {
 			sdb_log(SDB_LOG_WARNING, "plugin: No interval configured "
 					"for plugin '%s'; skipping any further "
-					"iterations.", SDB_PLUGIN_CCB(obj)->ccb_name);
+					"iterations.", obj->name);
 			sdb_object_deref(obj);
 			continue;
 		}
@@ -671,7 +656,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (now > SDB_PLUGIN_CCB(obj)->ccb_next_update) {
 			sdb_log(SDB_LOG_WARNING, "plugin: Plugin '%s' took too "
 					"long; skipping iterations to keep up.",
-					SDB_PLUGIN_CCB(obj)->ccb_name);
+					obj->name);
 			SDB_PLUGIN_CCB(obj)->ccb_next_update = now;
 		}
 
@@ -680,7 +665,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 			sdb_log(SDB_LOG_ERR, "plugin: Failed to re-insert "
 					"plugin '%s' into collector list. Unable to further "
 					"use the plugin.",
-					SDB_PLUGIN_CCB(obj)->ccb_name);
+					obj->name);
 			sdb_object_deref(obj);
 			return -1;
 		}

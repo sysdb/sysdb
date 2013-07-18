@@ -60,22 +60,22 @@ sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
 	assert((data[0].type == SDB_TYPE_STRING)
 			&& (data[1].type == SDB_TYPE_DATETIME));
 
-	host._name = strdup(data[0].data.string);
+	SDB_OBJ(&host)->name = strdup(data[0].data.string);
 	host._last_update = data[1].data.datetime;
 
 	status = sdb_store_host(&host);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"store/update host '%s'.", host._name);
-		free(host._name);
+				"store/update host '%s'.", SDB_OBJ(&host)->name);
+		free(SDB_OBJ(&host)->name);
 		return -1;
 	}
 	else if (! status)
 		sdb_log(SDB_LOG_DEBUG, "puppet::store-configs backend: "
 				"Added/updated host '%s' (last update timestamp = "
-				"%"PRIscTIME").", host._name, host._last_update);
-	free(host._name);
+				"%"PRIscTIME").", SDB_OBJ(&host)->name, host._last_update);
+	free(SDB_OBJ(&host)->name);
 	return 0;
 } /* sdb_puppet_stcfg_get_hosts */
 
@@ -95,7 +95,7 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 			&& (data[3].type == SDB_TYPE_DATETIME));
 
 	attr.hostname = strdup(data[0].data.string);
-	attr._name = strdup(data[1].data.string);
+	SDB_OBJ(&attr)->name = strdup(data[1].data.string);
 	attr.attr_value = strdup(data[2].data.string);
 	attr._last_update = data[3].data.datetime;
 
@@ -104,15 +104,15 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
 				"store/update host attribute '%s' for host '%s'.",
-				attr._name, attr.hostname);
+				SDB_OBJ(&attr)->name, attr.hostname);
 		free(attr.hostname);
-		free(attr._name);
+		free(SDB_OBJ(&attr)->name);
 		free(attr.attr_value);
 		return -1;
 	}
 
 	free(attr.hostname);
-	free(attr._name);
+	free(SDB_OBJ(&attr)->name);
 	free(attr.attr_value);
 	return 0;
 } /* sdb_puppet_stcfg_get_attrs */
@@ -323,7 +323,7 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 
 	sdb_dbi_client_set_options(client, options);
 
-	user_data = sdb_object_create_wrapper(client,
+	user_data = sdb_object_create_wrapper("dbi-client", client,
 			(void (*)(void *))sdb_dbi_client_destroy);
 	if (! user_data) {
 		sdb_dbi_client_destroy(client);

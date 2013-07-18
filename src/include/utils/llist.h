@@ -93,7 +93,7 @@ sdb_llist_append(sdb_llist_t *list, sdb_object_t *obj);
  *  - a negative value on failure
  */
 int
-sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t index);
+sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx);
 
 /*
  * sdb_llist_insert_sorted:
@@ -116,13 +116,14 @@ int
 sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
 		int (*compare)(const sdb_object_t *, const sdb_object_t *));
 
-/* sdb_llist_search:
+/*
+ * sdb_llist_search:
  * Search for a 'key' in the given 'list'. The function will return the first
  * entry that matches the specified 'key'. For that purpose, the 'compare'
  * function is used. It should return 0 iff the two arguments compare equal.
  *
  * Returns:
- *  - a pointer the sdb_object_t containing the matching entry
+ *  - a pointer to the first matching object
  *  - NULL else
  */
 sdb_object_t *
@@ -130,10 +131,23 @@ sdb_llist_search(sdb_llist_t *list, const sdb_object_t *key,
 		int (*compare)(const sdb_object_t *, const sdb_object_t *));
 
 /*
+ * sdb_llist_search_by_name:
+ * Search for an object named 'key' in the given 'list'. The function will
+ * return the first entry whose name matches the specified 'key' ignoring the
+ * case of the characters.
+ *
+ * Returns:
+ *  - a pointer to the first matching object
+ *  - NULL else
+ */
+sdb_object_t *
+sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
+
+/*
  * sdb_llist_shift:
  * Removes and returns the first element of the list. The ref-count of the
  * item will not be changed, that is, if the element will not be used any
- * further, it should be re-referenced by the caller.
+ * further, it should be de-referenced by the caller.
  *
  * Returns:
  *  - the former first element of the list

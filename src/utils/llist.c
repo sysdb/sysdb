@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <strings.h>
 
 #include <pthread.h>
 
@@ -234,7 +235,7 @@ sdb_llist_append(sdb_llist_t *list, sdb_object_t *obj)
 } /* sdb_llist_append */
 
 int
-sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t index)
+sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx)
 {
 	sdb_llist_elem_t *prev;
 	sdb_llist_elem_t *next;
@@ -243,7 +244,7 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t index)
 
 	size_t i;
 
-	if ((! list) || (! obj) || (index > list->length))
+	if ((! list) || (! obj) || (idx > list->length))
 		return -1;
 
 	pthread_rwlock_wrlock(&list->lock);
@@ -251,7 +252,7 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t index)
 	prev = NULL;
 	next = list->head;
 
-	for (i = 0; i < index; ++i) {
+	for (i = 0; i < idx; ++i) {
 		prev = next;
 		next = next->next;
 	}
@@ -310,6 +311,27 @@ sdb_llist_search(sdb_llist_t *list, const sdb_object_t *key,
 		return elem->obj;
 	return NULL;
 } /* sdb_llist_search */
+
+sdb_object_t *
+sdb_llist_search_by_name(sdb_llist_t *list, const char *key)
+{
+	sdb_llist_elem_t *elem;
+
+	if (! list)
+		return NULL;
+
+	pthread_rwlock_rdlock(&list->lock);
+
+	for (elem = list->head; elem; elem = elem->next)
+		if (! strcasecmp(elem->obj->name, key))
+			break;
+
+	pthread_rwlock_unlock(&list->lock);
+
+	if (elem)
+		return elem->obj;
+	return NULL;
+} /* sdb_llist_search_by_name */
 
 sdb_object_t *
 sdb_llist_shift(sdb_llist_t *list)

@@ -69,7 +69,7 @@ sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 
 	strncpy(name, hostname, sizeof(name));
 
-	host._name = name;
+	SDB_OBJ(&host)->name = name;
 	host._last_update = last_update;
 
 	status = sdb_store_host(&host);
@@ -102,7 +102,7 @@ sdb_collectd_add_svc(const char *hostname, const char *plugin,
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
 
 	svc.hostname = host;
-	svc._name = name;
+	SDB_OBJ(&svc)->name = name;
 	svc._last_update = last_update;
 
 	status = sdb_store_service(&svc);
@@ -341,7 +341,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 		return -1;
 	}
 
-	user_data = sdb_object_create_wrapper(client,
+	user_data = sdb_object_create_wrapper("unixsock-client", client,
 			(void (*)(void *))sdb_unixsock_client_destroy);
 	if (! user_data) {
 		sdb_unixsock_client_destroy(client);

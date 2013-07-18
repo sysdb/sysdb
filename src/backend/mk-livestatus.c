@@ -66,7 +66,7 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 	hostname  = strdup(data[0].data.string);
 	timestamp = data[1].data.datetime;
 
-	host._name = hostname;
+	SDB_OBJ(&host)->name = hostname;
 	host._last_update = timestamp;
 
 	status = sdb_store_host(&host);
@@ -110,7 +110,7 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 	timestamp = data[2].data.datetime;
 
 	svc.hostname = hostname;
-	svc._name = svcname;
+	SDB_OBJ(&svc)->name = svcname;
 	svc._last_update = timestamp;
 
 	status = sdb_store_service(&svc);
@@ -282,7 +282,7 @@ sdb_livestatus_config_instance(oconfig_item_t *ci)
 		return -1;
 	}
 
-	user_data = sdb_object_create_wrapper(client,
+	user_data = sdb_object_create_wrapper("unixsock-client", client,
 			(void (*)(void *))sdb_unixsock_client_destroy);
 	if (! user_data) {
 		sdb_unixsock_client_destroy(client);

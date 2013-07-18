@@ -75,17 +75,26 @@ static sdb_type_t sdb_object_wrapper_type = {
  */
 
 sdb_object_t *
-sdb_object_create(sdb_type_t type, ...)
+sdb_object_create(const char *name, sdb_type_t type, ...)
 {
 	sdb_object_t *obj;
 
-	if (type.size <= 0)
+	if (type.size <= sizeof(sdb_object_t))
 		return NULL;
 
 	obj = malloc(type.size);
 	if (! obj)
 		return NULL;
-	memset(obj, 0, sizeof(*obj));
+	memset(obj, 0, type.size);
+
+	if (name) {
+		obj->name = strdup(name);
+		if (! obj->name) {
+			obj->ref_cnt = 1;
+			sdb_object_deref(obj);
+			return NULL;
+		}
+	}
 
 	if (type.init) {
 		va_list ap;
@@ -107,9 +116,10 @@ sdb_object_create(sdb_type_t type, ...)
 } /* sdb_object_create */
 
 sdb_object_t *
-sdb_object_create_wrapper(void *data, void (*destructor)(void *))
+sdb_object_create_wrapper(const char *name,
+		void *data, void (*destructor)(void *))
 {
-	return sdb_object_create(sdb_object_wrapper_type, data, destructor);
+	return sdb_object_create(name, sdb_object_wrapper_type, data, destructor);
 } /* sdb_object_create_wrapper */
 
 void
@@ -125,6 +135,8 @@ sdb_object_deref(sdb_object_t *obj)
 	if (obj->type.destroy)
 		obj->type.destroy(obj);
 
+	if (obj->name)
+		free(obj->name);
 	free(obj);
 } /* sdb_object_deref */
 
@@ -144,6 +156,19 @@ sdb_object_clone(const sdb_object_t *obj)
 		return NULL;
 	return obj->type.clone(obj);
 } /* sdb_object_clone */
+
+int
+sdb_object_cmp_by_name(const sdb_object_t *o1, const sdb_object_t *o2)
+{
+	if ((! o1) && (! o2))
+		return 0;
+	else if (! o1)
+		return -1;
+	else if (! o2)
+		return 1;
+
+	return strcasecmp(o1->name, o2->name);
+} /* sdb_object_cmp_by_name */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

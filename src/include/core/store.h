@@ -45,11 +45,9 @@ extern const sdb_type_t sdb_service_type;
 
 typedef struct {
 	sdb_object_t parent;
-
 	sdb_time_t last_update;
-	char *name;
 } sdb_store_obj_t;
-#define SDB_STORE_OBJ_INIT(t) { SDB_OBJECT_TYPED_INIT(t), 0, NULL }
+#define SDB_STORE_OBJ_INIT(t) { SDB_OBJECT_TYPED_INIT(t), 0 }
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
 #define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
@@ -85,7 +83,6 @@ typedef struct {
 /* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
  * objects */
 #define _last_update parent.last_update
-#define _name parent.name
 
 sdb_host_t *
 sdb_host_create(const char *name);
