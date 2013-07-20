@@ -2,36 +2,41 @@
 # Sample configuration file for the System DataBase daemon (SysDBd).
 #
 
-#----------------------------------------------------------------------------#
+#============================================================================#
 # Global options:                                                            #
 # This section defines global settings and default values for the daemon.    #
-#----------------------------------------------------------------------------#
+#============================================================================#
 
 # default interval used for actively polling plugins
 Interval 300
 
-#----------------------------------------------------------------------------#
+#============================================================================#
 # Logging settings:                                                          #
 # These plugins should be loaded first. Else, any log messages will be       #
 # written to the standard error channel which is closed after the daemon has #
 # started.                                                                   #
-#----------------------------------------------------------------------------#
+#============================================================================#
 LoadPlugin "syslog"
 
-#----------------------------------------------------------------------------#
+#============================================================================#
 # Plugins:                                                                   #
 # Plugins are the working horses of SysDB. Load any of the following plugins #
 # to active the respective feature.                                          #
-#                                                                            #
-# "Backends" are plugins which collect information to be stored in SysDB     #
-# while other plugins may add additional features to the daemon. Each        #
-# backend may use its own custom query interval by specifying the 'Interval' #
-# option:                                                                    #
+#============================================================================#
+
+#----------------------------------------------------------------------------#
+# "cname" plugins canonicalize hostnames before actually storing them.       #
+#----------------------------------------------------------------------------#
+LoadPlugin "cname::dns"
+
+#----------------------------------------------------------------------------#
+# "Backends" are plugins which collect information to be stored in SysDB.    #
+# Each backend may use its own custom query interval by specifying the       #
+# 'Interval' option:                                                         #
 #   <LoadBackend "foo">                                                      #
 #       Interval 60                                                          #
 #   </LoadPlugin>                                                            #
 #----------------------------------------------------------------------------#
-
 LoadBackend "collectd::unixsock"
 LoadBackend "mk-livestatus"
 LoadBackend "puppet::store-configs"
