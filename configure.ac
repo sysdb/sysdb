@@ -246,6 +246,8 @@ AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
 AC_SDB_PLUGIN([syslog], [yes],
 		[plugin logging to syslog])
+AC_SDB_PLUGIN([cname-dns], [yes],
+		[canonicalize hostnames by querying DNS])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
 
