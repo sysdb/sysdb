@@ -25,7 +25,9 @@ LoadPlugin "syslog"
 #============================================================================#
 
 #----------------------------------------------------------------------------#
-# "cname" plugins canonicalize hostnames before actually storing them.       #
+# "cname" plugins canonicalize hostnames before actually storing them. All   #
+# cname callbacks are applied to an hostname in the order in which they have #
+# been loaded, each receiving the result of the previous call.               #
 #----------------------------------------------------------------------------#
 LoadPlugin "cname::dns"
 
