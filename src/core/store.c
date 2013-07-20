@@ -28,6 +28,7 @@
 #include "sysdb.h"
 #include "core/store.h"
 #include "core/error.h"
+#include "core/plugin.h"
 #include "utils/llist.h"
 
 #include <assert.h>
@@ -233,12 +234,21 @@ sdb_host_create(const char *name)
 int
 sdb_store_host(const sdb_host_t *host)
 {
+	char *cname;
+
 	sdb_time_t last_update;
 	sdb_host_t *old;
+
 	int status = 0;
 
 	if ((! host) || (! SDB_CONST_OBJ(host)->name))
 		return -1;
+
+	cname = sdb_plugin_cname(strdup(SDB_CONST_OBJ(host)->name));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "store: strdup failed");
+		return -1;
+	}
 
 	last_update = host->_last_update;
 	if (last_update <= 0)
@@ -253,14 +263,13 @@ sdb_store_host(const sdb_host_t *host)
 		}
 	}
 
-	old = SDB_HOST(sdb_llist_search_by_name(host_list,
-				SDB_CONST_OBJ(host)->name));
+	old = SDB_HOST(sdb_llist_search_by_name(host_list, cname));
 
 	if (old) {
 		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update host '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")",
-					SDB_CONST_OBJ(host)->name, last_update, old->_last_update);
+					cname, last_update, old->_last_update);
 			/* don't report an error; the host may be updated by multiple
 			 * backends */
 			status = 1;
@@ -279,11 +288,14 @@ sdb_store_host(const sdb_host_t *host)
 			return -1;
 		}
 
+		free(SDB_OBJ(new)->name);
+		SDB_OBJ(new)->name = cname;
+
 		if (! new->attributes) {
 			if (! (new->attributes = sdb_llist_create())) {
 				char errbuf[1024];
 				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", SDB_CONST_OBJ(host)->name,
+						"host object '%s': %s", SDB_OBJ(new)->name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
 				pthread_rwlock_unlock(&host_lock);
@@ -295,7 +307,7 @@ sdb_store_host(const sdb_host_t *host)
 			if (! (new->services = sdb_llist_create())) {
 				char errbuf[1024];
 				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", SDB_CONST_OBJ(host)->name,
+						"host object '%s': %s", SDB_OBJ(new)->name,
 						sdb_strerror(errno, errbuf, sizeof(errbuf)));
 				sdb_object_deref(SDB_OBJ(new));
 				pthread_rwlock_unlock(&host_lock);

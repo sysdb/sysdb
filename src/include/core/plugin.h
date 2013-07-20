@@ -87,12 +87,16 @@ int
 sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...);
 
 /*
- * plugin callback functions
+ * plugin callback functions:
+ * See the description of the respective register function for what arguments
+ * the callbacks expect.
  */
 
 typedef int (*sdb_plugin_config_cb)(oconfig_item_t *ci);
 typedef int (*sdb_plugin_init_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_collector_cb)(sdb_object_t *user_data);
+typedef char *(*sdb_plugin_cname_cb)(const char *name,
+		sdb_object_t *user_data);
 typedef int (*sdb_plugin_shutdown_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_log_cb)(int prio, const char *msg,
 		sdb_object_t *user_data);
@@ -160,6 +164,25 @@ int
 sdb_plugin_register_collector(const char *name,
 		sdb_plugin_collector_cb callback,
 		const sdb_time_t *interval, sdb_object_t *user_data);
+
+/*
+ * sdb_plugin_register_cname:
+ * Register a "cname" (canonicalize name) function. This type of function is
+ * called whenever a host is stored. It accepts the hostname and returns a
+ * canonicalized hostname which will then be used to actually store the host.
+ * If multiple such callbacks are registered, each one of them will be called
+ * in the order they have been registered, each one receiving the result of
+ * the previous callback. If the function returns NULL, the original hostname
+ * is not changed. Any other value has to be dynamically allocated. It will be
+ * freed later on by the core.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
+		sdb_object_t *user_data);
 
 /*
  * sdb_plugin_register_shutdown:
@@ -233,6 +256,16 @@ sdb_plugin_init_all(void);
  */
 int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop);
+
+/*
+ * sdb_plugin_cname:
+ * Returns the canonicalized hostname. The given hostname argument has to
+ * point to dynamically allocated memory and might be freed by the function.
+ * The return value will also be dynamically allocated (but it might be
+ * unchanged) and has to be freed by the caller.
+ */
+char *
+sdb_plugin_cname(char *hostname);
 
 /*
  * sdb_plugin_log:

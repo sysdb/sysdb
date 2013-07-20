@@ -98,6 +98,7 @@ static _Bool            plugin_ctx_key_initialized = 0;
 static sdb_llist_t      *config_list = NULL;
 static sdb_llist_t      *init_list = NULL;
 static sdb_llist_t      *collector_list = NULL;
+static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
 
@@ -416,6 +417,14 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 } /* sdb_plugin_register_log */
 
 int
+sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
+		sdb_object_t *user_data)
+{
+	return sdb_plugin_add_callback(&cname_list, "cname", name, callback,
+			user_data);
+} /* sdb_plugin_register_cname */
+
+int
 sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback,
 		const sdb_time_t *interval, sdb_object_t *user_data)
 {
@@ -655,6 +664,37 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 	}
 	return 0;
 } /* sdb_plugin_read_loop */
+
+char *
+sdb_plugin_cname(char *hostname)
+{
+	sdb_llist_iter_t *iter;
+
+	if (! hostname)
+		return NULL;
+
+	if (! cname_list)
+		return hostname;
+
+	iter = sdb_llist_get_iter(cname_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_cname_cb callback;
+		char *cname;
+
+		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+		assert(obj);
+
+		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		cname = callback(hostname, SDB_PLUGIN_CB(obj)->cb_user_data);
+		if (cname) {
+			free(hostname);
+			hostname = cname;
+		}
+		/* else: don't change hostname */
+	}
+	sdb_llist_iter_destroy(iter);
+	return hostname;
+} /* sdb_plugin_cname */
 
 int
 sdb_plugin_log(int prio, const char *msg)
