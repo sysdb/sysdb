@@ -34,6 +34,8 @@
 
 #include "liboconfig/oconfig.h"
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -239,6 +241,15 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop);
  */
 int
 sdb_plugin_log(int prio, const char *msg);
+
+/*
+ * sdb_plugin_logf:
+ * Log a formatted message. See sdb_plugin_log for more information.
+ */
+int
+sdb_plugin_vlogf(int prio, const char *fmt, va_list ap);
+int
+sdb_plugin_logf(int prio, const char *fmt, ...);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -30,6 +30,7 @@
 #include "core/error.h"
 #include "core/time.h"
 #include "utils/llist.h"
+#include "utils/strbuf.h"
 
 #include <assert.h>
 
@@ -661,6 +662,9 @@ sdb_plugin_log(int prio, const char *msg)
 	sdb_llist_iter_t *iter;
 	int ret = -1;
 
+	if (! msg)
+		return 0;
+
 	if (! log_list)
 		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
 
@@ -680,6 +684,47 @@ sdb_plugin_log(int prio, const char *msg)
 	sdb_llist_iter_destroy(iter);
 	return ret;
 } /* sdb_plugin_log */
+
+int
+sdb_plugin_vlogf(int prio, const char *fmt, va_list ap)
+{
+	sdb_strbuf_t *buf;
+	int ret;
+
+	if (! fmt)
+		return 0;
+
+	buf = sdb_strbuf_create(64);
+	if (! buf) {
+		ret = fprintf(stderr, "[%s] ", SDB_LOG_PRIO_TO_STRING(prio));
+		ret += vfprintf(stderr, fmt, ap);
+		return ret;
+	}
+
+	if (sdb_strbuf_vsprintf(buf, fmt, ap) < 0) {
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	ret = sdb_plugin_log(prio, sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	return ret;
+} /* sdb_plugin_vlogf */
+
+int
+sdb_plugin_logf(int prio, const char *fmt, ...)
+{
+	va_list ap;
+	int ret;
+
+	if (! fmt)
+		return 0;
+
+	va_start(ap, fmt);
+	ret = sdb_plugin_vlogf(prio, fmt, ap);
+	va_end(ap);
+	return ret;
+} /* sdb_plugin_logf */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
