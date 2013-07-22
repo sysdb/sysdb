@@ -44,7 +44,7 @@ extern const sdb_type_t sdb_attribute_type;
 extern const sdb_type_t sdb_service_type;
 
 typedef struct {
-	sdb_object_t parent;
+	sdb_object_t super;
 	sdb_time_t last_update;
 } sdb_store_obj_t;
 #define SDB_STORE_OBJ_INIT(t) { SDB_OBJECT_TYPED_INIT(t), 0 }
@@ -52,7 +52,7 @@ typedef struct {
 #define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t parent;
+	sdb_store_obj_t super;
 
 	char *hostname;
 } sdb_service_t;
@@ -61,7 +61,7 @@ typedef struct {
 #define SDB_CONST_SVC(obj) ((const sdb_service_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t parent;
+	sdb_store_obj_t super;
 
 	char *attr_value;
 	char *hostname;
@@ -71,7 +71,7 @@ typedef struct {
 #define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t parent;
+	sdb_store_obj_t super;
 
 	sdb_llist_t *attributes;
 	sdb_llist_t *services;
@@ -82,7 +82,7 @@ typedef struct {
 
 /* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
  * objects */
-#define _last_update parent.last_update
+#define _last_update super.last_update
 
 sdb_host_t *
 sdb_host_create(const char *name);
