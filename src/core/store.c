@@ -310,8 +310,8 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	return status;
 } /* sdb_store_host */
 
-const sdb_host_t *
-sdb_store_get_host(const char *name)
+_Bool
+sdb_store_has_host(const char *name)
 {
 	sdb_host_t *host;
 
@@ -319,10 +319,8 @@ sdb_store_get_host(const char *name)
 		return NULL;
 
 	host = SDB_HOST(sdb_llist_search_by_name(host_list, name));
-	if (! host)
-		return NULL;
-	return host;
-} /* sdb_store_get_host */
+	return host != NULL;
+} /* sdb_store_has_host */
 
 sdb_attribute_t *
 sdb_attribute_create(const char *hostname,

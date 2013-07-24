@@ -101,8 +101,8 @@ typedef struct {
 int
 sdb_store_host(const char *name, sdb_time_t last_update);
 
-const sdb_host_t *
-sdb_store_get_host(const char *name);
+_Bool
+sdb_store_has_host(const char *name);
 
 sdb_attribute_t *
 sdb_attribute_create(const char *hostname,

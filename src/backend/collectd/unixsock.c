@@ -145,7 +145,7 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 		return -1;
 	}
 
-	if (! sdb_store_get_host(hostname))
+	if (! sdb_store_has_host(hostname))
 		sdb_collectd_add_host(hostname, last_update);
 
 	if (sdb_collectd_add_svc(hostname, plugin, type, last_update))
