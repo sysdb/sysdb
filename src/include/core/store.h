@@ -86,11 +86,11 @@ typedef struct {
 
 /*
  * sdb_store_host:
- * Add/update a host in the store. If the host, identified by its name,
- * already exists, it will be updated according to the specified 'host'
- * object. Else, a new entry will be created in the store. Any memory required
- * for storing the entry will be allocated an managed by the store itself. The
- * specified host-object will not be referenced or further accessed.
+ * Add/update a host in the store. If the host, identified by its
+ * canonicalized name, already exists, it will be updated according to the
+ * specified name and timestamp. Else, a new entry will be created in the
+ * store. Any memory required for storing the entry will be allocated an
+ * managed by the store itself.
  *
  * Returns:
  *  - 0 on success
@@ -99,7 +99,7 @@ typedef struct {
  *  - a negative value on error
  */
 int
-sdb_store_host(const sdb_host_t *host);
+sdb_store_host(const char *name, sdb_time_t last_update);
 
 const sdb_host_t *
 sdb_store_get_host(const char *name);

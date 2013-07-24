@@ -62,21 +62,13 @@ typedef struct {
 static int
 sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 {
-	sdb_host_t host = SDB_HOST_INIT;
-	char name[strlen(hostname) + 1];
-
 	int status;
 
-	strncpy(name, hostname, sizeof(name));
-
-	SDB_OBJ(&host)->name = name;
-	host._last_update = last_update;
-
-	status = sdb_store_host(&host);
+	status = sdb_store_host(hostname, last_update);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update host '%s'.", name);
+				"store/update host '%s'.", hostname);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
@@ -84,7 +76,7 @@ sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 
 	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
 			"host '%s' (last update timestamp = %"PRIscTIME").",
-			name, last_update);
+			hostname, last_update);
 	return 0;
 } /* sdb_collectd_add_host */
 

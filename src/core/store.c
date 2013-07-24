@@ -218,25 +218,23 @@ const sdb_type_t sdb_service_type = {
  */
 
 int
-sdb_store_host(const sdb_host_t *host)
+sdb_store_host(const char *name, sdb_time_t last_update)
 {
-	char *cname;
-
-	sdb_time_t last_update;
 	sdb_host_t *old;
 
+	char *cname;
 	int status = 0;
 
-	if ((! host) || (! SDB_CONST_OBJ(host)->name))
+	if (! name)
 		return -1;
 
-	cname = sdb_plugin_cname(strdup(SDB_CONST_OBJ(host)->name));
+	cname = sdb_plugin_cname(strdup(name));
 	if (! cname) {
 		sdb_log(SDB_LOG_ERR, "store: strdup failed");
 		return -1;
 	}
 
-	last_update = host->_last_update;
+	last_update = last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -265,7 +263,7 @@ sdb_store_host(const sdb_host_t *host)
 		}
 	}
 	else {
-		sdb_host_t *new = SDB_HOST(sdb_object_clone(SDB_CONST_OBJ(host)));
+		sdb_host_t *new = SDB_HOST(sdb_object_create(name, sdb_host_type));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone host object: %s",

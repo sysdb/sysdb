@@ -52,7 +52,8 @@ sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
-	sdb_host_t host = SDB_HOST_INIT;
+	const char *hostname;
+	sdb_time_t timestamp;
 
 	int status;
 
@@ -60,22 +61,20 @@ sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
 	assert((data[0].type == SDB_TYPE_STRING)
 			&& (data[1].type == SDB_TYPE_DATETIME));
 
-	SDB_OBJ(&host)->name = strdup(data[0].data.string);
-	host._last_update = data[1].data.datetime;
+	hostname = data[0].data.string;
+	timestamp = data[1].data.datetime;
 
-	status = sdb_store_host(&host);
+	status = sdb_store_host(hostname, timestamp);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
-				"store/update host '%s'.", SDB_OBJ(&host)->name);
-		free(SDB_OBJ(&host)->name);
+				"store/update host '%s'.", hostname);
 		return -1;
 	}
 	else if (! status)
 		sdb_log(SDB_LOG_DEBUG, "puppet::store-configs backend: "
 				"Added/updated host '%s' (last update timestamp = "
-				"%"PRIscTIME").", SDB_OBJ(&host)->name, host._last_update);
-	free(SDB_OBJ(&host)->name);
+				"%"PRIscTIME").", hostname, timestamp);
 	return 0;
 } /* sdb_puppet_stcfg_get_hosts */
 

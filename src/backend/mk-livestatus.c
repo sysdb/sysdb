@@ -52,10 +52,8 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
-	char *hostname = NULL;
-	sdb_time_t timestamp = 0;
-
-	sdb_host_t host = SDB_HOST_INIT;
+	const char *hostname;
+	sdb_time_t timestamp;
 
 	int status;
 
@@ -63,18 +61,14 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 	assert((data[0].type == SDB_TYPE_STRING)
 			&& (data[1].type == SDB_TYPE_DATETIME));
 
-	hostname  = strdup(data[0].data.string);
+	hostname  = data[0].data.string;
 	timestamp = data[1].data.datetime;
 
-	SDB_OBJ(&host)->name = hostname;
-	host._last_update = timestamp;
-
-	status = sdb_store_host(&host);
+	status = sdb_store_host(hostname, timestamp);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
 				"store/update host '%s'.", hostname);
-		free(hostname);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
@@ -83,7 +77,6 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
 			"host '%s' (last update timestamp = %"PRIscTIME").",
 			hostname, timestamp);
-	free(hostname);
 	return 0;
 } /* sdb_livestatus_get_host */
 
