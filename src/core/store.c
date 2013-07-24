@@ -143,8 +143,8 @@ sdb_attr_clone(const sdb_object_t *obj)
 	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
 	sdb_attribute_t *new;
 
-	new = sdb_attribute_create(attr->hostname,
-			obj->name, attr->attr_value);
+	new = SDB_ATTR(sdb_object_create(obj->name, sdb_attribute_type,
+				attr->hostname, attr->attr_value));
 	if (! new)
 		return NULL;
 
@@ -321,21 +321,6 @@ sdb_store_has_host(const char *name)
 	host = SDB_HOST(sdb_llist_search_by_name(host_list, name));
 	return host != NULL;
 } /* sdb_store_has_host */
-
-sdb_attribute_t *
-sdb_attribute_create(const char *hostname,
-		const char *name, const char *value)
-{
-	sdb_object_t *obj;
-
-	if ((! hostname) || (! name) || (! value))
-		return NULL;
-
-	obj = sdb_object_create(name, sdb_attribute_type, hostname, value);
-	if (! obj)
-		return NULL;
-	return SDB_ATTR(obj);
-} /* sdb_attribute_create */
 
 int
 sdb_store_attribute(const sdb_attribute_t *attr)

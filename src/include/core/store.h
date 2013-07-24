@@ -104,10 +104,6 @@ sdb_store_host(const char *name, sdb_time_t last_update);
 _Bool
 sdb_store_has_host(const char *name);
 
-sdb_attribute_t *
-sdb_attribute_create(const char *hostname,
-		const char *name, const char *value);
-
 /*
  * sdb_store_attribute:
  * Add/update a host's attribute in the store. If the attribute, identified by
