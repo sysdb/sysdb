@@ -84,9 +84,6 @@ typedef struct {
  * objects */
 #define _last_update super.last_update
 
-sdb_host_t *
-sdb_host_create(const char *name);
-
 /*
  * sdb_store_host:
  * Add/update a host in the store. If the host, identified by its name,

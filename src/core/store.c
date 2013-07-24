@@ -84,7 +84,7 @@ sdb_host_do_clone(const sdb_object_t *obj)
 	const sdb_host_t *host = (const sdb_host_t *)obj;
 	sdb_host_t *new;
 
-	new = sdb_host_create(obj->name);
+	new = SDB_HOST(sdb_object_create(obj->name, sdb_host_type));
 	if (! new)
 		return NULL;
 
@@ -216,20 +216,6 @@ const sdb_type_t sdb_service_type = {
 /*
  * public API
  */
-
-sdb_host_t *
-sdb_host_create(const char *name)
-{
-	sdb_object_t *obj;
-
-	if (! name)
-		return NULL;
-
-	obj = sdb_object_create(name, sdb_host_type);
-	if (! obj)
-		return NULL;
-	return SDB_HOST(obj);
-} /* sdb_host_create */
 
 int
 sdb_store_host(const sdb_host_t *host)
