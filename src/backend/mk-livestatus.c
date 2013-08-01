@@ -85,11 +85,9 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
-	char *hostname = NULL;
-	char *svcname = NULL;
+	const char *hostname = NULL;
+	const char *svcname = NULL;
 	sdb_time_t timestamp = 0;
-
-	sdb_service_t svc = SDB_SVC_INIT;
 
 	int status;
 
@@ -98,21 +96,15 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 			&& (data[1].type == SDB_TYPE_STRING)
 			&& (data[2].type == SDB_TYPE_DATETIME));
 
-	hostname  = strdup(data[0].data.string);
-	svcname   = strdup(data[1].data.string);
+	hostname  = data[0].data.string;
+	svcname   = data[1].data.string;
 	timestamp = data[2].data.datetime;
 
-	svc.hostname = hostname;
-	SDB_OBJ(&svc)->name = svcname;
-	svc._last_update = timestamp;
-
-	status = sdb_store_service(&svc);
+	status = sdb_store_service(hostname, svcname, timestamp);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
 				"store/update service '%s / %s'.", hostname, svcname);
-		free(hostname);
-		free(svcname);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
@@ -121,8 +113,6 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
 			"service '%s / %s' (last update timestamp = %"PRIscTIME").",
 			hostname, svcname, timestamp);
-	free(hostname);
-	free(svcname);
 	return 0;
 } /* sdb_livestatus_get_svc */
 

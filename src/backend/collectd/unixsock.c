@@ -84,23 +84,15 @@ static int
 sdb_collectd_add_svc(const char *hostname, const char *plugin,
 		const char *type, sdb_time_t last_update)
 {
-	sdb_service_t svc = SDB_SVC_INIT;
-	char host[strlen(hostname) + 1];
 	char name[strlen(plugin) + strlen(type) + 2];
+	int  status;
 
-	int status;
-
-	strncpy(host, hostname, sizeof(host));
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
 
-	svc.hostname = host;
-	SDB_OBJ(&svc)->name = name;
-	svc._last_update = last_update;
-
-	status = sdb_store_service(&svc);
+	status = sdb_store_service(hostname, name, last_update);
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update service '%s/%s'.", host, name);
+				"store/update service '%s/%s'.", hostname, name);
 		return -1;
 	}
 	return 0;

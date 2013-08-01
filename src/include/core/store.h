@@ -140,7 +140,8 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
  *  - a negative value on error
  */
 int
-sdb_store_service(const sdb_service_t *svc);
+sdb_store_service(const char *hostname, const char *name,
+		sdb_time_t last_update);
 
 int
 sdb_store_dump(FILE *fh);

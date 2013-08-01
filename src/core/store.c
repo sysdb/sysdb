@@ -235,7 +235,6 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
-	last_update = last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -384,18 +383,17 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 } /* sdb_store_attribute */
 
 int
-sdb_store_service(const sdb_service_t *svc)
+sdb_store_service(const char *hostname, const char *name,
+		sdb_time_t last_update)
 {
 	sdb_host_t *host;
 	sdb_service_t *old;
-	sdb_time_t last_update;
 
 	int status = 0;
 
-	if (! svc)
+	if ((! hostname) || (! name))
 		return -1;
 
-	last_update = svc->_last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -404,20 +402,18 @@ sdb_store_service(const sdb_service_t *svc)
 
 	pthread_rwlock_wrlock(&host_lock);
 
-	host = SDB_HOST(sdb_llist_search_by_name(host_list, svc->hostname));
+	host = SDB_HOST(sdb_llist_search_by_name(host_list, hostname));
 	if (! host) {
 		pthread_rwlock_unlock(&host_lock);
 		return -1;
 	}
 
-	old = SDB_SVC(sdb_llist_search_by_name(host->services,
-				SDB_CONST_OBJ(svc)->name));
+	old = SDB_SVC(sdb_llist_search_by_name(host->services, name));
 	if (old) {
 		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update service "
 					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")",
-					svc->hostname, SDB_CONST_OBJ(svc)->name, last_update,
-					old->_last_update);
+					hostname, name, last_update, old->_last_update);
 			status = 1;
 		}
 		else {
@@ -425,7 +421,8 @@ sdb_store_service(const sdb_service_t *svc)
 		}
 	}
 	else {
-		sdb_service_t *new = SDB_SVC(sdb_object_clone(SDB_CONST_OBJ(svc)));
+		sdb_service_t *new = SDB_SVC(sdb_object_create(name, sdb_service_type,
+					hostname));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone service "
