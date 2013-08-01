@@ -324,18 +324,17 @@ sdb_store_has_host(const char *name)
 } /* sdb_store_has_host */
 
 int
-sdb_store_attribute(const sdb_attribute_t *attr)
+sdb_store_attribute(const char *hostname, const char *key, const char *value,
+		sdb_time_t last_update)
 {
 	sdb_host_t *host;
 	sdb_attribute_t *old;
-	sdb_time_t last_update;
 
 	int status = 0;
 
-	if (! attr)
+	if ((! hostname) || (! key))
 		return -1;
 
-	last_update = attr->_last_update;
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
@@ -344,20 +343,18 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 
 	pthread_rwlock_wrlock(&host_lock);
 
-	host = SDB_HOST(sdb_llist_search_by_name(host_list, attr->hostname));
+	host = SDB_HOST(sdb_llist_search_by_name(host_list, hostname));
 	if (! host) {
 		pthread_rwlock_unlock(&host_lock);
 		return -1;
 	}
 
-	old = SDB_ATTR(sdb_llist_search_by_name(host->attributes,
-				SDB_CONST_OBJ(attr)->name));
+	old = SDB_ATTR(sdb_llist_search_by_name(host->attributes, key));
 	if (old) {
 		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update attribute "
 					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")",
-					attr->hostname, SDB_CONST_OBJ(attr)->name, last_update,
-					old->_last_update);
+					hostname, key, last_update, old->_last_update);
 			status = 1;
 		}
 		else {
@@ -365,7 +362,8 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 		}
 	}
 	else {
-		sdb_attribute_t *new = SDB_ATTR(sdb_object_clone(SDB_CONST_OBJ(attr)));
+		sdb_attribute_t *new = SDB_ATTR(sdb_object_create(key,
+					sdb_attribute_type, hostname, value));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone attribute "

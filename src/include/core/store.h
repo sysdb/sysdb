@@ -107,12 +107,11 @@ sdb_store_has_host(const char *name);
 /*
  * sdb_store_attribute:
  * Add/update a host's attribute in the store. If the attribute, identified by
- * its name, already exists for the specified host, it will be updated
- * according to the specified 'attr' object. If the referenced host does not
- * exist, an error will be reported. Else, a new entry will be created in the
- * store. Any memory required for storing the entry will be allocated and
- * managed by the store itself. The specified attribute-object will not be
- * referenced or further accessed.
+ * its key, already exists for the specified host, it will be updated to the
+ * specified values. If the referenced host does not exist, an error will be
+ * reported. Else, a new entry will be created in the store. Any memory
+ * required for storing the entry will be allocated and managed by the store
+ * itself.
  *
  * Returns:
  *  - 0 on success
@@ -121,7 +120,8 @@ sdb_store_has_host(const char *name);
  *  - a negative value on error
  */
 int
-sdb_store_attribute(const sdb_attribute_t *attr);
+sdb_store_attribute(const char *hostname, const char *key, const char *value,
+		sdb_time_t last_update);
 
 /*
  * sdb_store_service:

@@ -83,9 +83,12 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
-	sdb_attribute_t attr = SDB_ATTR_INIT;
-
 	int status;
+
+	const char *hostname;
+	const char *key;
+	const char *value;
+	sdb_time_t  last_update;
 
 	assert(n == 4);
 	assert((data[0].type == SDB_TYPE_STRING)
@@ -93,26 +96,20 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 			&& (data[2].type == SDB_TYPE_STRING)
 			&& (data[3].type == SDB_TYPE_DATETIME));
 
-	attr.hostname = strdup(data[0].data.string);
-	SDB_OBJ(&attr)->name = strdup(data[1].data.string);
-	attr.attr_value = strdup(data[2].data.string);
-	attr._last_update = data[3].data.datetime;
+	hostname = data[0].data.string;
+	key = data[1].data.string;
+	value = data[2].data.string;
+	last_update = data[3].data.datetime;
 
-	status = sdb_store_attribute(&attr);
+	status = sdb_store_attribute(hostname, key, value, last_update);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "
 				"store/update host attribute '%s' for host '%s'.",
-				SDB_OBJ(&attr)->name, attr.hostname);
-		free(attr.hostname);
-		free(SDB_OBJ(&attr)->name);
-		free(attr.attr_value);
+				key, hostname);
 		return -1;
 	}
 
-	free(attr.hostname);
-	free(SDB_OBJ(&attr)->name);
-	free(attr.attr_value);
 	return 0;
 } /* sdb_puppet_stcfg_get_attrs */
 
