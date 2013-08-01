@@ -142,9 +142,6 @@ sdb_store_attribute(const sdb_attribute_t *attr);
 int
 sdb_store_service(const sdb_service_t *svc);
 
-const sdb_service_t *
-sdb_store_get_service(const sdb_host_t *host, const char *name);
-
 int
 sdb_store_dump(FILE *fh);
 

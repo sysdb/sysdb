@@ -447,20 +447,6 @@ sdb_store_service(const sdb_service_t *svc)
 	return status;
 } /* sdb_store_service */
 
-const sdb_service_t *
-sdb_store_get_service(const sdb_host_t *host, const char *name)
-{
-	sdb_service_t *svc;
-
-	if ((! host) || (! name))
-		return NULL;
-
-	svc = SDB_SVC(sdb_llist_search_by_name(host->services, name));
-	if (! svc)
-		return NULL;
-	return svc;
-} /* sdb_store_get_service */
-
 int
 sdb_store_dump(FILE *fh)
 {
