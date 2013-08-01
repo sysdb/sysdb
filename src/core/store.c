@@ -181,7 +181,8 @@ sdb_svc_clone(const sdb_object_t *obj)
 	const sdb_service_t *svc = (const sdb_service_t *)obj;
 	sdb_service_t *new;
 
-	new = sdb_service_create(svc->hostname, obj->name);
+	new = SDB_SVC(sdb_object_create(obj->name, sdb_service_type,
+				svc->hostname));
 	if (! new)
 		return NULL;
 
@@ -383,20 +384,6 @@ sdb_store_attribute(const sdb_attribute_t *attr)
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_attribute */
-
-sdb_service_t *
-sdb_service_create(const char *hostname, const char *name)
-{
-	sdb_object_t *obj;
-
-	if ((! hostname) || (! name))
-		return NULL;
-
-	obj = sdb_object_create(name, sdb_service_type, hostname);
-	if (! obj)
-		return NULL;
-	return SDB_SVC(obj);
-} /* sdb_service_create */
 
 int
 sdb_store_service(const sdb_service_t *svc)

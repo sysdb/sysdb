@@ -123,9 +123,6 @@ sdb_store_has_host(const char *name);
 int
 sdb_store_attribute(const sdb_attribute_t *attr);
 
-sdb_service_t *
-sdb_service_create(const char *hostname, const char *name);
-
 /*
  * sdb_store_service:
  * Add/update a store in the store. If the service, identified by its name,
