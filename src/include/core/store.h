@@ -39,51 +39,6 @@
 extern "C" {
 #endif
 
-extern const sdb_type_t sdb_host_type;
-extern const sdb_type_t sdb_attribute_type;
-extern const sdb_type_t sdb_service_type;
-
-typedef struct {
-	sdb_object_t super;
-	sdb_time_t last_update;
-} sdb_store_obj_t;
-#define SDB_STORE_OBJ_INIT(t) { SDB_OBJECT_TYPED_INIT(t), 0 }
-#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
-#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
-
-typedef struct {
-	sdb_store_obj_t super;
-
-	char *hostname;
-} sdb_service_t;
-#define SDB_SVC_INIT { SDB_STORE_OBJ_INIT(sdb_service_type), NULL }
-#define SDB_SVC(obj) ((sdb_service_t *)(obj))
-#define SDB_CONST_SVC(obj) ((const sdb_service_t *)(obj))
-
-typedef struct {
-	sdb_store_obj_t super;
-
-	char *attr_value;
-	char *hostname;
-} sdb_attribute_t;
-#define SDB_ATTR_INIT { SDB_STORE_OBJ_INIT(sdb_attribute_type), NULL, NULL }
-#define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
-#define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
-
-typedef struct {
-	sdb_store_obj_t super;
-
-	sdb_llist_t *attributes;
-	sdb_llist_t *services;
-} sdb_host_t;
-#define SDB_HOST_INIT { SDB_STORE_OBJ_INIT(sdb_host_type), NULL, NULL }
-#define SDB_HOST(obj) ((sdb_host_t *)(obj))
-#define SDB_CONST_HOST(obj) ((const sdb_host_t *)(obj))
-
-/* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
- * objects */
-#define _last_update super.last_update
-
 /*
  * sdb_store_host:
  * Add/update a host in the store. If the host, identified by its

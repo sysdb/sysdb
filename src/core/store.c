@@ -49,8 +49,49 @@ static sdb_llist_t *host_list = NULL;
 static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
- * public types
+ * private types
  */
+
+static sdb_type_t sdb_host_type;
+static sdb_type_t sdb_attribute_type;
+static sdb_type_t sdb_service_type;
+
+typedef struct {
+	sdb_object_t super;
+	sdb_time_t last_update;
+} sdb_store_obj_t;
+#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
+#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
+
+typedef struct {
+	sdb_store_obj_t super;
+
+	char *hostname;
+} sdb_service_t;
+#define SDB_SVC(obj) ((sdb_service_t *)(obj))
+#define SDB_CONST_SVC(obj) ((const sdb_service_t *)(obj))
+
+typedef struct {
+	sdb_store_obj_t super;
+
+	char *attr_value;
+	char *hostname;
+} sdb_attribute_t;
+#define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
+#define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
+
+typedef struct {
+	sdb_store_obj_t super;
+
+	sdb_llist_t *attributes;
+	sdb_llist_t *services;
+} sdb_host_t;
+#define SDB_HOST(obj) ((sdb_host_t *)(obj))
+#define SDB_CONST_HOST(obj) ((const sdb_host_t *)(obj))
+
+/* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
+ * objects */
+#define _last_update super.last_update
 
 static int
 sdb_host_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
@@ -79,7 +120,7 @@ sdb_host_destroy(sdb_object_t *obj)
 } /* sdb_host_destroy */
 
 static sdb_object_t *
-sdb_host_do_clone(const sdb_object_t *obj)
+sdb_host_clone(const sdb_object_t *obj)
 {
 	const sdb_host_t *host = (const sdb_host_t *)obj;
 	sdb_host_t *new;
@@ -109,7 +150,7 @@ sdb_host_do_clone(const sdb_object_t *obj)
 		}
 	}
 	return SDB_OBJ(new);
-} /* sdb_host_do_clone */
+} /* sdb_host_clone */
 
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
@@ -190,15 +231,15 @@ sdb_svc_clone(const sdb_object_t *obj)
 	return SDB_OBJ(new);
 } /* sdb_svc_clone */
 
-const sdb_type_t sdb_host_type = {
+static sdb_type_t sdb_host_type = {
 	sizeof(sdb_host_t),
 
 	sdb_host_init,
 	sdb_host_destroy,
-	sdb_host_do_clone
+	sdb_host_clone
 };
 
-const sdb_type_t sdb_attribute_type = {
+static sdb_type_t sdb_attribute_type = {
 	sizeof(sdb_attribute_t),
 
 	sdb_attr_init,
@@ -206,7 +247,7 @@ const sdb_type_t sdb_attribute_type = {
 	sdb_attr_clone
 };
 
-const sdb_type_t sdb_service_type = {
+static sdb_type_t sdb_service_type = {
 	sizeof(sdb_service_t),
 
 	sdb_svc_init,
