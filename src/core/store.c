@@ -89,6 +89,9 @@ enum {
 	SDB_HOST = 1,
 	SDB_SERVICE,
 };
+#define TYPE_TO_NAME(t) \
+	(((t) == SDB_HOST) ? "host" \
+		: ((t) == SDB_SERVICE) ? "service" : "unknown")
 
 /* shortcuts for accessing the sdb_store_obj_t attributes
  * of inheriting objects */
@@ -305,6 +308,89 @@ sdb_store_lookup(int type, const char *name)
 	return sdb_store_lookup_in_list(obj_list, type, name);
 } /* sdb_store_lookup */
 
+static int
+store_obj(int parent_type, const char *parent_name,
+		int type, const char *name, sdb_time_t last_update)
+{
+	sdb_llist_t *parent_list;
+	sdb_store_obj_t *old;
+	int status = 0;
+
+	if (! name)
+		return -1;
+
+	if (last_update <= 0)
+		last_update = sdb_gettime();
+
+	assert((parent_type == 0)
+			|| (parent_type = SDB_HOST)
+			|| (parent_type == SDB_SERVICE));
+	assert((type == 0) || (type = SDB_HOST) || (type == SDB_SERVICE));
+
+	pthread_rwlock_wrlock(&obj_lock);
+
+	if (! obj_list) {
+		if (! (obj_list = sdb_llist_create())) {
+			pthread_rwlock_unlock(&obj_lock);
+			return -1;
+		}
+	}
+	parent_list = obj_list;
+
+	if (parent_type && parent_name) {
+		sdb_store_obj_t *parent;
+
+		parent = sdb_store_lookup(parent_type, parent_name);
+		if (! parent) {
+			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
+					"parent %s '%s' not found", TYPE_TO_NAME(type), name,
+					TYPE_TO_NAME(parent_type), parent_name);
+			pthread_rwlock_unlock(&obj_lock);
+			return -1;
+		}
+
+		parent_list = parent->children;
+	}
+
+	/* TODO: only look into direct children? */
+	old = sdb_store_lookup_in_list(parent_list, type, name);
+
+	if (old) {
+		if (old->_last_update > last_update) {
+			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
+					"value too old (%"PRIscTIME" < %"PRIscTIME")",
+					TYPE_TO_NAME(type), name, last_update, old->_last_update);
+			/* don't report an error; the object may be updated by multiple
+			 * backends */
+			status = 1;
+		}
+		else {
+			old->_last_update = last_update;
+		}
+	}
+	else {
+		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(name,
+					sdb_store_obj_type, type));
+		if (! new) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
+					TYPE_TO_NAME(type), name,
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			pthread_rwlock_unlock(&obj_lock);
+			return -1;
+		}
+
+		status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
+				sdb_object_cmp_by_name);
+
+		/* pass control to the list or destroy in case of an error */
+		sdb_object_deref(SDB_OBJ(new));
+	}
+
+	pthread_rwlock_unlock(&obj_lock);
+	return status;
+} /* sdb_store_obj */
+
 /*
  * public API
  */
@@ -312,8 +398,6 @@ sdb_store_lookup(int type, const char *name)
 int
 sdb_store_host(const char *name, sdb_time_t last_update)
 {
-	sdb_store_obj_t *old;
-
 	char *cname;
 	int status = 0;
 
@@ -326,56 +410,9 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
-	if (last_update <= 0)
-		last_update = sdb_gettime();
-
-	pthread_rwlock_wrlock(&obj_lock);
-
-	if (! obj_list) {
-		if (! (obj_list = sdb_llist_create())) {
-			pthread_rwlock_unlock(&obj_lock);
-			return -1;
-		}
-	}
-
-	old = sdb_store_lookup(SDB_HOST, cname);
-
-	if (old) {
-		if (old->_last_update > last_update) {
-			sdb_log(SDB_LOG_DEBUG, "store: Cannot update host '%s' - "
-					"value too old (%"PRIscTIME" < %"PRIscTIME")",
-					cname, last_update, old->_last_update);
-			/* don't report an error; the host may be updated by multiple
-			 * backends */
-			status = 1;
-		}
-		else {
-			old->_last_update = last_update;
-		}
-		free(cname);
-	}
-	else {
-		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(cname,
-					sdb_store_obj_type, SDB_HOST));
-		if (! new) {
-			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "store: Failed to create host %s: %s",
-					cname, sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			free(cname);
-			pthread_rwlock_unlock(&obj_lock);
-			return -1;
-		}
-		free(cname);
-
-		/* TODO: add support for hierarchical inserts */
-		status = sdb_llist_insert_sorted(obj_list, SDB_OBJ(new),
-				sdb_object_cmp_by_name);
-
-		/* pass control to the list or destroy in case of an error */
-		sdb_object_deref(SDB_OBJ(new));
-	}
-
-	pthread_rwlock_unlock(&obj_lock);
+	status = store_obj(/* parent = */ 0, NULL,
+			/* stored object = */ SDB_HOST, cname, last_update);
+	free(cname);
 	return status;
 } /* sdb_store_host */
 
@@ -455,61 +492,10 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	sdb_store_obj_t *host;
-	sdb_store_obj_t *old;
-
-	int status = 0;
-
 	if ((! hostname) || (! name))
 		return -1;
-
-	if (last_update <= 0)
-		last_update = sdb_gettime();
-
-	if (! obj_list)
-		return -1;
-
-	pthread_rwlock_wrlock(&obj_lock);
-
-	host = sdb_store_lookup(SDB_HOST, hostname);
-	if (! host) {
-		pthread_rwlock_unlock(&obj_lock);
-		return -1;
-	}
-
-	/* TODO: only look into direct children? */
-	old = sdb_store_lookup_in_list(host->children, SDB_SERVICE, name);
-	if (old) {
-		if (old->_last_update > last_update) {
-			sdb_log(SDB_LOG_DEBUG, "store: Cannot update service "
-					"'%s/%s' - value too old (%"PRIscTIME" < %"PRIscTIME")",
-					hostname, name, last_update, old->_last_update);
-			status = 1;
-		}
-		else {
-			old->_last_update = last_update;
-		}
-	}
-	else {
-		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(name,
-					sdb_store_obj_type, SDB_SERVICE));
-		if (! new) {
-			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "store: Failed to clone service "
-					"object: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			pthread_rwlock_unlock(&obj_lock);
-			return -1;
-		}
-
-		status = sdb_llist_insert_sorted(host->children, SDB_OBJ(new),
-				sdb_object_cmp_by_name);
-
-		/* pass control to the list or destroy in case of an error */
-		sdb_object_deref(SDB_OBJ(new));
-	}
-
-	pthread_rwlock_unlock(&obj_lock);
-	return status;
+	return store_obj(/* parent = */ SDB_HOST, hostname,
+			/* stored object = */ SDB_SERVICE, name, last_update);
 } /* sdb_store_service */
 
 /* TODO: actually support hierarchical data */
