@@ -66,8 +66,7 @@ static sdb_type_t sdb_object_wrapper_type = {
 	sizeof(sdb_object_wrapper_t),
 
 	sdb_object_wrapper_init,
-	sdb_object_wrapper_destroy,
-	/* clone = */ NULL
+	sdb_object_wrapper_destroy
 };
 
 /*
@@ -154,14 +153,6 @@ sdb_object_ref(sdb_object_t *obj)
 	assert(obj->ref_cnt > 0);
 	++obj->ref_cnt;
 } /* sdb_object_ref */
-
-sdb_object_t *
-sdb_object_clone(const sdb_object_t *obj)
-{
-	if ((! obj) || (! obj->type.clone))
-		return NULL;
-	return obj->type.clone(obj);
-} /* sdb_object_clone */
 
 int
 sdb_object_cmp_by_name(const sdb_object_t *o1, const sdb_object_t *o2)

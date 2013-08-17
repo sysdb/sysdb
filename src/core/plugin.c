@@ -198,16 +198,14 @@ static sdb_type_t sdb_plugin_cb_type = {
 	sizeof(sdb_plugin_cb_t),
 
 	sdb_plugin_cb_init,
-	sdb_plugin_cb_destroy,
-	/* clone = */ NULL
+	sdb_plugin_cb_destroy
 };
 
 static sdb_type_t sdb_plugin_collector_cb_type = {
 	sizeof(sdb_plugin_collector_cb_t),
 
 	sdb_plugin_cb_init,
-	sdb_plugin_cb_destroy,
-	/* clone = */ NULL
+	sdb_plugin_cb_destroy
 };
 
 static int

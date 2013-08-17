@@ -118,30 +118,6 @@ store_obj_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(sobj->parent));
 } /* store_obj_destroy */
 
-/* this may not be used as a type on its own but only as helper functions for
- * the derived types; the function accepts a variadic list of arguments to
- * pass to the sub-type's init function */
-static sdb_object_t *
-store_obj_clone(const sdb_object_t *obj, ...)
-{
-	const store_obj_t *sobj = STORE_CONST_OBJ(obj);
-	store_obj_t *new;
-
-	va_list ap;
-
-	va_start(ap, obj);
-
-	new = STORE_OBJ(sdb_object_vcreate(obj->name, obj->type, ap));
-	va_end(ap);
-	if (! new)
-		return NULL;
-
-	new->last_update = sobj->last_update;
-	sdb_object_ref(SDB_OBJ(sobj->parent));
-	new->parent = sobj->parent;
-	return SDB_OBJ(new);
-} /* store_obj_clone */
-
 static int
 sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 {
@@ -178,36 +154,6 @@ sdb_store_obj_destroy(sdb_object_t *obj)
 		sdb_llist_destroy(sobj->attributes);
 } /* sdb_store_obj_destroy */
 
-static sdb_object_t *
-sdb_store_obj_clone(const sdb_object_t *obj)
-{
-	const sdb_store_obj_t *sobj = SDB_CONST_STORE_OBJ(obj);
-	sdb_store_obj_t *new;
-
-	new = SDB_STORE_OBJ(store_obj_clone(obj, sobj->_last_update, sobj->type));
-	if (! new)
-		return NULL;
-
-	if (sobj->children) {
-		sdb_llist_destroy(new->children);
-		new->children = sdb_llist_clone(sobj->children);
-		if (! new->children) {
-			sdb_object_deref(SDB_OBJ(new));
-			return NULL;
-		}
-	}
-	if (sobj->attributes) {
-		sdb_llist_destroy(new->attributes);
-		new->attributes = sdb_llist_clone(sobj->attributes);
-		if (! new->attributes) {
-			sdb_object_deref(SDB_OBJ(new));
-			return NULL;
-		}
-	}
-
-	return SDB_OBJ(new);
-} /* sdb_store_obj_clone */
-
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
 {
@@ -238,32 +184,18 @@ sdb_attr_destroy(sdb_object_t *obj)
 		free(SDB_ATTR(obj)->value);
 } /* sdb_attr_destroy */
 
-static sdb_object_t *
-sdb_attr_clone(const sdb_object_t *obj)
-{
-	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
-	sdb_attribute_t *new;
-
-	new = SDB_ATTR(store_obj_clone(obj, attr->_last_update, attr->value));
-	if (! new)
-		return NULL;
-	return SDB_OBJ(new);
-} /* sdb_attr_clone */
-
 static sdb_type_t sdb_store_obj_type = {
 	sizeof(sdb_store_obj_t),
 
 	sdb_store_obj_init,
-	sdb_store_obj_destroy,
-	sdb_store_obj_clone
+	sdb_store_obj_destroy
 };
 
 static sdb_type_t sdb_attribute_type = {
 	sizeof(sdb_attribute_t),
 
 	sdb_attr_init,
-	sdb_attr_destroy,
-	sdb_attr_clone
+	sdb_attr_destroy
 };
 
 /*
