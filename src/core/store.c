@@ -98,11 +98,10 @@ enum {
 #define _last_update super.last_update
 
 static int
-store_obj_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
+store_obj_init(sdb_object_t *obj, va_list ap)
 {
 	store_obj_t *sobj = STORE_OBJ(obj);
-	sobj->last_update = sdb_gettime();
-	/* ignore errors -> last_update will be updated later */
+	sobj->last_update = va_arg(ap, sdb_time_t);
 
 	sobj->parent = NULL;
 	return 0;
@@ -183,17 +182,12 @@ sdb_store_obj_clone(const sdb_object_t *obj)
 	const sdb_store_obj_t *sobj = SDB_CONST_STORE_OBJ(obj);
 	sdb_store_obj_t *new;
 
-	new = SDB_STORE_OBJ(store_obj_clone(obj, sobj->type));
+	new = SDB_STORE_OBJ(store_obj_clone(obj, sobj->_last_update, sobj->type));
 	if (! new)
 		return NULL;
 
-	new->type = sobj->type;
-
-	/* make sure these are initialized; else sdb_object_deref() might access
-	 * arbitrary memory in case of an error */
-	new->children = new->attributes = NULL;
-
 	if (sobj->children) {
+		sdb_llist_destroy(new->children);
 		new->children = sdb_llist_clone(sobj->children);
 		if (! new->children) {
 			sdb_object_deref(SDB_OBJ(new));
@@ -201,6 +195,7 @@ sdb_store_obj_clone(const sdb_object_t *obj)
 		}
 	}
 	if (sobj->attributes) {
+		sdb_llist_destroy(new->attributes);
 		new->attributes = sdb_llist_clone(sobj->attributes);
 		if (! new->attributes) {
 			sdb_object_deref(SDB_OBJ(new));
@@ -208,19 +203,19 @@ sdb_store_obj_clone(const sdb_object_t *obj)
 		}
 	}
 
-	new->_last_update = sobj->_last_update;
 	return SDB_OBJ(new);
 } /* sdb_store_obj_clone */
 
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
 {
-	const char *value = va_arg(ap, const char *);
+	const char *value;
 	int ret;
 
 	ret = store_obj_init(obj, ap);
 	if (ret)
 		return ret;
+	value = va_arg(ap, const char *);
 
 	SDB_ATTR(obj)->value = strdup(value);
 	if (! SDB_ATTR(obj)->value)
@@ -245,7 +240,7 @@ sdb_attr_clone(const sdb_object_t *obj)
 	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
 	sdb_attribute_t *new;
 
-	new = SDB_ATTR(store_obj_clone(obj, attr->value));
+	new = SDB_ATTR(store_obj_clone(obj, attr->_last_update, attr->value));
 	if (! new)
 		return NULL;
 	return SDB_OBJ(new);
@@ -371,7 +366,7 @@ store_obj(int parent_type, const char *parent_name,
 	}
 	else {
 		store_obj_t *new = STORE_OBJ(sdb_object_create(name,
-					sdb_store_obj_type, type));
+					sdb_store_obj_type, last_update, type));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
@@ -470,7 +465,7 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 	}
 	else {
 		sdb_attribute_t *new = SDB_ATTR(sdb_object_create(key,
-					sdb_attribute_type, value));
+					sdb_attribute_type, last_update, value));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone attribute "
