@@ -75,7 +75,7 @@ static sdb_type_t sdb_object_wrapper_type = {
  */
 
 sdb_object_t *
-sdb_object_create(const char *name, sdb_type_t type, ...)
+sdb_object_vcreate(const char *name, sdb_type_t type, va_list ap)
 {
 	sdb_object_t *obj;
 
@@ -97,21 +97,27 @@ sdb_object_create(const char *name, sdb_type_t type, ...)
 	}
 
 	if (type.init) {
-		va_list ap;
-		va_start(ap, type);
-
 		if (type.init(obj, ap)) {
 			obj->ref_cnt = 1;
 			sdb_object_deref(obj);
-			va_end(ap);
 			return NULL;
 		}
-
-		va_end(ap);
 	}
 
 	obj->type = type;
 	obj->ref_cnt = 1;
+	return obj;
+} /* sdb_object_vcreate */
+
+sdb_object_t *
+sdb_object_create(const char *name, sdb_type_t type, ...)
+{
+	sdb_object_t *obj;
+	va_list ap;
+
+	va_start(ap, type);
+	obj = sdb_object_vcreate(name, type, ap);
+	va_end(ap);
 	return obj;
 } /* sdb_object_create */
 
