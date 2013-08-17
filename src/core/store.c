@@ -117,13 +117,21 @@ store_obj_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(sobj->parent));
 } /* store_obj_destroy */
 
+/* this may not be used as a type on its own but only as helper functions for
+ * the derived types; the function accepts a variadic list of arguments to
+ * pass to the sub-type's init function */
 static sdb_object_t *
-store_obj_clone(const sdb_object_t *obj)
+store_obj_clone(const sdb_object_t *obj, ...)
 {
 	const store_obj_t *sobj = STORE_CONST_OBJ(obj);
 	store_obj_t *new;
 
-	new = STORE_OBJ(sdb_object_create(obj->name, obj->type));
+	va_list ap;
+
+	va_start(ap, obj);
+
+	new = STORE_OBJ(sdb_object_vcreate(obj->name, obj->type, ap));
+	va_end(ap);
 	if (! new)
 		return NULL;
 
@@ -175,7 +183,7 @@ sdb_store_obj_clone(const sdb_object_t *obj)
 	const sdb_store_obj_t *sobj = SDB_CONST_STORE_OBJ(obj);
 	sdb_store_obj_t *new;
 
-	new = SDB_STORE_OBJ(store_obj_clone(obj));
+	new = SDB_STORE_OBJ(store_obj_clone(obj, sobj->type));
 	if (! new)
 		return NULL;
 
@@ -237,16 +245,9 @@ sdb_attr_clone(const sdb_object_t *obj)
 	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
 	sdb_attribute_t *new;
 
-	new = SDB_ATTR(store_obj_clone(obj));
+	new = SDB_ATTR(store_obj_clone(obj, attr->value));
 	if (! new)
 		return NULL;
-
-	if (attr->value)
-		new->value = strdup(attr->value);
-	if (! new->value) {
-		sdb_object_deref(SDB_OBJ(new));
-		return NULL;
-	}
 	return SDB_OBJ(new);
 } /* sdb_attr_clone */
 
