@@ -45,125 +45,175 @@
  * private variables
  */
 
-static sdb_llist_t *host_list = NULL;
-static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
+static sdb_llist_t *obj_list = NULL;
+static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
  * private types
  */
 
-static sdb_type_t sdb_host_type;
+static sdb_type_t sdb_store_obj_type;
 static sdb_type_t sdb_attribute_type;
-static sdb_type_t sdb_service_type;
 
-typedef struct {
+struct store_obj;
+typedef struct store_obj store_obj_t;
+
+struct store_obj {
 	sdb_object_t super;
 	sdb_time_t last_update;
-} sdb_store_obj_t;
-#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
-#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
+	store_obj_t *parent;
+};
+#define STORE_OBJ(obj) ((store_obj_t *)(obj))
+#define STORE_CONST_OBJ(obj) ((const store_obj_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	store_obj_t super;
 
-	char *hostname;
-} sdb_service_t;
-#define SDB_SVC(obj) ((sdb_service_t *)(obj))
-#define SDB_CONST_SVC(obj) ((const sdb_service_t *)(obj))
-
-typedef struct {
-	sdb_store_obj_t super;
-
-	char *attr_value;
-	char *hostname;
+	char *value;
 } sdb_attribute_t;
 #define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
 #define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	store_obj_t super;
+
+	int type;
+	sdb_llist_t *children;
 
 	sdb_llist_t *attributes;
-	sdb_llist_t *services;
-} sdb_host_t;
-#define SDB_HOST(obj) ((sdb_host_t *)(obj))
-#define SDB_CONST_HOST(obj) ((const sdb_host_t *)(obj))
+} sdb_store_obj_t;
+#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
+#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
-/* shortcuts for accessing the sdb_store_obj_t attributes of inheriting
- * objects */
+enum {
+	SDB_HOST = 1,
+	SDB_SERVICE,
+};
+
+/* shortcuts for accessing the sdb_store_obj_t attributes
+ * of inheriting objects */
 #define _last_update super.last_update
 
 static int
-sdb_host_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
+store_obj_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
 {
-	SDB_HOST(obj)->_last_update = sdb_gettime();
+	store_obj_t *sobj = STORE_OBJ(obj);
+	sobj->last_update = sdb_gettime();
 	/* ignore errors -> last_update will be updated later */
 
-	SDB_HOST(obj)->attributes = sdb_llist_create();
-	if (! SDB_HOST(obj)->attributes)
-		return -1;
-	SDB_HOST(obj)->services = sdb_llist_create();
-	if (! SDB_HOST(obj)->services)
-		return -1;
+	sobj->parent = NULL;
 	return 0;
-} /* sdb_host_init */
+} /* store_obj_init */
 
 static void
-sdb_host_destroy(sdb_object_t *obj)
+store_obj_destroy(sdb_object_t *obj)
 {
-	assert(obj);
+	const store_obj_t *sobj = STORE_OBJ(obj);
 
-	if (SDB_HOST(obj)->attributes)
-		sdb_llist_destroy(SDB_HOST(obj)->attributes);
-	if (SDB_HOST(obj)->services)
-		sdb_llist_destroy(SDB_HOST(obj)->services);
-} /* sdb_host_destroy */
+	if (sobj->parent)
+		sdb_object_deref(SDB_OBJ(sobj->parent));
+} /* store_obj_destroy */
 
 static sdb_object_t *
-sdb_host_clone(const sdb_object_t *obj)
+store_obj_clone(const sdb_object_t *obj)
 {
-	const sdb_host_t *host = (const sdb_host_t *)obj;
-	sdb_host_t *new;
+	const store_obj_t *sobj = STORE_CONST_OBJ(obj);
+	store_obj_t *new;
 
-	new = SDB_HOST(sdb_object_create(obj->name, sdb_host_type));
+	new = STORE_OBJ(sdb_object_create(obj->name, obj->type));
 	if (! new)
 		return NULL;
 
+	new->last_update = sobj->last_update;
+	sdb_object_ref(SDB_OBJ(sobj->parent));
+	new->parent = sobj->parent;
+	return SDB_OBJ(new);
+} /* store_obj_clone */
+
+static int
+sdb_store_obj_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
+	int ret;
+
+	ret = store_obj_init(obj, ap);
+	if (ret)
+		return ret;
+
+	sobj->type = va_arg(ap, int);
+
+	sobj->children = sdb_llist_create();
+	if (! sobj->children)
+		return -1;
+	sobj->attributes = sdb_llist_create();
+	if (! sobj->attributes)
+		return -1;
+	return 0;
+} /* sdb_store_obj_init */
+
+static void
+sdb_store_obj_destroy(sdb_object_t *obj)
+{
+	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
+
+	assert(obj);
+
+	store_obj_destroy(obj);
+
+	if (sobj->children)
+		sdb_llist_destroy(sobj->children);
+	if (sobj->attributes)
+		sdb_llist_destroy(sobj->attributes);
+} /* sdb_store_obj_destroy */
+
+static sdb_object_t *
+sdb_store_obj_clone(const sdb_object_t *obj)
+{
+	const sdb_store_obj_t *sobj = SDB_CONST_STORE_OBJ(obj);
+	sdb_store_obj_t *new;
+
+	new = SDB_STORE_OBJ(store_obj_clone(obj));
+	if (! new)
+		return NULL;
+
+	new->type = sobj->type;
+
 	/* make sure these are initialized; else sdb_object_deref() might access
 	 * arbitrary memory in case of an error */
-	new->services = new->attributes = NULL;
+	new->children = new->attributes = NULL;
 
-	if (host->attributes) {
-		new->attributes = sdb_llist_clone(host->attributes);
+	if (sobj->children) {
+		new->children = sdb_llist_clone(sobj->children);
+		if (! new->children) {
+			sdb_object_deref(SDB_OBJ(new));
+			return NULL;
+		}
+	}
+	if (sobj->attributes) {
+		new->attributes = sdb_llist_clone(sobj->attributes);
 		if (! new->attributes) {
 			sdb_object_deref(SDB_OBJ(new));
 			return NULL;
 		}
 	}
 
-	new->_last_update = host->_last_update;
-	if (host->services) {
-		new->services = sdb_llist_clone(host->services);
-		if (! new->services) {
-			sdb_object_deref(SDB_OBJ(new));
-			return NULL;
-		}
-	}
+	new->_last_update = sobj->_last_update;
 	return SDB_OBJ(new);
-} /* sdb_host_clone */
+} /* sdb_store_obj_clone */
 
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
 {
-	const char *hostname = va_arg(ap, const char *);
 	const char *value = va_arg(ap, const char *);
+	int ret;
 
-	SDB_ATTR(obj)->hostname = strdup(hostname);
-	SDB_ATTR(obj)->attr_value = strdup(value);
-	if ((! SDB_ATTR(obj)->hostname) || (! SDB_ATTR(obj)->attr_value))
+	ret = store_obj_init(obj, ap);
+	if (ret)
+		return ret;
+
+	SDB_ATTR(obj)->value = strdup(value);
+	if (! SDB_ATTR(obj)->value)
 		return -1;
-
-	SDB_ATTR(obj)->_last_update = sdb_gettime();
 	return 0;
 } /* sdb_attr_init */
 
@@ -172,10 +222,10 @@ sdb_attr_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 
-	if (SDB_ATTR(obj)->hostname)
-		free(SDB_ATTR(obj)->hostname);
-	if (SDB_ATTR(obj)->attr_value)
-		free(SDB_ATTR(obj)->attr_value);
+	store_obj_destroy(obj);
+
+	if (SDB_ATTR(obj)->value)
+		free(SDB_ATTR(obj)->value);
 } /* sdb_attr_destroy */
 
 static sdb_object_t *
@@ -184,59 +234,25 @@ sdb_attr_clone(const sdb_object_t *obj)
 	const sdb_attribute_t *attr = (const sdb_attribute_t *)obj;
 	sdb_attribute_t *new;
 
-	new = SDB_ATTR(sdb_object_create(obj->name, sdb_attribute_type,
-				attr->hostname, attr->attr_value));
+	new = SDB_ATTR(store_obj_clone(obj));
 	if (! new)
 		return NULL;
 
-	new->_last_update = attr->_last_update;
+	if (attr->value)
+		new->value = strdup(attr->value);
+	if (! new->value) {
+		sdb_object_deref(SDB_OBJ(new));
+		return NULL;
+	}
 	return SDB_OBJ(new);
 } /* sdb_attr_clone */
 
-static int
-sdb_svc_init(sdb_object_t *obj, va_list ap)
-{
-	const char *hostname = va_arg(ap, const char *);
+static sdb_type_t sdb_store_obj_type = {
+	sizeof(sdb_store_obj_t),
 
-	SDB_SVC(obj)->hostname = strdup(hostname);
-	if (! SDB_SVC(obj)->hostname)
-		return -1;
-
-	SDB_SVC(obj)->_last_update = sdb_gettime();
-	/* ignore errors -> last_update will be updated later */
-	return 0;
-} /* sdb_svc_init */
-
-static void
-sdb_svc_destroy(sdb_object_t *obj)
-{
-	assert(obj);
-
-	if (SDB_SVC(obj)->hostname)
-		free(SDB_SVC(obj)->hostname);
-} /* sdb_svc_destroy */
-
-static sdb_object_t *
-sdb_svc_clone(const sdb_object_t *obj)
-{
-	const sdb_service_t *svc = (const sdb_service_t *)obj;
-	sdb_service_t *new;
-
-	new = SDB_SVC(sdb_object_create(obj->name, sdb_service_type,
-				svc->hostname));
-	if (! new)
-		return NULL;
-
-	new->_last_update = svc->_last_update;
-	return SDB_OBJ(new);
-} /* sdb_svc_clone */
-
-static sdb_type_t sdb_host_type = {
-	sizeof(sdb_host_t),
-
-	sdb_host_init,
-	sdb_host_destroy,
-	sdb_host_clone
+	sdb_store_obj_init,
+	sdb_store_obj_destroy,
+	sdb_store_obj_clone
 };
 
 static sdb_type_t sdb_attribute_type = {
@@ -247,13 +263,47 @@ static sdb_type_t sdb_attribute_type = {
 	sdb_attr_clone
 };
 
-static sdb_type_t sdb_service_type = {
-	sizeof(sdb_service_t),
+/*
+ * private helper functions
+ */
 
-	sdb_svc_init,
-	sdb_svc_destroy,
-	sdb_svc_clone
-};
+static sdb_store_obj_t *
+sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
+{
+	sdb_llist_iter_t *iter;
+
+	if (! l)
+		return NULL;
+
+	iter = sdb_llist_get_iter(l);
+	if (! iter)
+		return NULL;
+
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_store_obj_t *sobj = SDB_STORE_OBJ(sdb_llist_iter_get_next(iter));
+		assert(sobj);
+
+		if ((sobj->type == type)
+				&& (! strcasecmp(SDB_OBJ(sobj)->name, name))) {
+			sdb_llist_iter_destroy(iter);
+			return sobj;
+		}
+
+		sobj = sdb_store_lookup_in_list(sobj->children, type, name);
+		if (sobj) {
+			sdb_llist_iter_destroy(iter);
+			return sobj;
+		}
+	}
+	sdb_llist_iter_destroy(iter);
+	return NULL;
+} /* sdb_store_lookup_in_list */
+
+static sdb_store_obj_t *
+sdb_store_lookup(int type, const char *name)
+{
+	return sdb_store_lookup_in_list(obj_list, type, name);
+} /* sdb_store_lookup */
 
 /*
  * public API
@@ -262,7 +312,7 @@ static sdb_type_t sdb_service_type = {
 int
 sdb_store_host(const char *name, sdb_time_t last_update)
 {
-	sdb_host_t *old;
+	sdb_store_obj_t *old;
 
 	char *cname;
 	int status = 0;
@@ -279,16 +329,16 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
-	pthread_rwlock_wrlock(&host_lock);
+	pthread_rwlock_wrlock(&obj_lock);
 
-	if (! host_list) {
-		if (! (host_list = sdb_llist_create())) {
-			pthread_rwlock_unlock(&host_lock);
+	if (! obj_list) {
+		if (! (obj_list = sdb_llist_create())) {
+			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
 	}
 
-	old = SDB_HOST(sdb_llist_search_by_name(host_list, cname));
+	old = sdb_store_lookup(SDB_HOST, cname);
 
 	if (old) {
 		if (old->_last_update > last_update) {
@@ -302,40 +352,42 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		else {
 			old->_last_update = last_update;
 		}
+		free(cname);
 	}
 	else {
-		sdb_host_t *new = SDB_HOST(sdb_object_create(name, sdb_host_type));
+		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(cname,
+					sdb_store_obj_type, SDB_HOST));
 		if (! new) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "store: Failed to clone host object: %s",
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			pthread_rwlock_unlock(&host_lock);
+			sdb_log(SDB_LOG_ERR, "store: Failed to create host %s: %s",
+					cname, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			free(cname);
+			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
+		free(cname);
 
-		free(SDB_OBJ(new)->name);
-		SDB_OBJ(new)->name = cname;
-
-		status = sdb_llist_insert_sorted(host_list, SDB_OBJ(new),
+		/* TODO: add support for hierarchical inserts */
+		status = sdb_llist_insert_sorted(obj_list, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
 		/* pass control to the list or destroy in case of an error */
 		sdb_object_deref(SDB_OBJ(new));
 	}
 
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&obj_lock);
 	return status;
 } /* sdb_store_host */
 
 _Bool
 sdb_store_has_host(const char *name)
 {
-	sdb_host_t *host;
+	sdb_store_obj_t *host;
 
 	if (! name)
 		return NULL;
 
-	host = SDB_HOST(sdb_llist_search_by_name(host_list, name));
+	host = sdb_store_lookup(SDB_HOST, name);
 	return host != NULL;
 } /* sdb_store_has_host */
 
@@ -343,7 +395,7 @@ int
 sdb_store_attribute(const char *hostname, const char *key, const char *value,
 		sdb_time_t last_update)
 {
-	sdb_host_t *host;
+	sdb_store_obj_t *sobj;
 	sdb_attribute_t *old;
 
 	int status = 0;
@@ -354,18 +406,18 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
-	if (! host_list)
+	if (! obj_list)
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
+	pthread_rwlock_wrlock(&obj_lock);
 
-	host = SDB_HOST(sdb_llist_search_by_name(host_list, hostname));
-	if (! host) {
-		pthread_rwlock_unlock(&host_lock);
+	sobj = sdb_store_lookup(SDB_HOST, hostname);
+	if (! sobj) {
+		pthread_rwlock_unlock(&obj_lock);
 		return -1;
 	}
 
-	old = SDB_ATTR(sdb_llist_search_by_name(host->attributes, key));
+	old = SDB_ATTR(sdb_llist_search_by_name(sobj->attributes, key));
 	if (old) {
 		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update attribute "
@@ -379,23 +431,23 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 	}
 	else {
 		sdb_attribute_t *new = SDB_ATTR(sdb_object_create(key,
-					sdb_attribute_type, hostname, value));
+					sdb_attribute_type, value));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone attribute "
 					"object: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			pthread_rwlock_unlock(&host_lock);
+			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
 
-		status = sdb_llist_insert_sorted(host->attributes, SDB_OBJ(new),
+		status = sdb_llist_insert_sorted(sobj->attributes, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
 		/* pass control to the list or destroy in case of an error */
 		sdb_object_deref(SDB_OBJ(new));
 	}
 
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&obj_lock);
 	return status;
 } /* sdb_store_attribute */
 
@@ -403,8 +455,8 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	sdb_host_t *host;
-	sdb_service_t *old;
+	sdb_store_obj_t *host;
+	sdb_store_obj_t *old;
 
 	int status = 0;
 
@@ -414,18 +466,19 @@ sdb_store_service(const char *hostname, const char *name,
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
-	if (! host_list)
+	if (! obj_list)
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
+	pthread_rwlock_wrlock(&obj_lock);
 
-	host = SDB_HOST(sdb_llist_search_by_name(host_list, hostname));
+	host = sdb_store_lookup(SDB_HOST, hostname);
 	if (! host) {
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&obj_lock);
 		return -1;
 	}
 
-	old = SDB_SVC(sdb_llist_search_by_name(host->services, name));
+	/* TODO: only look into direct children? */
+	old = sdb_store_lookup_in_list(host->children, SDB_SERVICE, name);
 	if (old) {
 		if (old->_last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update service "
@@ -438,27 +491,28 @@ sdb_store_service(const char *hostname, const char *name,
 		}
 	}
 	else {
-		sdb_service_t *new = SDB_SVC(sdb_object_create(name, sdb_service_type,
-					hostname));
+		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(name,
+					sdb_store_obj_type, SDB_SERVICE));
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to clone service "
 					"object: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			pthread_rwlock_unlock(&host_lock);
+			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
 
-		status = sdb_llist_insert_sorted(host->services, SDB_OBJ(new),
+		status = sdb_llist_insert_sorted(host->children, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
 		/* pass control to the list or destroy in case of an error */
 		sdb_object_deref(SDB_OBJ(new));
 	}
 
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&obj_lock);
 	return status;
 } /* sdb_store_service */
 
+/* TODO: actually support hierarchical data */
 int
 sdb_store_dump(FILE *fh)
 {
@@ -467,16 +521,16 @@ sdb_store_dump(FILE *fh)
 	if (! fh)
 		return -1;
 
-	pthread_rwlock_rdlock(&host_lock);
+	pthread_rwlock_rdlock(&obj_lock);
 
-	host_iter = sdb_llist_get_iter(host_list);
+	host_iter = sdb_llist_get_iter(obj_list);
 	if (! host_iter) {
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&obj_lock);
 		return -1;
 	}
 
 	while (sdb_llist_iter_has_next(host_iter)) {
-		sdb_host_t *host = SDB_HOST(sdb_llist_iter_get_next(host_iter));
+		sdb_store_obj_t *host = SDB_STORE_OBJ(sdb_llist_iter_get_next(host_iter));
 		sdb_llist_iter_t *svc_iter;
 		sdb_llist_iter_t *attr_iter;
 
@@ -510,12 +564,12 @@ sdb_store_dump(FILE *fh)
 			time_str[sizeof(time_str) - 1] = '\0';
 
 			fprintf(fh, "\tAttribute '%s' -> '%s' (last updated: %s)\n",
-					SDB_OBJ(attr)->name, attr->attr_value, time_str);
+					SDB_OBJ(attr)->name, attr->value, time_str);
 		}
 
 		sdb_llist_iter_destroy(attr_iter);
 
-		svc_iter = sdb_llist_get_iter(host->services);
+		svc_iter = sdb_llist_get_iter(host->children);
 		if (! svc_iter) {
 			char errbuf[1024];
 			fprintf(fh, "Failed to retrieve services: %s\n",
@@ -524,7 +578,7 @@ sdb_store_dump(FILE *fh)
 		}
 
 		while (sdb_llist_iter_has_next(svc_iter)) {
-			sdb_service_t *svc = SDB_SVC(sdb_llist_iter_get_next(svc_iter));
+			sdb_store_obj_t *svc = SDB_STORE_OBJ(sdb_llist_iter_get_next(svc_iter));
 			assert(svc);
 
 			if (! sdb_strftime(time_str, sizeof(time_str),
@@ -540,7 +594,7 @@ sdb_store_dump(FILE *fh)
 	}
 
 	sdb_llist_iter_destroy(host_iter);
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&obj_lock);
 	return 0;
 } /* sdb_store_dump */
 
