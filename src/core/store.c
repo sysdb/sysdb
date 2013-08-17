@@ -312,12 +312,11 @@ store_obj(int parent_type, const char *parent_name,
 		int type, const char *name, sdb_time_t last_update,
 		store_obj_t **updated_obj)
 {
+	char *parent_cname = NULL, *cname = NULL;
+
 	sdb_llist_t *parent_list;
 	store_obj_t *old;
 	int status = 0;
-
-	if (! name)
-		return -1;
 
 	if (last_update <= 0)
 		last_update = sdb_gettime();
@@ -330,10 +329,29 @@ store_obj(int parent_type, const char *parent_name,
 			|| (type == SDB_SERVICE)
 			|| (type == SDB_ATTRIBUTE));
 
+	if (parent_type == SDB_HOST) {
+		parent_cname = sdb_plugin_cname(strdup(parent_name));
+		if (! parent_cname) {
+			sdb_log(SDB_LOG_ERR, "store: strdup failed");
+			return -1;
+		}
+		parent_name = parent_cname;
+	}
+	if (type == SDB_HOST) {
+		cname = sdb_plugin_cname(strdup(name));
+		if (! cname) {
+			sdb_log(SDB_LOG_ERR, "store: strdup failed");
+			return -1;
+		}
+		name = cname;
+	}
 
 	if (! obj_list) {
-		if (! (obj_list = sdb_llist_create()))
+		if (! (obj_list = sdb_llist_create())) {
+			free(parent_cname);
+			free(cname);
 			return -1;
+		}
 	}
 	parent_list = obj_list;
 
@@ -345,6 +363,8 @@ store_obj(int parent_type, const char *parent_name,
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
 					"parent %s '%s' not found", TYPE_TO_NAME(type), name,
 					TYPE_TO_NAME(parent_type), parent_name);
+			free(parent_cname);
+			free(cname);
 			return -1;
 		}
 
@@ -392,6 +412,8 @@ store_obj(int parent_type, const char *parent_name,
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
 					TYPE_TO_NAME(type), name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			free(parent_cname);
+			free(cname);
 			return -1;
 		}
 
@@ -406,6 +428,8 @@ store_obj(int parent_type, const char *parent_name,
 		if (updated_obj)
 			*updated_obj = new;
 	}
+	free(parent_cname);
+	free(cname);
 	return status;
 } /* sdb_store_obj */
 
@@ -416,24 +440,16 @@ store_obj(int parent_type, const char *parent_name,
 int
 sdb_store_host(const char *name, sdb_time_t last_update)
 {
-	char *cname;
 	int status;
 
 	if (! name)
 		return -1;
 
-	cname = sdb_plugin_cname(strdup(name));
-	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return -1;
-	}
-
 	pthread_rwlock_wrlock(&obj_lock);
 	status = store_obj(/* parent = */ 0, NULL,
-			/* stored object = */ SDB_HOST, cname, last_update,
+			/* stored object = */ SDB_HOST, name, last_update,
 			/* updated_obj = */ NULL);
 	pthread_rwlock_unlock(&obj_lock);
-	free(cname);
 	return status;
 } /* sdb_store_host */
 
@@ -453,7 +469,6 @@ int
 sdb_store_attribute(const char *hostname, const char *key, const char *value,
 		sdb_time_t last_update)
 {
-	char *cname;
 	int status;
 
 	store_obj_t *updated_attr = NULL;
@@ -461,14 +476,8 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 	if ((! hostname) || (! key))
 		return -1;
 
-	cname = sdb_plugin_cname(strdup(hostname));
-	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return -1;
-	}
-
 	pthread_rwlock_wrlock(&obj_lock);
-	status = store_obj(/* parent = */ SDB_HOST, cname,
+	status = store_obj(/* parent = */ SDB_HOST, hostname,
 			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
 
@@ -478,7 +487,6 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 		status = -1;
 	}
 	pthread_rwlock_unlock(&obj_lock);
-	free(cname);
 	return status;
 } /* sdb_store_attribute */
 
@@ -486,24 +494,16 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	char *cname;
 	int status;
 
 	if ((! hostname) || (! name))
 		return -1;
 
-	cname = sdb_plugin_cname(strdup(hostname));
-	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return -1;
-	}
-
 	pthread_rwlock_wrlock(&obj_lock);
-	status = store_obj(/* parent = */ SDB_HOST, cname,
+	status = store_obj(/* parent = */ SDB_HOST, hostname,
 			/* stored object = */ SDB_SERVICE, name, last_update,
 			/* updated obj = */ NULL);
 	pthread_rwlock_unlock(&obj_lock);
-	free(cname);
 	return status;
 } /* sdb_store_service */
 
