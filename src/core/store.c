@@ -316,30 +316,6 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		free(SDB_OBJ(new)->name);
 		SDB_OBJ(new)->name = cname;
 
-		if (! new->attributes) {
-			if (! (new->attributes = sdb_llist_create())) {
-				char errbuf[1024];
-				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", SDB_OBJ(new)->name,
-						sdb_strerror(errno, errbuf, sizeof(errbuf)));
-				sdb_object_deref(SDB_OBJ(new));
-				pthread_rwlock_unlock(&host_lock);
-				return -1;
-			}
-		}
-
-		if (! new->services) {
-			if (! (new->services = sdb_llist_create())) {
-				char errbuf[1024];
-				sdb_log(SDB_LOG_ERR, "store: Failed to initialize "
-						"host object '%s': %s", SDB_OBJ(new)->name,
-						sdb_strerror(errno, errbuf, sizeof(errbuf)));
-				sdb_object_deref(SDB_OBJ(new));
-				pthread_rwlock_unlock(&host_lock);
-				return -1;
-			}
-		}
-
 		status = sdb_llist_insert_sorted(host_list, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
