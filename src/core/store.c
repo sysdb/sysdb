@@ -492,10 +492,22 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
+	char *cname;
+	int status = 0;
+
 	if ((! hostname) || (! name))
 		return -1;
-	return store_obj(/* parent = */ SDB_HOST, hostname,
+
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "store: strdup failed");
+		return -1;
+	}
+
+	status = store_obj(/* parent = */ SDB_HOST, cname,
 			/* stored object = */ SDB_SERVICE, name, last_update);
+	free(cname);
+	return status;
 } /* sdb_store_service */
 
 /* TODO: actually support hierarchical data */
