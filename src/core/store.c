@@ -219,9 +219,11 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 		return ret;
 	value = va_arg(ap, const char *);
 
-	SDB_ATTR(obj)->value = strdup(value);
-	if (! SDB_ATTR(obj)->value)
-		return -1;
+	if (value) {
+		SDB_ATTR(obj)->value = strdup(value);
+		if (! SDB_ATTR(obj)->value)
+			return -1;
+	}
 	return 0;
 } /* sdb_attr_init */
 
