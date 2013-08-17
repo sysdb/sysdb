@@ -313,7 +313,7 @@ store_obj(int parent_type, const char *parent_name,
 		int type, const char *name, sdb_time_t last_update)
 {
 	sdb_llist_t *parent_list;
-	sdb_store_obj_t *old;
+	store_obj_t *old;
 	int status = 0;
 
 	if (! name)
@@ -353,23 +353,23 @@ store_obj(int parent_type, const char *parent_name,
 	}
 
 	/* TODO: only look into direct children? */
-	old = sdb_store_lookup_in_list(parent_list, type, name);
+	old = STORE_OBJ(sdb_store_lookup_in_list(parent_list, type, name));
 
 	if (old) {
-		if (old->_last_update > last_update) {
+		if (old->last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")",
-					TYPE_TO_NAME(type), name, last_update, old->_last_update);
+					TYPE_TO_NAME(type), name, last_update, old->last_update);
 			/* don't report an error; the object may be updated by multiple
 			 * backends */
 			status = 1;
 		}
 		else {
-			old->_last_update = last_update;
+			old->last_update = last_update;
 		}
 	}
 	else {
-		sdb_store_obj_t *new = SDB_STORE_OBJ(sdb_object_create(name,
+		store_obj_t *new = STORE_OBJ(sdb_object_create(name,
 					sdb_store_obj_type, type));
 		if (! new) {
 			char errbuf[1024];
@@ -380,6 +380,7 @@ store_obj(int parent_type, const char *parent_name,
 			return -1;
 		}
 
+		/* TODO: insert type-aware */
 		status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
