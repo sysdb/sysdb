@@ -306,6 +306,7 @@ sdb_store_lookup(int type, const char *name)
 	return sdb_store_lookup_in_list(obj_list, type, name);
 } /* sdb_store_lookup */
 
+/* The obj_lock has to be acquired before calling this function. */
 static int
 store_obj(int parent_type, const char *parent_name,
 		int type, const char *name, sdb_time_t last_update,
@@ -329,13 +330,10 @@ store_obj(int parent_type, const char *parent_name,
 			|| (type == SDB_SERVICE)
 			|| (type == SDB_ATTRIBUTE));
 
-	pthread_rwlock_wrlock(&obj_lock);
 
 	if (! obj_list) {
-		if (! (obj_list = sdb_llist_create())) {
-			pthread_rwlock_unlock(&obj_lock);
+		if (! (obj_list = sdb_llist_create()))
 			return -1;
-		}
 	}
 	parent_list = obj_list;
 
@@ -347,7 +345,6 @@ store_obj(int parent_type, const char *parent_name,
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
 					"parent %s '%s' not found", TYPE_TO_NAME(type), name,
 					TYPE_TO_NAME(parent_type), parent_name);
-			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
 
@@ -395,7 +392,6 @@ store_obj(int parent_type, const char *parent_name,
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
 					TYPE_TO_NAME(type), name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			pthread_rwlock_unlock(&obj_lock);
 			return -1;
 		}
 
@@ -410,8 +406,6 @@ store_obj(int parent_type, const char *parent_name,
 		if (updated_obj)
 			*updated_obj = new;
 	}
-
-	pthread_rwlock_unlock(&obj_lock);
 	return status;
 } /* sdb_store_obj */
 
@@ -434,9 +428,11 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
+	pthread_rwlock_wrlock(&obj_lock);
 	status = store_obj(/* parent = */ 0, NULL,
 			/* stored object = */ SDB_HOST, cname, last_update,
 			/* updated_obj = */ NULL);
+	pthread_rwlock_unlock(&obj_lock);
 	free(cname);
 	return status;
 } /* sdb_store_host */
@@ -471,16 +467,18 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 		return -1;
 	}
 
+	pthread_rwlock_wrlock(&obj_lock);
 	status = store_obj(/* parent = */ SDB_HOST, cname,
 			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
-	free(cname);
 
 	SDB_ATTR(updated_attr)->value = strdup(value);
 	if (! SDB_ATTR(updated_attr)->value) {
 		sdb_object_deref(SDB_OBJ(updated_attr));
 		status = -1;
 	}
+	pthread_rwlock_unlock(&obj_lock);
+	free(cname);
 	return status;
 } /* sdb_store_attribute */
 
@@ -500,9 +498,11 @@ sdb_store_service(const char *hostname, const char *name,
 		return -1;
 	}
 
+	pthread_rwlock_wrlock(&obj_lock);
 	status = store_obj(/* parent = */ SDB_HOST, cname,
 			/* stored object = */ SDB_SERVICE, name, last_update,
 			/* updated obj = */ NULL);
+	pthread_rwlock_unlock(&obj_lock);
 	free(cname);
 	return status;
 } /* sdb_store_service */
