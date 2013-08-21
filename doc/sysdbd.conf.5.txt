@@ -82,10 +82,32 @@ Some plugins support additional configuration options. Each of these are
 enclosed in a *Plugin* or *Backend* section. The following plugins are shipped
 with SysDB. See *sysdb*-'<name>'(5) manpages for more details.
 
-* *collectd::unixsock*
-* *mk-livestatus*
-* *puppet::store-configs*
-* *syslog*
+*collectd::unixsock*::
+This backend module accesses the system statistics collection daemon
+*collectd* through its UNIX socket interface. It periodically queries all host
+and service information.
++
+See also: http://collectd.org
+
+*mk-livestatus*::
+This backend modules accesses monitoring systems supporting the *livestatus*
+addon (e.g., *Nagios*, *Icinga*, and *Shinken*). It periodically queries all
+host and service information.
++
+See also: http://mathias-kettner.de/checkmk_livestatus.html,
+http://www.nagios.org/, http://icinga.org/, http://www.shinken-monitoring.org/
+
+*puppet::store-configs*::
+This backend module accesses the configuration management system *Puppet*
+through its *store configs* database. It periodically queries all host and
+facter facts information storing the latter as host attributes.
++
+See also: http://puppetlabs.com/puppet,
+http://puppetlabs.com/puppet/related-projects/facter/
+
+*syslog*::
+This logging module sends log messages of the daemon and plugins to the local
+system's syslog service.
 
 SEE ALSO
 --------
