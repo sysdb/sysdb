@@ -184,6 +184,10 @@ if test "x$enable_strict_checks" = "xyes"; then
 fi
 AC_SUBST([STRICT_CFLAGS])
 
+dnl Testing.
+build_testing="no"
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [build_testing="yes"])
+
 AC_CHECK_HEADERS(libgen.h)
 
 dnl Check for dependencies.
@@ -250,9 +254,10 @@ AC_SDB_PLUGIN([cname-dns], [yes],
 		[canonicalize hostnames by querying DNS])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
+AM_CONDITIONAL([BUILD_TESTING], test "x$build_testing" = "xyes")
 
 AC_CONFIG_FILES([Makefile doc/Makefile src/Makefile
-		src/liboconfig/Makefile])
+		src/liboconfig/Makefile t/Makefile])
 AC_OUTPUT
 
 BUILD_DATE="`date --utc '+%F %T'` (UTC)"
@@ -274,6 +279,7 @@ AC_MSG_RESULT([    xmlto / xsltproc: . . . . . $have_xmlto / $have_xsltproc])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
+AC_MSG_RESULT([    unit testing: . . . . . . . $build_testing])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])

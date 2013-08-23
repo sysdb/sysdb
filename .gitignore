@@ -41,3 +41,6 @@ sysdbd.1
 sysdbd.conf.5
 sysdb.h
 
+# unit testing output
+t/libsysdb_test
+

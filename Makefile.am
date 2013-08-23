@@ -4,6 +4,9 @@ SUBDIRS = src
 if BUILD_DOCUMENTATION
 SUBDIRS += doc
 endif
+if BUILD_TESTING
+SUBDIRS += t
+endif
 
 EXTRA_DIST = autogen.sh version-gen.sh
 
