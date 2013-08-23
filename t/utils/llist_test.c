@@ -78,6 +78,41 @@ populate(void)
 	}
 } /* populate */
 
+START_TEST(test_clone)
+{
+	sdb_llist_t *clone;
+	int i;
+
+	populate();
+
+	clone = sdb_llist_clone(list);
+	fail_unless(clone != NULL,
+			"sdb_llist_clone() = NULL; expected: !NULL");
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		fail_unless(golden_data[i].ref_cnt == 3,
+				"sdb_llist_clone() did not take ownership");
+	}
+
+	sdb_llist_destroy(clone);
+}
+END_TEST
+
+START_TEST(test_destroy)
+{
+	int i;
+	populate();
+	sdb_llist_destroy(list);
+	list = NULL;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		fail_unless(golden_data[i].ref_cnt == 1,
+				"sdb_llist_destroy() did not deref element %s",
+				golden_data[i].name);
+	}
+}
+END_TEST
+
 START_TEST(test_append)
 {
 	int i;
@@ -200,16 +235,19 @@ Suite *
 util_llist_suite(void)
 {
 	Suite *s = suite_create("utils::llist");
+	TCase *tc;
 
-	TCase *tc_core = tcase_create("core");
-	tcase_add_checked_fixture(tc_core, setup, teardown);
-	tcase_add_test(tc_core, test_append);
-	tcase_add_test(tc_core, test_insert);
-	tcase_add_test(tc_core, test_insert_invalid);
-	tcase_add_test(tc_core, test_search);
-	tcase_add_test(tc_core, test_shift);
-	tcase_add_test(tc_core, test_iter);
-	suite_add_tcase(s, tc_core);
+	tc = tcase_create("core");
+	tcase_add_checked_fixture(tc, setup, teardown);
+	tcase_add_test(tc, test_clone);
+	tcase_add_test(tc, test_destroy);
+	tcase_add_test(tc, test_append);
+	tcase_add_test(tc, test_insert);
+	tcase_add_test(tc, test_insert_invalid);
+	tcase_add_test(tc, test_search);
+	tcase_add_test(tc, test_shift);
+	tcase_add_test(tc, test_iter);
+	suite_add_tcase(s, tc);
 
 	return s;
 } /* util_llist_suite */
