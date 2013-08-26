@@ -15,3 +15,5 @@ version: FORCE
 	@echo Building $(PACKAGE_NAME) version $$( cd .. && ./version-gen.sh )
 .PHONY: FORCE
 
+test: check
+

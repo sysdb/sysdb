@@ -8,3 +8,6 @@ libsysdb_test_SOURCES = \
 		utils/llist_test.c
 libsysdb_test_CFLAGS = @CHECK_CFLAGS@
 libsysdb_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
+
+test: check
+
