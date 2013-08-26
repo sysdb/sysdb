@@ -56,6 +56,8 @@ static void
 setup(void)
 {
 	list = sdb_llist_create();
+	fail_unless(list != NULL,
+			"sdb_llist_create() = NULL; expected list object");
 } /* setup */
 
 static void
@@ -87,7 +89,7 @@ START_TEST(test_clone)
 
 	clone = sdb_llist_clone(list);
 	fail_unless(clone != NULL,
-			"sdb_llist_clone() = NULL; expected: !NULL");
+			"sdb_llist_clone() = NULL; expected: cloned list object");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		fail_unless(golden_data[i].ref_cnt == 3,
