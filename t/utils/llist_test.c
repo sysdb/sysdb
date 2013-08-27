@@ -71,7 +71,7 @@ teardown(void)
 static void
 populate(void)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int check = sdb_llist_append(list, &golden_data[i]);
 		fail_unless(check == 0,
@@ -83,7 +83,7 @@ populate(void)
 START_TEST(test_clone)
 {
 	sdb_llist_t *clone;
-	int i;
+	size_t i;
 
 	populate();
 
@@ -102,7 +102,7 @@ END_TEST
 
 START_TEST(test_destroy)
 {
-	int i;
+	size_t i;
 	populate();
 	sdb_llist_destroy(list);
 	list = NULL;
@@ -117,7 +117,7 @@ END_TEST
 
 START_TEST(test_append)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int check = sdb_llist_append(list, &golden_data[i]);
 		fail_unless(check == 0,
@@ -132,7 +132,7 @@ END_TEST
 
 START_TEST(test_insert)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int check = sdb_llist_insert(list, &golden_data[i], 0);
 		fail_unless(check == 0,
@@ -147,7 +147,7 @@ END_TEST
 
 START_TEST(test_insert_invalid)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		/* none of these operations will succeed
 		 * => 1 is invalid for each case */
@@ -164,7 +164,7 @@ END_TEST
 
 START_TEST(test_search)
 {
-	int i;
+	size_t i;
 	populate();
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_object_t *check = sdb_llist_search_by_name(list,
@@ -186,7 +186,7 @@ END_TEST
 
 START_TEST(test_shift)
 {
-	int i;
+	size_t i;
 	populate();
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_object_t *check = sdb_llist_shift(list);
@@ -207,7 +207,7 @@ END_TEST
 START_TEST(test_iter)
 {
 	sdb_llist_iter_t *iter;
-	int i;
+	size_t i;
 
 	populate();
 

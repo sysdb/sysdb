@@ -33,11 +33,13 @@ int
 main(void)
 {
 	int failed = 0;
+
+	SRunner *sr;
 	Suite *s;
 
 	/* t/utils/llist_test */
 	s = util_llist_suite();
-	SRunner *sr = srunner_create(s);
+	sr = srunner_create(s);
 	srunner_run_all(sr, CK_NORMAL);
 	failed += srunner_ntests_failed(sr);
 	srunner_free(sr);
