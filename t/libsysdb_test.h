@@ -28,10 +28,11 @@
 #ifndef T_LIBSYSDB_H
 #define T_LIBSYSDB_H 1
 
-#include <string.h>
-
 #include "sysdb.h"
 #include "core/object.h"
+
+#include <check.h>
+#include <string.h>
 
 /*
  * private testing helpers

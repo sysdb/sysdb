@@ -25,10 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <check.h>
-
-#include "libsysdb_test.h"
 #include "utils/llist.h"
+#include "libsysdb_test.h"
+
+#include <check.h>
 
 /*
  * private data types
