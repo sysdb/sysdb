@@ -48,6 +48,10 @@
  * test suites
  */
 
+/* t/utils/dbi_test */
+Suite *
+util_dbi_suite(void);
+
 /* t/utils/llist_test */
 Suite *
 util_llist_suite(void);
