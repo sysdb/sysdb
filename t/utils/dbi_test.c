@@ -31,6 +31,8 @@
 #include <check.h>
 #include <dbi/dbi.h>
 
+#define TEST_MAGIC ((void *)0x1337)
+
 /*
  * private variables
  */
@@ -112,6 +114,60 @@ dbi_conn_close(dbi_conn __attribute__((unused)) conn)
 	return;
 } /* dbi_conn_close */
 
+static int dbi_conn_query_called = 0;
+dbi_result
+dbi_conn_query(dbi_conn conn, const char __attribute__((unused)) *statement)
+{
+	++dbi_conn_query_called;
+	if (strcmp((const char *)conn, "mockconnection"))
+		return NULL;
+	return (dbi_result)"mockresult";
+} /* dbi_conn_query */
+
+unsigned long long
+dbi_result_get_numrows(dbi_result res)
+{
+	if (strcmp((const char *)res, "mockresult"))
+		return DBI_ROW_ERROR;
+	return 5;
+} /* dbi_result_get_numrows */
+
+static int dbi_result_free_called = 0;
+int
+dbi_result_free(dbi_result res)
+{
+	++dbi_result_free_called;
+	if (strcmp((const char *)res, "mockresult"))
+		return -1;
+	return 0;
+} /* dbi_result_free */
+
+unsigned int
+dbi_result_get_numfields(dbi_result res)
+{
+	if (strcmp((const char *)res, "mockresult"))
+		return DBI_FIELD_ERROR;
+	return 0;
+} /* dbi_result_get_numfields */
+
+unsigned short
+dbi_result_get_field_type_idx(dbi_result res,
+		unsigned int __attribute__((unused)) i)
+{
+	if (strcmp((const char *)res, "mockresult"))
+		return DBI_TYPE_ERROR;
+	return DBI_TYPE_ERROR;
+} /* dbi_result_get_field_type_idx */
+
+const char *
+dbi_result_get_field_name(dbi_result res,
+		unsigned int __attribute__((unused)) i)
+{
+	if (strcmp((const char *)res, "mockresult"))
+		return NULL;
+	return NULL;
+} /* dbi_result_get_field_name */
+
 /*
  * private helper functions
  */
@@ -125,11 +181,39 @@ setup(void)
 } /* setup */
 
 static void
+connect(void)
+{
+	int check = sdb_dbi_client_connect(client);
+	fail_unless(check == 0,
+			"sdb_dbi_client_connect() = %i; expected: 0", check);
+} /* connect */
+
+static void
 teardown(void)
 {
 	sdb_dbi_client_destroy(client);
 	client = NULL;
 } /* teardown */
+
+static int test_query_callback_called = 0;
+static int
+test_query_callback(sdb_dbi_client_t *c,
+		size_t n, sdb_data_t *data, sdb_object_t *user_data)
+{
+	++test_query_callback_called;
+
+	fail_unless(c == client,
+			"query callback received unexpected client = %p; "
+			"expected: %p", c, client);
+	fail_unless(n == 0,
+			"query callback received n = %i; expected: 0", n);
+	fail_unless(data == NULL,
+			"query callback received data = %p; expected: NULL", data);
+	fail_unless(user_data == TEST_MAGIC,
+			"query callback received user_data = %p; expected: %p",
+			user_data, TEST_MAGIC);
+	return 0;
+} /* test_query_callback */
 
 /*
  * tests
@@ -169,6 +253,35 @@ START_TEST(test_client_check_conn)
 }
 END_TEST
 
+START_TEST(test_exec_query)
+{
+	int check = sdb_dbi_exec_query(client, "mockquery", test_query_callback,
+			/* user_data = */ TEST_MAGIC, /* n = */ 0);
+	/* not connected yet */
+	fail_unless(check < 0,
+			"sdb_dbi_exec_query() = %i; expected: < 0", check);
+
+	connect();
+
+	check = sdb_dbi_exec_query(client, "mockquery", test_query_callback,
+			/* user_data = */ TEST_MAGIC, /* n = */ 0);
+	fail_unless(check == 0,
+			"sdb_dbi_exec_query() = %i; expected: 0", check);
+
+	fail_unless(dbi_conn_query_called == 1,
+			"sdb_dbi_exec_query() called dbi_conn_query %i times; "
+			"expected: 1", dbi_conn_query_called);
+	fail_unless(test_query_callback_called == 0,
+			"sdb_dbi_exec_query() did not call the registered callback "
+			"for each result row; got %i call%s; expected: 0",
+			test_query_callback_called,
+			(test_query_callback_called == 1) ? "" : "s");
+
+	fail_unless(dbi_result_free_called == 1,
+			"sdb_dbi_exec_query() did not free the query result object");
+}
+END_TEST
+
 /*
  * test API
  */
@@ -183,6 +296,7 @@ util_dbi_suite(void)
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_client_connect);
 	tcase_add_test(tc, test_client_check_conn);
+	tcase_add_test(tc, test_exec_query);
 	suite_add_tcase(s, tc);
 
 	return s;
