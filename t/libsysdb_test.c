@@ -29,27 +29,29 @@
 
 #include "libsysdb_test.h"
 
+typedef Suite *(*suite_creator)(void);
+
 int
 main(void)
 {
 	int failed = 0;
+	size_t i;
 
-	SRunner *sr;
-	Suite *s;
+	suite_creator creators[] = {
+		util_llist_suite,
+		util_dbi_suite,
+	};
 
-	/* t/utils/llist_test */
-	s = util_llist_suite();
-	sr = srunner_create(s);
-	srunner_run_all(sr, CK_NORMAL);
-	failed += srunner_ntests_failed(sr);
-	srunner_free(sr);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
+		SRunner *sr;
+		Suite *s;
 
-	/* t/utils/dbi_test */
-	s = util_dbi_suite();
-	sr = srunner_create(s);
-	srunner_run_all(sr, CK_NORMAL);
-	failed += srunner_ntests_failed(sr);
-	srunner_free(sr);
+		s = creators[i]();
+		sr = srunner_create(s);
+		srunner_run_all(sr, CK_NORMAL);
+		failed += srunner_ntests_failed(sr);
+		srunner_free(sr);
+	}
 
 	return failed;
 } /* main */
