@@ -34,10 +34,61 @@
 #define TEST_MAGIC ((void *)0x1337)
 
 /*
+ * private data-types
+ */
+typedef union {
+	long long   integer;
+	double      decimal;
+	const char *string;
+	time_t      datetime;
+	struct {
+		size_t length;
+		const unsigned char *datum;
+	} binary;
+} mock_data_t;
+
+typedef struct {
+	const char *name;
+	unsigned long long nrows;
+	unsigned long long current_row;
+	unsigned int    nfields;
+	unsigned short *field_types;
+	char          **field_names;
+} mock_query_t;
+
+/*
  * private variables
  */
 
 static sdb_dbi_client_t *client;
+
+/*
+ * mock queries
+ */
+
+/* field definitions */
+static struct {
+	unsigned short field_types[1];
+	char          *field_names[1];
+} rows1[] = {
+	{ { DBI_TYPE_INTEGER }, { "field0" }, },
+};
+
+static mock_data_t golden_data[][1] = {
+	{ { .integer = 1234 } },
+	{ { .integer = 2345 } },
+	{ { .integer = 3456 } },
+	{ { .integer = 4567 } },
+	{ { .integer = 5678 } },
+};
+
+/* query definitions */
+static mock_query_t mock_queries[] = {
+	{ "mockquery0", 5, 1, 0, NULL, NULL },
+	{ "mockquery1", 5, 1, 1, rows1[0].field_types, rows1[0].field_names },
+};
+
+static mock_query_t *current_query = NULL;
 
 /*
  * mocked functions
@@ -90,7 +141,7 @@ dbi_conn_open(dbi_driver driver)
 	return (dbi_conn)"mockconnection";
 } /* dbi_conn_open */
 
-static int dbi_conn_connect_called = 0;
+static unsigned long long dbi_conn_connect_called = 0;
 int
 dbi_conn_connect(dbi_conn conn)
 {
@@ -114,59 +165,183 @@ dbi_conn_close(dbi_conn __attribute__((unused)) conn)
 	return;
 } /* dbi_conn_close */
 
-static int dbi_conn_query_called = 0;
+int
+dbi_conn_error(dbi_conn conn, const char **errmsg)
+{
+	if ((! conn) || (strcmp((const char *)conn, "mockconnection")))
+		return DBI_ERROR_BADOBJECT;
+	if (errmsg)
+		*errmsg = "mockerror";
+	return DBI_ERROR_UNSUPPORTED;
+} /* dbi_conn_error */
+
+static unsigned long long dbi_conn_query_called = 0;
 dbi_result
 dbi_conn_query(dbi_conn conn, const char __attribute__((unused)) *statement)
 {
+	size_t i;
+
 	++dbi_conn_query_called;
 	if (strcmp((const char *)conn, "mockconnection"))
 		return NULL;
-	return (dbi_result)"mockresult";
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mock_queries); ++i) {
+		if (!strcmp(mock_queries[i].name, statement)) {
+			current_query = &mock_queries[i];
+			return (dbi_result)current_query;
+		}
+	}
+	return NULL;
 } /* dbi_conn_query */
 
 unsigned long long
 dbi_result_get_numrows(dbi_result res)
 {
-	if (strcmp((const char *)res, "mockresult"))
+	mock_query_t *q = res;
+	if (! q)
 		return DBI_ROW_ERROR;
-	return 5;
+	return q->nrows;
 } /* dbi_result_get_numrows */
-
-static int dbi_result_free_called = 0;
-int
-dbi_result_free(dbi_result res)
-{
-	++dbi_result_free_called;
-	if (strcmp((const char *)res, "mockresult"))
-		return -1;
-	return 0;
-} /* dbi_result_free */
 
 unsigned int
 dbi_result_get_numfields(dbi_result res)
 {
-	if (strcmp((const char *)res, "mockresult"))
+	mock_query_t *q = res;
+	if (! q)
 		return DBI_FIELD_ERROR;
-	return 0;
+	return q->nfields;
 } /* dbi_result_get_numfields */
 
 unsigned short
-dbi_result_get_field_type_idx(dbi_result res,
-		unsigned int __attribute__((unused)) i)
+dbi_result_get_field_type_idx(dbi_result res, unsigned int i)
 {
-	if (strcmp((const char *)res, "mockresult"))
+	mock_query_t *q = res;
+	if ((! q) || (i > q->nfields))
 		return DBI_TYPE_ERROR;
-	return DBI_TYPE_ERROR;
+	return q->field_types[i - 1];
 } /* dbi_result_get_field_type_idx */
 
 const char *
-dbi_result_get_field_name(dbi_result res,
-		unsigned int __attribute__((unused)) i)
+dbi_result_get_field_name(dbi_result res, unsigned int i)
 {
-	if (strcmp((const char *)res, "mockresult"))
+	mock_query_t *q = res;
+	if ((! q) || (i > q->nfields))
 		return NULL;
-	return NULL;
+	return q->field_names[i - 1];
 } /* dbi_result_get_field_name */
+
+int
+dbi_result_seek_row(dbi_result res, unsigned long long n)
+{
+	mock_query_t *q = res;
+	if ((! q) || (n > q->nrows))
+		return 0;
+
+	q->current_row = n;
+	return 1;
+} /* dbi_result_seek_row */
+
+static mock_data_t
+get_golden_data(dbi_result res, unsigned int i) {
+	mock_query_t *q = res;
+	fail_unless(q != NULL, "dbi_result_get_*_idx() called with "
+			"NULL result data; expected valid result object");
+
+	/* this information is managed by seek_row and, thus,
+	 * should never be invalid */
+	fail_unless(q->current_row && q->current_row <= q->nrows,
+			"INTERNAL ERROR: current row out of range");
+
+	fail_unless(i && i <= q->nfields,
+			"dbi_result_get_*_idx() called with index out of range; "
+			"got: %u; expected [1, %u]", i, q->nfields);
+	return golden_data[q->current_row - 1][i];
+} /* get_golden_data */
+
+long long
+dbi_result_get_longlong_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i] != DBI_TYPE_INTEGER,
+			"dbi_result_get_longlong_idx() called for non-integer "
+			"column type %u", current_query->field_types[i]);
+	return get_golden_data(res, i).integer;
+} /* dbi_result_get_longlong_idx */
+
+double
+dbi_result_get_double_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i] != DBI_TYPE_DECIMAL,
+			"dbi_result_get_double_idx() called for non-integer "
+			"column type %u", current_query->field_types[i]);
+	return get_golden_data(res, i).decimal;
+} /* dbi_result_get_double_idx */
+
+const char *
+dbi_result_get_string_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i] != DBI_TYPE_STRING,
+			"dbi_result_get_string_idx() called for non-integer "
+			"column type %u", current_query->field_types[i]);
+	return get_golden_data(res, i).string;
+} /* dbi_result_get_string_idx */
+
+time_t
+dbi_result_get_datetime_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i] != DBI_TYPE_DATETIME,
+			"dbi_result_get_datetime_idx() called for non-integer "
+			"column type %u", current_query->field_types[i]);
+	return get_golden_data(res, i).datetime;
+} /* dbi_result_get_datetime_idx */
+
+size_t
+dbi_result_get_field_length_idx(dbi_result res, unsigned int i)
+{
+	/* this will check if the parameters are valid */
+	get_golden_data(res, i);
+
+	switch (current_query->field_types[i]) {
+		case DBI_TYPE_INTEGER:
+			break;
+		case DBI_TYPE_DECIMAL:
+			break;
+		case DBI_TYPE_STRING:
+			break;
+		case DBI_TYPE_DATETIME:
+			break;
+		case DBI_TYPE_BINARY:
+			return get_golden_data(res, i).binary.length;
+			break;
+	}
+
+	fail("INTERNAL ERROR: dbi_result_get_field_length_idx() "
+			"called for unexpected field type %u",
+			current_query->field_types[i]);
+	return 0;
+} /* dbi_result_get_field_length_idx */
+
+const unsigned char *
+dbi_result_get_binary_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i] != DBI_TYPE_BINARY,
+			"dbi_result_get_binary_idx() called for non-integer "
+			"column type %u", current_query->field_types[i]);
+	return get_golden_data(res, i).binary.datum;
+} /* dbi_result_get_binary_idx */
+
+static unsigned long long dbi_result_free_called = 0;
+int
+dbi_result_free(dbi_result res)
+{
+	mock_query_t *q = res;
+
+	++dbi_result_free_called;
+	if (! q)
+		return -1;
+
+	current_query = NULL;
+	return 0;
+} /* dbi_result_free */
 
 /*
  * private helper functions
@@ -195,7 +370,7 @@ teardown(void)
 	client = NULL;
 } /* teardown */
 
-static int test_query_callback_called = 0;
+static unsigned long long test_query_callback_called = 0;
 static int
 test_query_callback(sdb_dbi_client_t *c,
 		size_t n, sdb_data_t *data, sdb_object_t *user_data)
@@ -205,10 +380,11 @@ test_query_callback(sdb_dbi_client_t *c,
 	fail_unless(c == client,
 			"query callback received unexpected client = %p; "
 			"expected: %p", c, client);
-	fail_unless(n == 0,
-			"query callback received n = %i; expected: 0", n);
-	fail_unless(data == NULL,
-			"query callback received data = %p; expected: NULL", data);
+	fail_unless(n == current_query->nfields,
+			"query callback received n = %i; expected: %i",
+			n, current_query->nfields);
+	fail_unless(data != NULL,
+			"query callback received data = NULL; expected: valid data");
 	fail_unless(user_data == TEST_MAGIC,
 			"query callback received user_data = %p; expected: %p",
 			user_data, TEST_MAGIC);
@@ -242,20 +418,23 @@ START_TEST(test_client_check_conn)
 			"sdb_dbi_client_check_conn() called dbi_conn_connect %i times; "
 			"expected: 1", dbi_conn_connect_called);
 
+	dbi_conn_connect_called = 0;
 	check = sdb_dbi_client_check_conn(client);
 	fail_unless(check == 0,
 			"sdb_dbi_client_check_conn() = %i; expected: 0", check);
 
 	/* should not reconnect */
-	fail_unless(dbi_conn_connect_called == 1,
+	fail_unless(dbi_conn_connect_called == 0,
 			"sdb_dbi_client_check_conn() called dbi_conn_connect %i time(s); "
-			"expected: 0", dbi_conn_connect_called - 1);
+			"expected: 0", dbi_conn_connect_called);
 }
 END_TEST
 
 START_TEST(test_exec_query)
 {
-	int check = sdb_dbi_exec_query(client, "mockquery", test_query_callback,
+	size_t i;
+
+	int check = sdb_dbi_exec_query(client, "mockquery0", test_query_callback,
 			/* user_data = */ TEST_MAGIC, /* n = */ 0);
 	/* not connected yet */
 	fail_unless(check < 0,
@@ -263,22 +442,37 @@ START_TEST(test_exec_query)
 
 	connect();
 
-	check = sdb_dbi_exec_query(client, "mockquery", test_query_callback,
-			/* user_data = */ TEST_MAGIC, /* n = */ 0);
-	fail_unless(check == 0,
-			"sdb_dbi_exec_query() = %i; expected: 0", check);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mock_queries); ++i) {
+		mock_query_t *q = &mock_queries[i];
 
-	fail_unless(dbi_conn_query_called == 1,
-			"sdb_dbi_exec_query() called dbi_conn_query %i times; "
-			"expected: 1", dbi_conn_query_called);
-	fail_unless(test_query_callback_called == 0,
-			"sdb_dbi_exec_query() did not call the registered callback "
-			"for each result row; got %i call%s; expected: 0",
-			test_query_callback_called,
-			(test_query_callback_called == 1) ? "" : "s");
+		unsigned long long expected_callback_calls = 0;
 
-	fail_unless(dbi_result_free_called == 1,
-			"sdb_dbi_exec_query() did not free the query result object");
+		dbi_conn_query_called = 0;
+		test_query_callback_called = 0;
+		dbi_result_free_called = 0;
+
+		check = sdb_dbi_exec_query(client, q->name, test_query_callback,
+				/* user_data = */ TEST_MAGIC, /* n = */ (int)q->nfields,
+				SDB_TYPE_INTEGER);
+		fail_unless(check == 0,
+				"sdb_dbi_exec_query() = %i; expected: 0", check);
+
+		fail_unless(dbi_conn_query_called == 1,
+				"sdb_dbi_exec_query() called dbi_conn_query %i times; "
+				"expected: 1", dbi_conn_query_called);
+
+		if (q->nfields)
+			expected_callback_calls = q->nrows;
+
+		fail_unless(test_query_callback_called == expected_callback_calls,
+				"sdb_dbi_exec_query() did not call the registered callback "
+				"for each result row; got %i call%s; expected: 0",
+				test_query_callback_called,
+				(test_query_callback_called == 1) ? "" : "s");
+
+		fail_unless(dbi_result_free_called == 1,
+				"sdb_dbi_exec_query() did not free the query result object");
+	}
 }
 END_TEST
 
