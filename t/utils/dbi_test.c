@@ -85,7 +85,9 @@ static mock_data_t golden_data[][1] = {
 /* query definitions */
 static mock_query_t mock_queries[] = {
 	{ "mockquery0", 5, 1, 0, NULL, NULL },
-	{ "mockquery1", 5, 1, 1, rows1[0].field_types, rows1[0].field_names },
+	{ "mockquery1", 0, 0, 1, rows1[0].field_types, rows1[0].field_names },
+	{ "mockquery2", 1, 1, 1, rows1[0].field_types, rows1[0].field_names },
+	{ "mockquery3", 5, 1, 1, rows1[0].field_types, rows1[0].field_names },
 };
 
 static mock_query_t *current_query = NULL;
