@@ -304,12 +304,16 @@ dbi_result_get_field_length_idx(dbi_result res, unsigned int i)
 
 	switch (current_query->field_types[i]) {
 		case DBI_TYPE_INTEGER:
+			return sizeof(long long);
 			break;
 		case DBI_TYPE_DECIMAL:
+			return sizeof(double);
 			break;
 		case DBI_TYPE_STRING:
+			return strlen(get_golden_data(res, i).string) + 1;
 			break;
 		case DBI_TYPE_DATETIME:
+			return sizeof(time_t);
 			break;
 		case DBI_TYPE_BINARY:
 			return get_golden_data(res, i).binary.length;
