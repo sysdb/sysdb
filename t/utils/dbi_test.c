@@ -377,6 +377,8 @@ static int
 test_query_callback(sdb_dbi_client_t *c,
 		size_t n, sdb_data_t *data, sdb_object_t *user_data)
 {
+	size_t i;
+
 	++test_query_callback_called;
 
 	fail_unless(c == client,
@@ -390,6 +392,64 @@ test_query_callback(sdb_dbi_client_t *c,
 	fail_unless(user_data == TEST_MAGIC,
 			"query callback received user_data = %p; expected: %p",
 			user_data, TEST_MAGIC);
+
+	for (i = 0; i < n; ++i) {
+		int expected_type = DBI_TYPE_TO_SC(current_query->field_types[i]);
+		mock_data_t expected_data;
+
+		fail_unless((int)data[i].type == expected_type,
+				"query callback received unexpected type %i for "
+				"column %zu; expected: %i", data[i].type, i,
+				expected_type);
+
+		expected_data = golden_data[current_query->current_row][i];
+		switch (expected_type) {
+			case SDB_TYPE_INTEGER:
+				fail_unless(data[i].data.integer == expected_data.integer,
+						"query callback received unexpected data %lli "
+						"for column %zu; expected: %lli",
+						data[i].data.integer, i, expected_data.integer);
+				break;
+			case SDB_TYPE_DECIMAL:
+				fail_unless(data[i].data.decimal == expected_data.decimal,
+						"query callback received unexpected data %g "
+						"for column %zu; expected: %g",
+						data[i].data.decimal, i, expected_data.decimal);
+				break;
+			case SDB_TYPE_STRING:
+				fail_unless(data[i].data.string == expected_data.string,
+						"query callback received unexpected data %s "
+						"for column %zu; expected: %s",
+						data[i].data.string, i, expected_data.string);
+				break;
+			case SDB_TYPE_DATETIME:
+				fail_unless(data[i].data.datetime
+							== SECS_TO_SDB_TIME(expected_data.datetime),
+						"query callback received unexpected data "PRIscTIME
+						" for column %zu; expected: "PRIscTIME,
+						data[i].data.integer, i,
+						SECS_TO_SDB_TIME(expected_data.integer));
+				break;
+			case SDB_TYPE_BINARY:
+				fail_unless(data[i].data.binary.length ==
+							expected_data.binary.length,
+						"query callback received unexpected "
+						"binary data length %zu for column %zu; "
+						"expected: %lli", data[i].data.binary.length, i,
+						expected_data.binary.length);
+				fail_unless(data[i].data.binary.datum ==
+							expected_data.binary.datum,
+						"query callback received unexpected binary data %p "
+						"for column %zu; expected: %p",
+						data[i].data.binary.datum, i,
+						expected_data.binary.datum);
+				break;
+			default:
+				fail("INTERNAL ERROR: query callback received "
+						"unknown type %i for column %zu",
+						expected_type, i);
+		}
+	}
 	return 0;
 } /* test_query_callback */
 
