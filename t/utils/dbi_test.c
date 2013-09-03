@@ -406,7 +406,7 @@ test_query_callback(sdb_dbi_client_t *c,
 				"column %zu; expected: %i", data[i].type, i,
 				expected_type);
 
-		expected_data = golden_data[current_query->current_row][i];
+		expected_data = golden_data[current_query->current_row - 1][i + 1];
 		switch (expected_type) {
 			case SDB_TYPE_INTEGER:
 				fail_unless(data[i].data.integer == expected_data.integer,
