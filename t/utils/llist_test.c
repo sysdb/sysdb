@@ -80,7 +80,7 @@ populate(void)
 	}
 } /* populate */
 
-START_TEST(test_clone)
+START_TEST(test_sdb_llist_clone)
 {
 	sdb_llist_t *clone;
 	size_t i;
@@ -100,7 +100,7 @@ START_TEST(test_clone)
 }
 END_TEST
 
-START_TEST(test_destroy)
+START_TEST(test_sdb_llist_destroy)
 {
 	size_t i;
 	populate();
@@ -115,7 +115,7 @@ START_TEST(test_destroy)
 }
 END_TEST
 
-START_TEST(test_append)
+START_TEST(test_sdb_llist_append)
 {
 	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -130,7 +130,7 @@ START_TEST(test_append)
 }
 END_TEST
 
-START_TEST(test_insert)
+START_TEST(test_sdb_llist_insert)
 {
 	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -145,7 +145,7 @@ START_TEST(test_insert)
 }
 END_TEST
 
-START_TEST(test_insert_invalid)
+START_TEST(test_validate_insert)
 {
 	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -162,7 +162,7 @@ START_TEST(test_insert_invalid)
 }
 END_TEST
 
-START_TEST(test_search)
+START_TEST(test_sdb_llist_search)
 {
 	size_t i;
 	populate();
@@ -184,7 +184,7 @@ START_TEST(test_search)
 }
 END_TEST
 
-START_TEST(test_shift)
+START_TEST(test_sdb_llist_shift)
 {
 	size_t i;
 	populate();
@@ -204,7 +204,7 @@ START_TEST(test_shift)
 }
 END_TEST
 
-START_TEST(test_iter)
+START_TEST(test_sdb_llist_iter)
 {
 	sdb_llist_iter_t *iter;
 	size_t i;
@@ -241,14 +241,14 @@ util_llist_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
-	tcase_add_test(tc, test_clone);
-	tcase_add_test(tc, test_destroy);
-	tcase_add_test(tc, test_append);
-	tcase_add_test(tc, test_insert);
-	tcase_add_test(tc, test_insert_invalid);
-	tcase_add_test(tc, test_search);
-	tcase_add_test(tc, test_shift);
-	tcase_add_test(tc, test_iter);
+	tcase_add_test(tc, test_sdb_llist_clone);
+	tcase_add_test(tc, test_sdb_llist_destroy);
+	tcase_add_test(tc, test_sdb_llist_append);
+	tcase_add_test(tc, test_sdb_llist_insert);
+	tcase_add_test(tc, test_validate_insert);
+	tcase_add_test(tc, test_sdb_llist_search);
+	tcase_add_test(tc, test_sdb_llist_shift);
+	tcase_add_test(tc, test_sdb_llist_iter);
 	suite_add_tcase(s, tc);
 
 	return s;

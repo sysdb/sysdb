@@ -420,14 +420,14 @@ teardown(void)
 	client = NULL;
 } /* teardown */
 
-static unsigned long long test_query_callback_called = 0;
+static unsigned long long query_callback_called = 0;
 static int
-test_query_callback(sdb_dbi_client_t *c,
+query_callback(sdb_dbi_client_t *c,
 		size_t n, sdb_data_t *data, sdb_object_t *user_data)
 {
 	size_t i;
 
-	++test_query_callback_called;
+	++query_callback_called;
 
 	fail_unless(c == client,
 			"query callback received unexpected client = %p; "
@@ -499,13 +499,13 @@ test_query_callback(sdb_dbi_client_t *c,
 		}
 	}
 	return 0;
-} /* test_query_callback */
+} /* query_callback */
 
 /*
  * tests
  */
 
-START_TEST(test_client_connect)
+START_TEST(test_sdb_dbi_client_connect)
 {
 	int check = sdb_dbi_client_connect(client);
 	fail_unless(check == 0,
@@ -517,7 +517,7 @@ START_TEST(test_client_connect)
 }
 END_TEST
 
-START_TEST(test_client_check_conn)
+START_TEST(test_sdb_dbi_client_check_conn)
 {
 	int check = sdb_dbi_client_check_conn(client);
 	fail_unless(check == 0,
@@ -540,11 +540,11 @@ START_TEST(test_client_check_conn)
 }
 END_TEST
 
-START_TEST(test_exec_query)
+START_TEST(test_sdb_dbi_exec_query)
 {
 	size_t i;
 
-	int check = sdb_dbi_exec_query(client, "mockquery0", test_query_callback,
+	int check = sdb_dbi_exec_query(client, "mockquery0", query_callback,
 			/* user_data = */ TEST_MAGIC, /* n = */ 0);
 	/* not connected yet */
 	fail_unless(check < 0,
@@ -558,13 +558,13 @@ START_TEST(test_exec_query)
 		unsigned long long expected_callback_calls = 0;
 
 		dbi_conn_query_called = 0;
-		test_query_callback_called = 0;
+		query_callback_called = 0;
 		dbi_result_free_called = 0;
 
 		/* sdb_dbi_exec_query will only use as many type arguments are needed,
 		 * so we can safely pass in the maximum number of arguments required
 		 * on each call */
-		check = sdb_dbi_exec_query(client, q->name, test_query_callback,
+		check = sdb_dbi_exec_query(client, q->name, query_callback,
 				/* user_data = */ TEST_MAGIC, /* n = */ (int)q->nfields,
 				SDB_TYPE_INTEGER, SDB_TYPE_DECIMAL, SDB_TYPE_STRING,
 				SDB_TYPE_DATETIME, SDB_TYPE_BINARY);
@@ -578,11 +578,11 @@ START_TEST(test_exec_query)
 		if (q->nfields)
 			expected_callback_calls = q->nrows;
 
-		fail_unless(test_query_callback_called == expected_callback_calls,
+		fail_unless(query_callback_called == expected_callback_calls,
 				"sdb_dbi_exec_query() did not call the registered callback "
 				"for each result row; got %i call%s; expected: 0",
-				test_query_callback_called,
-				(test_query_callback_called == 1) ? "" : "s");
+				query_callback_called,
+				(query_callback_called == 1) ? "" : "s");
 
 		fail_unless(dbi_result_free_called == 1,
 				"sdb_dbi_exec_query() did not free the query result object");
@@ -602,9 +602,9 @@ util_dbi_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
-	tcase_add_test(tc, test_client_connect);
-	tcase_add_test(tc, test_client_check_conn);
-	tcase_add_test(tc, test_exec_query);
+	tcase_add_test(tc, test_sdb_dbi_client_connect);
+	tcase_add_test(tc, test_sdb_dbi_client_check_conn);
+	tcase_add_test(tc, test_sdb_dbi_exec_query);
 	suite_add_tcase(s, tc);
 
 	return s;
