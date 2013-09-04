@@ -67,27 +67,71 @@ static sdb_dbi_client_t *client;
  */
 
 /* field definitions */
-static struct {
-	unsigned short field_types[1];
-	char          *field_names[1];
-} rows1[] = {
-	{ { DBI_TYPE_INTEGER }, { "field0" }, },
+static unsigned short field_types[] = {
+	DBI_TYPE_INTEGER,
+	DBI_TYPE_DECIMAL,
+	DBI_TYPE_STRING,
+	DBI_TYPE_DATETIME,
+	DBI_TYPE_BINARY,
+};
+static char *field_names[] = {
+	"field0",
+	"field1",
+	"field2",
+	"field3",
+	"field4",
 };
 
-static mock_data_t golden_data[][1] = {
-	{ { .integer = 1234 } },
-	{ { .integer = 2345 } },
-	{ { .integer = 3456 } },
-	{ { .integer = 4567 } },
-	{ { .integer = 5678 } },
+#define DATUM(p) ((const unsigned char *)(p))
+static mock_data_t golden_data[][5] = {
+	{
+		{ .integer  = 1234   },
+		{ .decimal  = 1.234  },
+		{ .string   = "abcd" },
+		{ .datetime = 0      },
+		{ .binary   = { 1, DATUM("a") } },
+	},
+	{
+		{ .integer  = 2345   },
+		{ .decimal  = 23.45  },
+		{ .string   = "bcde" },
+		{ .datetime = 1      },
+		{ .binary   = { 4, DATUM("bcde") } },
+	},
+	{
+		{ .integer  = 3456   },
+		{ .decimal  = 345.6  },
+		{ .string   = "cd"   },
+		{ .datetime = 2      },
+		{ .binary   = { 0, DATUM(NULL) } },
+	},
+	{
+		{ .integer  = 4567   },
+		{ .decimal  = 4567   },
+		{ .string   = "d"    },
+		{ .datetime = 3      },
+		{ .binary   = { 13, DATUM("defghijklmnop") } },
+	},
+	{
+		{ .integer  = 5678   },
+		{ .decimal  = 56.78  },
+		{ .string   = "efgh" },
+		{ .datetime = 4      },
+		{ .binary   = { 5, DATUM("efghi") } },
+	},
 };
 
 /* query definitions */
 static mock_query_t mock_queries[] = {
 	{ "mockquery0", 5, 1, 0, NULL, NULL },
-	{ "mockquery1", 0, 0, 1, rows1[0].field_types, rows1[0].field_names },
-	{ "mockquery2", 1, 1, 1, rows1[0].field_types, rows1[0].field_names },
-	{ "mockquery3", 5, 1, 1, rows1[0].field_types, rows1[0].field_names },
+	{ "mockquery1", 0, 0, 1, field_types, field_names },
+	{ "mockquery2", 1, 1, 1, field_types, field_names },
+	{ "mockquery3", 2, 1, 1, field_types, field_names },
+	{ "mockquery4", 5, 1, 1, field_types, field_names },
+	{ "mockquery5", 5, 1, 2, field_types, field_names },
+	{ "mockquery6", 5, 1, 3, field_types, field_names },
+	{ "mockquery7", 5, 1, 4, field_types, field_names },
+	{ "mockquery8", 5, 1, 5, field_types, field_names },
 };
 
 static mock_query_t *current_query = NULL;
@@ -517,9 +561,13 @@ START_TEST(test_exec_query)
 		test_query_callback_called = 0;
 		dbi_result_free_called = 0;
 
+		/* sdb_dbi_exec_query will only use as many type arguments are needed,
+		 * so we can safely pass in the maximum number of arguments required
+		 * on each call */
 		check = sdb_dbi_exec_query(client, q->name, test_query_callback,
 				/* user_data = */ TEST_MAGIC, /* n = */ (int)q->nfields,
-				SDB_TYPE_INTEGER);
+				SDB_TYPE_INTEGER, SDB_TYPE_DECIMAL, SDB_TYPE_STRING,
+				SDB_TYPE_DATETIME, SDB_TYPE_BINARY);
 		fail_unless(check == 0,
 				"sdb_dbi_exec_query() = %i; expected: 0", check);
 
