@@ -257,42 +257,42 @@ get_golden_data(dbi_result res, unsigned int i) {
 	fail_unless(i && i <= q->nfields,
 			"dbi_result_get_*_idx() called with index out of range; "
 			"got: %u; expected [1, %u]", i, q->nfields);
-	return golden_data[q->current_row - 1][i];
+	return golden_data[q->current_row - 1][i - 1];
 } /* get_golden_data */
 
 long long
 dbi_result_get_longlong_idx(dbi_result res, unsigned int i)
 {
-	fail_unless(current_query->field_types[i] != DBI_TYPE_INTEGER,
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_INTEGER,
 			"dbi_result_get_longlong_idx() called for non-integer "
-			"column type %u", current_query->field_types[i]);
+			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).integer;
 } /* dbi_result_get_longlong_idx */
 
 double
 dbi_result_get_double_idx(dbi_result res, unsigned int i)
 {
-	fail_unless(current_query->field_types[i] != DBI_TYPE_DECIMAL,
-			"dbi_result_get_double_idx() called for non-integer "
-			"column type %u", current_query->field_types[i]);
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_DECIMAL,
+			"dbi_result_get_double_idx() called for non-decimal "
+			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).decimal;
 } /* dbi_result_get_double_idx */
 
 const char *
 dbi_result_get_string_idx(dbi_result res, unsigned int i)
 {
-	fail_unless(current_query->field_types[i] != DBI_TYPE_STRING,
-			"dbi_result_get_string_idx() called for non-integer "
-			"column type %u", current_query->field_types[i]);
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_STRING,
+			"dbi_result_get_string_idx() called for non-string "
+			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).string;
 } /* dbi_result_get_string_idx */
 
 time_t
 dbi_result_get_datetime_idx(dbi_result res, unsigned int i)
 {
-	fail_unless(current_query->field_types[i] != DBI_TYPE_DATETIME,
-			"dbi_result_get_datetime_idx() called for non-integer "
-			"column type %u", current_query->field_types[i]);
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_DATETIME,
+			"dbi_result_get_datetime_idx() called for non-datetime "
+			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).datetime;
 } /* dbi_result_get_datetime_idx */
 
@@ -302,7 +302,7 @@ dbi_result_get_field_length_idx(dbi_result res, unsigned int i)
 	/* this will check if the parameters are valid */
 	get_golden_data(res, i);
 
-	switch (current_query->field_types[i]) {
+	switch (current_query->field_types[i - 1]) {
 		case DBI_TYPE_INTEGER:
 			return sizeof(long long);
 			break;
@@ -322,16 +322,16 @@ dbi_result_get_field_length_idx(dbi_result res, unsigned int i)
 
 	fail("INTERNAL ERROR: dbi_result_get_field_length_idx() "
 			"called for unexpected field type %u",
-			current_query->field_types[i]);
+			current_query->field_types[i - 1]);
 	return 0;
 } /* dbi_result_get_field_length_idx */
 
 const unsigned char *
 dbi_result_get_binary_idx(dbi_result res, unsigned int i)
 {
-	fail_unless(current_query->field_types[i] != DBI_TYPE_BINARY,
-			"dbi_result_get_binary_idx() called for non-integer "
-			"column type %u", current_query->field_types[i]);
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_BINARY,
+			"dbi_result_get_binary_idx() called for non-binary "
+			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).binary.datum;
 } /* dbi_result_get_binary_idx */
 
@@ -406,7 +406,7 @@ test_query_callback(sdb_dbi_client_t *c,
 				"column %zu; expected: %i", data[i].type, i,
 				expected_type);
 
-		expected_data = golden_data[current_query->current_row - 1][i + 1];
+		expected_data = golden_data[current_query->current_row - 1][i];
 		switch (expected_type) {
 			case SDB_TYPE_INTEGER:
 				fail_unless(data[i].data.integer == expected_data.integer,
