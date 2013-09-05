@@ -196,7 +196,7 @@ sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
 	if (! strbuf)
 		return -1;
 
-	assert(strbuf->size || (strbuf->pos < strbuf->size));
+	assert((!strbuf->size) || (strbuf->pos < strbuf->size));
 	assert(strbuf->pos <= strbuf->size);
 
 	while ((strbuf->pos > 0)
