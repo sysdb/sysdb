@@ -56,6 +56,10 @@ util_dbi_suite(void);
 Suite *
 util_llist_suite(void);
 
+/* t/utils/strbuf_test */
+Suite *
+util_strbuf_suite(void);
+
 #endif /* T_LIBSYSDB_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

@@ -40,6 +40,7 @@ main(void)
 	suite_creator creators[] = {
 		util_llist_suite,
 		util_dbi_suite,
+		util_strbuf_suite,
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
