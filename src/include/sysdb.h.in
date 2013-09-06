@@ -46,6 +46,8 @@
 #define SDB_VERSION SDB_VERSION_ENCODE(SDB_VERSION_MAJOR, SDB_VERSION_MINOR, \
 		SDB_VERSION_PATCH)
 
+#define SDB_STATIC_ARRAY_LEN(a) (sizeof((a)) / sizeof((a)[0]))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
