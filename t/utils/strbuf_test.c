@@ -177,63 +177,93 @@ START_TEST(test_sdb_strbuf_sprintf)
 }
 END_TEST
 
+static struct {
+	const char *input;
+	ssize_t expected;
+	const char *expected_string;
+} chomp_golden_data[] = {
+	{ NULL, 0, "" },
+	{ "\n", 1, "" },
+	{ "\n\n", 2, "" },
+	{ "12345\n\n\n", 3, "12345" },
+	{ "abcd", 0, "abcd" },
+};
+
 START_TEST(test_sdb_strbuf_chomp)
 {
-	ssize_t n;
-	const char *check;
+	size_t i;
 
-	/* empty buffer */
-	n = sdb_strbuf_chomp(buf);
-	fail_unless(n == 0,
-			"sdb_strbuf_chomp() = %zi; expected: 0", n);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(chomp_golden_data); ++i) {
+		ssize_t n;
+		const char *check;
 
-	sdb_strbuf_sprintf(buf, "\n");
-	n = sdb_strbuf_chomp(buf);
-	fail_unless(n == 1,
-			"sdb_strbuf_chomp() = %zi; expected: 1", n);
-	check = sdb_strbuf_string(buf);
-	fail_unless(!strcmp(check, ""),
-			"sdb_strbuf_chomp() did not correctly remove newlines; "
-			"got string '%s'; expected: ''", check);
+		if (chomp_golden_data[i].input)
+			sdb_strbuf_sprintf(buf, chomp_golden_data[i].input);
 
-	sdb_strbuf_sprintf(buf, "12345\n\n");
-	n = sdb_strbuf_chomp(buf);
-	fail_unless(n == 2,
-			"sdb_strbuf_chomp() = %zi; expected: 2", n);
-	check = sdb_strbuf_string(buf);
-	fail_unless(!strcmp(check, "12345"),
-			"sdb_strbuf_chomp() did not correctly remove newlines; "
-			"got string '%s'; expected: '12345'", check);
+		/* empty buffer */
+		n = sdb_strbuf_chomp(buf);
+		fail_unless(n == chomp_golden_data[i].expected,
+				"sdb_strbuf_chomp() = %zi; expected: %zi", n,
+				chomp_golden_data[i].expected);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(!strcmp(check, chomp_golden_data[i].expected_string),
+				"sdb_strbuf_chomp() did not correctly remove newlines; "
+				"got string '%s'; expected: '%s'", check,
+				chomp_golden_data[i].expected_string);
+	}
 }
 END_TEST
+
+static struct {
+	const char *input;
+	const char *expected;
+} string_golden_data[] = {
+	{ NULL, "" },
+	{ "a", "a" },
+	{ "abcdef", "abcdef" },
+};
 
 START_TEST(test_sdb_strbuf_string)
 {
-	const char *check;
+	size_t i;
 
-	check = sdb_strbuf_string(buf);
-	fail_unless(!strcmp(check, ""),
-			"sdb_strbuf_string() = '%s'; expected: ''", check);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(string_golden_data); ++i) {
+		const char *check;
 
-	sdb_strbuf_sprintf(buf, "abcdef");
-	check = sdb_strbuf_string(buf);
-	fail_unless(!strcmp(check, "abcdef"),
-			"sdb_strbuf_string() = '%s'; expected: 'abcdef'", check);
+		if (string_golden_data[i].input)
+			sdb_strbuf_sprintf(buf, string_golden_data[i].input);
+		check = sdb_strbuf_string(buf);
+		fail_unless(!strcmp(check, string_golden_data[i].expected),
+				"sdb_strbuf_string() = '%s'; expected: '%s'",
+				check, string_golden_data[i].expected);
+	}
 }
 END_TEST
 
+static struct {
+	const char *input;
+	size_t expected;
+} len_golden_data[] = {
+	{ NULL, 0 },
+	{ "a", 1 },
+	{ "12345", 5 },
+};
+
 START_TEST(test_sdb_strbuf_len)
 {
-	size_t check;
+	size_t i;
 
-	check = sdb_strbuf_len(buf);
-	fail_unless(check == 0,
-			"sdb_strbuf_len() = %zu; expected: 0", check);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(len_golden_data); ++i) {
+		size_t check;
 
-	sdb_strbuf_sprintf(buf, "a");
-	check = sdb_strbuf_len(buf);
-	fail_unless(check == 1,
-			"sdb_strbuf_len() = %zu; expected: 1", check);
+		if (len_golden_data[i].input)
+			sdb_strbuf_sprintf(buf, len_golden_data[i].input);
+		check = sdb_strbuf_len(buf);
+		fail_unless(check == len_golden_data[i].expected,
+				"sdb_strbuf_len() = %zu; expected: %zu",
+				check, len_golden_data[i].expected);
+	}
 }
 END_TEST
 
