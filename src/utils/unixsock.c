@@ -258,6 +258,9 @@ sdb_unixsock_client_connect(sdb_unixsock_client_t *client)
 		return -1;
 	}
 
+	/* enable line-buffering */
+	setvbuf(client->fh, NULL, _IOLBF, 0);
+
 	client->shutdown = 0;
 	return 0;
 } /* sdb_unixsock_client_connect */
