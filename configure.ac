@@ -207,6 +207,18 @@ if test "x$with_libdbi" = "xyes"; then
 fi
 AM_CONDITIONAL([BUILD_WITH_LIBDBI], test "x$with_libdbi" = "xyes")
 
+dnl Required for mocking FILE related functions.
+orig_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -D_GNU_SOURCE"
+AC_CHECK_FUNCS([fopencookie],
+		[have_fopencookie="yes"],
+		[have_fopencookie="no (fopencookie not available)"])
+CFLAGS="$orig_CFLAGS"
+AM_CONDITIONAL([BUILD_WITH_FOPENCOOKIE], test "x$have_fopencookie" = "xyes")
+if test "x$have_fopencookie" = "xyes"; then
+	AC_DEFINE([HAVE_FOPENCOOKIE], 1)
+fi
+
 dnl Feature checks.
 build_documentation="yes"
 
@@ -280,6 +292,7 @@ AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
 AC_MSG_RESULT([    unit testing: . . . . . . . $build_testing])
+AC_MSG_RESULT([      stdio mocking:  . . . . . $have_fopencookie])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])
@@ -296,3 +309,4 @@ AC_MSG_RESULT([This package is maintained by $PACKAGE_MAINTAINER.])
 AC_MSG_RESULT([Please report bugs to $PACKAGE_BUGREPORT.])
 AC_MSG_RESULT()
 
+dnl vim: set tw=78 sw=4 ts=4 noexpandtab :

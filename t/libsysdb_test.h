@@ -28,6 +28,8 @@
 #ifndef T_LIBSYSDB_H
 #define T_LIBSYSDB_H 1
 
+#include "config.h"
+
 #include "sysdb.h"
 #include "core/object.h"
 
@@ -45,6 +47,15 @@
 	/* ref_cnt = */ 1, /* name = */ (name) }
 
 /*
+ * test-related data-types
+ */
+
+typedef struct {
+	Suite *(*creator)(void);
+	const char *msg;
+} suite_creator_t;
+
+/*
  * test suites
  */
 
@@ -59,6 +70,10 @@ util_llist_suite(void);
 /* t/utils/strbuf_test */
 Suite *
 util_strbuf_suite(void);
+
+/* t/utils/unixsock_test */
+Suite *
+util_unixsock_suite(void);
 
 #endif /* T_LIBSYSDB_H */
 

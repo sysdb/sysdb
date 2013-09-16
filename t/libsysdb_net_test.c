@@ -1,5 +1,5 @@
 /*
- * SysDB - t/libsysdb_test.c
+ * SysDB - t/libsysdb_net_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,6 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * testing component involving networking operations
+ */
+
 #include "libsysdb_test.h"
 
 #include <check.h>
@@ -37,9 +41,11 @@ main(void)
 	size_t i;
 
 	suite_creator_t creators[] = {
-		{ util_llist_suite, NULL },
-		{ util_dbi_suite, NULL },
-		{ util_strbuf_suite, NULL },
+#ifdef HAVE_FOPENCOOKIE
+		{ util_unixsock_suite, NULL },
+#else
+		{ NULL, "Skipping util::unixsock; missing fopencookie" },
+#endif /* HAVE_FOPENCOOKIE */
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
