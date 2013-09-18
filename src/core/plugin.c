@@ -88,14 +88,23 @@ typedef struct {
 #define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
 #define SDB_PLUGIN_CCB(obj) ((sdb_plugin_collector_cb_t *)(obj))
 
+typedef struct {
+	sdb_object_t super;
+	sdb_plugin_ctx_t public;
+} ctx_t;
+#define CTX_INIT { SDB_OBJECT_INIT, \
+	SDB_PLUGIN_CTX_INIT }
+
+#define CTX(obj) ((ctx_t *)(obj))
+
 /*
  * private variables
  */
 
 static sdb_plugin_ctx_t  plugin_default_ctx = SDB_PLUGIN_CTX_INIT;
 
-static pthread_key_t    plugin_ctx_key;
-static _Bool            plugin_ctx_key_initialized = 0;
+static pthread_key_t     plugin_ctx_key;
+static _Bool             plugin_ctx_key_initialized = 0;
 
 static sdb_llist_t      *config_list = NULL;
 static sdb_llist_t      *init_list = NULL;
@@ -128,39 +137,20 @@ sdb_plugin_info_clear(sdb_plugin_info_t *info)
 } /* sdb_plugin_info_clear */
 
 static void
-sdb_plugin_ctx_destructor(void *ctx)
+ctx_destructor(void *c)
 {
-	if (! ctx)
-		return;
-	free(ctx);
-} /* sdb_plugin_ctx_destructor */
+	sdb_object_deref(SDB_OBJ(c));
+} /* ctx_destructor */
 
 static void
-sdb_plugin_ctx_init(void)
+ctx_key_init(void)
 {
 	if (plugin_ctx_key_initialized)
 		return;
 
-	pthread_key_create(&plugin_ctx_key, sdb_plugin_ctx_destructor);
+	pthread_key_create(&plugin_ctx_key, ctx_destructor);
 	plugin_ctx_key_initialized = 1;
-} /* sdb_plugin_ctx_init */
-
-static sdb_plugin_ctx_t *
-sdb_plugin_ctx_create(void)
-{
-	sdb_plugin_ctx_t *ctx;
-
-	ctx = malloc(sizeof(*ctx));
-	if (! ctx)
-		return NULL;
-
-	*ctx = plugin_default_ctx;
-
-	if (! plugin_ctx_key_initialized)
-		sdb_plugin_ctx_init();
-	pthread_setspecific(plugin_ctx_key, ctx);
-	return ctx;
-} /* sdb_plugin_ctx_create */
+} /* ctx_key_init */
 
 static int
 sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
@@ -180,6 +170,39 @@ sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 /*
  * private types
  */
+
+static int
+ctx_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
+{
+	ctx_t *ctx = CTX(obj);
+
+	assert(ctx);
+
+	ctx->public = plugin_default_ctx;
+	return 0;
+} /* ctx_init */
+
+static sdb_type_t ctx_type = {
+	sizeof(ctx_t),
+
+	ctx_init,
+	NULL
+};
+
+static ctx_t *
+ctx_create(void)
+{
+	ctx_t *ctx;
+
+	ctx = CTX(sdb_object_create("plugin-context", ctx_type));
+	if (! ctx)
+		return NULL;
+
+	if (! plugin_ctx_key_initialized)
+		ctx_key_init();
+	pthread_setspecific(plugin_ctx_key, ctx);
+	return ctx;
+} /* ctx_create */
 
 static int
 sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
@@ -516,36 +539,36 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void)
 {
-	sdb_plugin_ctx_t *ctx;
+	ctx_t *ctx;
 
 	if (! plugin_ctx_key_initialized)
-		sdb_plugin_ctx_init();
+		ctx_key_init();
 	ctx = pthread_getspecific(plugin_ctx_key);
 
 	if (! ctx)
-		ctx = sdb_plugin_ctx_create();
+		ctx = ctx_create();
 	if (! ctx)
 		return plugin_default_ctx;
-	return *ctx;
+	return ctx->public;
 } /* sdb_plugin_get_ctx */
 
 sdb_plugin_ctx_t
 sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx)
 {
-	sdb_plugin_ctx_t *tmp;
+	ctx_t *tmp;
 	sdb_plugin_ctx_t old;
 
 	if (! plugin_ctx_key_initialized)
-		sdb_plugin_ctx_init();
+		ctx_key_init();
 	tmp = pthread_getspecific(plugin_ctx_key);
 
 	if (! tmp)
-		tmp = sdb_plugin_ctx_create();
+		tmp = ctx_create();
 	if (! tmp)
 		return plugin_default_ctx;
 
-	old = *tmp;
-	*tmp = ctx;
+	old = tmp->public;
+	tmp->public = ctx;
 	return old;
 } /* sdb_plugin_set_ctx */
 
