@@ -60,9 +60,11 @@ struct sdb_plugin_info {
 	int   version;
 	int   plugin_version;
 };
-#define SDB_PLUGIN_INFO_INIT { "no name set", "no description set", \
-	/* copyright */ "", /* license */ "", \
+#define SDB_PLUGIN_INFO_INIT { /* name */ NULL, /* desc */ NULL, \
+	/* copyright */ NULL, /* license */ NULL, \
 	/* version */ -1, /* plugin_version */ -1 }
+#define INFO_GET(i, attr) \
+	((i)->attr ? (i)->attr : #attr" not set")
 
 typedef struct {
 	sdb_object_t super;
@@ -105,6 +107,25 @@ static sdb_llist_t      *log_list = NULL;
 /*
  * private helper functions
  */
+
+static void
+sdb_plugin_info_clear(sdb_plugin_info_t *info)
+{
+	sdb_plugin_info_t empty_info = SDB_PLUGIN_INFO_INIT;
+	if (! info)
+		return;
+
+	if (info->name)
+		free(info->name);
+	if (info->description)
+		free(info->description);
+	if (info->copyright)
+		free(info->copyright);
+	if (info->license)
+		free(info->license);
+
+	*info = empty_info;
+} /* sdb_plugin_info_clear */
 
 static void
 sdb_plugin_ctx_destructor(void *ctx)
@@ -258,7 +279,7 @@ sdb_plugin_load(const char *name)
 	lt_dlhandle lh;
 
 	int (*mod_init)(sdb_plugin_info_t *);
-	sdb_plugin_info_t plugin_info = SDB_PLUGIN_INFO_INIT;
+	sdb_plugin_info_t info = SDB_PLUGIN_INFO_INIT;
 
 	int status;
 
@@ -304,26 +325,30 @@ sdb_plugin_load(const char *name)
 		return -1;
 	}
 
-	status = mod_init(&plugin_info);
+	status = mod_init(&info);
 	if (status) {
 		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize "
 				"plugin '%s'", name);
+		sdb_plugin_info_clear(&info);
 		return -1;
 	}
 
 	/* compare minor version */
-	if ((plugin_info.version < 0)
-			|| ((int)(plugin_info.version / 100) != (int)(SDB_VERSION / 100)))
+	if ((info.version < 0)
+			|| ((int)(info.version / 100) != (int)(SDB_VERSION / 100)))
 		sdb_log(SDB_LOG_WARNING, "plugin: WARNING: version of "
 				"plugin '%s' (%i.%i.%i) does not match our version "
 				"(%i.%i.%i); this might cause problems",
-				name, SDB_VERSION_DECODE(plugin_info.version),
+				name, SDB_VERSION_DECODE(info.version),
 				SDB_VERSION_DECODE(SDB_VERSION));
 
 	sdb_log(SDB_LOG_INFO, "plugin: Successfully loaded "
-			"plugin '%s' v%i (%s)\n\t%s",
-			plugin_info.name, plugin_info.plugin_version,
-			plugin_info.description, plugin_info.copyright);
+			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
+			INFO_GET(&info, name), info.plugin_version,
+			INFO_GET(&info, description),
+			INFO_GET(&info, copyright),
+			INFO_GET(&info, license));
+	sdb_plugin_info_clear(&info);
 	return 0;
 } /* sdb_plugin_load */
 
@@ -341,25 +366,38 @@ sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...)
 		case SDB_PLUGIN_INFO_NAME:
 			{
 				char *name = va_arg(ap, char *);
-				info->name = name;
+				if (name) {
+					if (info->name)
+						free(info->name);
+					info->name = strdup(name);
+				}
 			}
 			break;
 		case SDB_PLUGIN_INFO_DESC:
 			{
 				char *desc = va_arg(ap, char *);
-				info->description = desc;
+				if (desc) {
+					if (info->description)
+						free(info->description);
+					info->description = strdup(desc);
+				}
 			}
 			break;
 		case SDB_PLUGIN_INFO_COPYRIGHT:
 			{
 				char *copyright = va_arg(ap, char *);
-				info->copyright = copyright;
+				if (copyright)
+					info->copyright = strdup(copyright);
 			}
 			break;
 		case SDB_PLUGIN_INFO_LICENSE:
 			{
 				char *license = va_arg(ap, char *);
-				info->license = license;
+				if (license) {
+					if (info->license)
+						free(info->license);
+					info->license = strdup(license);
+				}
 			}
 			break;
 		case SDB_PLUGIN_INFO_VERSION:
