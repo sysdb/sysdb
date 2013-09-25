@@ -51,6 +51,10 @@
  */
 
 struct sdb_plugin_info {
+	char *plugin_name;
+	char *filename;
+
+	/* public attributes */
 	char *name;
 
 	char *description;
@@ -60,7 +64,9 @@ struct sdb_plugin_info {
 	int   version;
 	int   plugin_version;
 };
-#define SDB_PLUGIN_INFO_INIT { /* name */ NULL, /* desc */ NULL, \
+#define SDB_PLUGIN_INFO_INIT { \
+	/* plugin_name */ NULL, /* filename */ NULL, \
+	/* name */ NULL, /* desc */ NULL, \
 	/* copyright */ NULL, /* license */ NULL, \
 	/* version */ -1, /* plugin_version */ -1 }
 #define INFO_GET(i, attr) \
@@ -126,6 +132,11 @@ sdb_plugin_info_clear(sdb_plugin_info_t *info)
 	sdb_plugin_info_t empty_info = SDB_PLUGIN_INFO_INIT;
 	if (! info)
 		return;
+
+	if (info->plugin_name)
+		free(info->plugin_name);
+	if (info->filename)
+		free(info->filename);
 
 	if (info->name)
 		free(info->name);
@@ -376,6 +387,9 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize plugin context");
 		return -1;
 	}
+
+	ctx->info.plugin_name = strdup(name);
+	ctx->info.filename = strdup(filename);
 
 	if (plugin_ctx)
 		ctx->public = *plugin_ctx;
