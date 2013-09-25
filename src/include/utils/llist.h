@@ -40,6 +40,8 @@ typedef struct sdb_llist sdb_llist_t;
 struct sdb_llist_iter;
 typedef struct sdb_llist_iter sdb_llist_iter_t;
 
+typedef int (*sdb_llist_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
+
 /*
  * sdb_llist_create, sdb_llist_destroy:
  * Create and destroy a doubly linked list object.
@@ -113,8 +115,8 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx);
  *  - a negative value on failure
  */
 int
-sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
-		int (*compare)(const sdb_object_t *, const sdb_object_t *));
+sdb_llist_insert_sorted(sdb_llist_t *list,
+		sdb_object_t *obj, sdb_llist_cmp_cb);
 
 /*
  * sdb_llist_search:
@@ -127,8 +129,8 @@ sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
  *  - NULL else
  */
 sdb_object_t *
-sdb_llist_search(sdb_llist_t *list, const sdb_object_t *key,
-		int (*compare)(const sdb_object_t *, const sdb_object_t *));
+sdb_llist_search(sdb_llist_t *list,
+		const sdb_object_t *key, sdb_llist_cmp_cb);
 
 /*
  * sdb_llist_search_by_name:

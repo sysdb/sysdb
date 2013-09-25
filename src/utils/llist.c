@@ -262,8 +262,8 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx)
 } /* sdb_llist_insert */
 
 int
-sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
-		int (*compare)(const sdb_object_t *, const sdb_object_t *))
+sdb_llist_insert_sorted(sdb_llist_t *list,
+		sdb_object_t *obj, sdb_llist_cmp_cb compare)
 {
 	sdb_llist_elem_t *prev;
 	sdb_llist_elem_t *next;
@@ -291,8 +291,8 @@ sdb_llist_insert_sorted(sdb_llist_t *list, sdb_object_t *obj,
 } /* sdb_llist_insert_sorted */
 
 sdb_object_t *
-sdb_llist_search(sdb_llist_t *list, const sdb_object_t *key,
-		int (*compare)(const sdb_object_t *, const sdb_object_t *))
+sdb_llist_search(sdb_llist_t *list,
+		const sdb_object_t *key, sdb_llist_cmp_cb compare)
 {
 	sdb_llist_elem_t *elem;
 
