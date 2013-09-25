@@ -63,10 +63,11 @@ typedef struct {
 /*
  * sdb_plugin_load:
  * Load (any type of) plugin by loading the shared object file and calling the
- * sdb_module_init function.
+ * sdb_module_init function. If specified, 'plugin_ctx' fine-tunes the
+ * behavior of the plugin.
  */
 int
-sdb_plugin_load(const char *name);
+sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx);
 
 /*
  * sdb_plugin_set_info:
@@ -220,11 +221,14 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
  * plugin has been called. It may be used to pass around various information
  * between the different component of the library without having each and
  * every plugin care about it.
+ *
+ * If non-NULL, sdb_plugin_set_ctx stores the previous context in the location
+ * pointed to be 'old'.
  */
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void);
-sdb_plugin_ctx_t
-sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx);
+int
+sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old);
 
 /*
  * sdb_plugin_configure:

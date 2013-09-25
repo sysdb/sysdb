@@ -92,11 +92,7 @@ static int
 daemon_load_plugin(oconfig_item_t *ci)
 {
 	char *name;
-
-	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
-	sdb_plugin_ctx_t old_ctx;
-
-	int status, i;
+	int i;
 
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "config: LoadPlugin requires a single "
@@ -115,22 +111,18 @@ daemon_load_plugin(oconfig_item_t *ci)
 		continue;
 	}
 
-	old_ctx = sdb_plugin_set_ctx(ctx);
-	status = sdb_plugin_load(name);
-	sdb_plugin_set_ctx(old_ctx);
-	return status;
+	return sdb_plugin_load(name, NULL);
 } /* daemon_load_plugin */
 
 static int
 daemon_load_backend(oconfig_item_t *ci)
 {
+	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
+
 	char  plugin_name[1024];
 	char *name;
 
-	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
-	sdb_plugin_ctx_t old_ctx;
-
-	int status, i;
+	int i;
 
 	ctx.interval = default_interval;
 
@@ -158,10 +150,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		}
 	}
 
-	old_ctx = sdb_plugin_set_ctx(ctx);
-	status = sdb_plugin_load(plugin_name);
-	sdb_plugin_set_ctx(old_ctx);
-	return status;
+	return sdb_plugin_load(plugin_name, &ctx);
 } /* daemon_load_backend */
 
 static int
