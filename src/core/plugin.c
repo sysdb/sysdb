@@ -69,9 +69,11 @@ struct sdb_plugin_info {
 typedef struct {
 	sdb_object_t super;
 	sdb_plugin_ctx_t public;
+
+	sdb_plugin_info_t info;
 } ctx_t;
 #define CTX_INIT { SDB_OBJECT_INIT, \
-	SDB_PLUGIN_CTX_INIT }
+	SDB_PLUGIN_CTX_INIT, SDB_PLUGIN_INFO_INIT }
 
 #define CTX(obj) ((ctx_t *)(obj))
 
@@ -101,7 +103,8 @@ typedef struct {
  * private variables
  */
 
-static sdb_plugin_ctx_t  plugin_default_ctx = SDB_PLUGIN_CTX_INIT;
+static sdb_plugin_ctx_t  plugin_default_ctx  = SDB_PLUGIN_CTX_INIT;
+static sdb_plugin_info_t plugin_default_info = SDB_PLUGIN_INFO_INIT;
 
 static pthread_key_t     plugin_ctx_key;
 static _Bool             plugin_ctx_key_initialized = 0;
@@ -173,14 +176,22 @@ ctx_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
 	assert(ctx);
 
 	ctx->public = plugin_default_ctx;
+	ctx->info = plugin_default_info;
 	return 0;
 } /* ctx_init */
+
+static void
+ctx_destroy(sdb_object_t *obj)
+{
+	ctx_t *ctx = CTX(obj);
+	sdb_plugin_info_clear(&ctx->info);
+} /* ctx_destroy */
 
 static sdb_type_t ctx_type = {
 	sizeof(ctx_t),
 
 	ctx_init,
-	NULL
+	ctx_destroy
 };
 
 static ctx_t *
@@ -320,8 +331,6 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	lt_dlhandle lh;
 
 	int (*mod_init)(sdb_plugin_info_t *);
-	sdb_plugin_info_t info = SDB_PLUGIN_INFO_INIT;
-
 	int status;
 
 	if ((! name) || (! *name))
@@ -379,32 +388,30 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 		return -1;
 	}
 
-	status = mod_init(&info);
+	status = mod_init(&ctx->info);
 	if (status) {
 		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize "
 				"plugin '%s'", name);
-		sdb_plugin_info_clear(&info);
 		sdb_object_deref(SDB_OBJ(ctx));
 		return -1;
 	}
 
 	/* compare minor version */
-	if ((info.version < 0)
-			|| ((int)(info.version / 100) != (int)(SDB_VERSION / 100)))
+	if ((ctx->info.version < 0)
+			|| ((int)(ctx->info.version / 100) != (int)(SDB_VERSION / 100)))
 		sdb_log(SDB_LOG_WARNING, "plugin: WARNING: version of "
 				"plugin '%s' (%i.%i.%i) does not match our version "
 				"(%i.%i.%i); this might cause problems",
-				name, SDB_VERSION_DECODE(info.version),
+				name, SDB_VERSION_DECODE(ctx->info.version),
 				SDB_VERSION_DECODE(SDB_VERSION));
 
 	sdb_log(SDB_LOG_INFO, "plugin: Successfully loaded "
 			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
-			INFO_GET(&info, name), info.plugin_version,
-			INFO_GET(&info, description),
-			INFO_GET(&info, copyright),
-			INFO_GET(&info, license));
+			INFO_GET(&ctx->info, name), ctx->info.plugin_version,
+			INFO_GET(&ctx->info, description),
+			INFO_GET(&ctx->info, copyright),
+			INFO_GET(&ctx->info, license));
 
-	sdb_plugin_info_clear(&info);
 	/* any registered callbacks took ownership of the context */
 	sdb_object_deref(SDB_OBJ(ctx));
 
