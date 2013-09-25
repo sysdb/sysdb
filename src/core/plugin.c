@@ -127,7 +127,7 @@ static sdb_llist_t      *log_list = NULL;
  */
 
 static void
-sdb_plugin_info_clear(sdb_plugin_info_t *info)
+plugin_info_clear(sdb_plugin_info_t *info)
 {
 	sdb_plugin_info_t empty_info = SDB_PLUGIN_INFO_INIT;
 	if (! info)
@@ -148,7 +148,7 @@ sdb_plugin_info_clear(sdb_plugin_info_t *info)
 		free(info->license);
 
 	*info = empty_info;
-} /* sdb_plugin_info_clear */
+} /* plugin_info_clear */
 
 static void
 ctx_key_init(void)
@@ -161,7 +161,7 @@ ctx_key_init(void)
 } /* ctx_key_init */
 
 static int
-sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
+plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 {
 	const sdb_plugin_collector_cb_t *ccb1
 		= (const sdb_plugin_collector_cb_t *)a;
@@ -173,7 +173,7 @@ sdb_plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 	return (ccb1->ccb_next_update > ccb2->ccb_next_update)
 		? 1 : (ccb1->ccb_next_update < ccb2->ccb_next_update)
 		? -1 : 0;
-} /* sdb_plugin_cmp_next_update */
+} /* plugin_cmp_next_update */
 
 /*
  * private types
@@ -195,7 +195,7 @@ static void
 ctx_destroy(sdb_object_t *obj)
 {
 	ctx_t *ctx = CTX(obj);
-	sdb_plugin_info_clear(&ctx->info);
+	plugin_info_clear(&ctx->info);
 } /* ctx_destroy */
 
 static sdb_type_t ctx_type = {
@@ -242,7 +242,7 @@ ctx_set(ctx_t *new)
 } /* ctx_set */
 
 static int
-sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
+plugin_cb_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_llist_t **list = va_arg(ap, sdb_llist_t **);
 	const char   *type = va_arg(ap, const char *);
@@ -267,32 +267,32 @@ sdb_plugin_cb_init(sdb_object_t *obj, va_list ap)
 	sdb_object_ref(ud);
 	SDB_PLUGIN_CB(obj)->cb_user_data = ud;
 	return 0;
-} /* sdb_plugin_cb_init */
+} /* plugin_cb_init */
 
 static void
-sdb_plugin_cb_destroy(sdb_object_t *obj)
+plugin_cb_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 	sdb_object_deref(SDB_PLUGIN_CB(obj)->cb_user_data);
 	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_CB(obj)->cb_ctx));
-} /* sdb_plugin_cb_destroy */
+} /* plugin_cb_destroy */
 
 static sdb_type_t sdb_plugin_cb_type = {
 	sizeof(sdb_plugin_cb_t),
 
-	sdb_plugin_cb_init,
-	sdb_plugin_cb_destroy
+	plugin_cb_init,
+	plugin_cb_destroy
 };
 
 static sdb_type_t sdb_plugin_collector_cb_type = {
 	sizeof(sdb_plugin_collector_cb_t),
 
-	sdb_plugin_cb_init,
-	sdb_plugin_cb_destroy
+	plugin_cb_init,
+	plugin_cb_destroy
 };
 
 static int
-sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
+plugin_add_callback(sdb_llist_t **list, const char *type,
 		const char *name, void *callback, sdb_object_t *user_data)
 {
 	sdb_object_t *obj;
@@ -323,7 +323,7 @@ sdb_plugin_add_callback(sdb_llist_t **list, const char *type,
 	sdb_log(SDB_LOG_INFO, "plugin: Registered %s callback '%s'.",
 			type, name);
 	return 0;
-} /* sdb_plugin_add_callback */
+} /* plugin_add_callback */
 
 /*
  * public API
@@ -506,7 +506,7 @@ sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...)
 int
 sdb_plugin_register_config(const char *name, sdb_plugin_config_cb callback)
 {
-	return sdb_plugin_add_callback(&config_list, "init", name,
+	return plugin_add_callback(&config_list, "init", name,
 			callback, NULL);
 } /* sdb_plugin_register_config */
 
@@ -514,7 +514,7 @@ int
 sdb_plugin_register_init(const char *name, sdb_plugin_init_cb callback,
 		sdb_object_t *user_data)
 {
-	return sdb_plugin_add_callback(&init_list, "init", name,
+	return plugin_add_callback(&init_list, "init", name,
 			callback, user_data);
 } /* sdb_plugin_register_init */
 
@@ -522,7 +522,7 @@ int
 sdb_plugin_register_shutdown(const char *name, sdb_plugin_shutdown_cb callback,
 		sdb_object_t *user_data)
 {
-	return sdb_plugin_add_callback(&shutdown_list, "shutdown", name,
+	return plugin_add_callback(&shutdown_list, "shutdown", name,
 			callback, user_data);
 } /* sdb_plugin_register_shutdown */
 
@@ -530,7 +530,7 @@ int
 sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data)
 {
-	return sdb_plugin_add_callback(&log_list, "log", name, callback,
+	return plugin_add_callback(&log_list, "log", name, callback,
 			user_data);
 } /* sdb_plugin_register_log */
 
@@ -538,7 +538,7 @@ int
 sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
 		sdb_object_t *user_data)
 {
-	return sdb_plugin_add_callback(&cname_list, "cname", name, callback,
+	return plugin_add_callback(&cname_list, "cname", name, callback,
 			user_data);
 } /* sdb_plugin_register_cname */
 
@@ -581,7 +581,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	}
 
 	if (sdb_llist_insert_sorted(collector_list, obj,
-				sdb_plugin_cmp_next_update)) {
+				plugin_cmp_next_update)) {
 		sdb_object_deref(obj);
 		return -1;
 	}
@@ -764,7 +764,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		}
 
 		if (sdb_llist_insert_sorted(collector_list, obj,
-					sdb_plugin_cmp_next_update)) {
+					plugin_cmp_next_update)) {
 			sdb_log(SDB_LOG_ERR, "plugin: Failed to re-insert "
 					"plugin '%s' into collector list. Unable to further "
 					"use the plugin.",
