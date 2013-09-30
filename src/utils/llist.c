@@ -115,6 +115,21 @@ sdb_llist_insert_after(sdb_llist_t *list, sdb_llist_elem_t *elem,
 	return 0;
 } /* sdb_llist_insert_after */
 
+static sdb_llist_elem_t *
+llist_search(sdb_llist_t *list,
+		sdb_llist_lookup_cb lookup, void *user_data)
+{
+	sdb_llist_elem_t *elem;
+
+	if ((! list) || (! lookup))
+		return NULL;
+
+	for (elem = list->head; elem; elem = elem->next)
+		if (! lookup(elem->obj, user_data))
+			break;
+	return elem;
+} /* llist_search */
+
 static sdb_object_t *
 sdb_llist_remove_elem(sdb_llist_t *list, sdb_llist_elem_t *elem)
 {
@@ -296,16 +311,10 @@ sdb_llist_search(sdb_llist_t *list,
 {
 	sdb_llist_elem_t *elem;
 
-	if ((! list) || (! lookup))
-		return NULL;
-
 	pthread_rwlock_rdlock(&list->lock);
-
-	for (elem = list->head; elem; elem = elem->next)
-		if (! lookup(elem->obj, user_data))
-			break;
-
+	elem = llist_search(list, lookup, user_data);
 	pthread_rwlock_unlock(&list->lock);
+
 	if (elem)
 		return elem->obj;
 	return NULL;
@@ -331,6 +340,22 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key)
 		return elem->obj;
 	return NULL;
 } /* sdb_llist_search_by_name */
+
+sdb_object_t *
+sdb_llist_remove(sdb_llist_t *list,
+		sdb_llist_lookup_cb lookup, void *user_data)
+{
+	sdb_llist_elem_t *elem;
+	sdb_object_t *obj = NULL;
+
+	pthread_rwlock_wrlock(&list->lock);
+	elem = llist_search(list, lookup, user_data);
+	if (elem)
+		obj = sdb_llist_remove_elem(list, elem);
+	pthread_rwlock_unlock(&list->lock);
+
+	return obj;
+} /* sdb_llist_remove */
 
 sdb_object_t *
 sdb_llist_shift(sdb_llist_t *list)
