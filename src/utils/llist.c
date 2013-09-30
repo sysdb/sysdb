@@ -292,21 +292,20 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 
 sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
-		const sdb_object_t *key, sdb_llist_cmp_cb compare)
+		sdb_llist_lookup_cb lookup, void *user_data)
 {
 	sdb_llist_elem_t *elem;
 
-	if ((! list) || (! compare))
+	if ((! list) || (! lookup))
 		return NULL;
 
 	pthread_rwlock_rdlock(&list->lock);
 
 	for (elem = list->head; elem; elem = elem->next)
-		if (! compare(elem->obj, key))
+		if (! lookup(elem->obj, user_data))
 			break;
 
 	pthread_rwlock_unlock(&list->lock);
-
 	if (elem)
 		return elem->obj;
 	return NULL;

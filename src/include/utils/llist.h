@@ -41,6 +41,7 @@ struct sdb_llist_iter;
 typedef struct sdb_llist_iter sdb_llist_iter_t;
 
 typedef int (*sdb_llist_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
+typedef int (*sdb_llist_lookup_cb)(const sdb_object_t *, void *user_data);
 
 /*
  * sdb_llist_create, sdb_llist_destroy:
@@ -130,7 +131,7 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
  */
 sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
-		const sdb_object_t *key, sdb_llist_cmp_cb);
+		sdb_llist_lookup_cb lookup, void *user_data);
 
 /*
  * sdb_llist_search_by_name:
