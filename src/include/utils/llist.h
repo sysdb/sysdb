@@ -121,9 +121,9 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 
 /*
  * sdb_llist_search:
- * Search for a 'key' in the given 'list'. The function will return the first
- * entry that matches the specified 'key'. For that purpose, the 'compare'
- * function is used. It should return 0 iff the two arguments compare equal.
+ * Search for a object in the given 'list'. The function will return the first
+ * entry for which the 'lookup' callback returns 0. The 'user_data' is passed
+ * on to the lookup function on each invocation.
  *
  * Returns:
  *  - a pointer to the first matching object
