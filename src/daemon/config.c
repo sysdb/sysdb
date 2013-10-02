@@ -39,6 +39,20 @@
 #include <strings.h>
 
 /*
+ * Parser error values:
+ *  - Values less than zero indicate an error in the daemon or libsysdb.
+ *  - Zero indicates success.
+ *  - Any other values indicate parsing errors.
+ */
+
+enum {
+	ERR_UNKNOWN_OPTION = 1,
+	ERR_UNKNOWN_ARG    = 2,
+	ERR_INVALID_ARG    = 3,
+	ERR_PARSE_FAILED   = 4,
+};
+
+/*
  * private variables
  */
 
@@ -59,14 +73,14 @@ config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
 		sdb_log(SDB_LOG_ERR, "config: Interval requires "
 				"a single numeric argument\n"
 				"\tUsage: Interval SECONDS");
-		return -1;
+		return ERR_INVALID_ARG;
 	}
 
 	if (interval_dbl <= 0.0) {
 		sdb_log(SDB_LOG_ERR, "config: Invalid interval: %f\n"
 				"\tInterval may not be less than or equal to zero.",
 				interval_dbl);
-		return -1;
+		return ERR_INVALID_ARG;
 	}
 
 	*interval = DOUBLE_TO_SDB_TIME(interval_dbl);
@@ -98,7 +112,7 @@ daemon_load_plugin(oconfig_item_t *ci)
 		sdb_log(SDB_LOG_ERR, "config: LoadPlugin requires a single "
 				"string argument\n"
 				"\tUsage: LoadPlugin PLUGIN");
-		return -1;
+		return ERR_INVALID_ARG;
 	}
 
 	for (i = 0; i < ci->children_num; ++i) {
@@ -111,6 +125,7 @@ daemon_load_plugin(oconfig_item_t *ci)
 		continue;
 	}
 
+	/* returns a negative value on error */
 	return sdb_plugin_load(name, NULL);
 } /* daemon_load_plugin */
 
@@ -130,7 +145,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		sdb_log(SDB_LOG_ERR, "config: LoadBackend requires a single "
 				"string argument\n"
 				"\tUsage: LoadBackend BACKEND");
-		return -1;
+		return ERR_INVALID_ARG;
 	}
 
 	snprintf(plugin_name, sizeof(plugin_name), "backend::%s", name);
@@ -140,7 +155,7 @@ daemon_load_backend(oconfig_item_t *ci)
 
 		if (! strcasecmp(child->key, "Interval")) {
 			if (config_get_interval(child, &ctx.interval))
-				return -1;
+				return ERR_INVALID_ARG;
 		}
 		else {
 			sdb_log(SDB_LOG_WARNING, "config: Unknown option '%s' "
@@ -165,7 +180,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 				"string argument\n"
 				"\tUsage: LoadBackend BACKEND",
 				ci->key);
-		return -1;
+		return ERR_INVALID_ARG;
 	}
 
 	return sdb_plugin_configure(name, ci);
@@ -192,11 +207,11 @@ daemon_parse_config(const char *filename)
 
 	ci = oconfig_parse_file(filename);
 	if (! ci)
-		return -1;
+		return ERR_PARSE_FAILED;
 
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;
-		int status = 1, j;
+		int status = ERR_UNKNOWN_OPTION, j;
 
 		for (j = 0; token_parser_list[j].name; ++j) {
 			if (! strcasecmp(token_parser_list[j].name, child->key))
@@ -206,13 +221,13 @@ daemon_parse_config(const char *filename)
 		if (status) {
 			sdb_error_set("config: Failed to parse option '%s'\n",
 					child->key);
-			if (status > 0)
+			if (status == ERR_UNKNOWN_OPTION)
 				sdb_error_append("\tUnknown option '%s' -- "
 						"see the documentation for details\n",
 						child->key);
 			sdb_error_chomp();
 			sdb_error_log(SDB_LOG_ERR);
-			retval = -1;
+			retval = status;
 		}
 	}
 	return retval;

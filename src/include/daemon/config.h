@@ -28,6 +28,16 @@
 #ifndef DAEMON_CONFIG_H
 #define DAEMON_CONFIG_H 1
 
+/*
+ * daemon_parse_config:
+ * Parse the specified configuration file.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value when loading the configuration failed because of errors
+ *    in the daemon or libsysdb
+ *  - a positive value on parser errors
+ */
 int
 daemon_parse_config(const char *filename);
 

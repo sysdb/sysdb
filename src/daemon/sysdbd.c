@@ -161,6 +161,7 @@ main(int argc, char **argv)
 	_Bool do_daemonize = 0;
 
 	struct sigaction sa_intterm;
+	int status;
 
 	while (42) {
 		int opt = getopt(argc, argv, "C:dhV");
@@ -193,8 +194,12 @@ main(int argc, char **argv)
 	if (! config_filename)
 		config_filename = CONFIGFILE;
 
-	if (daemon_parse_config(config_filename)) {
-		sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
+	if ((status = daemon_parse_config(config_filename))) {
+		if (status > 0)
+			sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
+		else
+			sdb_log(SDB_LOG_ERR, "Failed to load configuration file.\n"
+					"\tCheck other error messages for details.");
 		exit(1);
 	}
 
