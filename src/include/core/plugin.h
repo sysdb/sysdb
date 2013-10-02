@@ -245,6 +245,9 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci);
 /*
  * sdb_plugin_init_all:
  * Initialize all plugins using their registered "init" function.
+ *
+ * Returns:
+ * The number of failed initializations.
  */
 int
 sdb_plugin_init_all(void);

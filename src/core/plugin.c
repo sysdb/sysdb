@@ -103,7 +103,9 @@ typedef struct {
 } sdb_plugin_collector_cb_t;
 
 #define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
+#define SDB_CONST_PLUGIN_CB(obj) ((const sdb_plugin_cb_t *)(obj))
 #define SDB_PLUGIN_CCB(obj) ((sdb_plugin_collector_cb_t *)(obj))
+#define SDB_CONST_PLUGIN_CCB(obj) ((const sdb_plugin_collector_cb_t *)(obj))
 
 /*
  * private variables
@@ -174,6 +176,55 @@ plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 		? 1 : (ccb1->ccb_next_update < ccb2->ccb_next_update)
 		? -1 : 0;
 } /* plugin_cmp_next_update */
+
+static int
+plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
+{
+	const sdb_plugin_cb_t *cb = SDB_CONST_PLUGIN_CB(obj);
+	const char *name = id;
+
+	assert(cb && id && cb->cb_ctx);
+	if (!strcasecmp(cb->cb_ctx->info.plugin_name, name))
+		return 0;
+	return 1;
+} /* plugin_lookup_by_name */
+
+static void
+plugin_unregister_by_name(const char *plugin_name)
+{
+	size_t i;
+
+	struct {
+		const char  *type;
+		sdb_llist_t *list;
+	} all_lists[] = {
+		{ "config",    config_list },
+		{ "init",      init_list },
+		{ "collector", collector_list },
+		{ "cname",     cname_list },
+		{ "shutdown",  shutdown_list },
+		{ "log",       log_list },
+	};
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
+		const char  *type = all_lists[i].type;
+		sdb_llist_t *list = all_lists[i].list;
+
+		while (1) {
+			sdb_object_t *obj = sdb_llist_remove(list,
+					plugin_lookup_by_name, plugin_name);
+			sdb_plugin_cb_t *cb = SDB_PLUGIN_CB(obj);
+
+			if (! obj)
+				break;
+
+			sdb_log(SDB_LOG_INFO, "plugin: Unregistering "
+					"%s callback '%s' (module %s)", type, obj->name,
+					cb->cb_ctx->info.plugin_name);
+			sdb_object_deref(obj);
+		}
+	}
+} /* plugin_unregister_by_name */
 
 /*
  * private types
@@ -405,7 +456,8 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	status = mod_init(&ctx->info);
 	if (status) {
 		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize "
-				"plugin '%s'", name);
+				"module '%s'", name);
+		plugin_unregister_by_name(ctx->info.plugin_name);
 		sdb_object_deref(SDB_OBJ(ctx));
 		return -1;
 	}
@@ -660,25 +712,31 @@ int
 sdb_plugin_init_all(void)
 {
 	sdb_llist_iter_t *iter;
+	int ret = 0;
 
 	iter = sdb_llist_get_iter(init_list);
 	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_cb_t *cb;
 		sdb_plugin_init_cb callback;
 		ctx_t *old_ctx;
 
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
+		cb = SDB_PLUGIN_CB(obj);
 
-		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		callback = cb->cb_callback;
 
-		old_ctx = ctx_set(SDB_PLUGIN_CB(obj)->cb_ctx);
-		if (callback(SDB_PLUGIN_CB(obj)->cb_user_data)) {
-			/* XXX: unload plugin */
+		old_ctx = ctx_set(cb->cb_ctx);
+		if (callback(cb->cb_user_data)) {
+			sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize plugin "
+					"'%s'. Unregistering all callbacks.", obj->name);
+			plugin_unregister_by_name(cb->cb_ctx->info.plugin_name);
+			++ret;
 		}
 		ctx_set(old_ctx);
 	}
 	sdb_llist_iter_destroy(iter);
-	return 0;
+	return ret;
 } /* sdb_plugin_init_all */
 
 int
