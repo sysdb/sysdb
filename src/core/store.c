@@ -309,7 +309,10 @@ store_obj(int parent_type, const char *parent_name,
 	}
 
 	/* TODO: only look into direct children? */
-	if (type == SDB_ATTRIBUTE)
+	if (type == SDB_HOST)
+		/* make sure that each host is unique */
+		old = STORE_OBJ(sdb_store_lookup_in_list(obj_list, type, name));
+	else if (type == SDB_ATTRIBUTE)
 		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	else
 		old = STORE_OBJ(sdb_store_lookup_in_list(parent_list, type, name));
