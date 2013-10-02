@@ -121,8 +121,7 @@ llist_search(sdb_llist_t *list,
 {
 	sdb_llist_elem_t *elem;
 
-	if ((! list) || (! lookup))
-		return NULL;
+	assert(list && lookup);
 
 	for (elem = list->head; elem; elem = elem->next)
 		if (! lookup(elem->obj, user_data))
@@ -311,6 +310,9 @@ sdb_llist_search(sdb_llist_t *list,
 {
 	sdb_llist_elem_t *elem;
 
+	if ((! list) || (! lookup))
+		return NULL;
+
 	pthread_rwlock_rdlock(&list->lock);
 	elem = llist_search(list, lookup, user_data);
 	pthread_rwlock_unlock(&list->lock);
@@ -347,6 +349,9 @@ sdb_llist_remove(sdb_llist_t *list,
 {
 	sdb_llist_elem_t *elem;
 	sdb_object_t *obj = NULL;
+
+	if ((! list) || (! lookup))
+		return NULL;
 
 	pthread_rwlock_wrlock(&list->lock);
 	elem = llist_search(list, lookup, user_data);
