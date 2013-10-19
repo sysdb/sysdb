@@ -39,7 +39,7 @@
  */
 
 struct sdb_channel {
-	pthread_rwlock_t lock;
+	pthread_mutex_t lock;
 
 	/* maybe TODO: add support for 'nil' values using a boolean area */
 
@@ -123,7 +123,7 @@ sdb_channel_create(size_t size, size_t elem_size)
 	chan->data_len = size;
 	chan->elem_size = elem_size;
 
-	pthread_rwlock_init(&chan->lock, /* attr = */ NULL);
+	pthread_mutex_init(&chan->lock, /* attr = */ NULL);
 
 	chan->head = chan->tail = 0;
 	return chan;
@@ -135,13 +135,13 @@ sdb_channel_destroy(sdb_channel_t *chan)
 	if (! chan)
 		return;
 
-	pthread_rwlock_wrlock(&chan->lock);
+	pthread_mutex_lock(&chan->lock);
 	free(chan->data);
 	chan->data = NULL;
 	chan->data_len = 0;
 
-	pthread_rwlock_unlock(&chan->lock);
-	pthread_rwlock_destroy(&chan->lock);
+	pthread_mutex_unlock(&chan->lock);
+	pthread_mutex_destroy(&chan->lock);
 	free(chan);
 } /* sdb_channel_destroy */
 
@@ -153,9 +153,9 @@ sdb_channel_write(sdb_channel_t *chan, const void *data)
 	if ((! chan) || (! data))
 		return -1;
 
-	pthread_rwlock_wrlock(&chan->lock);
+	pthread_mutex_lock(&chan->lock);
 	status = channel_write(chan, data);
-	pthread_rwlock_unlock(&chan->lock);
+	pthread_mutex_unlock(&chan->lock);
 	return status;
 } /* sdb_channel_write */
 
@@ -167,9 +167,9 @@ sdb_channel_read(sdb_channel_t *chan, void *data)
 	if ((! chan) || (! data))
 		return -1;
 
-	pthread_rwlock_wrlock(&chan->lock);
+	pthread_mutex_lock(&chan->lock);
 	status = channel_read(chan, data);
-	pthread_rwlock_unlock(&chan->lock);
+	pthread_mutex_unlock(&chan->lock);
 	return status;
 } /* sdb_channel_read */
 
