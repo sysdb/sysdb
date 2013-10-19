@@ -37,8 +37,9 @@ main(void)
 	size_t i;
 
 	suite_creator_t creators[] = {
-		{ util_llist_suite, NULL },
+		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },
+		{ util_llist_suite, NULL },
 		{ util_strbuf_suite, NULL },
 	};
 

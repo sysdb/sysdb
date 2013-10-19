@@ -59,6 +59,10 @@ typedef struct {
  * test suites
  */
 
+/* t/utils/channel_test */
+Suite *
+util_channel_suite(void);
+
 /* t/utils/dbi_test */
 Suite *
 util_dbi_suite(void);
