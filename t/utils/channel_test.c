@@ -31,6 +31,8 @@
 #include <check.h>
 #include <limits.h>
 
+#include <stdint.h>
+
 static struct {
 	int data;
 	int expected_write;
@@ -118,6 +120,32 @@ START_TEST(test_create)
 }
 END_TEST
 
+START_TEST(test_write_read)
+{
+	uint32_t data;
+	int check;
+
+	chan = sdb_channel_create(0, 1);
+	fail_unless(chan != NULL,
+			"sdb_channel_create(0, 0) = NULL; expected: channel object");
+
+	data = 0x00ffff00;
+	check = sdb_channel_write(chan, &data);
+	fail_unless(!check, "sdb_channel_write() = %i; expected: 0", check);
+	check = sdb_channel_write(chan, &data);
+	fail_unless(check, "sdb_channel_write() = 0; expected: <0");
+
+	data = 0xffffffff;
+	check = sdb_channel_read(chan, &data);
+	/* result depends on endianess */
+	fail_unless((data == 0xffffff00) || (data == 0x00ffffff),
+			"sdb_channel_read() returned data %x; "
+			"expected: 0xffffff00 || 0x00ffffff", data);
+
+	sdb_channel_destroy(chan);
+}
+END_TEST
+
 START_TEST(test_write_int)
 {
 	size_t i;
@@ -156,7 +184,41 @@ START_TEST(test_read_int)
 		fail_unless(check == expected,
 				"sdb_channel_read(chan, %i) = %i; expected: %i",
 				data, check, expected);
-		if (! check) {
+		if (check) {
+			fail_unless(data == (int)i,
+					"sdb_channel_read() modified data to '%i'; "
+					"expected: no modification", data);
+		}
+		else {
+			fail_unless(data == golden_data_int[i].data,
+					"sdb_channel_read() returned data %i; expected: %i",
+					data, golden_data_int[i].data);
+		}
+	}
+}
+END_TEST
+
+START_TEST(test_write_read_int)
+{
+	size_t i;
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data_int); ++i) {
+		int data = golden_data_int[i].data;
+		int check = sdb_channel_write(chan, &data);
+		fail_unless(check == 0,
+				"sdb_channel_write(chan, %i) = %i; expected: 0",
+				data, check);
+
+		data = (int)i;
+		check = sdb_channel_read(chan, &data);
+		fail_unless(check == 0,
+				"sdb_channel_read(chan, %i) = %i; expected: 0",
+				data, check);
+		if (check) {
+			fail_unless(data == (int)i,
+					"sdb_channel_read() modified data to '%i'; "
+					"expected: no modification", data);
+		}
+		else {
 			fail_unless(data == golden_data_int[i].data,
 					"sdb_channel_read() returned data %i; expected: %i",
 					data, golden_data_int[i].data);
@@ -205,8 +267,38 @@ START_TEST(test_read_string)
 				check, expected);
 		if (check) {
 			fail_unless(data == NULL,
-					"sdb_channel_read() returned data '%s'; expected: none",
-					data);
+					"sdb_channel_read() modified data to '%s'; "
+					"expected: no modification", data);
+		}
+		else {
+			fail_unless(data != NULL,
+					"sdb_channel_read() did not return any data");
+			fail_unless(!strcmp(data, golden_data_string[i].data),
+					"sdb_channel_read() returned data '%s'; expected: '%s'",
+					data, golden_data_string[i].data);
+		}
+	}
+}
+END_TEST
+
+START_TEST(test_write_read_string)
+{
+	size_t i;
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data_string); ++i) {
+		char *data = golden_data_string[i].data;
+		int check = sdb_channel_write(chan, &data);
+		fail_unless(check == 0,
+				"sdb_channel_write(chan, '%s') = %i; expected: 0",
+				data, check);
+
+		data = NULL;
+		check = sdb_channel_read(chan, &data);
+		fail_unless(check == 0,
+				"sdb_channel_read(chan, '') = %i; expected: 0", check);
+		if (check) {
+			fail_unless(data == NULL,
+					"sdb_channel_read() modified data to '%s'; "
+					"expected: no modifications", data);
 		}
 		else {
 			fail_unless(data != NULL,
@@ -227,18 +319,21 @@ util_channel_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_create);
+	tcase_add_test(tc, test_write_read);
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("integer");
 	tcase_add_checked_fixture(tc, setup_int, teardown);
 	tcase_add_test(tc, test_write_int);
 	tcase_add_test(tc, test_read_int);
+	tcase_add_test(tc, test_write_read_int);
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("string");
 	tcase_add_checked_fixture(tc, setup_string, teardown);
 	tcase_add_test(tc, test_write_string);
 	tcase_add_test(tc, test_read_string);
+	tcase_add_test(tc, test_write_read_string);
 	suite_add_tcase(s, tc);
 
 	return s;
