@@ -25,6 +25,7 @@ libsysdb_la_SOURCES = \
 		core/store.c include/core/store.h \
 		include/core/data.h \
 		core/error.c include/core/error.h \
+		utils/channel.c include/utils/channel.h \
 		utils/llist.c include/utils/llist.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		core/time.c include/core/time.h \
