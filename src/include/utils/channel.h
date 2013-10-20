@@ -101,9 +101,8 @@ sdb_channel_read(sdb_channel_t *chan, void *data);
  * to the channel. If non-NULL, the value pointed to by the 'want...'
  * arguments will be "true" iff the respective operation is ready. If the
  * '..._data' arguments are non-NULL, the respective operation is executed
- * atomically once the channel is ready for it. If 'abstime' is specified, the
- * operation will time out with an error if the specified absolute time has
- * passed.
+ * atomically once the channel is ready for it. If 'timeout' is specified, the
+ * operation will time out with an error after the specified time has passed.
  */
 int
 sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,

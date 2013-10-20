@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <time.h>
+
 #include <pthread.h>
 
 /*
@@ -165,6 +167,7 @@ int
 sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 		int *wantwrite, void *write_data, const struct timespec *timeout)
 {
+	struct timespec abstime;
 	int status = 0;
 
 	if (! chan)
@@ -172,6 +175,14 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 
 	if ((! wantread) && (! read_data) && (! wantwrite) && (! write_data))
 		return -1;
+
+	if (timeout) {
+		if (clock_gettime(CLOCK_REALTIME, &abstime))
+			return -1;
+
+		abstime.tv_sec += timeout->tv_sec;
+		abstime.tv_nsec += timeout->tv_nsec;
+	}
 
 	pthread_mutex_lock(&chan->lock);
 	while (! status) {
@@ -193,7 +204,7 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 
 		if (timeout)
 			status = pthread_cond_timedwait(&chan->cond, &chan->lock,
-					timeout);
+					&abstime);
 		else
 			status = pthread_cond_wait(&chan->cond, &chan->lock);
 	}
