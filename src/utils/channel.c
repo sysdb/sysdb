@@ -29,6 +29,8 @@
 
 #include <assert.h>
 
+#include <errno.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -170,11 +172,15 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 	struct timespec abstime;
 	int status = 0;
 
-	if (! chan)
+	if (! chan) {
+		errno = EINVAL;
 		return -1;
+	}
 
-	if ((! wantread) && (! read_data) && (! wantwrite) && (! write_data))
+	if ((! wantread) && (! read_data) && (! wantwrite) && (! write_data)) {
+		errno = EINVAL;
 		return -1;
+	}
 
 	if (timeout) {
 		if (clock_gettime(CLOCK_REALTIME, &abstime))
@@ -210,7 +216,11 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 	}
 
 	pthread_mutex_unlock(&chan->lock);
-	return status;
+	if (status) {
+		errno = status;
+		return -1;
+	}
+	return 0;
 } /* sdb_channel_select */
 
 int
