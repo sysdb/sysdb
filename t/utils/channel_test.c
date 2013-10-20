@@ -29,6 +29,7 @@
 #include "libsysdb_test.h"
 
 #include <check.h>
+#include <errno.h>
 #include <limits.h>
 
 #include <stdint.h>
@@ -141,6 +142,28 @@ START_TEST(test_write_read)
 	fail_unless((data == 0xffffff00) || (data == 0x00ffffff),
 			"sdb_channel_read() returned data %x; "
 			"expected: 0xffffff00 || 0x00ffffff", data);
+
+	sdb_channel_destroy(chan);
+}
+END_TEST
+
+START_TEST(test_select)
+{
+	struct timespec ts = { 0, 10 };
+	int check;
+	int data;
+
+	chan = sdb_channel_create(0, 1);
+
+	check = sdb_channel_select(chan, &data, NULL, NULL, NULL, &ts);
+	fail_unless(check == ETIMEDOUT,
+			"sdb_channel_select() = %i; expected: %i (ETIMEDOUT)",
+			check, ETIMEDOUT);
+
+	check = sdb_channel_select(chan, NULL, NULL, &data, NULL, NULL);
+	fail_unless(! check, "sdb_channel_select() = %i; expected: 0", check);
+	check = sdb_channel_select(chan, NULL, NULL, &data, NULL, &ts);
+	fail_unless(! check, "sdb_channel_select() = %i; expected: 0", check);
 
 	sdb_channel_destroy(chan);
 }
@@ -320,6 +343,7 @@ util_channel_suite(void)
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_create);
 	tcase_add_test(tc, test_write_read);
+	tcase_add_test(tc, test_select);
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("integer");
