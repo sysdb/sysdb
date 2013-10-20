@@ -32,6 +32,12 @@
 extern "C" {
 #endif
 
+/* manage a front-end listener loop */
+typedef struct {
+	_Bool do_loop;
+} sdb_fe_loop_t;
+#define SDB_FE_LOOP_INIT { 1 }
+
 /*
  * sdb_fe_socket_t:
  * A front-end socket accepting connections from clients.
@@ -73,14 +79,15 @@ sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address);
 
 /*
  * sdb_fe_sock_listen_and_serve:
- * Listen on the specified socket and serve client requests.
+ * Listen on the specified socket and serve client requests. The loop
+ * terminates on error or when the loop condition turns to false.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock);
+sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -276,7 +276,7 @@ sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address)
 } /* sdb_fe_sock_add_listener */
 
 int
-sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock)
+sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 {
 	sdb_channel_t *chan;
 	fd_set sockets;
@@ -286,7 +286,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock)
 	/* XXX: make the number of threads configurable */
 	pthread_t handler_threads[5];
 
-	if ((! sock) || (! sock->listeners_num))
+	if ((! sock) || (! sock->listeners_num) || (! loop))
 		return -1;
 
 	FD_ZERO(&sockets);
@@ -316,7 +316,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock)
 		pthread_create(&handler_threads[i], /* attr = */ NULL,
 				connection_handler, /* arg = */ chan);
 
-	while (42) {
+	while (loop->do_loop) {
 		fd_set ready = sockets;
 		int n;
 
@@ -363,6 +363,11 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock)
 			}
 		}
 	}
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
+		pthread_cancel(handler_threads[i]);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
+		pthread_join(handler_threads[i], NULL);
 	return 0;
 } /* sdb_fe_sock_listen_and_server */
 
