@@ -30,6 +30,8 @@
 
 #include "core/object.h"
 
+#include <sys/time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -88,6 +90,24 @@ sdb_channel_write(sdb_channel_t *chan, const void *data);
  */
 int
 sdb_channel_read(sdb_channel_t *chan, void *data);
+
+/*
+ * sdb_channel_select:
+ * Wait for a channel to become "ready" for I/O. A channel is considered ready
+ * if it is possible to perform the corresponding I/O operation successfully
+ * *in some thread*. In case 'wantread' or 'read_data' is non-NULL, wait for
+ * data to be available in the channel for reading. In case 'wantwrite' or
+ * 'write_data' is non-NULL, wait for buffer space to be available for writing
+ * to the channel. If non-NULL, the value pointed to by the 'want...'
+ * arguments will be "true" iff the respective operation is ready. If the
+ * '..._data' arguments are non-NULL, the respective operation is executed
+ * atomically once the channel is ready for it. If 'abstime' is specified, the
+ * operation will time out with an error if the specified absolute time has
+ * passed.
+ */
+int
+sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
+		int *wantwrite, void *write_data, const struct timespec *timeout);
 
 #ifdef __cplusplus
 } /* extern "C" */
