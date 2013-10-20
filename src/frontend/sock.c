@@ -1,0 +1,370 @@
+/*
+ * SysDB - src/frontend/sock.c
+ * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "sysdb.h"
+#include "core/error.h"
+#include "frontend/sock.h"
+
+#include "utils/channel.h"
+
+#include <assert.h>
+
+#include <errno.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+#include <unistd.h>
+
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <pthread.h>
+
+/*
+ * private data types
+ */
+
+typedef struct {
+	int fd;
+	struct sockaddr_storage client_addr;
+	socklen_t client_addr_len;
+} connection_t;
+
+typedef struct {
+	char *address;
+	int   type;
+
+	int sock_fd;
+} listener_t;
+
+typedef struct {
+	int type;
+	const char *prefix;
+
+	int (*opener)(listener_t *);
+} fe_listener_impl_t;
+
+struct sdb_fe_socket {
+	listener_t *listeners;
+	size_t listeners_num;
+};
+
+/*
+ * connection management functions
+ */
+
+static int
+open_unix_sock(listener_t *listener)
+{
+	struct sockaddr_un sa;
+	int status;
+
+	listener->sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (listener->sock_fd < 0) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "sock: Failed to open UNIX socket: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	strncpy(sa.sun_path, listener->address + strlen("unix:"),
+			sizeof(sa.sun_path));
+
+	status = bind(listener->sock_fd, (struct sockaddr *)&sa, sizeof(sa));
+	if (status) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "sock: Failed to bind to UNIX socket: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+	return 0;
+} /* open_unix_sock */
+
+/*
+ * private variables
+ */
+
+/* the enum has to be sorted the same as the implementations array
+ * to ensure that the type may be used as index into the array */
+enum {
+	LISTENER_UNIXSOCK = 0,
+};
+static fe_listener_impl_t listener_impls[] = {
+	{ LISTENER_UNIXSOCK, "unix", open_unix_sock },
+};
+
+/*
+ * private helper functions
+ */
+
+static int
+get_type(const char *address)
+{
+	char *sep;
+	size_t len;
+	size_t i;
+
+	sep = strchr(address, (int)':');
+	if (! sep)
+		return -1;
+
+	assert(sep > address);
+	len = (size_t)(sep - address);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(listener_impls); ++i) {
+		fe_listener_impl_t *impl = listener_impls + i;
+
+		if (!strncmp(address, impl->prefix, len)) {
+			assert(impl->type == (int)i);
+			return impl->type;
+		}
+	}
+	return -1;
+} /* get_type */
+
+static void
+listener_destroy(listener_t *listener)
+{
+	if (! listener)
+		return;
+
+	if (listener->sock_fd >= 0)
+		close(listener->sock_fd);
+
+	if (listener->address)
+		free(listener->address);
+} /* listener_destroy */
+
+static listener_t *
+listener_create(sdb_fe_socket_t *sock, const char *address)
+{
+	listener_t *listener;
+	int type;
+
+	type = get_type(address);
+	if (type < 0)
+		return NULL;
+
+	listener = realloc(sock->listeners,
+			sock->listeners_num * sizeof(*sock->listeners));
+	if (! listener)
+		return NULL;
+	sock->listeners = listener;
+	listener = sock->listeners + sock->listeners_num;
+
+	listener->sock_fd = -1;
+	listener->address = strdup(address);
+	if (! listener->address) {
+		listener_destroy(listener);
+		return NULL;
+	}
+	listener->type = type;
+
+	if (listener_impls[type].opener(listener)) {
+		listener_destroy(listener);
+		return NULL;
+	}
+
+	++sock->listeners_num;
+	return listener;
+} /* listener_create */
+
+/*
+ * connection handler functions
+ */
+
+static void *
+connection_handler(void *data)
+{
+	sdb_channel_t *chan = data;
+
+	assert(chan);
+
+	while (42) {
+		connection_t conn;
+
+		sdb_channel_select(chan, NULL, &conn, NULL, NULL, NULL);
+		if (conn.fd < 0)
+			continue;
+
+		if (conn.client_addr.ss_family != AF_UNIX) {
+			sdb_log(SDB_LOG_ERR, "Accepted connection using unexpected "
+					"family type %d", conn.client_addr.ss_family);
+			continue;
+		}
+
+		/* XXX */
+		sdb_log(SDB_LOG_INFO, "Accepted connection on fd=%i\n", conn.fd);
+		close(conn.fd);
+	}
+	return NULL;
+} /* connection_handler */
+
+/*
+ * public API
+ */
+
+sdb_fe_socket_t *
+sdb_fe_sock_create(void)
+{
+	sdb_fe_socket_t *sock;
+
+	sock = calloc(1, sizeof(*sock));
+	if (! sock)
+		return NULL;
+	return sock;
+} /* sdb_fe_sock_create */
+
+void
+sdb_fe_sock_destroy(sdb_fe_socket_t *sock)
+{
+	size_t i;
+
+	if (! sock)
+		return;
+
+	for (i = 0; i < sock->listeners_num; ++i) {
+		listener_destroy(sock->listeners + i);
+	}
+	if (sock->listeners)
+		free(sock->listeners);
+	free(sock);
+} /* sdb_fe_sock_destroy */
+
+int
+sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address)
+{
+	listener_t *listener;
+
+	if ((! sock) || (! address))
+		return -1;
+
+	listener = listener_create(sock, address);
+	if (! listener)
+		return -1;
+	return 0;
+} /* sdb_fe_sock_add_listener */
+
+int
+sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock)
+{
+	sdb_channel_t *chan;
+	fd_set sockets;
+	int max_fd = 0;
+	size_t i;
+
+	/* XXX: make the number of threads configurable */
+	pthread_t handler_threads[5];
+
+	if ((! sock) || (! sock->listeners_num))
+		return -1;
+
+	FD_ZERO(&sockets);
+
+	for (i = 0; i < sock->listeners_num; ++i) {
+		listener_t *listener = sock->listeners + i;
+
+		if (listen(listener->sock_fd, /* backlog = */ 32)) {
+			char buf[1024];
+			sdb_log(SDB_LOG_ERR, "sock: Failed to listen on socket %s: %s",
+					listener->address, sdb_strerror(errno, buf, sizeof(buf)));
+			return -1;
+		}
+
+		FD_SET(listener->sock_fd, &sockets);
+		if (listener->sock_fd > max_fd)
+			max_fd = listener->sock_fd;
+	}
+
+	chan = sdb_channel_create(1024, sizeof(connection_t));
+	if (! chan)
+		return -1;
+
+	memset(&handler_threads, 0, sizeof(handler_threads));
+	/* XXX: error handling */
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
+		pthread_create(&handler_threads[i], /* attr = */ NULL,
+				connection_handler, /* arg = */ chan);
+
+	while (42) {
+		fd_set ready = sockets;
+		int n;
+
+		struct timeval timeout = { 1, 0 }; /* one second */
+
+		errno = 0;
+		n = select(max_fd + 1, &ready, NULL, NULL, &timeout);
+		if (n < 0) {
+			char buf[1024];
+
+			if (errno == EINTR)
+				continue;
+
+			sdb_log(SDB_LOG_ERR, "sock: Failed to monitor sockets: %s",
+					sdb_strerror(errno, buf, sizeof(buf)));
+			return -1;
+		}
+
+		if (! n)
+			continue;
+
+		for (i = 0; i < sock->listeners_num; ++i) {
+			listener_t *listener = sock->listeners + i;
+
+			if (FD_ISSET(listener->sock_fd, &ready)) {
+				connection_t conn;
+
+				memset(&conn, 0, sizeof(conn));
+				conn.client_addr_len = sizeof(conn.client_addr);
+
+				conn.fd = accept(listener->sock_fd,
+						(struct sockaddr *)&conn.client_addr,
+						&conn.client_addr_len);
+
+				if (conn.fd < 0) {
+					char buf[1024];
+					sdb_log(SDB_LOG_ERR, "sock: Failed to accept remote "
+							"connection: %s", sdb_strerror(errno,
+								buf, sizeof(buf)));
+					continue;
+				}
+
+				sdb_channel_write(chan, &conn);
+			}
+		}
+	}
+	return 0;
+} /* sdb_fe_sock_listen_and_server */
+
+/* vim: set tw=78 sw=4 ts=4 noexpandtab : */
+
