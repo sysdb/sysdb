@@ -202,8 +202,10 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 		if (timeout) {
 			struct timespec abstime;
 
-			if (clock_gettime(CLOCK_REALTIME, &abstime))
+			if (clock_gettime(CLOCK_REALTIME, &abstime)) {
+				pthread_mutex_unlock(&chan->lock);
 				return -1;
+			}
 
 			abstime.tv_sec += timeout->tv_sec;
 			abstime.tv_nsec += timeout->tv_nsec;
@@ -214,8 +216,8 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 		else
 			status = pthread_cond_wait(&chan->cond, &chan->lock);
 	}
-
 	pthread_mutex_unlock(&chan->lock);
+
 	if (status) {
 		errno = status;
 		return -1;
