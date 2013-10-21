@@ -108,6 +108,18 @@ int
 sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 		int *wantwrite, void *write_data, const struct timespec *timeout);
 
+/* sdb_channel_shutdown:
+ * Initiate a shutdown of the channel. Any subsequent writes will fail. Read
+ * operations will still be possible until the channel buffer is empty and
+ * then fail as well. Failing operations set errno to EBADF.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_channel_shutdown(sdb_channel_t *chan);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

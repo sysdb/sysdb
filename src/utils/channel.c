@@ -57,6 +57,8 @@ struct sdb_channel {
 	size_t head;
 	size_t tail;
 	_Bool full;
+
+	_Bool shutdown;
 };
 
 /*
@@ -79,7 +81,7 @@ channel_write(sdb_channel_t *chan, const void *data)
 {
 	assert(chan);
 
-	if (chan->full)
+	if (chan->full || chan->shutdown)
 		return -1;
 	else if (! data)
 		return 0;
@@ -199,6 +201,12 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 				break;
 		}
 
+		if (chan->shutdown) {
+			if (read_status)
+				status = EBADF;
+			break;
+		}
+
 		if (timeout) {
 			struct timespec abstime;
 
@@ -257,6 +265,15 @@ sdb_channel_read(sdb_channel_t *chan, void *data)
 	pthread_mutex_unlock(&chan->lock);
 	return status;
 } /* sdb_channel_read */
+
+int
+sdb_channel_shutdown(sdb_channel_t *chan)
+{
+	if (! chan)
+		return -1;
+	chan->shutdown = 1;
+	return 0;
+} /* sdb_channel_shutdown */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
