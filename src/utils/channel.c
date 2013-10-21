@@ -210,6 +210,11 @@ sdb_channel_select(sdb_channel_t *chan, int *wantread, void *read_data,
 			abstime.tv_sec += timeout->tv_sec;
 			abstime.tv_nsec += timeout->tv_nsec;
 
+			if (abstime.tv_nsec > 1000000000) {
+				abstime.tv_nsec -= 1000000000;
+				abstime.tv_sec += 1;
+			}
+
 			status = pthread_cond_timedwait(&chan->cond, &chan->lock,
 					&abstime);
 		}
