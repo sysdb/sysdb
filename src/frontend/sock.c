@@ -211,14 +211,30 @@ connection_handler(void *data)
 	assert(chan);
 
 	while (42) {
+		struct timespec timeout = { 0, 500000000 }; /* .5 seconds */
 		connection_t conn;
+		int status;
 
-		sdb_channel_select(chan, NULL, &conn, NULL, NULL, NULL);
+		errno = 0;
+		status = sdb_channel_select(chan, NULL, &conn, NULL, NULL, &timeout);
+		if (status) {
+			char buf[1024];
+
+			if (errno == ETIMEDOUT)
+				continue;
+			if (errno == EBADF) /* channel shut down */
+				break;
+
+			sdb_log(SDB_LOG_ERR, "sock: Failed to read from channel: %s",
+					sdb_strerror(errno, buf, sizeof(buf)));
+			continue;
+		}
+
 		if (conn.fd < 0)
 			continue;
 
 		if (conn.client_addr.ss_family != AF_UNIX) {
-			sdb_log(SDB_LOG_ERR, "Accepted connection using unexpected "
+			sdb_log(SDB_LOG_ERR, "sock: Accepted connection using unexpected "
 					"family type %d", conn.client_addr.ss_family);
 			continue;
 		}
@@ -364,10 +380,12 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		}
 	}
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
-		pthread_cancel(handler_threads[i]);
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
-		pthread_join(handler_threads[i], NULL);
+	sdb_log(SDB_LOG_INFO, "sock: Waiting for connection handler threads "
+			"to terminate");
+	if (! sdb_channel_shutdown(chan))
+		for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
+			pthread_join(handler_threads[i], NULL);
+	/* else: we tried our best; let the operating system clean up */
 	return 0;
 } /* sdb_fe_sock_listen_and_server */
 
