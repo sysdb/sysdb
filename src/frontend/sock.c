@@ -90,8 +90,8 @@ open_unix_sock(listener_t *listener)
 	listener->sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listener->sock_fd < 0) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to open UNIX socket: %s",
-				sdb_strerror(errno, buf, sizeof(buf)));
+		sdb_log(SDB_LOG_ERR, "sock: Failed to open UNIX socket %s: %s",
+				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
 
@@ -103,8 +103,8 @@ open_unix_sock(listener_t *listener)
 	status = bind(listener->sock_fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (status) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to bind to UNIX socket: %s",
-				sdb_strerror(errno, buf, sizeof(buf)));
+		sdb_log(SDB_LOG_ERR, "sock: Failed to bind to UNIX socket %s: %s",
+				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
 	return 0;
@@ -172,25 +172,37 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	int type;
 
 	type = get_type(address);
-	if (type < 0)
+	if (type < 0) {
+		sdb_log(SDB_LOG_ERR, "sock: Unsupported address type specified "
+				"in listen address '%s'", address);
 		return NULL;
+	}
 
 	listener = realloc(sock->listeners,
 			sock->listeners_num * sizeof(*sock->listeners));
-	if (! listener)
+	if (! listener) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "sock: Failed to allocate memory: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
 		return NULL;
+	}
+
 	sock->listeners = listener;
 	listener = sock->listeners + sock->listeners_num;
 
 	listener->sock_fd = -1;
 	listener->address = strdup(address);
 	if (! listener->address) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "sock: Failed to allocate memory: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
 		listener_destroy(listener);
 		return NULL;
 	}
 	listener->type = type;
 
 	if (listener_impls[type].opener(listener)) {
+		/* prints error */
 		listener_destroy(listener);
 		return NULL;
 	}
