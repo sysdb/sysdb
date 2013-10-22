@@ -90,7 +90,7 @@ open_unix_sock(listener_t *listener)
 	listener->sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listener->sock_fd < 0) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to open UNIX socket %s: %s",
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to open UNIX socket %s: %s",
 				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
@@ -103,7 +103,7 @@ open_unix_sock(listener_t *listener)
 	status = bind(listener->sock_fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (status) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to bind to UNIX socket %s: %s",
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to bind to UNIX socket %s: %s",
 				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
@@ -173,7 +173,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 
 	type = get_type(address);
 	if (type < 0) {
-		sdb_log(SDB_LOG_ERR, "sock: Unsupported address type specified "
+		sdb_log(SDB_LOG_ERR, "frontend: Unsupported address type specified "
 				"in listen address '%s'", address);
 		return NULL;
 	}
@@ -182,7 +182,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 			sock->listeners_num * sizeof(*sock->listeners));
 	if (! listener) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to allocate memory: %s",
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate memory: %s",
 				sdb_strerror(errno, buf, sizeof(buf)));
 		return NULL;
 	}
@@ -194,7 +194,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	listener->address = strdup(address);
 	if (! listener->address) {
 		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "sock: Failed to allocate memory: %s",
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate memory: %s",
 				sdb_strerror(errno, buf, sizeof(buf)));
 		listener_destroy(listener);
 		return NULL;
@@ -237,7 +237,7 @@ connection_handler(void *data)
 			if (errno == EBADF) /* channel shut down */
 				break;
 
-			sdb_log(SDB_LOG_ERR, "sock: Failed to read from channel: %s",
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to read from channel: %s",
 					sdb_strerror(errno, buf, sizeof(buf)));
 			continue;
 		}
@@ -246,13 +246,14 @@ connection_handler(void *data)
 			continue;
 
 		if (conn.client_addr.ss_family != AF_UNIX) {
-			sdb_log(SDB_LOG_ERR, "sock: Accepted connection using unexpected "
-					"family type %d", conn.client_addr.ss_family);
+			sdb_log(SDB_LOG_ERR, "frontend: Accepted connection using "
+					"unexpected family type %d", conn.client_addr.ss_family);
 			continue;
 		}
 
 		/* XXX */
-		sdb_log(SDB_LOG_INFO, "Accepted connection on fd=%i\n", conn.fd);
+		sdb_log(SDB_LOG_INFO, "frontend: Accepted connection on fd=%i\n",
+				conn.fd);
 		close(conn.fd);
 	}
 	return NULL;
@@ -324,7 +325,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		if (listen(listener->sock_fd, /* backlog = */ 32)) {
 			char buf[1024];
-			sdb_log(SDB_LOG_ERR, "sock: Failed to listen on socket %s: %s",
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
 					listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 			return -1;
 		}
@@ -358,7 +359,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 			if (errno == EINTR)
 				continue;
 
-			sdb_log(SDB_LOG_ERR, "sock: Failed to monitor sockets: %s",
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to monitor sockets: %s",
 					sdb_strerror(errno, buf, sizeof(buf)));
 			return -1;
 		}
@@ -381,7 +382,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 				if (conn.fd < 0) {
 					char buf[1024];
-					sdb_log(SDB_LOG_ERR, "sock: Failed to accept remote "
+					sdb_log(SDB_LOG_ERR, "frontend: Failed to accept remote "
 							"connection: %s", sdb_strerror(errno,
 								buf, sizeof(buf)));
 					continue;
@@ -392,7 +393,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		}
 	}
 
-	sdb_log(SDB_LOG_INFO, "sock: Waiting for connection handler threads "
+	sdb_log(SDB_LOG_INFO, "frontend: Waiting for connection handler threads "
 			"to terminate");
 	if (! sdb_channel_shutdown(chan))
 		for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
