@@ -36,6 +36,10 @@
 #include "liboconfig/utils.h"
 
 #include <assert.h>
+#include <errno.h>
+
+#include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 
 /*
@@ -88,6 +92,13 @@ config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
 } /* config_get_interval */
 
 /*
+ * public parse results
+ */
+
+char **listen_addresses = NULL;
+size_t listen_addresses_num = 0;
+
+/*
  * token parser
  */
 
@@ -95,6 +106,41 @@ typedef struct {
 	char *name;
 	int (*dispatcher)(oconfig_item_t *);
 } token_parser_t;
+
+static int
+daemon_add_listener(oconfig_item_t *ci)
+{
+	char **tmp;
+	char *address;
+
+	if (oconfig_get_string(ci, &address)) {
+		sdb_log(SDB_LOG_ERR, "config: Listen requires a single "
+				"string argument\n"
+				"\tUsage: Listen ADDRESS");
+		return ERR_INVALID_ARG;
+	}
+
+	tmp = realloc(listen_addresses,
+			(listen_addresses_num + 1) * sizeof(*listen_addresses));
+	if (! tmp) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "config: Failed to allocate memory: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+
+	tmp[listen_addresses_num] = strdup(address);
+	if (! tmp[listen_addresses_num]) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "config: Failed to allocate memory: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+
+	listen_addresses = tmp;
+	++listen_addresses_num;
+	return 0;
+} /* daemon_add_listener */
 
 static int
 daemon_set_interval(oconfig_item_t *ci)
@@ -187,6 +233,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 } /* daemon_configure_backend */
 
 static token_parser_t token_parser_list[] = {
+	{ "Listen", daemon_add_listener },
 	{ "Interval", daemon_set_interval },
 	{ "LoadPlugin", daemon_load_plugin },
 	{ "LoadBackend", daemon_load_backend },

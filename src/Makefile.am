@@ -3,6 +3,7 @@ SUBDIRS = liboconfig
 AM_CFLAGS = @STRICT_CFLAGS@
 AM_CPPFLAGS  = -Iinclude
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
+AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
 BUILT_SOURCES = include/sysdb.h

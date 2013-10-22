@@ -29,6 +29,13 @@
 #define DAEMON_CONFIG_H 1
 
 /*
+ * parse result values
+ */
+
+extern char **listen_addresses;
+extern size_t listen_addresses_num;
+
+/*
  * daemon_parse_config:
  * Parse the specified configuration file.
  *
