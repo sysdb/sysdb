@@ -273,10 +273,16 @@ main(int argc, char **argv)
 
 		sdb_fe_socket_t *sock = sdb_fe_sock_create();
 		for (i = 0; i < listen_addresses_num; ++i)
-			sdb_fe_sock_add_listener(sock, listen_addresses[i]);
-		sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+				break;
 
+		/* break on error */
+		if (i >= listen_addresses_num)
+			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+
+		plugin_main_loop.do_loop = 0;
 		pthread_join(backend_thread, NULL);
+		sdb_fe_sock_destroy(sock);
 	}
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
