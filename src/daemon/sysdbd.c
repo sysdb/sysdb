@@ -77,7 +77,6 @@ static char *default_listen_addresses[] = {
 static void
 sigintterm_handler(int __attribute__((unused)) signo)
 {
-	plugin_main_loop.do_loop = 0;
 	frontend_main_loop.do_loop = 0;
 } /* sigintterm_handler */
 
@@ -280,6 +279,7 @@ main(int argc, char **argv)
 		if (i >= listen_addresses_num)
 			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
 
+		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
 		plugin_main_loop.do_loop = 0;
 		pthread_join(backend_thread, NULL);
 		sdb_fe_sock_destroy(sock);
