@@ -292,6 +292,7 @@ connection_destroy(sdb_object_t *obj)
 	assert(obj);
 	conn = &CONN(obj)->conn;
 
+	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i", conn->fd);
 	close(conn->fd);
 	conn->fd = -1;
 } /* connection_destroy */
@@ -363,9 +364,21 @@ connection_handler(void *data)
 			continue;
 		}
 
-		/* XXX */
-		sdb_log(SDB_LOG_INFO, "frontend: Data available on connection fd=%i\n",
-				conn->conn.fd);
+		status = connection_read(conn->conn.fd);
+		if (status <= 0) {
+			/* error or EOF → close connection */
+			sdb_object_deref(SDB_OBJ(conn));
+		}
+		else {
+			if (sdb_llist_append(sock->open_connections, SDB_OBJ(conn))) {
+				sdb_log(SDB_LOG_ERR, "frontend: Failed to re-append "
+						"connection %s to list of open connections",
+						SDB_OBJ(conn)->name);
+			}
+
+			/* pass ownership back to list; or destroy in case of an error */
+			sdb_object_deref(SDB_OBJ(conn));
+		}
 	}
 	return NULL;
 } /* connection_handler */
@@ -561,7 +574,6 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 						CONN(obj)->conn.fd);
 
 			if (FD_ISSET(CONN(obj)->conn.fd, &ready)) {
-				sdb_log(SDB_LOG_INFO, "Data on fd %d", CONN(obj)->conn.fd);
 				sdb_llist_iter_remove_current(iter);
 				sdb_channel_write(sock->chan, &obj);
 			}
