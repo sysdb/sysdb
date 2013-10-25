@@ -337,12 +337,12 @@ connection_handler(void *data)
 } /* connection_handler */
 
 static int
-accept_connection(sdb_fe_socket_t *sock, listener_t *listener)
+connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 {
 	sdb_object_t *obj;
 
-	/* the X's will be replaced with the accepted file descriptor
-	 * when initializing the object */
+	/* the placeholder will be replaced with the accepted file
+	 * descriptor when initializing the object */
 	obj = sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
 			connection_type, listener->sock_fd);
 	if (! obj)
@@ -359,7 +359,7 @@ accept_connection(sdb_fe_socket_t *sock, listener_t *listener)
 	/* hand ownership over to the list */
 	sdb_object_deref(obj);
 	return 0;
-} /* accept_connection */
+} /* connection_accept */
 
 /*
  * public API
@@ -509,7 +509,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		for (i = 0; i < sock->listeners_num; ++i) {
 			listener_t *listener = sock->listeners + i;
 			if (FD_ISSET(listener->sock_fd, &ready))
-				if (accept_connection(sock, listener))
+				if (connection_accept(sock, listener))
 					continue;
 		}
 
