@@ -324,6 +324,31 @@ connection_handler(void *data)
 	return NULL;
 } /* connection_handler */
 
+static int
+accept_connection(sdb_fe_socket_t *sock, listener_t *listener)
+{
+	sdb_object_t *obj;
+
+	/* the X's will be replaced with the accepted file descriptor
+	 * when initializing the object */
+	obj = sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
+			connection_type, listener->sock_fd);
+	if (! obj)
+		return -1;
+
+	if (sdb_llist_append(sock->open_connections, obj)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to append "
+				"connection %s to list of open connections",
+				obj->name);
+		sdb_object_deref(obj);
+		return -1;
+	}
+
+	/* hand ownership over to the list */
+	sdb_object_deref(obj);
+	return 0;
+} /* accept_connection */
+
 /*
  * public API
  */
@@ -471,28 +496,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		for (i = 0; i < sock->listeners_num; ++i) {
 			listener_t *listener = sock->listeners + i;
-
-			if (FD_ISSET(listener->sock_fd, &ready)) {
-				sdb_object_t *obj;
-
-				/* the X's will be replaced with the accepted file descriptor
-				 * when initializing the object */
-				obj = sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
-						connection_type, listener->sock_fd);
-				if (! obj)
+			if (FD_ISSET(listener->sock_fd, &ready))
+				if (accept_connection(sock, listener))
 					continue;
-
-				if (sdb_llist_append(sock->open_connections, obj)) {
-					sdb_log(SDB_LOG_ERR, "frontend: Failed to append "
-							"connection %s to list of open connections",
-							obj->name);
-					sdb_object_deref(obj);
-					continue;
-				}
-
-				/* hand ownership over to the list */
-				sdb_object_deref(obj);
-			}
 		}
 
 		iter = sdb_llist_get_iter(sock->open_connections);
