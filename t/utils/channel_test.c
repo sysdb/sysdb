@@ -155,10 +155,13 @@ START_TEST(test_select)
 
 	chan = sdb_channel_create(0, 1);
 
+	errno = 0;
 	check = sdb_channel_select(chan, &data, NULL, NULL, NULL, &ts);
-	fail_unless(check == ETIMEDOUT,
-			"sdb_channel_select() = %i; expected: %i (ETIMEDOUT)",
-			check, ETIMEDOUT);
+	fail_unless(check < ETIMEDOUT,
+			"sdb_channel_select() = %i; expected: <0", check);
+	fail_unless(errno == ETIMEDOUT,
+			"sdb_channel_select() set errno to %i; expected: %i (ETIMEDOUT)",
+			errno, ETIMEDOUT);
 
 	check = sdb_channel_select(chan, NULL, NULL, &data, NULL, NULL);
 	fail_unless(! check, "sdb_channel_select() = %i; expected: 0", check);
