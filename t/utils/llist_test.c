@@ -233,6 +233,41 @@ START_TEST(test_sdb_llist_iter)
 }
 END_TEST
 
+START_TEST(test_sdb_llist_iter_remove)
+{
+	sdb_llist_iter_t *iter;
+	sdb_object_t *check;
+	size_t i;
+
+	populate();
+
+	iter = sdb_llist_get_iter(list);
+	fail_unless(iter != NULL,
+			"sdb_llist_get_iter() did not return an iterator");
+
+	i = 0;
+	while (sdb_llist_iter_has_next(iter)) {
+		check = sdb_llist_iter_get_next(iter);
+		fail_unless(check == &golden_data[i],
+				"sdb_llist_iter_get_next() = %p; expected: %p",
+				check, &golden_data[i]);
+
+		sdb_llist_iter_remove_current(iter);
+		++i;
+	}
+	sdb_llist_iter_destroy(iter);
+
+	fail_unless(i == (size_t)SDB_STATIC_ARRAY_LEN(golden_data),
+			"iterated for %zu steps; expected: %i",
+			i, SDB_STATIC_ARRAY_LEN(golden_data));
+
+	/* all elements should be removed */
+	check = sdb_llist_shift(list);
+	fail_unless(check == NULL,
+			"sdb_llist_shift() = %p; expected: NULL", check);
+}
+END_TEST
+
 Suite *
 util_llist_suite(void)
 {
@@ -249,6 +284,7 @@ util_llist_suite(void)
 	tcase_add_test(tc, test_sdb_llist_search);
 	tcase_add_test(tc, test_sdb_llist_shift);
 	tcase_add_test(tc, test_sdb_llist_iter);
+	tcase_add_test(tc, test_sdb_llist_iter_remove);
 	suite_add_tcase(s, tc);
 
 	return s;

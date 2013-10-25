@@ -173,7 +173,8 @@ sdb_llist_remove(sdb_llist_t *list,
 sdb_object_t *
 sdb_llist_shift(sdb_llist_t *list);
 
-/* sdb_llist_get_iter, sdb_llist_iter_has_next, sdb_llist_iter_get_next:
+/*
+ * sdb_llist_get_iter, sdb_llist_iter_has_next, sdb_llist_iter_get_next:
  * Iterate through the list, element by element.
  *
  * sdb_llist_iter_get_next returns NULL if there is no next element.
@@ -187,6 +188,20 @@ _Bool
 sdb_llist_iter_has_next(sdb_llist_iter_t *iter);
 sdb_object_t *
 sdb_llist_iter_get_next(sdb_llist_iter_t *iter);
+
+/*
+ * sdb_llist_iter_remove_current:
+ * Remove the current object from the list, that is, the object which was
+ * returned by the last call to sdb_llist_iter_get_next().
+ *
+ * This operation is not safe if another iterator is in use at the same time.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_llist_iter_remove_current(sdb_llist_iter_t *iter);
 
 #ifdef __cplusplus
 } /* extern "C" */

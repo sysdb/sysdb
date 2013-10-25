@@ -434,5 +434,29 @@ sdb_llist_iter_get_next(sdb_llist_iter_t *iter)
 	return obj;
 } /* sdb_llist_iter_get_next */
 
+int
+sdb_llist_iter_remove_current(sdb_llist_iter_t *iter)
+{
+	sdb_llist_elem_t *elem;
+
+	if ((! iter) || (! iter->list))
+		return -1;
+
+	pthread_rwlock_wrlock(&iter->list->lock);
+
+	if (! iter->elem) /* reached end of list */
+		elem = iter->list->tail;
+	else
+		elem = iter->elem->prev;
+	if (elem)
+		sdb_llist_remove_elem(iter->list, elem);
+
+	pthread_rwlock_unlock(&iter->list->lock);
+
+	if (! elem)
+		return -1;
+	return 0;
+} /* sdb_llist_iter_remove */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
