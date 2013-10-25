@@ -366,7 +366,7 @@ connection_handler(void *data)
 
 		status = connection_read(conn->conn.fd);
 		if (status <= 0) {
-			/* error or EOF → close connection */
+			/* error or EOF -> close connection */
 			sdb_object_deref(SDB_OBJ(conn));
 		}
 		else {
