@@ -43,6 +43,8 @@
 
 #include <unistd.h>
 
+#include <fcntl.h>
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
@@ -235,6 +237,7 @@ connection_init(sdb_object_t *obj, va_list ap)
 {
 	connection_t *conn;
 	int sock_fd;
+	int sock_fl;
 
 	assert(obj);
 	conn = &CONN(obj)->conn;
@@ -259,7 +262,16 @@ connection_init(sdb_object_t *obj, va_list ap)
 		return -1;
 	}
 
-	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i\n",
+	sock_fl = fcntl(conn->fd, F_GETFL);
+	if (fcntl(conn->fd, F_SETFL, sock_fl | O_NONBLOCK)) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to switch connection conn#%i "
+				"to non-blocking mode: %s", conn->fd,
+				sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+
+	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i",
 			conn->fd);
 
 	/* update the object name */
