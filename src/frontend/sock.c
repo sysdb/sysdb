@@ -451,6 +451,43 @@ connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 	return 0;
 } /* connection_accept */
 
+static int
+socket_handle_incoming(sdb_fe_socket_t *sock,
+		fd_set *ready, fd_set *exceptions)
+{
+	sdb_llist_iter_t *iter;
+	size_t i;
+
+	for (i = 0; i < sock->listeners_num; ++i) {
+		listener_t *listener = sock->listeners + i;
+		if (FD_ISSET(listener->sock_fd, ready))
+			if (connection_accept(sock, listener))
+				continue;
+	}
+
+	iter = sdb_llist_get_iter(sock->open_connections);
+	if (! iter) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to acquire iterator "
+				"for open connections");
+		return -1;
+	}
+
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+
+		if (FD_ISSET(CONN(obj)->conn.fd, exceptions))
+			sdb_log(SDB_LOG_INFO, "Exception on fd %d",
+					CONN(obj)->conn.fd);
+
+		if (FD_ISSET(CONN(obj)->conn.fd, ready)) {
+			sdb_llist_iter_remove_current(iter);
+			sdb_channel_write(sock->chan, &obj);
+		}
+	}
+	sdb_llist_iter_destroy(iter);
+	return 0;
+} /* socket_handle_incoming */
+
 /*
  * public API
  */
@@ -546,20 +583,18 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 				connection_handler, /* arg = */ sock);
 
 	while (loop->do_loop) {
-		fd_set ready;
-		fd_set exceptions;
-		int max_fd;
-		int n;
-
 		struct timeval timeout = { 1, 0 }; /* one second */
 		sdb_llist_iter_t *iter;
+
+		int max_fd = max_listen_fd;
+		fd_set ready;
+		fd_set exceptions;
+		int n;
 
 		FD_ZERO(&ready);
 		FD_ZERO(&exceptions);
 
 		ready = sockets;
-
-		max_fd = max_listen_fd;
 
 		iter = sdb_llist_get_iter(sock->open_connections);
 		if (! iter) {
@@ -590,37 +625,12 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 					sdb_strerror(errno, buf, sizeof(buf)));
 			break;
 		}
-
-		if (! n)
+		else if (! n)
 			continue;
 
-		for (i = 0; i < sock->listeners_num; ++i) {
-			listener_t *listener = sock->listeners + i;
-			if (FD_ISSET(listener->sock_fd, &ready))
-				if (connection_accept(sock, listener))
-					continue;
-		}
-
-		iter = sdb_llist_get_iter(sock->open_connections);
-		if (! iter) {
-			sdb_log(SDB_LOG_ERR, "frontend: Failed to acquire iterator "
-					"for open connections");
+		/* handle new and open connections */
+		if (socket_handle_incoming(sock, &ready, &exceptions))
 			break;
-		}
-
-		while (sdb_llist_iter_has_next(iter)) {
-			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-
-			if (FD_ISSET(CONN(obj)->conn.fd, &exceptions))
-				sdb_log(SDB_LOG_INFO, "Exception on fd %d",
-						CONN(obj)->conn.fd);
-
-			if (FD_ISSET(CONN(obj)->conn.fd, &ready)) {
-				sdb_llist_iter_remove_current(iter);
-				sdb_channel_write(sock->chan, &obj);
-			}
-		}
-		sdb_llist_iter_destroy(iter);
 	}
 
 	socket_close(sock);
