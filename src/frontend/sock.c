@@ -238,6 +238,12 @@ listener_listen(listener_t *listener)
 {
 	assert(listener);
 
+	/* try to reopen */
+	if (listener->sock_fd < 0)
+		if (listener_impls[listener->type].opener(listener))
+			return -1;
+	assert(listener->sock_fd >= 0);
+
 	if (listen(listener->sock_fd, /* backlog = */ 32)) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
