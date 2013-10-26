@@ -259,6 +259,16 @@ listener_close(listener_t *listener)
 	listener->sock_fd = -1;
 } /* listener_close */
 
+static void
+socket_close(sdb_fe_socket_t *sock)
+{
+	size_t i;
+
+	assert(sock);
+	for (i = 0; i < sock->listeners_num; ++i)
+		listener_close(sock->listeners + i);
+} /* socket_close */
+
 /*
  * private data types
  */
@@ -500,19 +510,17 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	/* XXX: make the number of threads configurable */
 	pthread_t handler_threads[5];
 
-	if ((! sock) || (! sock->listeners_num) || (! loop))
-		return -1;
-
-	if (sock->chan)
+	if ((! sock) || (! sock->listeners_num) || (! loop) || sock->chan)
 		return -1;
 
 	FD_ZERO(&sockets);
-
 	for (i = 0; i < sock->listeners_num; ++i) {
 		listener_t *listener = sock->listeners + i;
 
-		if (listener_listen(listener))
+		if (listener_listen(listener)) {
+			socket_close(sock);
 			return -1;
+		}
 
 		FD_SET(listener->sock_fd, &sockets);
 		if (listener->sock_fd > max_listen_fd)
@@ -520,8 +528,10 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	}
 
 	sock->chan = sdb_channel_create(1024, sizeof(connection_obj_t *));
-	if (! sock->chan)
+	if (! sock->chan) {
+		socket_close(sock);
 		return -1;
+	}
 
 	memset(&handler_threads, 0, sizeof(handler_threads));
 	/* XXX: error handling */
@@ -607,8 +617,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		sdb_llist_iter_destroy(iter);
 	}
 
-	for (i = 0; i < sock->listeners_num; ++i)
-		listener_close(sock->listeners + i);
+	socket_close(sock);
 
 	sdb_log(SDB_LOG_INFO, "frontend: Waiting for connection handler threads "
 			"to terminate");
