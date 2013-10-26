@@ -476,6 +476,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	if ((! sock) || (! sock->listeners_num) || (! loop))
 		return -1;
 
+	if (sock->chan)
+		return -1;
+
 	FD_ZERO(&sockets);
 
 	for (i = 0; i < sock->listeners_num; ++i) {
@@ -523,7 +526,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		if (! iter) {
 			sdb_log(SDB_LOG_ERR, "frontend: Failed to acquire iterator "
 					"for open connections");
-			return -1;
+			break;
 		}
 
 		while (sdb_llist_iter_has_next(iter)) {
@@ -546,7 +549,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 			sdb_log(SDB_LOG_ERR, "frontend: Failed to monitor sockets: %s",
 					sdb_strerror(errno, buf, sizeof(buf)));
-			return -1;
+			break;
 		}
 
 		if (! n)
@@ -563,7 +566,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		if (! iter) {
 			sdb_log(SDB_LOG_ERR, "frontend: Failed to acquire iterator "
 					"for open connections");
-			return -1;
+			break;
 		}
 
 		while (sdb_llist_iter_has_next(iter)) {
@@ -587,6 +590,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
 			pthread_join(handler_threads[i], NULL);
 	/* else: we tried our best; let the operating system clean up */
+
+	sdb_channel_destroy(sock->chan);
+	sock->chan = NULL;
 	return 0;
 } /* sdb_fe_sock_listen_and_server */
 
