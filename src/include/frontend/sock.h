@@ -80,7 +80,8 @@ sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address);
 /*
  * sdb_fe_sock_listen_and_serve:
  * Listen on the specified socket and serve client requests. The loop
- * terminates on error or when the loop condition turns to false.
+ * terminates on error or when the loop condition turns to false. All
+ * listening sockets will be closed at that time.
  *
  * Returns:
  *  - 0 on success

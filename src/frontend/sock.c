@@ -181,6 +181,7 @@ listener_destroy(listener_t *listener)
 
 	if (listener->sock_fd >= 0)
 		close(listener->sock_fd);
+	listener->sock_fd = -1;
 
 	if (listener->address)
 		free(listener->address);
@@ -231,6 +232,32 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	++sock->listeners_num;
 	return listener;
 } /* listener_create */
+
+static int
+listener_listen(listener_t *listener)
+{
+	assert(listener);
+
+	if (listen(listener->sock_fd, /* backlog = */ 32)) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
+				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+	return 0;
+} /* listener_listen */
+
+static void
+listener_close(listener_t *listener)
+{
+	assert(listener);
+
+	if (listener->sock_fd < 0)
+		return;
+
+	close(listener->sock_fd);
+	listener->sock_fd = -1;
+} /* listener_close */
 
 /*
  * private data types
@@ -484,12 +511,8 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	for (i = 0; i < sock->listeners_num; ++i) {
 		listener_t *listener = sock->listeners + i;
 
-		if (listen(listener->sock_fd, /* backlog = */ 32)) {
-			char buf[1024];
-			sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
-					listener->address, sdb_strerror(errno, buf, sizeof(buf)));
+		if (listener_listen(listener))
 			return -1;
-		}
 
 		FD_SET(listener->sock_fd, &sockets);
 		if (listener->sock_fd > max_listen_fd)
@@ -583,6 +606,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		}
 		sdb_llist_iter_destroy(iter);
 	}
+
+	for (i = 0; i < sock->listeners_num; ++i)
+		listener_close(sock->listeners + i);
 
 	sdb_log(SDB_LOG_INFO, "frontend: Waiting for connection handler threads "
 			"to terminate");
