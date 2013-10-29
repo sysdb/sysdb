@@ -112,6 +112,19 @@ ssize_t
 sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n);
 
 /*
+ * sdb_strbuf_read:
+ * Read from an open file-descriptor and append the data to the buffer. The
+ * function does not handle *any* read errors. This allows for more
+ * flexibility for the caller regarding the handling of EAGAIN or EWOULDBLOCK.
+ *
+ * Returns:
+ *  - the number of bytes read (zero on EOF)
+ *  - a negative value on error
+ */
+ssize_t
+sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n);
+
+/*
  * sdb_strbuf_chomp:
  * Remove all consecutive newline characters from the end of the string buffer
  * content.

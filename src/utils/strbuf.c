@@ -34,6 +34,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <unistd.h>
+
 /*
  * private data structures
  */
@@ -232,6 +234,18 @@ sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n)
 
 	return sdb_strbuf_memappend(strbuf, data, n);
 } /* sdb_strbuf_memcpy */
+
+ssize_t
+sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n)
+{
+	if (! strbuf)
+		return -1;
+
+	if (strbuf_resize(strbuf, strbuf->pos + n + 1))
+		return -1;
+
+	return read(fd, strbuf->string + strbuf->pos, n);
+} /* sdb_strbuf_read */
 
 ssize_t
 sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
