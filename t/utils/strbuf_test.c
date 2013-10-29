@@ -179,6 +179,95 @@ END_TEST
 
 static struct {
 	const char *input;
+	size_t size;
+} mem_golden_data[] = {
+	{ "abc\0\x10\x42", 6 },
+	{ "\0\1\2\3\4", 5 },
+	{ "\n\n\0\n\n", 5 },
+	{ "", 0 },
+};
+
+START_TEST(test_sdb_strbuf_memcpy)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mem_golden_data); ++i) {
+		ssize_t n;
+		const char *check;
+
+		n = sdb_strbuf_memcpy(buf, mem_golden_data[i].input,
+				mem_golden_data[i].size);
+		fail_unless(n >= 0,
+				"sdb_strbuf_memcpy() = %zi; expected: >=0", n);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_memcpy() = %zi; expected: %zu",
+				n, mem_golden_data[i].size);
+
+		n = (ssize_t)sdb_strbuf_len(buf);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_len() = %zu (after memcpy); expected: %zu",
+				n, mem_golden_data[i].size);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(check != NULL,
+				"sdb_strbuf_string() = NULL (after memcpy); expected: data");
+		fail_unless(check[mem_golden_data[i].size] == '\0',
+				"sdb_strbuf_memcpy() did not nil-terminate the data");
+		fail_unless(!memcmp(check, mem_golden_data[i].input,
+					mem_golden_data[i].size),
+				"sdb_strbuf_memcpy() did not set the buffer correctly");
+	}
+}
+END_TEST
+
+START_TEST(test_sdb_strbuf_memappend)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mem_golden_data); ++i) {
+		ssize_t n;
+		const char *check;
+
+		size_t total, j;
+
+		n = sdb_strbuf_memappend(buf, mem_golden_data[i].input,
+				mem_golden_data[i].size);
+		fail_unless(n >= 0,
+				"sdb_strbuf_memappend() = %zi; expected: >=0", n);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_memappend() = %zi; expected: %zu",
+				n, mem_golden_data[i].size);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(check != NULL,
+				"sdb_strbuf_string() = NULL (after memappend); "
+				"expected: data");
+
+		n = (ssize_t)sdb_strbuf_len(buf);
+		total = 0;
+		for (j = 0; j <= i; ++j) {
+			fail_unless(total + mem_golden_data[j].size <= (size_t)n,
+					"sdb_strbuf_len() = %zu (after memappend); "
+					"expected: >=%zu", n, total + mem_golden_data[j].size);
+
+			fail_unless(!memcmp(check + total, mem_golden_data[j].input,
+						mem_golden_data[j].size),
+					"sdb_strbuf_memappend() did not "
+					"set the buffer correctly");
+			total += mem_golden_data[j].size;
+		}
+		fail_unless((size_t)n == total,
+				"sdb_strbuf_len() = %zu (after memappend); expected: %zu",
+				n, total);
+
+		fail_unless(check[total] == '\0',
+				"sdb_strbuf_memappend() did not nil-terminate the data");
+	}
+}
+END_TEST
+
+static struct {
+	const char *input;
 	ssize_t expected;
 	const char *expected_string;
 } chomp_golden_data[] = {
@@ -278,6 +367,8 @@ util_strbuf_suite(void)
 	tcase_add_test(tc, test_sdb_strbuf_create);
 	tcase_add_test(tc, test_sdb_strbuf_append);
 	tcase_add_test(tc, test_sdb_strbuf_sprintf);
+	tcase_add_test(tc, test_sdb_strbuf_memcpy);
+	tcase_add_test(tc, test_sdb_strbuf_memappend);
 	tcase_add_test(tc, test_sdb_strbuf_chomp);
 	tcase_add_test(tc, test_sdb_strbuf_string);
 	tcase_add_test(tc, test_sdb_strbuf_len);

@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 /*
  * private data structures
@@ -187,6 +188,50 @@ sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
 
 	return status;
 } /* sdb_strbuf_sprintf */
+
+ssize_t
+sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n)
+{
+	if ((! strbuf) || (! data))
+		return -1;
+
+	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
+
+	if (strbuf->pos + n + 1 >= strbuf->size) {
+		size_t newsize = strbuf->size * 2;
+
+		if (! newsize)
+			newsize = 64;
+		while (strbuf->pos + n + 1 >= newsize)
+			newsize *= 2;
+
+		if (strbuf_resize(strbuf, newsize))
+			return -1;
+	}
+
+	assert(strbuf->size && strbuf->string);
+	assert(strbuf->pos < strbuf->size);
+
+	memcpy((void *)(strbuf->string + strbuf->pos), data, n);
+	strbuf->pos += n;
+	strbuf->string[strbuf->pos] = '\0';
+
+	return (ssize_t)n;
+} /* sdb_strbuf_memappend */
+
+ssize_t
+sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n)
+{
+	if ((! strbuf) || (! data))
+		return -1;
+
+	if (strbuf->size) {
+		strbuf->string[0] = '\0';
+		strbuf->pos = 0;
+	}
+
+	return sdb_strbuf_memappend(strbuf, data, n);
+} /* sdb_strbuf_memcpy */
 
 ssize_t
 sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
