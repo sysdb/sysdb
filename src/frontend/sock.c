@@ -62,14 +62,11 @@
  */
 
 typedef struct {
+	sdb_object_t super;
+
 	int fd;
 	struct sockaddr_storage client_addr;
 	socklen_t client_addr_len;
-} connection_t;
-
-typedef struct {
-	sdb_object_t super;
-	connection_t conn;
 } connection_obj_t;
 #define CONN(obj) ((connection_obj_t *)(obj))
 
@@ -282,12 +279,12 @@ socket_close(sdb_fe_socket_t *sock)
 static int
 connection_init(sdb_object_t *obj, va_list ap)
 {
-	connection_t *conn;
+	connection_obj_t *conn;
 	int sock_fd;
 	int sock_fl;
 
 	assert(obj);
-	conn = &CONN(obj)->conn;
+	conn = CONN(obj);
 
 	sock_fd = va_arg(ap, int);
 
@@ -330,10 +327,10 @@ connection_init(sdb_object_t *obj, va_list ap)
 static void
 connection_destroy(sdb_object_t *obj)
 {
-	connection_t *conn;
+	connection_obj_t *conn;
 
 	assert(obj);
-	conn = &CONN(obj)->conn;
+	conn = CONN(obj);
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i", conn->fd);
 	close(conn->fd);
@@ -407,7 +404,7 @@ connection_handler(void *data)
 			continue;
 		}
 
-		status = connection_read(conn->conn.fd);
+		status = connection_read(conn->fd);
 		if (status <= 0) {
 			/* error or EOF -> close connection */
 			sdb_object_deref(SDB_OBJ(conn));
@@ -475,11 +472,11 @@ socket_handle_incoming(sdb_fe_socket_t *sock,
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (FD_ISSET(CONN(obj)->conn.fd, exceptions))
+		if (FD_ISSET(CONN(obj)->fd, exceptions))
 			sdb_log(SDB_LOG_INFO, "Exception on fd %d",
-					CONN(obj)->conn.fd);
+					CONN(obj)->fd);
 
-		if (FD_ISSET(CONN(obj)->conn.fd, ready)) {
+		if (FD_ISSET(CONN(obj)->fd, ready)) {
 			sdb_llist_iter_remove_current(iter);
 			sdb_channel_write(sock->chan, &obj);
 		}
@@ -605,11 +602,11 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		while (sdb_llist_iter_has_next(iter)) {
 			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-			FD_SET(CONN(obj)->conn.fd, &ready);
-			FD_SET(CONN(obj)->conn.fd, &exceptions);
+			FD_SET(CONN(obj)->fd, &ready);
+			FD_SET(CONN(obj)->fd, &exceptions);
 
-			if (CONN(obj)->conn.fd > max_fd)
-				max_fd = CONN(obj)->conn.fd;
+			if (CONN(obj)->fd > max_fd)
+				max_fd = CONN(obj)->fd;
 		}
 		sdb_llist_iter_destroy(iter);
 
