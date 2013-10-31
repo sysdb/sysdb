@@ -308,14 +308,15 @@ END_TEST
 static struct {
 	size_t n;
 	const char *expected;
+	size_t expected_len;
 } skip_golden_data[] = {
-	{ 0, "1234567890" },
-	{ 1, "234567890" },
-	{ 2, "34567890" },
-	{ 9, "0" },
-	{ 10, "" },
-	{ 11, "" },
-	{ 100, "" },
+	{ 0, "1234567890", 10 },
+	{ 1, "234567890", 9 },
+	{ 2, "34567890", 8 },
+	{ 9, "0", 1 },
+	{ 10, "", 0 },
+	{ 11, "", 0 },
+	{ 100, "", 0 },
 };
 
 START_TEST(test_sdb_strbuf_skip)
@@ -325,13 +326,22 @@ START_TEST(test_sdb_strbuf_skip)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(skip_golden_data); ++i) {
 		const char *check;
+		size_t n;
 
 		sdb_strbuf_sprintf(buf, input);
 		sdb_strbuf_skip(buf, skip_golden_data[i].n);
 
+		n = sdb_strbuf_len(buf);
+		fail_unless(n == skip_golden_data[i].expected_len,
+				"sdb_strbuf_len() = %zu (after skip); expected: %zu",
+				n, skip_golden_data[i].expected_len);
+
 		check = sdb_strbuf_string(buf);
 		fail_unless(!!check,
 				"sdb_strbuf_string() = NULL (after skip); expected: string");
+
+		fail_unless(check[n] == '\0',
+				"sdb_strbuf_skip() did not nil-terminate the string");
 
 		fail_unless(! strcmp(skip_golden_data[i].expected, check),
 				"sdb_strbuf_skip('%s', %zu) did not skip correctly; "
