@@ -137,6 +137,13 @@ ssize_t
 sdb_strbuf_chomp(sdb_strbuf_t *strbuf);
 
 /*
+ * sdb_strbuf_skip:
+ * Removes the first 'n' bytes from the buffer.
+ */
+void
+sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t n);
+
+/*
  * sdb_strbuf_string:
  * Returns the content of the string buffer. The caller may not modify the
  * string.

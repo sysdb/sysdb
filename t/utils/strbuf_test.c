@@ -304,6 +304,43 @@ START_TEST(test_sdb_strbuf_chomp)
 }
 END_TEST
 
+/* input is "1234567890" */
+static struct {
+	size_t n;
+	const char *expected;
+} skip_golden_data[] = {
+	{ 0, "1234567890" },
+	{ 1, "234567890" },
+	{ 2, "34567890" },
+	{ 9, "0" },
+	{ 10, "" },
+	{ 11, "" },
+	{ 100, "" },
+};
+
+START_TEST(test_sdb_strbuf_skip)
+{
+	const char *input = "1234567890";
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(skip_golden_data); ++i) {
+		const char *check;
+
+		sdb_strbuf_sprintf(buf, input);
+		sdb_strbuf_skip(buf, skip_golden_data[i].n);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(!!check,
+				"sdb_strbuf_string() = NULL (after skip); expected: string");
+
+		fail_unless(! strcmp(skip_golden_data[i].expected, check),
+				"sdb_strbuf_skip('%s', %zu) did not skip correctly; "
+				"got string '%s'; expected: '%s'", input,
+				skip_golden_data[i].n, check, skip_golden_data[i].expected);
+	}
+}
+END_TEST
+
 static struct {
 	const char *input;
 	const char *expected;
@@ -370,6 +407,7 @@ util_strbuf_suite(void)
 	tcase_add_test(tc, test_sdb_strbuf_memcpy);
 	tcase_add_test(tc, test_sdb_strbuf_memappend);
 	tcase_add_test(tc, test_sdb_strbuf_chomp);
+	tcase_add_test(tc, test_sdb_strbuf_skip);
 	tcase_add_test(tc, test_sdb_strbuf_string);
 	tcase_add_test(tc, test_sdb_strbuf_len);
 	suite_add_tcase(s, tc);
