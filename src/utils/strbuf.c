@@ -238,13 +238,18 @@ sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n)
 ssize_t
 sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n)
 {
+	ssize_t ret;
+
 	if (! strbuf)
 		return -1;
 
 	if (strbuf_resize(strbuf, strbuf->pos + n + 1))
 		return -1;
 
-	return read(fd, strbuf->string + strbuf->pos, n);
+	ret = read(fd, strbuf->string + strbuf->pos, n);
+	if (ret > 0)
+		strbuf->pos += (size_t)ret;
+	return ret;
 } /* sdb_strbuf_read */
 
 ssize_t
