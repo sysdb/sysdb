@@ -345,9 +345,15 @@ static void
 connection_destroy(sdb_object_t *obj)
 {
 	connection_obj_t *conn;
+	size_t len;
 
 	assert(obj);
 	conn = CONN(obj);
+
+	len = sdb_strbuf_len(conn->buf);
+	if (len)
+		sdb_log(SDB_LOG_INFO, "frontend: Discarding incomplete command "
+				"(%zu bytes left in buffer)", len);
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i", conn->fd);
 	close(conn->fd);
