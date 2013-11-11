@@ -28,6 +28,7 @@
 #include "sysdb.h"
 #include "core/error.h"
 #include "core/object.h"
+#include "frontend/connection.h"
 #include "frontend/sock.h"
 
 #include "utils/channel.h"
@@ -36,8 +37,6 @@
 
 #include <assert.h>
 #include <errno.h>
-
-#include <arpa/inet.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,16 +66,10 @@ typedef struct {
 	sdb_object_t super;
 
 	/* connection and client information */
-	int fd;
 	struct sockaddr_storage client_addr;
 	socklen_t client_addr_len;
 
-	/* read buffer */
-	sdb_strbuf_t *buf;
-
-	/* state information for the currently executed command */
-	uint32_t cmd;
-	uint32_t cmd_len;
+	sdb_conn_t conn;
 } connection_obj_t;
 #define CONN(obj) ((connection_obj_t *)(obj))
 
@@ -298,18 +291,18 @@ connection_init(sdb_object_t *obj, va_list ap)
 
 	sock_fd = va_arg(ap, int);
 
-	CONN(obj)->buf = sdb_strbuf_create(/* size = */ 128);
-	if (! CONN(obj)->buf) {
+	CONN(obj)->conn.buf = sdb_strbuf_create(/* size = */ 128);
+	if (! CONN(obj)->conn.buf) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate a read buffer "
 				"for a new remote connection");
 		return -1;
 	}
 
 	conn->client_addr_len = sizeof(conn->client_addr);
-	conn->fd = accept(sock_fd, (struct sockaddr *)&conn->client_addr,
+	conn->conn.fd = accept(sock_fd, (struct sockaddr *)&conn->client_addr,
 			&conn->client_addr_len);
 
-	if (conn->fd < 0) {
+	if (conn->conn.fd < 0) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to accept remote "
 				"connection: %s", sdb_strerror(errno,
@@ -323,21 +316,21 @@ connection_init(sdb_object_t *obj, va_list ap)
 		return -1;
 	}
 
-	sock_fl = fcntl(conn->fd, F_GETFL);
-	if (fcntl(conn->fd, F_SETFL, sock_fl | O_NONBLOCK)) {
+	sock_fl = fcntl(conn->conn.fd, F_GETFL);
+	if (fcntl(conn->conn.fd, F_SETFL, sock_fl | O_NONBLOCK)) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to switch connection conn#%i "
-				"to non-blocking mode: %s", conn->fd,
+				"to non-blocking mode: %s", conn->conn.fd,
 				sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i",
-			conn->fd);
+			conn->conn.fd);
 
 	/* update the object name */
 	snprintf(obj->name + strlen(CONN_FD_PREFIX),
-			strlen(CONN_FD_PLACEHOLDER), "%i", conn->fd);
+			strlen(CONN_FD_PLACEHOLDER), "%i", conn->conn.fd);
 	return 0;
 } /* connection_init */
 
@@ -350,16 +343,17 @@ connection_destroy(sdb_object_t *obj)
 	assert(obj);
 	conn = CONN(obj);
 
-	len = sdb_strbuf_len(conn->buf);
+	len = sdb_strbuf_len(conn->conn.buf);
 	if (len)
 		sdb_log(SDB_LOG_INFO, "frontend: Discarding incomplete command "
 				"(%zu bytes left in buffer)", len);
 
-	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i", conn->fd);
-	close(conn->fd);
-	conn->fd = -1;
+	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i",
+			conn->conn.fd);
+	close(conn->conn.fd);
+	conn->conn.fd = -1;
 
-	sdb_strbuf_destroy(CONN(obj)->buf);
+	sdb_strbuf_destroy(CONN(obj)->conn.buf);
 } /* connection_destroy */
 
 static sdb_type_t connection_type = {
@@ -371,66 +365,6 @@ static sdb_type_t connection_type = {
 /*
  * connection handler functions
  */
-
-static uint32_t
-connection_get_int32(connection_obj_t *conn, size_t offset)
-{
-	const char *data;
-	uint32_t n;
-
-	assert(conn && (sdb_strbuf_len(conn->buf) >= offset + sizeof(uint32_t)));
-
-	data = sdb_strbuf_string(conn->buf);
-	memcpy(&n, data + offset, sizeof(n));
-	n = ntohl(n);
-	return n;
-} /* connection_get_int32 */
-
-static int
-command_handle(connection_obj_t *conn)
-{
-	assert(conn && conn->cmd && conn->cmd_len);
-	/* XXX */
-	sdb_strbuf_skip(conn->buf, conn->cmd_len);
-	return 0;
-} /* command_handle */
-
-/* initialize the connection state information */
-static int
-command_init(connection_obj_t *conn)
-{
-	assert(conn && (! conn->cmd) && (! conn->cmd_len));
-
-	conn->cmd = connection_get_int32(conn, 0);
-	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
-	sdb_strbuf_skip(conn->buf, 2 * sizeof(uint32_t));
-	return 0;
-} /* command_init */
-
-/* returns negative value on error, 0 on EOF, number of octets else */
-static ssize_t
-connection_read(connection_obj_t *conn)
-{
-	ssize_t n = 0;
-
-	while (42) {
-		ssize_t status;
-
-		errno = 0;
-		status = sdb_strbuf_read(conn->buf, conn->fd, 1024);
-		if (status < 0) {
-			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
-				return n;
-			return (int)status;
-		}
-		else if (! status) /* EOF */
-			return n;
-
-		n += status;
-	}
-
-	return n;
-} /* connection_read */
 
 static void *
 connection_handler(void *data)
@@ -460,17 +394,12 @@ connection_handler(void *data)
 			continue;
 		}
 
-		status = (int)connection_read(conn);
+		status = (int)sdb_connection_read(&conn->conn);
 		if (status <= 0) {
 			/* error or EOF -> close connection */
 			sdb_object_deref(SDB_OBJ(conn));
 			continue;
 		}
-
-		if (conn->cmd_len && (sdb_strbuf_len(conn->buf) >= conn->cmd_len))
-			command_handle(conn);
-		else if (sdb_strbuf_len(conn->buf) >= 2 * sizeof(int32_t))
-			command_init(conn);
 
 		/* return the connection to the main loop */
 		if (sdb_llist_append(sock->open_connections, SDB_OBJ(conn))) {
@@ -534,11 +463,11 @@ socket_handle_incoming(sdb_fe_socket_t *sock,
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (FD_ISSET(CONN(obj)->fd, exceptions))
+		if (FD_ISSET(CONN(obj)->conn.fd, exceptions))
 			sdb_log(SDB_LOG_INFO, "Exception on fd %d",
-					CONN(obj)->fd);
+					CONN(obj)->conn.fd);
 
-		if (FD_ISSET(CONN(obj)->fd, ready)) {
+		if (FD_ISSET(CONN(obj)->conn.fd, ready)) {
 			sdb_llist_iter_remove_current(iter);
 			sdb_channel_write(sock->chan, &obj);
 		}
@@ -664,11 +593,11 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		while (sdb_llist_iter_has_next(iter)) {
 			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-			FD_SET(CONN(obj)->fd, &ready);
-			FD_SET(CONN(obj)->fd, &exceptions);
+			FD_SET(CONN(obj)->conn.fd, &ready);
+			FD_SET(CONN(obj)->conn.fd, &exceptions);
 
-			if (CONN(obj)->fd > max_fd)
-				max_fd = CONN(obj)->fd;
+			if (CONN(obj)->conn.fd > max_fd)
+				max_fd = CONN(obj)->conn.fd;
 		}
 		sdb_llist_iter_destroy(iter);
 
