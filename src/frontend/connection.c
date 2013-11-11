@@ -111,15 +111,17 @@ sdb_connection_read(sdb_conn_t *conn)
 
 	while (42) {
 		ssize_t status = connection_read(conn);
+
+		if ((! conn->cmd) && (! conn->cmd_len)
+				&& (sdb_strbuf_len(conn->buf) >= 2 * sizeof(int32_t)))
+			command_init(conn);
+		if (conn->cmd_len && (sdb_strbuf_len(conn->buf) >= conn->cmd_len))
+			command_handle(conn);
+
 		if (status <= 0)
 			break;
 
 		n += status;
-
-		if (conn->cmd_len && (sdb_strbuf_len(conn->buf) >= conn->cmd_len))
-			command_handle(conn);
-		else if (sdb_strbuf_len(conn->buf) >= 2 * sizeof(int32_t))
-			command_init(conn);
 	}
 	return n;
 } /* sdb_connection_read */
