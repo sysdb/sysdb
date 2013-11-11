@@ -60,6 +60,7 @@ command_handle(sdb_conn_t *conn)
 	assert(conn && conn->cmd && conn->cmd_len);
 	/* XXX */
 	sdb_strbuf_skip(conn->buf, conn->cmd_len);
+	conn->cmd = conn->cmd_len = 0;
 	return 0;
 } /* command_handle */
 
