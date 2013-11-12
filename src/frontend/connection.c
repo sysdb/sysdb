@@ -26,6 +26,7 @@
  */
 
 #include "sysdb.h"
+#include "core/error.h"
 #include "frontend/connection.h"
 #include "utils/strbuf.h"
 
@@ -104,6 +105,49 @@ connection_read(sdb_conn_t *conn)
 /*
  * public API
  */
+
+int
+sdb_connection_init(sdb_conn_t *conn)
+{
+	if (conn->buf) {
+		sdb_log(SDB_LOG_WARNING, "frontend: Attempted to re-initialize "
+				"a frontend connection");
+		return -1;
+	}
+
+	conn->buf = sdb_strbuf_create(/* size = */ 128);
+	if (! conn->buf) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate a read buffer "
+				"for a new connection");
+		sdb_connection_close(conn);
+		return -1;
+	}
+
+	conn->cmd = conn->cmd_len = 0;
+	conn->fd = -1;
+	return 0;
+} /* sdb_connection_init */
+
+void
+sdb_connection_close(sdb_conn_t *conn)
+{
+	size_t len;
+
+	if (conn->buf) {
+		len = sdb_strbuf_len(conn->buf);
+		if (len)
+			sdb_log(SDB_LOG_INFO, "frontend: Discarding incomplete command "
+					"(%zu byte%s left in buffer)", len, len == 1 ? "" : "s");
+	}
+
+	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i",
+			conn->fd);
+	close(conn->fd);
+	conn->fd = -1;
+
+	sdb_strbuf_destroy(conn->buf);
+	conn->buf = NULL;
+} /* sdb_connection_fini */
 
 ssize_t
 sdb_connection_read(sdb_conn_t *conn)

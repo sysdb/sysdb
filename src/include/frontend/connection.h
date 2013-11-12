@@ -50,6 +50,26 @@ typedef struct {
 } sdb_conn_t;
 
 /*
+ * sdb_connection_init:
+ * Initialize an (already allocated) connection. This function allocates and
+ * initialized any attributes. It's an error to call init on an already
+ * initialized object.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_connection_init(sdb_conn_t *conn);
+
+/*
+ * sdb_connection_close:
+ * Close a open connection and deallocate any memory used by its attributes.
+ */
+void
+sdb_connection_close(sdb_conn_t *conn);
+
+/*
  * sdb_connection_read:
  * Read from an open connection until reading would block.
  *

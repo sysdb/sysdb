@@ -291,12 +291,8 @@ connection_init(sdb_object_t *obj, va_list ap)
 
 	sock_fd = va_arg(ap, int);
 
-	CONN(obj)->conn.buf = sdb_strbuf_create(/* size = */ 128);
-	if (! CONN(obj)->conn.buf) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate a read buffer "
-				"for a new remote connection");
+	if (sdb_connection_init(&CONN(obj)->conn))
 		return -1;
-	}
 
 	conn->client_addr_len = sizeof(conn->client_addr);
 	conn->conn.fd = accept(sock_fd, (struct sockaddr *)&conn->client_addr,
@@ -337,23 +333,8 @@ connection_init(sdb_object_t *obj, va_list ap)
 static void
 connection_destroy(sdb_object_t *obj)
 {
-	connection_obj_t *conn;
-	size_t len;
-
 	assert(obj);
-	conn = CONN(obj);
-
-	len = sdb_strbuf_len(conn->conn.buf);
-	if (len)
-		sdb_log(SDB_LOG_INFO, "frontend: Discarding incomplete command "
-				"(%zu byte%s left in buffer)", len, len == 1 ? "" : "s");
-
-	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i",
-			conn->conn.fd);
-	close(conn->conn.fd);
-	conn->conn.fd = -1;
-
-	sdb_strbuf_destroy(CONN(obj)->conn.buf);
+	sdb_connection_close(&CONN(obj)->conn);
 } /* connection_destroy */
 
 static sdb_type_t connection_type = {
