@@ -73,9 +73,15 @@ command_handle(sdb_conn_t *conn)
 			status = sdb_session_start(conn);
 			break;
 		default:
+		{
+			char errbuf[1024];
 			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command");
+			snprintf(errbuf, sizeof(errbuf), "Invalid command %#x", conn->cmd);
+			sdb_connection_send(conn, CONNECTION_ERROR,
+					(uint32_t)(strlen(errbuf) + 1), errbuf);
 			status = -1;
 			break;
+		}
 	}
 
 	/* remove the command from the buffer */
