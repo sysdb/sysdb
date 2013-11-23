@@ -36,6 +36,19 @@
 extern "C" {
 #endif
 
+/* status codes returned to a client */
+typedef enum {
+	CONNECTION_OK = 0,
+	CONNECTION_ERROR
+} sdb_conn_status_t;
+
+/* accepted commands / state of the connection */
+typedef enum {
+	CONNECTION_IDLE = 0,
+	CONNECTION_PING,
+	CONNECTION_STARTUP,
+} sdb_conn_state_t;
+
 /* a generic connection object */
 typedef struct {
 	/* file-descriptor of the open connection */
@@ -47,6 +60,9 @@ typedef struct {
 	/* connection / protocol state information */
 	uint32_t cmd;
 	uint32_t cmd_len;
+
+	/* user information */
+	char *username; /* NULL if the user has not been authenticated */
 } sdb_conn_t;
 
 /*
@@ -79,6 +95,44 @@ sdb_connection_close(sdb_conn_t *conn);
  */
 ssize_t
 sdb_connection_read(sdb_conn_t *conn);
+
+/*
+ * sdb_connection_send:
+ * Send to an open connection.
+ *
+ * Returns:
+ *  - the number of bytes written
+ *  - a negative value on error
+ */
+ssize_t
+sdb_connection_send(sdb_conn_t *conn, uint32_t code,
+		uint32_t msg_len, char *msg);
+
+/*
+ * sdb_connection_ping:
+ * Send back a backend status indicator to the connected client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_connection_ping(sdb_conn_t *conn);
+
+/*
+ * session handling
+ */
+
+/*
+ * sdb_session_start:
+ * Start a new user session on the specified connection.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_session_start(sdb_conn_t *conn);
 
 #ifdef __cplusplus
 } /* extern "C" */

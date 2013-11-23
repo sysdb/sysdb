@@ -58,22 +58,49 @@ connection_get_int32(sdb_conn_t *conn, size_t offset)
 static int
 command_handle(sdb_conn_t *conn)
 {
-	assert(conn && conn->cmd && conn->cmd_len);
-	/* XXX */
-	sdb_strbuf_skip(conn->buf, conn->cmd_len);
-	conn->cmd = conn->cmd_len = 0;
-	return 0;
+	int status = -1;
+
+	assert(conn && (conn->cmd != CONNECTION_IDLE));
+
+	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
+			conn->cmd, conn->cmd_len);
+
+	switch (conn->cmd) {
+		case CONNECTION_PING:
+			status = sdb_connection_ping(conn);
+			break;
+		case CONNECTION_STARTUP:
+			status = sdb_session_start(conn);
+			break;
+		default:
+			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command");
+			status = -1;
+			break;
+	}
+
+	/* remove the command from the buffer */
+	if (conn->cmd_len)
+		sdb_strbuf_skip(conn->buf, conn->cmd_len);
+	conn->cmd = CONNECTION_IDLE;
+	conn->cmd_len = 0;
+	return status;
 } /* command_handle */
 
 /* initialize the connection state information */
 static int
 command_init(sdb_conn_t *conn)
 {
-	assert(conn && (! conn->cmd) && (! conn->cmd_len));
+	size_t len;
+
+	assert(conn && (conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len));
 
 	conn->cmd = connection_get_int32(conn, 0);
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
-	sdb_strbuf_skip(conn->buf, 2 * sizeof(uint32_t));
+
+	len = 2 * sizeof(uint32_t);
+	if (conn->cmd == CONNECTION_IDLE)
+		len += conn->cmd_len;
+	sdb_strbuf_skip(conn->buf, len);
 	return 0;
 } /* command_init */
 
@@ -123,7 +150,8 @@ sdb_connection_init(sdb_conn_t *conn)
 		return -1;
 	}
 
-	conn->cmd = conn->cmd_len = 0;
+	conn->cmd = CONNECTION_IDLE;
+	conn->cmd_len = 0;
 	conn->fd = -1;
 	return 0;
 } /* sdb_connection_init */
@@ -157,10 +185,11 @@ sdb_connection_read(sdb_conn_t *conn)
 	while (42) {
 		ssize_t status = connection_read(conn);
 
-		if ((! conn->cmd) && (! conn->cmd_len)
+		if ((conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len)
 				&& (sdb_strbuf_len(conn->buf) >= 2 * sizeof(int32_t)))
 			command_init(conn);
-		if (conn->cmd_len && (sdb_strbuf_len(conn->buf) >= conn->cmd_len))
+		if ((conn->cmd != CONNECTION_IDLE)
+				&& (sdb_strbuf_len(conn->buf) >= conn->cmd_len))
 			command_handle(conn);
 
 		if (status <= 0)
@@ -170,6 +199,67 @@ sdb_connection_read(sdb_conn_t *conn)
 	}
 	return n;
 } /* sdb_connection_read */
+
+ssize_t
+sdb_connection_send(sdb_conn_t *conn, uint32_t code,
+		uint32_t msg_len, char *msg)
+{
+	size_t len = 2 * sizeof(uint32_t) + msg_len;
+	char buffer[len];
+	char *buf;
+
+	uint32_t tmp;
+
+	if ((! conn) || (conn->fd < 0))
+		return -1;
+
+	tmp = htonl(code);
+	memcpy(buffer, &tmp, sizeof(uint32_t));
+
+	tmp = htonl(msg_len);
+	memcpy(buffer + sizeof(uint32_t), &tmp, sizeof(uint32_t));
+
+	if (msg_len)
+		memcpy(buffer + 2 * sizeof(uint32_t), msg, msg_len);
+
+	buf = buffer;
+	while (len > 0) {
+		ssize_t status;
+
+		/* XXX: use select() */
+
+		errno = 0;
+		status = write(conn->fd, buf, len);
+		if (status < 0) {
+			char errbuf[1024];
+
+			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+				continue;
+			if (errno == EINTR)
+				continue;
+
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
+					"(code: %u, len: %u) to client: %s", code, msg_len,
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			return status;
+		}
+
+		len -= (size_t)status;
+		buf += status;
+	}
+	return (ssize_t)len;
+} /* sdb_connection_send */
+
+int
+sdb_connection_ping(sdb_conn_t *conn)
+{
+	if ((! conn) || (conn->cmd != CONNECTION_PING))
+		return -1;
+
+	/* we're alive */
+	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
+	return 0;
+} /* sdb_connection_ping */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
