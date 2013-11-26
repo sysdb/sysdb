@@ -11,11 +11,23 @@ BUILT_SOURCES = include/sysdb.h
 pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
 pkgcoreinclude_HEADERS = \
+		include/core/data.h \
+		include/core/error.h \
 		include/core/object.h \
-		include/core/plugin.h
+		include/core/plugin.h \
+		include/core/store.h \
+		include/core/time.h
+pkgfeincludedir = $(pkgincludedir)/frontend
+pkgfeinclude_HEADERS = \
+		include/frontend/connection.h \
+		include/frontend/sock.h
 pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
-		include/utils/llist.h
+		include/utils/channel.h \
+		include/utils/dbi.h \
+		include/utils/llist.h \
+		include/utils/strbuf.h \
+		include/utils/unixsock.h
 
 lib_LTLIBRARIES = libsysdb.la
 
