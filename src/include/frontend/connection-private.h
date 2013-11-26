@@ -1,5 +1,5 @@
 /*
- * SysDB - src/frontend/session.c
+ * SysDB - src/include/frontend/connection-private.h
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,27 +25,51 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sysdb.h"
-
-#include "frontend/connection-private.h"
-
 /*
- * public API
+ * private data structures used by frontend modules
  */
 
-int
-sdb_session_start(sdb_conn_t *conn)
-{
-	if ((! conn) || (conn->username))
-		return -1;
+#ifndef SDB_FRONTEND_CONNECTION_PRIVATE_H
+#define SDB_FRONTEND_CONNECTION_PRIVATE_H 1
 
-	if (conn->cmd != CONNECTION_STARTUP)
-		return -1;
+#include "core/object.h"
+#include "utils/strbuf.h"
+#include "frontend/connection.h"
 
-	/* XXX: for now, simply accept all connections */
-	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
-	return 0;
-} /* session_start */
+#include <inttypes.h>
+#include <arpa/inet.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct sdb_conn {
+	sdb_object_t super;
+
+	/* file-descriptor of the open connection */
+	int fd;
+
+	/* connection and client information */
+	struct sockaddr_storage client_addr;
+	socklen_t client_addr_len;
+
+	/* read buffer */
+	sdb_strbuf_t *buf;
+
+	/* connection / protocol state information */
+	uint32_t cmd;
+	uint32_t cmd_len;
+
+	/* user information */
+	char *username; /* NULL if the user has not been authenticated */
+};
+#define CONN(obj) ((sdb_conn_t *)(obj))
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+#endif /* ! SDB_FRONTEND_CONNECTION_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

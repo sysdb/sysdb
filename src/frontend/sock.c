@@ -28,7 +28,7 @@
 #include "sysdb.h"
 #include "core/error.h"
 #include "core/object.h"
-#include "frontend/connection.h"
+#include "frontend/connection-private.h"
 #include "frontend/sock.h"
 
 #include "utils/channel.h"
@@ -44,8 +44,6 @@
 
 #include <unistd.h>
 
-#include <fcntl.h>
-
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
@@ -54,24 +52,9 @@
 
 #include <pthread.h>
 
-/* name of connection objects */
-#define CONN_FD_PREFIX "conn#"
-#define CONN_FD_PLACEHOLDER "XXXXXXX"
-
 /*
  * private data types
  */
-
-typedef struct {
-	sdb_object_t super;
-
-	/* connection and client information */
-	struct sockaddr_storage client_addr;
-	socklen_t client_addr_len;
-
-	sdb_conn_t conn;
-} connection_obj_t;
-#define CONN(obj) ((connection_obj_t *)(obj))
 
 typedef struct {
 	char *address;
@@ -276,74 +259,6 @@ socket_close(sdb_fe_socket_t *sock)
 } /* socket_close */
 
 /*
- * private data types
- */
-
-static int
-connection_init(sdb_object_t *obj, va_list ap)
-{
-	connection_obj_t *conn;
-	int sock_fd;
-	int sock_fl;
-
-	assert(obj);
-	conn = CONN(obj);
-
-	sock_fd = va_arg(ap, int);
-
-	if (sdb_connection_init(&CONN(obj)->conn))
-		return -1;
-
-	conn->client_addr_len = sizeof(conn->client_addr);
-	conn->conn.fd = accept(sock_fd, (struct sockaddr *)&conn->client_addr,
-			&conn->client_addr_len);
-
-	if (conn->conn.fd < 0) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to accept remote "
-				"connection: %s", sdb_strerror(errno,
-					buf, sizeof(buf)));
-		return -1;
-	}
-
-	if (conn->client_addr.ss_family != AF_UNIX) {
-		sdb_log(SDB_LOG_ERR, "frontend: Accepted connection using "
-				"unexpected family type %d", conn->client_addr.ss_family);
-		return -1;
-	}
-
-	sock_fl = fcntl(conn->conn.fd, F_GETFL);
-	if (fcntl(conn->conn.fd, F_SETFL, sock_fl | O_NONBLOCK)) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to switch connection conn#%i "
-				"to non-blocking mode: %s", conn->conn.fd,
-				sdb_strerror(errno, buf, sizeof(buf)));
-		return -1;
-	}
-
-	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i",
-			conn->conn.fd);
-
-	/* update the object name */
-	snprintf(obj->name + strlen(CONN_FD_PREFIX),
-			strlen(CONN_FD_PLACEHOLDER), "%i", conn->conn.fd);
-	return 0;
-} /* connection_init */
-
-static void
-connection_destroy(sdb_object_t *obj)
-{
-	assert(obj);
-	sdb_connection_close(&CONN(obj)->conn);
-} /* connection_destroy */
-
-static sdb_type_t connection_type = {
-	/* size = */ sizeof(connection_obj_t),
-	/* init = */ connection_init,
-	/* destroy = */ connection_destroy,
-};
-
-/*
  * connection handler functions
  */
 
@@ -356,7 +271,7 @@ connection_handler(void *data)
 
 	while (42) {
 		struct timespec timeout = { 0, 500000000 }; /* .5 seconds */
-		connection_obj_t *conn;
+		sdb_conn_t *conn;
 		int status;
 
 		errno = 0;
@@ -375,7 +290,7 @@ connection_handler(void *data)
 			continue;
 		}
 
-		status = (int)sdb_connection_read(&conn->conn);
+		status = (int)sdb_connection_read(conn);
 		if (status <= 0) {
 			/* error or EOF -> close connection */
 			sdb_object_deref(SDB_OBJ(conn));
@@ -399,25 +314,21 @@ static int
 connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 {
 	sdb_object_t *obj;
+	int status;
 
-	/* the placeholder will be replaced with the accepted file
-	 * descriptor when initializing the object */
-	obj = sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
-			connection_type, listener->sock_fd);
+	obj = SDB_OBJ(sdb_connection_accept(listener->sock_fd));
 	if (! obj)
 		return -1;
 
-	if (sdb_llist_append(sock->open_connections, obj)) {
+	status = sdb_llist_append(sock->open_connections, obj);
+	if (status)
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to append "
 				"connection %s to list of open connections",
 				obj->name);
-		sdb_object_deref(obj);
-		return -1;
-	}
 
-	/* hand ownership over to the list */
+	/* hand ownership over to the list; or destroy in case of an error */
 	sdb_object_deref(obj);
-	return 0;
+	return status;
 } /* connection_accept */
 
 static int
@@ -444,11 +355,11 @@ socket_handle_incoming(sdb_fe_socket_t *sock,
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (FD_ISSET(CONN(obj)->conn.fd, exceptions))
+		if (FD_ISSET(CONN(obj)->fd, exceptions))
 			sdb_log(SDB_LOG_INFO, "Exception on fd %d",
-					CONN(obj)->conn.fd);
+					CONN(obj)->fd);
 
-		if (FD_ISSET(CONN(obj)->conn.fd, ready)) {
+		if (FD_ISSET(CONN(obj)->fd, ready)) {
 			sdb_llist_iter_remove_current(iter);
 			sdb_channel_write(sock->chan, &obj);
 		}
@@ -539,7 +450,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 			max_listen_fd = listener->sock_fd;
 	}
 
-	sock->chan = sdb_channel_create(1024, sizeof(connection_obj_t *));
+	sock->chan = sdb_channel_create(1024, sizeof(sdb_conn_t *));
 	if (! sock->chan) {
 		socket_close(sock);
 		return -1;
@@ -574,11 +485,11 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		while (sdb_llist_iter_has_next(iter)) {
 			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-			FD_SET(CONN(obj)->conn.fd, &ready);
-			FD_SET(CONN(obj)->conn.fd, &exceptions);
+			FD_SET(CONN(obj)->fd, &ready);
+			FD_SET(CONN(obj)->fd, &exceptions);
 
-			if (CONN(obj)->conn.fd > max_fd)
-				max_fd = CONN(obj)->conn.fd;
+			if (CONN(obj)->fd > max_fd)
+				max_fd = CONN(obj)->fd;
 		}
 		sdb_llist_iter_destroy(iter);
 

@@ -27,6 +27,7 @@ libsysdb_la_SOURCES = \
 		include/core/data.h \
 		core/error.c include/core/error.h \
 		frontend/connection.c include/frontend/connection.h \
+		include/frontend/connection-private.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		utils/channel.c include/utils/channel.h \

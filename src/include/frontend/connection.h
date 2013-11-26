@@ -49,38 +49,24 @@ typedef enum {
 	CONNECTION_STARTUP,
 } sdb_conn_state_t;
 
-/* a generic connection object */
-typedef struct {
-	/* file-descriptor of the open connection */
-	int fd;
-
-	/* read buffer */
-	sdb_strbuf_t *buf;
-
-	/* connection / protocol state information */
-	uint32_t cmd;
-	uint32_t cmd_len;
-
-	/* user information */
-	char *username; /* NULL if the user has not been authenticated */
-} sdb_conn_t;
+typedef struct sdb_conn sdb_conn_t;
 
 /*
- * sdb_connection_init:
- * Initialize an (already allocated) connection. This function allocates and
- * initialized any attributes. It's an error to call init on an already
- * initialized object.
+ * sdb_connection_accpet:
+ * Accept a new connection on the specified file-descriptor 'fd' and return a
+ * newly allocated connection object.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
-int
-sdb_connection_init(sdb_conn_t *conn);
+sdb_conn_t *
+sdb_connection_accept(int fd);
 
 /*
  * sdb_connection_close:
- * Close a open connection and deallocate any memory used by its attributes.
+ * Close a open connection and deallocate any memory. The connection object is
+ * no longer valid after calling this function.
  */
 void
 sdb_connection_close(sdb_conn_t *conn);
