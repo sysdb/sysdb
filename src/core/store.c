@@ -487,9 +487,11 @@ sdb_store_tojson(sdb_strbuf_t *buf)
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to retrieve attributes: %s\n",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			break;
+			sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
+					"attributes: %s\"}", errbuf);
 		}
 
+		/* has_next returns false if the iterator is NULL */
 		while (sdb_llist_iter_has_next(attr_iter)) {
 			sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(attr_iter));
 			assert(attr);
@@ -512,7 +514,8 @@ sdb_store_tojson(sdb_strbuf_t *buf)
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to retrieve services: %s\n",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			break;
+			sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
+					"services: %s\"}", errbuf);
 		}
 
 		while (sdb_llist_iter_has_next(svc_iter)) {

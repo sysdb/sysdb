@@ -101,7 +101,7 @@ sdb_store_service(const char *hostname, const char *name,
 
 /*
  * sdb_store_tojson:
- * Serialize the entire store to JSON and write the result to the specified
+ * Serialize the entire store to JSON and append the result to the specified
  * buffer.
  *
  * Returns:
