@@ -169,7 +169,7 @@ command_handle(sdb_conn_t *conn)
 			status = sdb_connection_ping(conn);
 			break;
 		case CONNECTION_STARTUP:
-			status = sdb_session_start(conn);
+			status = sdb_fe_session_start(conn);
 			break;
 
 		case CONNECTION_LIST:

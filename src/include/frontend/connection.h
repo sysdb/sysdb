@@ -114,7 +114,7 @@ sdb_connection_ping(sdb_conn_t *conn);
  */
 
 /*
- * sdb_session_start:
+ * sdb_fe_session_start:
  * Start a new user session on the specified connection.
  *
  * Returns:
@@ -122,7 +122,7 @@ sdb_connection_ping(sdb_conn_t *conn);
  *  - a negative value else
  */
 int
-sdb_session_start(sdb_conn_t *conn);
+sdb_fe_session_start(sdb_conn_t *conn);
 
 /*
  * store access

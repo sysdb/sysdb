@@ -34,7 +34,7 @@
  */
 
 int
-sdb_session_start(sdb_conn_t *conn)
+sdb_fe_session_start(sdb_conn_t *conn)
 {
 	if ((! conn) || (conn->username))
 		return -1;
@@ -45,7 +45,7 @@ sdb_session_start(sdb_conn_t *conn)
 	/* XXX: for now, simply accept all connections */
 	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
 	return 0;
-} /* session_start */
+} /* sdb_fe_session_start */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
