@@ -225,8 +225,15 @@ START_TEST(test_incremental)
 	n = sdb_strbuf_append(buf, ".");
 	fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
 
+	/* write more bytes; this should trigger at least one more resize but
+	 * that's an implementation detail */
+	for (i = 0; i < 1024; ++i) {
+		n = sdb_strbuf_append(buf, ".");
+		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+	}
+
 	n = (ssize_t)sdb_strbuf_len(buf);
-	fail_unless(n == 1024, "sdb_strbuf_len() = %zi; expectd: 1024", n);
+	fail_unless(n == 2048, "sdb_strbuf_len() = %zi; expectd: 2048", n);
 }
 END_TEST
 
