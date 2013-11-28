@@ -44,9 +44,13 @@ typedef enum {
 
 /* accepted commands / state of the connection */
 typedef enum {
+	/* connection handling */
 	CONNECTION_IDLE = 0,
 	CONNECTION_PING,
 	CONNECTION_STARTUP,
+
+	/* querying */
+	CONNECTION_LIST,
 } sdb_conn_state_t;
 
 typedef struct sdb_conn sdb_conn_t;
@@ -92,7 +96,7 @@ sdb_connection_read(sdb_conn_t *conn);
  */
 ssize_t
 sdb_connection_send(sdb_conn_t *conn, uint32_t code,
-		uint32_t msg_len, char *msg);
+		uint32_t msg_len, const char *msg);
 
 /*
  * sdb_connection_ping:
@@ -119,6 +123,21 @@ sdb_connection_ping(sdb_conn_t *conn);
  */
 int
 sdb_session_start(sdb_conn_t *conn);
+
+/*
+ * store access
+ */
+
+/*
+ * sdb_fe_list:
+ * Send a complete listing of the store, serialized as JSON, to the client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_fe_list(sdb_conn_t *conn);
 
 #ifdef __cplusplus
 } /* extern "C" */

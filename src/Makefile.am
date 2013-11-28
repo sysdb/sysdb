@@ -42,6 +42,7 @@ libsysdb_la_SOURCES = \
 		include/frontend/connection-private.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
+		frontend/query.c \
 		utils/channel.c include/utils/channel.h \
 		utils/llist.c include/utils/llist.h \
 		utils/strbuf.c include/utils/strbuf.h \

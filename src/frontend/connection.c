@@ -171,6 +171,11 @@ command_handle(sdb_conn_t *conn)
 		case CONNECTION_STARTUP:
 			status = sdb_session_start(conn);
 			break;
+
+		case CONNECTION_LIST:
+			status = sdb_fe_list(conn);
+			break;
+
 		default:
 		{
 			char errbuf[1024];
@@ -281,7 +286,7 @@ sdb_connection_read(sdb_conn_t *conn)
 
 ssize_t
 sdb_connection_send(sdb_conn_t *conn, uint32_t code,
-		uint32_t msg_len, char *msg)
+		uint32_t msg_len, const char *msg)
 {
 	size_t len = 2 * sizeof(uint32_t) + msg_len;
 	char buffer[len];
