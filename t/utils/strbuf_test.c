@@ -207,6 +207,29 @@ START_TEST(test_sdb_strbuf_sprintf)
 }
 END_TEST
 
+START_TEST(test_incremental)
+{
+	ssize_t n;
+	size_t i;
+
+	sdb_strbuf_destroy(buf);
+	buf = sdb_strbuf_create(1024);
+
+	/* fill buffer one by one; leave room for nul-byte */
+	for (i = 0; i < 1023; ++i) {
+		n = sdb_strbuf_append(buf, ".");
+		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+	}
+
+	/* write another byte; this has to trigger a resize */
+	n = sdb_strbuf_append(buf, ".");
+	fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+
+	n = (ssize_t)sdb_strbuf_len(buf);
+	fail_unless(n == 1024, "sdb_strbuf_len() = %zi; expectd: 1024", n);
+}
+END_TEST
+
 static struct {
 	const char *input;
 	size_t size;
@@ -448,6 +471,7 @@ util_strbuf_suite(void)
 	tcase_add_test(tc, test_sdb_strbuf_create);
 	tcase_add_test(tc, test_sdb_strbuf_append);
 	tcase_add_test(tc, test_sdb_strbuf_sprintf);
+	tcase_add_test(tc, test_incremental);
 	tcase_add_test(tc, test_sdb_strbuf_memcpy);
 	tcase_add_test(tc, test_sdb_strbuf_memappend);
 	tcase_add_test(tc, test_sdb_strbuf_chomp);

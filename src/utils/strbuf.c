@@ -119,9 +119,14 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 
 	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
 
-	if (strbuf->pos >= strbuf->size)
+	if (! strbuf->size) {
 		/* use some arbitrary but somewhat reasonable default */
-		if (strbuf_resize(strbuf, strbuf->size ? 2 * strbuf->size : 64))
+		if (strbuf_resize(strbuf, 64))
+			return -1;
+	}
+	/* make sure to reserve space for the nul-byte */
+	else if (strbuf->pos >= strbuf->size - 1)
+		if (strbuf_resize(strbuf, 2 * strbuf->size))
 			return -1;
 
 	assert(strbuf->size && strbuf->string);
@@ -137,8 +142,12 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 		return status;
 	}
 
-	if ((size_t)status >= strbuf->size - strbuf->pos) {
-		strbuf_resize(strbuf, (size_t)status + 1);
+	/* 'status' does not include nul-byte */
+	if ((size_t)status >= strbuf->size - strbuf->pos - 1) {
+		if (strbuf_resize(strbuf, strbuf->size + (size_t)status)) {
+			va_end(aq);
+			return -1;
+		}
 
 		/* reset string and try again */
 		strbuf->string[strbuf->pos] = '\0';
