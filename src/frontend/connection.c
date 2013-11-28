@@ -65,6 +65,12 @@ connection_init(sdb_object_t *obj, va_list ap)
 				"for a new connection");
 		return -1;
 	}
+	conn->errbuf = sdb_strbuf_create(0);
+	if (! conn->errbuf) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate an error buffer "
+				"for a new connection");
+		return -1;
+	}
 
 	conn->client_addr_len = sizeof(conn->client_addr);
 	conn->fd = accept(sock_fd, (struct sockaddr *)&conn->client_addr,
@@ -128,6 +134,8 @@ connection_destroy(sdb_object_t *obj)
 
 	sdb_strbuf_destroy(conn->buf);
 	conn->buf = NULL;
+	sdb_strbuf_destroy(conn->errbuf);
+	conn->errbuf = NULL;
 } /* connection_destroy */
 
 static sdb_type_t connection_type = {
@@ -164,6 +172,9 @@ command_handle(sdb_conn_t *conn)
 	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
 			conn->cmd, conn->cmd_len);
 
+	/* reset */
+	sdb_strbuf_sprintf(conn->errbuf, "");
+
 	switch (conn->cmd) {
 		case CONNECTION_PING:
 			status = sdb_connection_ping(conn);
@@ -178,15 +189,17 @@ command_handle(sdb_conn_t *conn)
 
 		default:
 		{
-			char errbuf[1024];
 			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command");
-			snprintf(errbuf, sizeof(errbuf), "Invalid command %#x", conn->cmd);
-			sdb_connection_send(conn, CONNECTION_ERROR,
-					(uint32_t)(strlen(errbuf) + 1), errbuf);
+			sdb_strbuf_sprintf(conn->errbuf, "Invalid command %#x", conn->cmd);
 			status = -1;
 			break;
 		}
 	}
+
+	if (status)
+		sdb_connection_send(conn, CONNECTION_ERROR,
+				(uint32_t)sdb_strbuf_len(conn->errbuf),
+				sdb_strbuf_string(conn->errbuf));
 
 	/* remove the command from the buffer */
 	if (conn->cmd_len)

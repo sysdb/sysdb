@@ -50,8 +50,7 @@ sdb_fe_list(sdb_conn_t *conn)
 				"buffer to handle LIST command: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 
-		/* XXX: send error message */
-		sdb_connection_send(conn, CONNECTION_ERROR, 0, NULL);
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
 		return -1;
 	}
@@ -59,7 +58,7 @@ sdb_fe_list(sdb_conn_t *conn)
 	if (sdb_store_tojson(buf)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
-		sdb_connection_send(conn, CONNECTION_ERROR, 0, NULL);
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
 		return -1;
 	}

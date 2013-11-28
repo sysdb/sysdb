@@ -60,6 +60,8 @@ struct sdb_conn {
 	uint32_t cmd;
 	uint32_t cmd_len;
 
+	sdb_strbuf_t *errbuf;
+
 	/* user information */
 	char *username; /* NULL if the user has not been authenticated */
 };
