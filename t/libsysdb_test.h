@@ -59,6 +59,10 @@ typedef struct {
  * test suites
  */
 
+/* t/core/object_test */
+Suite *
+core_object_suite(void);
+
 /* t/utils/dbi_test */
 Suite *
 util_dbi_suite(void);

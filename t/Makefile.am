@@ -6,6 +6,7 @@ check_PROGRAMS = libsysdb_test libsysdb_net_test
 
 libsysdb_test_SOURCES = \
 		libsysdb_test.c libsysdb_test.h \
+		core/object_test.c \
 		utils/dbi_test.c \
 		utils/llist_test.c \
 		utils/strbuf_test.c
