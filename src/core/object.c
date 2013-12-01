@@ -85,6 +85,7 @@ sdb_object_vcreate(const char *name, sdb_type_t type, va_list ap)
 	if (! obj)
 		return NULL;
 	memset(obj, 0, type.size);
+	obj->type = type;
 
 	if (name) {
 		obj->name = strdup(name);
@@ -103,7 +104,6 @@ sdb_object_vcreate(const char *name, sdb_type_t type, va_list ap)
 		}
 	}
 
-	obj->type = type;
 	obj->ref_cnt = 1;
 	return obj;
 } /* sdb_object_vcreate */
