@@ -44,4 +44,5 @@ sysdb.h
 # unit testing output
 t/libsysdb_test
 t/libsysdb_net_test
-
+t/*.log
+t/*.trs
