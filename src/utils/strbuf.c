@@ -32,6 +32,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
+
+#include <unistd.h>
 
 /*
  * private data structures
@@ -116,9 +119,14 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 
 	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
 
-	if (strbuf->pos >= strbuf->size)
+	if (! strbuf->size) {
 		/* use some arbitrary but somewhat reasonable default */
-		if (strbuf_resize(strbuf, strbuf->size ? 2 * strbuf->size : 64))
+		if (strbuf_resize(strbuf, 64))
+			return -1;
+	}
+	/* make sure to reserve space for the nul-byte */
+	else if (strbuf->pos >= strbuf->size - 1)
+		if (strbuf_resize(strbuf, 2 * strbuf->size))
 			return -1;
 
 	assert(strbuf->size && strbuf->string);
@@ -134,8 +142,12 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 		return status;
 	}
 
-	if ((size_t)status >= strbuf->size - strbuf->pos) {
-		strbuf_resize(strbuf, (size_t)status + 1);
+	/* 'status' does not include nul-byte */
+	if ((size_t)status >= strbuf->size - strbuf->pos - 1) {
+		if (strbuf_resize(strbuf, strbuf->size + (size_t)status)) {
+			va_end(aq);
+			return -1;
+		}
 
 		/* reset string and try again */
 		strbuf->string[strbuf->pos] = '\0';
@@ -189,6 +201,67 @@ sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
 } /* sdb_strbuf_sprintf */
 
 ssize_t
+sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n)
+{
+	if ((! strbuf) || (! data))
+		return -1;
+
+	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
+
+	if (strbuf->pos + n + 1 >= strbuf->size) {
+		size_t newsize = strbuf->size * 2;
+
+		if (! newsize)
+			newsize = 64;
+		while (strbuf->pos + n + 1 >= newsize)
+			newsize *= 2;
+
+		if (strbuf_resize(strbuf, newsize))
+			return -1;
+	}
+
+	assert(strbuf->size && strbuf->string);
+	assert(strbuf->pos < strbuf->size);
+
+	memcpy((void *)(strbuf->string + strbuf->pos), data, n);
+	strbuf->pos += n;
+	strbuf->string[strbuf->pos] = '\0';
+
+	return (ssize_t)n;
+} /* sdb_strbuf_memappend */
+
+ssize_t
+sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n)
+{
+	if ((! strbuf) || (! data))
+		return -1;
+
+	if (strbuf->size) {
+		strbuf->string[0] = '\0';
+		strbuf->pos = 0;
+	}
+
+	return sdb_strbuf_memappend(strbuf, data, n);
+} /* sdb_strbuf_memcpy */
+
+ssize_t
+sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n)
+{
+	ssize_t ret;
+
+	if (! strbuf)
+		return -1;
+
+	if (strbuf_resize(strbuf, strbuf->pos + n + 1))
+		return -1;
+
+	ret = read(fd, strbuf->string + strbuf->pos, n);
+	if (ret > 0)
+		strbuf->pos += (size_t)ret;
+	return ret;
+} /* sdb_strbuf_read */
+
+ssize_t
 sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
 {
 	ssize_t ret = 0;
@@ -208,6 +281,24 @@ sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
 
 	return ret;
 } /* sdb_strbuf_chomp */
+
+void
+sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t n)
+{
+	if ((! strbuf) || (! n))
+		return;
+
+	if (n >= strbuf->pos) {
+		strbuf->string[0] = '\0';
+		strbuf->pos = 0;
+		return;
+	}
+
+	assert(n < strbuf->pos);
+	memmove(strbuf->string, strbuf->string + n, strbuf->pos - n);
+	strbuf->pos -= n;
+	strbuf->string[strbuf->pos] = '\0';
+} /* sdb_strbuf_skip */
 
 const char *
 sdb_strbuf_string(sdb_strbuf_t *strbuf)

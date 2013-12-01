@@ -37,6 +37,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +95,37 @@ ssize_t
 sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...);
 
 /*
+ * sdb_strbuf_memcpy, sdb_strbuf_memappend:
+ * Copy or a append a memory area to the buffer. These functions do not
+ * interpret any information in the data pointer (including \0 bytes).
+ *
+ * These functions may be used to handle arbitrary byte arrays. Mixing these
+ * function calls with any of the printf-style function works but will usually
+ * lead to arbitrary behavior.
+ *
+ * Returns:
+ *  - the number of bytes written
+ *  - a negative value on error
+ */
+ssize_t
+sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n);
+ssize_t
+sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n);
+
+/*
+ * sdb_strbuf_read:
+ * Read from an open file-descriptor and append the data to the buffer. The
+ * function does not handle *any* read errors. This allows for more
+ * flexibility for the caller regarding the handling of EAGAIN or EWOULDBLOCK.
+ *
+ * Returns:
+ *  - the number of bytes read (zero on EOF)
+ *  - a negative value on error
+ */
+ssize_t
+sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n);
+
+/*
  * sdb_strbuf_chomp:
  * Remove all consecutive newline characters from the end of the string buffer
  * content.
@@ -104,6 +136,13 @@ sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...);
  */
 ssize_t
 sdb_strbuf_chomp(sdb_strbuf_t *strbuf);
+
+/*
+ * sdb_strbuf_skip:
+ * Removes the first 'n' bytes from the buffer.
+ */
+void
+sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t n);
 
 /*
  * sdb_strbuf_string:

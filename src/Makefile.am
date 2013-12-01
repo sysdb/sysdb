@@ -3,6 +3,7 @@ SUBDIRS = liboconfig
 AM_CFLAGS = @STRICT_CFLAGS@
 AM_CPPFLAGS  = -Iinclude
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
+AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
 BUILT_SOURCES = include/sysdb.h
@@ -10,11 +11,23 @@ BUILT_SOURCES = include/sysdb.h
 pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
 pkgcoreinclude_HEADERS = \
+		include/core/data.h \
+		include/core/error.h \
 		include/core/object.h \
-		include/core/plugin.h
+		include/core/plugin.h \
+		include/core/store.h \
+		include/core/time.h
+pkgfeincludedir = $(pkgincludedir)/frontend
+pkgfeinclude_HEADERS = \
+		include/frontend/connection.h \
+		include/frontend/sock.h
 pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
-		include/utils/llist.h
+		include/utils/channel.h \
+		include/utils/dbi.h \
+		include/utils/llist.h \
+		include/utils/strbuf.h \
+		include/utils/unixsock.h
 
 lib_LTLIBRARIES = libsysdb.la
 
@@ -25,6 +38,12 @@ libsysdb_la_SOURCES = \
 		core/store.c include/core/store.h \
 		include/core/data.h \
 		core/error.c include/core/error.h \
+		frontend/connection.c include/frontend/connection.h \
+		include/frontend/connection-private.h \
+		frontend/sock.c include/frontend/sock.h \
+		frontend/session.c \
+		frontend/query.c \
+		utils/channel.c include/utils/channel.h \
 		utils/llist.c include/utils/llist.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		core/time.c include/core/time.h \

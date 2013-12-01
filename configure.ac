@@ -185,8 +185,8 @@ fi
 AC_SUBST([STRICT_CFLAGS])
 
 dnl Testing.
-build_testing="no"
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [build_testing="yes"])
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
+		[build_testing="yes"], [build_testing="no"])
 
 AC_CHECK_HEADERS(libgen.h)
 

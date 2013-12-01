@@ -309,7 +309,10 @@ store_obj(int parent_type, const char *parent_name,
 	}
 
 	/* TODO: only look into direct children? */
-	if (type == SDB_ATTRIBUTE)
+	if (type == SDB_HOST)
+		/* make sure that each host is unique */
+		old = STORE_OBJ(sdb_store_lookup_in_list(obj_list, type, name));
+	else if (type == SDB_ATTRIBUTE)
 		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	else
 		old = STORE_OBJ(sdb_store_lookup_in_list(parent_list, type, name));
@@ -443,11 +446,11 @@ sdb_store_service(const char *hostname, const char *name,
 
 /* TODO: actually support hierarchical data */
 int
-sdb_store_dump(FILE *fh)
+sdb_store_tojson(sdb_strbuf_t *buf)
 {
 	sdb_llist_iter_t *host_iter;
 
-	if (! fh)
+	if (! buf)
 		return -1;
 
 	pthread_rwlock_rdlock(&obj_lock);
@@ -457,6 +460,8 @@ sdb_store_dump(FILE *fh)
 		pthread_rwlock_unlock(&obj_lock);
 		return -1;
 	}
+
+	sdb_strbuf_append(buf, "{\"hosts\":[");
 
 	while (sdb_llist_iter_has_next(host_iter)) {
 		sdb_store_obj_t *host = SDB_STORE_OBJ(sdb_llist_iter_get_next(host_iter));
@@ -472,17 +477,21 @@ sdb_store_dump(FILE *fh)
 			snprintf(time_str, sizeof(time_str), "<error>");
 		time_str[sizeof(time_str) - 1] = '\0';
 
-		fprintf(fh, "Host '%s' (last updated: %s):\n",
+		sdb_strbuf_append(buf, "{\"name\": \"%s\", "
+				"\"last_update\": \"%s\", "
+				"\"attributes\": [",
 				SDB_OBJ(host)->name, time_str);
 
 		attr_iter = sdb_llist_get_iter(host->attributes);
 		if (! attr_iter) {
 			char errbuf[1024];
-			fprintf(fh, "Failed to retrieve attributes: %s\n",
+			sdb_log(SDB_LOG_ERR, "store: Failed to retrieve attributes: %s\n",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			continue;
+			sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
+					"attributes: %s\"}", errbuf);
 		}
 
+		/* has_next returns false if the iterator is NULL */
 		while (sdb_llist_iter_has_next(attr_iter)) {
 			sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(attr_iter));
 			assert(attr);
@@ -492,18 +501,21 @@ sdb_store_dump(FILE *fh)
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
-			fprintf(fh, "\tAttribute '%s' -> '%s' (last updated: %s)\n",
+			sdb_strbuf_append(buf, "{\"name\": \"%s\", "
+					"\"value\": \"%s\", \"last_update\": \"%s\"},",
 					SDB_OBJ(attr)->name, attr->value, time_str);
 		}
 
 		sdb_llist_iter_destroy(attr_iter);
+		sdb_strbuf_append(buf, "], \"services\": [");
 
 		svc_iter = sdb_llist_get_iter(host->children);
 		if (! svc_iter) {
 			char errbuf[1024];
-			fprintf(fh, "Failed to retrieve services: %s\n",
+			sdb_log(SDB_LOG_ERR, "store: Failed to retrieve services: %s\n",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			continue;
+			sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
+					"services: %s\"}", errbuf);
 		}
 
 		while (sdb_llist_iter_has_next(svc_iter)) {
@@ -515,17 +527,21 @@ sdb_store_dump(FILE *fh)
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
-			fprintf(fh, "\tService '%s' (last updated: %s)\n",
+			sdb_strbuf_append(buf, "{\"name\": \"%s\", "
+					"\"last_update\": \"%s\"},",
 					SDB_OBJ(svc)->name, time_str);
 		}
 
 		sdb_llist_iter_destroy(svc_iter);
+		sdb_strbuf_append(buf, "]}");
 	}
+
+	sdb_strbuf_append(buf, "]}");
 
 	sdb_llist_iter_destroy(host_iter);
 	pthread_rwlock_unlock(&obj_lock);
 	return 0;
-} /* sdb_store_dump */
+} /* sdb_store_tojson */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

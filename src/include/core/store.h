@@ -32,6 +32,7 @@
 #include "core/object.h"
 #include "core/time.h"
 #include "utils/llist.h"
+#include "utils/strbuf.h"
 
 #include <stdio.h>
 
@@ -98,8 +99,17 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
+/*
+ * sdb_store_tojson:
+ * Serialize the entire store to JSON and append the result to the specified
+ * buffer.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value on error
+ */
 int
-sdb_store_dump(FILE *fh);
+sdb_store_tojson(sdb_strbuf_t *buf);
 
 #ifdef __cplusplus
 } /* extern "C" */

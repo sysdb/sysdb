@@ -55,6 +55,36 @@ teardown(void)
  * tests
  */
 
+START_TEST(test_empty)
+{
+	sdb_strbuf_t *b = NULL;
+	va_list ap;
+
+	/* check that methods don't crash */
+	sdb_strbuf_destroy(b);
+	sdb_strbuf_skip(b, 0);
+	sdb_strbuf_skip(b, 10);
+
+	/* check that methods return an error */
+	fail_unless(sdb_strbuf_vappend(b, "test", ap) < 0,
+			"sdb_strbuf_vappend(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_append(b, "test") < 0,
+			"sdb_strbuf_append(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_vsprintf(b, "test", ap) < 0,
+			"sdb_strbuf_vsprintf(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_sprintf(b, "test") < 0,
+			"sdb_strbuf_sprintf(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_memcpy(b, "test", 4) < 0,
+			"sdb_strbuf_memcpy(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_memappend(b, "test", 4) < 0,
+			"sdb_strbuf_memappend(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_read(b, 0, 32) < 0,
+			"sdb_strbuf_read(NULL) didn't report failure");
+	fail_unless(sdb_strbuf_chomp(b) < 0,
+			"sdb_strbuf_chomp(NULL) didn't report failure");
+}
+END_TEST
+
 START_TEST(test_sdb_strbuf_create)
 {
 	sdb_strbuf_t *s;
@@ -177,6 +207,125 @@ START_TEST(test_sdb_strbuf_sprintf)
 }
 END_TEST
 
+START_TEST(test_incremental)
+{
+	ssize_t n;
+	size_t i;
+
+	sdb_strbuf_destroy(buf);
+	buf = sdb_strbuf_create(1024);
+
+	/* fill buffer one by one; leave room for nul-byte */
+	for (i = 0; i < 1023; ++i) {
+		n = sdb_strbuf_append(buf, ".");
+		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+	}
+
+	/* write another byte; this has to trigger a resize */
+	n = sdb_strbuf_append(buf, ".");
+	fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+
+	/* write more bytes; this should trigger at least one more resize but
+	 * that's an implementation detail */
+	for (i = 0; i < 1024; ++i) {
+		n = sdb_strbuf_append(buf, ".");
+		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
+	}
+
+	n = (ssize_t)sdb_strbuf_len(buf);
+	fail_unless(n == 2048, "sdb_strbuf_len() = %zi; expectd: 2048", n);
+}
+END_TEST
+
+static struct {
+	const char *input;
+	size_t size;
+} mem_golden_data[] = {
+	{ "abc\0\x10\x42", 6 },
+	{ "\0\1\2\3\4", 5 },
+	{ "\n\n\0\n\n", 5 },
+	{ "", 0 },
+};
+
+START_TEST(test_sdb_strbuf_memcpy)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mem_golden_data); ++i) {
+		ssize_t n;
+		const char *check;
+
+		n = sdb_strbuf_memcpy(buf, mem_golden_data[i].input,
+				mem_golden_data[i].size);
+		fail_unless(n >= 0,
+				"sdb_strbuf_memcpy() = %zi; expected: >=0", n);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_memcpy() = %zi; expected: %zu",
+				n, mem_golden_data[i].size);
+
+		n = (ssize_t)sdb_strbuf_len(buf);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_len() = %zu (after memcpy); expected: %zu",
+				n, mem_golden_data[i].size);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(check != NULL,
+				"sdb_strbuf_string() = NULL (after memcpy); expected: data");
+		fail_unless(check[mem_golden_data[i].size] == '\0',
+				"sdb_strbuf_memcpy() did not nil-terminate the data");
+		fail_unless(!memcmp(check, mem_golden_data[i].input,
+					mem_golden_data[i].size),
+				"sdb_strbuf_memcpy() did not set the buffer correctly");
+	}
+}
+END_TEST
+
+START_TEST(test_sdb_strbuf_memappend)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(mem_golden_data); ++i) {
+		ssize_t n;
+		const char *check;
+
+		size_t total, j;
+
+		n = sdb_strbuf_memappend(buf, mem_golden_data[i].input,
+				mem_golden_data[i].size);
+		fail_unless(n >= 0,
+				"sdb_strbuf_memappend() = %zi; expected: >=0", n);
+		fail_unless((size_t)n == mem_golden_data[i].size,
+				"sdb_strbuf_memappend() = %zi; expected: %zu",
+				n, mem_golden_data[i].size);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(check != NULL,
+				"sdb_strbuf_string() = NULL (after memappend); "
+				"expected: data");
+
+		n = (ssize_t)sdb_strbuf_len(buf);
+		total = 0;
+		for (j = 0; j <= i; ++j) {
+			fail_unless(total + mem_golden_data[j].size <= (size_t)n,
+					"sdb_strbuf_len() = %zu (after memappend); "
+					"expected: >=%zu", n, total + mem_golden_data[j].size);
+
+			fail_unless(!memcmp(check + total, mem_golden_data[j].input,
+						mem_golden_data[j].size),
+					"sdb_strbuf_memappend() did not "
+					"set the buffer correctly");
+			total += mem_golden_data[j].size;
+		}
+		fail_unless((size_t)n == total,
+				"sdb_strbuf_len() = %zu (after memappend); expected: %zu",
+				n, total);
+
+		fail_unless(check[total] == '\0',
+				"sdb_strbuf_memappend() did not nil-terminate the data");
+	}
+}
+END_TEST
+
 static struct {
 	const char *input;
 	ssize_t expected;
@@ -211,6 +360,53 @@ START_TEST(test_sdb_strbuf_chomp)
 				"sdb_strbuf_chomp() did not correctly remove newlines; "
 				"got string '%s'; expected: '%s'", check,
 				chomp_golden_data[i].expected_string);
+	}
+}
+END_TEST
+
+/* input is "1234567890" */
+static struct {
+	size_t n;
+	const char *expected;
+	size_t expected_len;
+} skip_golden_data[] = {
+	{ 0, "1234567890", 10 },
+	{ 1, "234567890", 9 },
+	{ 2, "34567890", 8 },
+	{ 9, "0", 1 },
+	{ 10, "", 0 },
+	{ 11, "", 0 },
+	{ 100, "", 0 },
+};
+
+START_TEST(test_sdb_strbuf_skip)
+{
+	const char *input = "1234567890";
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(skip_golden_data); ++i) {
+		const char *check;
+		size_t n;
+
+		sdb_strbuf_sprintf(buf, input);
+		sdb_strbuf_skip(buf, skip_golden_data[i].n);
+
+		n = sdb_strbuf_len(buf);
+		fail_unless(n == skip_golden_data[i].expected_len,
+				"sdb_strbuf_len() = %zu (after skip); expected: %zu",
+				n, skip_golden_data[i].expected_len);
+
+		check = sdb_strbuf_string(buf);
+		fail_unless(!!check,
+				"sdb_strbuf_string() = NULL (after skip); expected: string");
+
+		fail_unless(check[n] == '\0',
+				"sdb_strbuf_skip() did not nil-terminate the string");
+
+		fail_unless(! strcmp(skip_golden_data[i].expected, check),
+				"sdb_strbuf_skip('%s', %zu) did not skip correctly; "
+				"got string '%s'; expected: '%s'", input,
+				skip_golden_data[i].n, check, skip_golden_data[i].expected);
 	}
 }
 END_TEST
@@ -273,12 +469,20 @@ util_strbuf_suite(void)
 	Suite *s = suite_create("utils::strbuf");
 	TCase *tc;
 
+	tc = tcase_create("empty");
+	tcase_add_test(tc, test_empty);
+	suite_add_tcase(s, tc);
+
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_sdb_strbuf_create);
 	tcase_add_test(tc, test_sdb_strbuf_append);
 	tcase_add_test(tc, test_sdb_strbuf_sprintf);
+	tcase_add_test(tc, test_incremental);
+	tcase_add_test(tc, test_sdb_strbuf_memcpy);
+	tcase_add_test(tc, test_sdb_strbuf_memappend);
 	tcase_add_test(tc, test_sdb_strbuf_chomp);
+	tcase_add_test(tc, test_sdb_strbuf_skip);
 	tcase_add_test(tc, test_sdb_strbuf_string);
 	tcase_add_test(tc, test_sdb_strbuf_len);
 	suite_add_tcase(s, tc);

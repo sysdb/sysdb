@@ -1,6 +1,6 @@
 /*
- * SysDB - src/daemon/config.h
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/frontend/session.c
+ * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,30 +25,27 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAEMON_CONFIG_H
-#define DAEMON_CONFIG_H 1
+#include "sysdb.h"
+
+#include "frontend/connection-private.h"
 
 /*
- * parse result values
+ * public API
  */
 
-extern char **listen_addresses;
-extern size_t listen_addresses_num;
-
-/*
- * daemon_parse_config:
- * Parse the specified configuration file.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value when loading the configuration failed because of errors
- *    in the daemon or libsysdb
- *  - a positive value on parser errors
- */
 int
-daemon_parse_config(const char *filename);
+sdb_fe_session_start(sdb_conn_t *conn)
+{
+	if ((! conn) || (conn->username))
+		return -1;
 
-#endif /* ! DAEMON_CONFIG_H */
+	if (conn->cmd != CONNECTION_STARTUP)
+		return -1;
+
+	/* XXX: for now, simply accept all connections */
+	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
+	return 0;
+} /* sdb_fe_session_start */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

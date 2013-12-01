@@ -38,8 +38,9 @@ main(void)
 
 	suite_creator_t creators[] = {
 		{ core_object_suite, NULL },
-		{ util_llist_suite, NULL },
+		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },
+		{ util_llist_suite, NULL },
 		{ util_strbuf_suite, NULL },
 	};
 

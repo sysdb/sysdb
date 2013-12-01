@@ -1,6 +1,6 @@
 /*
- * SysDB - src/daemon/config.h
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/frontend/query.c
+ * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,30 +25,49 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAEMON_CONFIG_H
-#define DAEMON_CONFIG_H 1
+#include "sysdb.h"
+
+#include "core/error.h"
+#include "core/store.h"
+#include "frontend/connection-private.h"
+#include "utils/strbuf.h"
+
+#include <errno.h>
 
 /*
- * parse result values
+ * public API
  */
 
-extern char **listen_addresses;
-extern size_t listen_addresses_num;
-
-/*
- * daemon_parse_config:
- * Parse the specified configuration file.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value when loading the configuration failed because of errors
- *    in the daemon or libsysdb
- *  - a positive value on parser errors
- */
 int
-daemon_parse_config(const char *filename);
+sdb_fe_list(sdb_conn_t *conn)
+{
+	sdb_strbuf_t *buf;
 
-#endif /* ! DAEMON_CONFIG_H */
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"buffer to handle LIST command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	if (sdb_store_tojson(buf)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+				"store to JSON");
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	sdb_connection_send(conn, CONNECTION_OK,
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	return 0;
+} /* session_start */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

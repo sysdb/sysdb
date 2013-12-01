@@ -41,6 +41,7 @@ struct sdb_llist_iter;
 typedef struct sdb_llist_iter sdb_llist_iter_t;
 
 typedef int (*sdb_llist_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
+typedef int (*sdb_llist_lookup_cb)(const sdb_object_t *, const void *user_data);
 
 /*
  * sdb_llist_create, sdb_llist_destroy:
@@ -120,9 +121,9 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 
 /*
  * sdb_llist_search:
- * Search for a 'key' in the given 'list'. The function will return the first
- * entry that matches the specified 'key'. For that purpose, the 'compare'
- * function is used. It should return 0 iff the two arguments compare equal.
+ * Search for a object in the given 'list'. The function will return the first
+ * entry for which the 'lookup' callback returns 0. The 'user_data' is passed
+ * on to the lookup function on each invocation.
  *
  * Returns:
  *  - a pointer to the first matching object
@@ -130,7 +131,7 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
  */
 sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
-		const sdb_object_t *key, sdb_llist_cmp_cb);
+		sdb_llist_lookup_cb lookup, const void *user_data);
 
 /*
  * sdb_llist_search_by_name:
@@ -146,6 +147,20 @@ sdb_object_t *
 sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
 
 /*
+ * sdb_llist_remove:
+ * Removes and returns the first matchin element of the list. The ref-count of
+ * the item will not be changed, that is, if the element will not be used any
+ * further, it should be de-referenced by the caller.
+ *
+ * Returns:
+ *  - a pointer to the first matching object
+ *  - NULL else
+ */
+sdb_object_t *
+sdb_llist_remove(sdb_llist_t *list,
+		sdb_llist_lookup_cb lookup, const void *user_data);
+
+/*
  * sdb_llist_shift:
  * Removes and returns the first element of the list. The ref-count of the
  * item will not be changed, that is, if the element will not be used any
@@ -158,7 +173,8 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
 sdb_object_t *
 sdb_llist_shift(sdb_llist_t *list);
 
-/* sdb_llist_get_iter, sdb_llist_iter_has_next, sdb_llist_iter_get_next:
+/*
+ * sdb_llist_get_iter, sdb_llist_iter_has_next, sdb_llist_iter_get_next:
  * Iterate through the list, element by element.
  *
  * sdb_llist_iter_get_next returns NULL if there is no next element.
@@ -172,6 +188,20 @@ _Bool
 sdb_llist_iter_has_next(sdb_llist_iter_t *iter);
 sdb_object_t *
 sdb_llist_iter_get_next(sdb_llist_iter_t *iter);
+
+/*
+ * sdb_llist_iter_remove_current:
+ * Remove the current object from the list, that is, the object which was
+ * returned by the last call to sdb_llist_iter_get_next().
+ *
+ * This operation is not safe if another iterator is in use at the same time.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_llist_iter_remove_current(sdb_llist_iter_t *iter);
 
 #ifdef __cplusplus
 } /* extern "C" */

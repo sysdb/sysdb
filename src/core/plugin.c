@@ -103,7 +103,9 @@ typedef struct {
 } sdb_plugin_collector_cb_t;
 
 #define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
+#define SDB_CONST_PLUGIN_CB(obj) ((const sdb_plugin_cb_t *)(obj))
 #define SDB_PLUGIN_CCB(obj) ((sdb_plugin_collector_cb_t *)(obj))
+#define SDB_CONST_PLUGIN_CCB(obj) ((const sdb_plugin_collector_cb_t *)(obj))
 
 /*
  * private variables
@@ -174,6 +176,55 @@ plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 		? 1 : (ccb1->ccb_next_update < ccb2->ccb_next_update)
 		? -1 : 0;
 } /* plugin_cmp_next_update */
+
+static int
+plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
+{
+	const sdb_plugin_cb_t *cb = SDB_CONST_PLUGIN_CB(obj);
+	const char *name = id;
+
+	assert(cb && id && cb->cb_ctx);
+	if (!strcasecmp(cb->cb_ctx->info.plugin_name, name))
+		return 0;
+	return 1;
+} /* plugin_lookup_by_name */
+
+static void
+plugin_unregister_by_name(const char *plugin_name)
+{
+	size_t i;
+
+	struct {
+		const char  *type;
+		sdb_llist_t *list;
+	} all_lists[] = {
+		{ "config",    config_list },
+		{ "init",      init_list },
+		{ "collector", collector_list },
+		{ "cname",     cname_list },
+		{ "shutdown",  shutdown_list },
+		{ "log",       log_list },
+	};
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
+		const char  *type = all_lists[i].type;
+		sdb_llist_t *list = all_lists[i].list;
+
+		while (1) {
+			sdb_object_t *obj = sdb_llist_remove(list,
+					plugin_lookup_by_name, plugin_name);
+			sdb_plugin_cb_t *cb = SDB_PLUGIN_CB(obj);
+
+			if (! obj)
+				break;
+
+			sdb_log(SDB_LOG_INFO, "core: Unregistering "
+					"%s callback '%s' (module %s)", type, obj->name,
+					cb->cb_ctx->info.plugin_name);
+			sdb_object_deref(obj);
+		}
+	}
+} /* plugin_unregister_by_name */
 
 /*
  * private types
@@ -254,7 +305,7 @@ plugin_cb_init(sdb_object_t *obj, va_list ap)
 	assert(obj);
 
 	if (sdb_llist_search_by_name(*list, obj->name)) {
-		sdb_log(SDB_LOG_WARNING, "plugin: %s callback '%s' "
+		sdb_log(SDB_LOG_WARNING, "core: %s callback '%s' "
 				"has already been registered. Ignoring newly "
 				"registered version.", type, obj->name);
 		return -1;
@@ -320,7 +371,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	/* pass control to the list */
 	sdb_object_deref(obj);
 
-	sdb_log(SDB_LOG_INFO, "plugin: Registered %s callback '%s'.",
+	sdb_log(SDB_LOG_INFO, "core: Registered %s callback '%s'.",
 			type, name);
 	return 0;
 } /* plugin_add_callback */
@@ -363,7 +414,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	if (access(filename, R_OK)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to load plugin '%s' (%s): %s",
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s' (%s): %s",
 				name, filename, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -373,18 +424,18 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	lh = lt_dlopen(filename);
 	if (! lh) {
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to load plugin '%s': %s"
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': %s"
 				"The most common cause for this problem are missing "
 				"dependencies.\n", name, lt_dlerror());
 		return -1;
 	}
 
 	if (ctx_get())
-		sdb_log(SDB_LOG_WARNING, "plugin: Discarding old plugin context");
+		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
 
 	ctx = ctx_create();
 	if (! ctx) {
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize plugin context");
+		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
 		return -1;
 	}
 
@@ -396,7 +447,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	mod_init = (int (*)(sdb_plugin_info_t *))lt_dlsym(lh, "sdb_module_init");
 	if (! mod_init) {
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to load plugin '%s': "
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
 				"could not find symbol 'sdb_module_init'", name);
 		sdb_object_deref(SDB_OBJ(ctx));
 		return -1;
@@ -404,8 +455,9 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	status = mod_init(&ctx->info);
 	if (status) {
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to initialize "
-				"plugin '%s'", name);
+		sdb_log(SDB_LOG_ERR, "core: Failed to initialize "
+				"module '%s'", name);
+		plugin_unregister_by_name(ctx->info.plugin_name);
 		sdb_object_deref(SDB_OBJ(ctx));
 		return -1;
 	}
@@ -413,13 +465,13 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	/* compare minor version */
 	if ((ctx->info.version < 0)
 			|| ((int)(ctx->info.version / 100) != (int)(SDB_VERSION / 100)))
-		sdb_log(SDB_LOG_WARNING, "plugin: WARNING: version of "
+		sdb_log(SDB_LOG_WARNING, "core: WARNING: version of "
 				"plugin '%s' (%i.%i.%i) does not match our version "
 				"(%i.%i.%i); this might cause problems",
 				name, SDB_VERSION_DECODE(ctx->info.version),
 				SDB_VERSION_DECODE(SDB_VERSION));
 
-	sdb_log(SDB_LOG_INFO, "plugin: Successfully loaded "
+	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
 			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
 			INFO_GET(&ctx->info, name), ctx->info.plugin_version,
 			INFO_GET(&ctx->info, description),
@@ -574,7 +626,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 
 	if (! (SDB_PLUGIN_CCB(obj)->ccb_next_update = sdb_gettime())) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "plugin: Failed to determine current "
+		sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
 				"time: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		sdb_object_deref(obj);
 		return -1;
@@ -589,7 +641,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	/* pass control to the list */
 	sdb_object_deref(obj);
 
-	sdb_log(SDB_LOG_INFO, "plugin: Registered collector callback '%s' "
+	sdb_log(SDB_LOG_INFO, "core: Registered collector callback '%s' "
 			"(interval = %.3fs).", name,
 			SDB_TIME_TO_DOUBLE(SDB_PLUGIN_CCB(obj)->ccb_interval));
 	return 0;
@@ -602,7 +654,7 @@ sdb_plugin_get_ctx(void)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_plugin_log(SDB_LOG_ERR, "plugin: Invalid read access to plugin "
+		sdb_plugin_log(SDB_LOG_ERR, "core: Invalid read access to plugin "
 				"context outside a plugin");
 		return plugin_default_ctx;
 	}
@@ -616,7 +668,7 @@ sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_plugin_log(SDB_LOG_ERR, "plugin: Invalid write access to plugin "
+		sdb_plugin_log(SDB_LOG_ERR, "core: Invalid write access to plugin "
 				"context outside a plugin");
 		return -1;
 	}
@@ -643,7 +695,7 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(config_list, name));
 	if (! plugin) {
 		/* XXX: check if any such plugin has been loaded */
-		sdb_log(SDB_LOG_ERR, "plugin: Plugin '%s' did not register "
+		sdb_log(SDB_LOG_ERR, "core: Plugin '%s' did not register "
 				"a config callback.", name);
 		errno = ENOENT;
 		return -1;
@@ -660,32 +712,38 @@ int
 sdb_plugin_init_all(void)
 {
 	sdb_llist_iter_t *iter;
+	int ret = 0;
 
 	iter = sdb_llist_get_iter(init_list);
 	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_cb_t *cb;
 		sdb_plugin_init_cb callback;
 		ctx_t *old_ctx;
 
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
+		cb = SDB_PLUGIN_CB(obj);
 
-		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		callback = cb->cb_callback;
 
-		old_ctx = ctx_set(SDB_PLUGIN_CB(obj)->cb_ctx);
-		if (callback(SDB_PLUGIN_CB(obj)->cb_user_data)) {
-			/* XXX: unload plugin */
+		old_ctx = ctx_set(cb->cb_ctx);
+		if (callback(cb->cb_user_data)) {
+			sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin "
+					"'%s'. Unregistering all callbacks.", obj->name);
+			plugin_unregister_by_name(cb->cb_ctx->info.plugin_name);
+			++ret;
 		}
 		ctx_set(old_ctx);
 	}
 	sdb_llist_iter_destroy(iter);
-	return 0;
+	return ret;
 } /* sdb_plugin_init_all */
 
 int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 {
 	if (! collector_list) {
-		sdb_log(SDB_LOG_WARNING, "plugin: No collectors registered. "
+		sdb_log(SDB_LOG_WARNING, "core: No collectors registered. "
 				"Quiting main loop.");
 		return -1;
 	}
@@ -707,8 +765,9 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "plugin: Failed to determine current "
-					"time: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
+					"time in collector main loop: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			now = SDB_PLUGIN_CCB(obj)->ccb_next_update;
 		}
 
@@ -719,7 +778,8 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 			while (loop->do_loop && sdb_sleep(interval, &interval)) {
 				if (errno != EINTR) {
 					char errbuf[1024];
-					sdb_log(SDB_LOG_ERR, "plugin: Failed to sleep: %s",
+					sdb_log(SDB_LOG_ERR, "core: Failed to sleep "
+							"in collector main loop: %s",
 							sdb_strerror(errno, errbuf, sizeof(errbuf)));
 					return -1;
 				}
@@ -740,7 +800,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (! interval)
 			interval = loop->default_interval;
 		if (! interval) {
-			sdb_log(SDB_LOG_WARNING, "plugin: No interval configured "
+			sdb_log(SDB_LOG_WARNING, "core: No interval configured "
 					"for plugin '%s'; skipping any further "
 					"iterations.", obj->name);
 			sdb_object_deref(obj);
@@ -751,13 +811,14 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "plugin: Failed to determine current "
-					"time: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
+					"time in collector main loop: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			now = SDB_PLUGIN_CCB(obj)->ccb_next_update;
 		}
 
 		if (now > SDB_PLUGIN_CCB(obj)->ccb_next_update) {
-			sdb_log(SDB_LOG_WARNING, "plugin: Plugin '%s' took too "
+			sdb_log(SDB_LOG_WARNING, "core: Plugin '%s' took too "
 					"long; skipping iterations to keep up.",
 					obj->name);
 			SDB_PLUGIN_CCB(obj)->ccb_next_update = now;
@@ -765,7 +826,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (sdb_llist_insert_sorted(collector_list, obj,
 					plugin_cmp_next_update)) {
-			sdb_log(SDB_LOG_ERR, "plugin: Failed to re-insert "
+			sdb_log(SDB_LOG_ERR, "core: Failed to re-insert "
 					"plugin '%s' into collector list. Unable to further "
 					"use the plugin.",
 					obj->name);

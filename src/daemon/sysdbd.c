@@ -34,6 +34,8 @@
 #include "core/store.h"
 #include "core/error.h"
 
+#include "frontend/sock.h"
+
 #include "daemon/config.h"
 
 #if HAVE_LIBGEN_H
@@ -55,16 +57,27 @@
 
 #include <unistd.h>
 
+#include <pthread.h>
+
 #ifndef CONFIGFILE
 #	define CONFIGFILE SYSCONFDIR"/sysdb/sysdbd.conf"
 #endif
 
+#ifndef DEFAULT_SOCKET
+#	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
+#endif
+
 static sdb_plugin_loop_t plugin_main_loop = SDB_PLUGIN_LOOP_INIT;
+static sdb_fe_loop_t frontend_main_loop = SDB_FE_LOOP_INIT;
+
+static char *default_listen_addresses[] = {
+	DEFAULT_SOCKET,
+};
 
 static void
 sigintterm_handler(int __attribute__((unused)) signo)
 {
-	plugin_main_loop.do_loop = 0;
+	frontend_main_loop.do_loop = 0;
 } /* sigintterm_handler */
 
 static void
@@ -154,13 +167,23 @@ daemonize(void)
 	return 0;
 } /* daemonize */
 
+static void *
+backend_handler(void __attribute__((unused)) *data)
+{
+	sdb_plugin_collector_loop(&plugin_main_loop);
+	return NULL;
+} /* backend_handler */
+
 int
 main(int argc, char **argv)
 {
 	char *config_filename = NULL;
 	_Bool do_daemonize = 0;
 
+	pthread_t backend_thread;
+
 	struct sigaction sa_intterm;
+	int status;
 
 	while (42) {
 		int opt = getopt(argc, argv, "C:dhV");
@@ -193,9 +216,18 @@ main(int argc, char **argv)
 	if (! config_filename)
 		config_filename = CONFIGFILE;
 
-	if (daemon_parse_config(config_filename)) {
-		sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
+	if ((status = daemon_parse_config(config_filename))) {
+		if (status > 0)
+			sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
+		else
+			sdb_log(SDB_LOG_ERR, "Failed to load configuration file.\n"
+					"\tCheck other error messages for details.");
 		exit(1);
+	}
+
+	if (! listen_addresses) {
+		listen_addresses = default_listen_addresses;
+		listen_addresses_num = SDB_STATIC_ARRAY_LEN(default_listen_addresses);
 	}
 
 	memset(&sa_intterm, 0, sizeof(sa_intterm));
@@ -225,13 +257,36 @@ main(int argc, char **argv)
 
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
-	sdb_plugin_collector_loop(&plugin_main_loop);
+
+	memset(&backend_thread, 0, sizeof(backend_thread));
+	if (pthread_create(&backend_thread, /* attr = */ NULL,
+				backend_handler, /* arg = */ NULL)) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to create backend handler thread: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+
+		plugin_main_loop.do_loop = 0;
+	}
+	else {
+		size_t i;
+
+		sdb_fe_socket_t *sock = sdb_fe_sock_create();
+		for (i = 0; i < listen_addresses_num; ++i)
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+				break;
+
+		/* break on error */
+		if (i >= listen_addresses_num)
+			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+
+		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
+		plugin_main_loop.do_loop = 0;
+		pthread_join(backend_thread, NULL);
+		sdb_fe_sock_destroy(sock);
+	}
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
 			SDB_VERSION_EXTRA" (pid %i)", (int)getpid());
-
-	fprintf(stderr, "Store dump:\n");
-	sdb_store_dump(stderr);
 	return 0;
 } /* main */
 

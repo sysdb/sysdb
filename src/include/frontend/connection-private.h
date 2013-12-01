@@ -1,6 +1,6 @@
 /*
- * SysDB - src/daemon/config.h
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/include/frontend/connection-private.h
+ * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,30 +25,53 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAEMON_CONFIG_H
-#define DAEMON_CONFIG_H 1
-
 /*
- * parse result values
+ * private data structures used by frontend modules
  */
 
-extern char **listen_addresses;
-extern size_t listen_addresses_num;
+#ifndef SDB_FRONTEND_CONNECTION_PRIVATE_H
+#define SDB_FRONTEND_CONNECTION_PRIVATE_H 1
 
-/*
- * daemon_parse_config:
- * Parse the specified configuration file.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value when loading the configuration failed because of errors
- *    in the daemon or libsysdb
- *  - a positive value on parser errors
- */
-int
-daemon_parse_config(const char *filename);
+#include "core/object.h"
+#include "utils/strbuf.h"
+#include "frontend/connection.h"
 
-#endif /* ! DAEMON_CONFIG_H */
+#include <inttypes.h>
+#include <arpa/inet.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct sdb_conn {
+	sdb_object_t super;
+
+	/* file-descriptor of the open connection */
+	int fd;
+
+	/* connection and client information */
+	struct sockaddr_storage client_addr;
+	socklen_t client_addr_len;
+
+	/* read buffer */
+	sdb_strbuf_t *buf;
+
+	/* connection / protocol state information */
+	uint32_t cmd;
+	uint32_t cmd_len;
+
+	sdb_strbuf_t *errbuf;
+
+	/* user information */
+	char *username; /* NULL if the user has not been authenticated */
+};
+#define CONN(obj) ((sdb_conn_t *)(obj))
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+#endif /* ! SDB_FRONTEND_CONNECTION_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
