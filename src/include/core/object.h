@@ -78,7 +78,9 @@ typedef struct {
  *
  * The init function will be called with the remaining arguments passed to
  * sdb_object_create. If the init function fails (returns a non-zero value),
- * the object will be destructed and destroyed.
+ * the object will be destructed and destroyed. In this case, the 'destroy'
+ * callback may be called on objects that were only half-way initialized. The
+ * callback has to handle that case correctly.
  *
  * The reference count of the new object will be 1.
  *
