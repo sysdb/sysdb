@@ -31,6 +31,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include <limits.h>
+
 #include <string.h>
 #include <unistd.h>
 
@@ -93,6 +95,25 @@ sdb_proto_send_msg(int fd, uint32_t code,
 
 	return sdb_proto_send(fd, len, buffer);
 } /* sdb_proto_send_msg */
+
+uint32_t
+sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)
+{
+	const char *data;
+	uint32_t n;
+
+	if (! buf)
+		return UINT32_MAX;
+
+	/* not enough data to read */
+	if (offset + sizeof(uint32_t) < sdb_strbuf_len(buf))
+		return UINT32_MAX;
+
+	data = sdb_strbuf_string(buf);
+	data += offset;
+	memcpy(&n, data, sizeof(n));
+	return ntohl(n);
+} /* sdb_proto_get_int */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

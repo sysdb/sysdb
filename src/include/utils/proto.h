@@ -28,6 +28,8 @@
 #ifndef SDB_UTILS_PROTO_H
 #define SDB_UTILS_PROTO_H 1
 
+#include "utils/strbuf.h"
+
 #include <stdint.h>
 #include <unistd.h>
 
@@ -41,6 +43,9 @@ sdb_proto_send(int fd, size_t msg_len, const char *msg);
 ssize_t
 sdb_proto_send_msg(int fd, uint32_t code,
 		uint32_t msg_len, const char *msg);
+
+uint32_t
+sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset);
 
 #ifdef __cplusplus
 } /* extern "C" */
