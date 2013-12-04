@@ -30,7 +30,18 @@ pkgutilsinclude_HEADERS = \
 		include/utils/strbuf.h \
 		include/utils/unixsock.h
 
-lib_LTLIBRARIES = libsysdb.la
+pkgclientincludedir = $(pkgincludedir)/client
+pkgclientinclude_HEADERS = \
+		include/client/sock.h
+
+lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
+
+libsysdbclient_la_SOURCES = \
+		client/sock.c include/client/sock.h
+libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
+libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
+libsysdbclient_la_LDFLAGS = -version-info 0:0:0 -pthread
+libsysdbclient_la_LIBADD = $(LIBLTDL)
 
 libsysdb_la_SOURCES = \
 		sysdb.c include/sysdb.h \
