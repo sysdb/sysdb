@@ -30,6 +30,7 @@
 #include "core/object.h"
 #include "frontend/connection-private.h"
 #include "utils/strbuf.h"
+#include "utils/proto.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -301,50 +302,20 @@ ssize_t
 sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 		uint32_t msg_len, const char *msg)
 {
-	size_t len = 2 * sizeof(uint32_t) + msg_len;
-	char buffer[len];
-	char *buf;
-
-	uint32_t tmp;
+	ssize_t status;
 
 	if ((! conn) || (conn->fd < 0))
 		return -1;
 
-	tmp = htonl(code);
-	memcpy(buffer, &tmp, sizeof(uint32_t));
+	status = sdb_proto_send_msg(conn->fd, code, msg_len, msg);
+	if (status < 0) {
+		char errbuf[1024];
 
-	tmp = htonl(msg_len);
-	memcpy(buffer + sizeof(uint32_t), &tmp, sizeof(uint32_t));
-
-	if (msg_len)
-		memcpy(buffer + 2 * sizeof(uint32_t), msg, msg_len);
-
-	buf = buffer;
-	while (len > 0) {
-		ssize_t status;
-
-		/* XXX: use select() */
-
-		errno = 0;
-		status = write(conn->fd, buf, len);
-		if (status < 0) {
-			char errbuf[1024];
-
-			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
-				continue;
-			if (errno == EINTR)
-				continue;
-
-			sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
-					"(code: %u, len: %u) to client: %s", code, msg_len,
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			return status;
-		}
-
-		len -= (size_t)status;
-		buf += status;
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
+				"(code: %u, len: %u) to client: %s", code, msg_len,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 	}
-	return (ssize_t)len;
+	return status;
 } /* sdb_connection_send */
 
 int

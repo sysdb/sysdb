@@ -26,6 +26,7 @@ pkgutilsinclude_HEADERS = \
 		include/utils/channel.h \
 		include/utils/dbi.h \
 		include/utils/llist.h \
+		include/utils/proto.h \
 		include/utils/strbuf.h \
 		include/utils/unixsock.h
 
@@ -45,6 +46,7 @@ libsysdb_la_SOURCES = \
 		frontend/query.c \
 		utils/channel.c include/utils/channel.h \
 		utils/llist.c include/utils/llist.h \
+		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		core/time.c include/core/time.h \
 		utils/unixsock.c include/utils/unixsock.h
