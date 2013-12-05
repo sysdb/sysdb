@@ -213,6 +213,10 @@ sdb_client_recv(sdb_client_t *client,
 			break;
 	}
 
+	if (rstatus != UINT32_MAX)
+		/* remove status,len */
+		sdb_strbuf_skip(buf, data_offset, 2 * sizeof(rstatus));
+
 	if (code)
 		*code = rstatus;
 

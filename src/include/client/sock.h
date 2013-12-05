@@ -99,10 +99,13 @@ sdb_client_send(sdb_client_t *client,
  * Receive data from the connection. All data is written to the specified
  * buffer. If specified, the returned status code is written to the memory
  * location pointed to by 'code'. In case of an error or an incomplete
- * command, the status code is set to UINT32_MAX.
+ * command, the status code is set to UINT32_MAX. The returned data does not
+ * include the status code and message len as received from the remote side
+ * but only the data associated with the message.
  *
  * Returns:
  *  - the number of bytes read
+ *    (may be zero if the message did not include any data)
  *  - a negative value on error
  */
 ssize_t
