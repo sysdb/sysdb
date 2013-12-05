@@ -37,7 +37,9 @@ pkgclientinclude_HEADERS = \
 lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
 
 libsysdbclient_la_SOURCES = \
-		client/sock.c include/client/sock.h
+		client/sock.c include/client/sock.h \
+		utils/proto.c include/utils/proto.h \
+		utils/strbuf.c include/utils/strbuf.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdbclient_la_LDFLAGS = -version-info 0:0:0 -pthread
