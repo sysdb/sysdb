@@ -183,11 +183,13 @@ sdb_client_recv(sdb_client_t *client,
 	while (42) {
 		ssize_t status;
 
+		/* XXX: use select */
+
 		errno = 0;
 		status = sdb_strbuf_read(buf, client->fd, req);
 		if (status < 0) {
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
-				break;
+				continue;
 			return status;
 		}
 		else if (! status) /* EOF */
@@ -211,6 +213,12 @@ sdb_client_recv(sdb_client_t *client,
 		}
 		else /* finished reading data */
 			break;
+	}
+
+	if (total != req) {
+		/* unexpected EOF; clear partially read data */
+		sdb_strbuf_skip(buf, data_offset, sdb_strbuf_len(buf));
+		return 0;
 	}
 
 	if (rstatus != UINT32_MAX)
