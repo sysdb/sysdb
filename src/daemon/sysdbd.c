@@ -104,7 +104,7 @@ exit_version(void)
 {
 	printf("SysDBd version "SDB_VERSION_STRING SDB_VERSION_EXTRA", "
 			"built "BUILD_DATE"\n"
-			"using libsysdb verion %s%s\n"
+			"using libsysdb version %s%s\n"
 			"Copyright (C) 2012 "PACKAGE_MAINTAINER"\n"
 
 			"\nThis is free software under the terms of the BSD license, see "
