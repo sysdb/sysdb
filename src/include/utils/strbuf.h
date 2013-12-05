@@ -139,10 +139,10 @@ sdb_strbuf_chomp(sdb_strbuf_t *strbuf);
 
 /*
  * sdb_strbuf_skip:
- * Removes the first 'n' bytes from the buffer.
+ * Removes 'n' bytes from the buffer starting at offset 'offset'.
  */
 void
-sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t n);
+sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n);
 
 /*
  * sdb_strbuf_string:

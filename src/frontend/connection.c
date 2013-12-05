@@ -204,7 +204,7 @@ command_handle(sdb_conn_t *conn)
 
 	/* remove the command from the buffer */
 	if (conn->cmd_len)
-		sdb_strbuf_skip(conn->buf, conn->cmd_len);
+		sdb_strbuf_skip(conn->buf, 0, conn->cmd_len);
 	conn->cmd = CONNECTION_IDLE;
 	conn->cmd_len = 0;
 	return status;
@@ -224,7 +224,7 @@ command_init(sdb_conn_t *conn)
 	len = 2 * sizeof(uint32_t);
 	if (conn->cmd == CONNECTION_IDLE)
 		len += conn->cmd_len;
-	sdb_strbuf_skip(conn->buf, len);
+	sdb_strbuf_skip(conn->buf, 0, len);
 	return 0;
 } /* command_init */
 

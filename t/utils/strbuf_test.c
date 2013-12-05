@@ -62,8 +62,8 @@ START_TEST(test_empty)
 
 	/* check that methods don't crash */
 	sdb_strbuf_destroy(b);
-	sdb_strbuf_skip(b, 0);
-	sdb_strbuf_skip(b, 10);
+	sdb_strbuf_skip(b, 0, 0);
+	sdb_strbuf_skip(b, 0, 10);
 
 	/* check that methods return an error */
 	fail_unless(sdb_strbuf_vappend(b, "test", ap) < 0,
@@ -389,7 +389,7 @@ START_TEST(test_sdb_strbuf_skip)
 		size_t n;
 
 		sdb_strbuf_sprintf(buf, input);
-		sdb_strbuf_skip(buf, skip_golden_data[i].n);
+		sdb_strbuf_skip(buf, 0, skip_golden_data[i].n);
 
 		n = sdb_strbuf_len(buf);
 		fail_unless(n == skip_golden_data[i].expected_len,

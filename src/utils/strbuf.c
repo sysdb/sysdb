@@ -283,19 +283,30 @@ sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
 } /* sdb_strbuf_chomp */
 
 void
-sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t n)
+sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n)
 {
+	char *start;
+	size_t len;
+
 	if ((! strbuf) || (! n))
 		return;
 
-	if (n >= strbuf->pos) {
-		strbuf->string[0] = '\0';
-		strbuf->pos = 0;
+	if (offset >= strbuf->pos)
+		return;
+
+	len = strbuf->pos - offset;
+
+	if (n >= len) {
+		strbuf->string[offset] = '\0';
+		strbuf->pos = offset;
 		return;
 	}
 
-	assert(n < strbuf->pos);
-	memmove(strbuf->string, strbuf->string + n, strbuf->pos - n);
+	assert(offset + n < strbuf->pos);
+	assert(offset < strbuf->pos);
+
+	start = strbuf->string + offset;
+	memmove(start, start + n, strbuf->pos - n);
 	strbuf->pos -= n;
 	strbuf->string[strbuf->pos] = '\0';
 } /* sdb_strbuf_skip */
