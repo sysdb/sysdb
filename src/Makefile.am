@@ -6,7 +6,7 @@ AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
-BUILT_SOURCES = include/sysdb.h
+BUILT_SOURCES = include/client/sysdb.h include/sysdb.h
 
 pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
@@ -37,6 +37,7 @@ pkgclientinclude_HEADERS = \
 lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
 
 libsysdbclient_la_SOURCES = \
+		client/client.c include/client/sysdb.h \
 		client/sock.c include/client/sock.h \
 		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h
@@ -136,6 +137,15 @@ plugins_cname_dns_la_LDFLAGS = -module -avoid-version
 libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
 libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
 endif
+
+include/client/sysdb.h: include/client/sysdb.h.in ../version
+	source ../version; sed \
+	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
+	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
+	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
+	    -e "s/@SDB_VERSION_EXTRA@/$$VERSION_EXTRA/g" \
+	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
+	    include/client/sysdb.h.in > include/client/sysdb.h
 
 include/sysdb.h: include/sysdb.h.in ../version
 	source ../version; sed \
