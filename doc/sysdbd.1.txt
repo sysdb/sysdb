@@ -32,9 +32,10 @@ OPTIONS
 	The main configuration file. This file defines the behavior of *sysdbd* by
 	specifying default settings and the plugins to be loaded.
 
-*-d*::
-	Daemonize on startup: Start *sysdbd* as a background process detached from
-	the current terminal and session.
+*-D*::
+	Do not daemonize on startup: Rather than starting *sysdbd* as a background
+	process detached from the current terminal and session (the default), run
+	the process in the foreground. This allows easy monitoring of *sysdbd*.
 
 *-h*::
 	Display a usage and help summary and exit.
