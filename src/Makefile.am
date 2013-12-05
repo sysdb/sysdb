@@ -76,7 +76,11 @@ libsysdb_la_SOURCES += \
 libsysdb_la_LIBADD += -ldbi
 endif
 
-bin_PROGRAMS = sysdbd
+bin_PROGRAMS = sysdb sysdbd
+
+sysdb_SOURCES = client/sysdb.c include/client/sysdb.h
+sysdb_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+sysdb_LDADD = libsysdbclient.la
 
 sysdbd_SOURCES = daemon/sysdbd.c include/sysdb.h \
 		daemon/config.c include/daemon/config.h
