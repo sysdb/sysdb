@@ -264,6 +264,36 @@ START_TEST(test_obj_ref)
 }
 END_TEST
 
+START_TEST(test_obj_cmp)
+{
+	sdb_object_t *obj1, *obj2, *obj3, *obj4;
+	int status;
+
+	obj1 = sdb_object_create("a", noop_type);
+	obj2 = sdb_object_create("b", noop_type);
+	obj3 = sdb_object_create("B", noop_type);
+	obj4 = sdb_object_create("c", noop_type);
+
+	status = sdb_object_cmp_by_name(obj1, obj2);
+	fail_unless(status == -1,
+			"sdb_object_cmp_by_name('a', 'b') = %d; expected: -1", status);
+	status = sdb_object_cmp_by_name(obj2, obj3);
+	fail_unless(status == 0,
+			"sdb_object_cmp_by_name('b', 'B') = %d; expected: 0", status);
+	status = sdb_object_cmp_by_name(obj4, obj3);
+	fail_unless(status == 1,
+			"sdb_object_cmp_by_name('c', 'B') = %d; expected: 1", status);
+	status = sdb_object_cmp_by_name(obj1, obj1);
+	fail_unless(status == 0,
+			"sdb_object_cmp_by_name('a', 'a') = %d; expected: 0", status);
+
+	sdb_object_deref(obj1);
+	sdb_object_deref(obj2);
+	sdb_object_deref(obj3);
+	sdb_object_deref(obj4);
+}
+END_TEST
+
 Suite *
 core_object_suite(void)
 {
@@ -274,6 +304,7 @@ core_object_suite(void)
 	tcase_add_test(tc, test_obj_create);
 	tcase_add_test(tc, test_obj_wrapper);
 	tcase_add_test(tc, test_obj_ref);
+	tcase_add_test(tc, test_obj_cmp);
 	suite_add_tcase(s, tc);
 
 	return s;
