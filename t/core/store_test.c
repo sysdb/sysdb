@@ -29,6 +29,7 @@
 #include "libsysdb_test.h"
 
 #include <check.h>
+#include <string.h>
 
 START_TEST(test_store_host)
 {
@@ -152,6 +153,66 @@ START_TEST(test_store_service)
 }
 END_TEST
 
+START_TEST(test_store_tojson)
+{
+	sdb_strbuf_t *buf;
+
+	int status, pos;
+	size_t len1, len2;
+	size_t i;
+
+	const char *expected = "{\"hosts\":["
+		"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+			"\"attributes\": ["
+				"{\"name\": \"k1\", \"value\": \"v1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"k2\", \"value\": \"v2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+			"], "
+			"\"services\": []},"
+		"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+			"\"attributes\": [], "
+			"\"services\": ["
+				"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+			"]}"
+	"]}";
+
+	sdb_store_host("h1", 1);
+	sdb_store_host("h2", 1);
+
+	sdb_store_attribute("h1", "k1", "v1", 1);
+	sdb_store_attribute("h1", "k2", "v2", 1);
+	sdb_store_attribute("h1", "k3", "v3", 1);
+
+	sdb_store_service("h2", "s1", 1);
+	sdb_store_service("h2", "s2", 1);
+
+	buf = sdb_strbuf_create(0);
+	status = sdb_store_tojson(buf);
+	fail_unless(status == 0,
+			"sdb_store_tojson() = %d; expected: 0", status);
+
+	len1 = strlen(sdb_strbuf_string(buf));
+	len2 = strlen(expected);
+
+	pos = -1;
+	if (len1 != len2)
+		pos = (int)(len1 <= len2 ? len1 : len2);
+
+	for (i = 0; i < (len1 <= len2 ? len1 : len2); ++i) {
+		if (sdb_strbuf_string(buf)[i] != expected[i]) {
+			pos = (int)i;
+			break;
+		}
+	}
+
+	fail_unless(pos == -1,
+			"sdb_store_tojson() returned unexpected result\n"
+			"         got: %s\n              %*s\n    expected: %s",
+			sdb_strbuf_string(buf), pos + 1, "^", expected);
+}
+END_TEST
+
 Suite *
 core_store_suite(void)
 {
@@ -159,6 +220,9 @@ core_store_suite(void)
 	TCase *tc;
 
 	tc = tcase_create("core");
+	/* test this first to ensure the store is empty
+	 * even when using CK_NOFORK */
+	tcase_add_test(tc, test_store_tojson);
 	tcase_add_test(tc, test_store_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
