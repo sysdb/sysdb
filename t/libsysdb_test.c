@@ -29,6 +29,7 @@
 
 #include <check.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int
 main(void)
@@ -44,6 +45,8 @@ main(void)
 		{ util_llist_suite, NULL },
 		{ util_strbuf_suite, NULL },
 	};
+
+	putenv("TZ=UTC");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
 		SRunner *sr;
