@@ -62,8 +62,9 @@ START_TEST(test_empty)
 
 	/* check that methods don't crash */
 	sdb_strbuf_destroy(b);
-	sdb_strbuf_skip(b, 0);
-	sdb_strbuf_skip(b, 10);
+	sdb_strbuf_skip(b, 0, 0);
+	sdb_strbuf_skip(b, 0, 10);
+	sdb_strbuf_skip(b, 10, 10);
 
 	/* check that methods return an error */
 	fail_unless(sdb_strbuf_vappend(b, "test", ap) < 0,
@@ -366,17 +367,28 @@ END_TEST
 
 /* input is "1234567890" */
 static struct {
+	size_t offset;
 	size_t n;
 	const char *expected;
 	size_t expected_len;
 } skip_golden_data[] = {
-	{ 0, "1234567890", 10 },
-	{ 1, "234567890", 9 },
-	{ 2, "34567890", 8 },
-	{ 9, "0", 1 },
-	{ 10, "", 0 },
-	{ 11, "", 0 },
-	{ 100, "", 0 },
+	{ 0, 0, "1234567890", 10 },
+	{ 0, 1, "234567890", 9 },
+	{ 0, 2, "34567890", 8 },
+	{ 0, 9, "0", 1 },
+	{ 0, 10, "", 0 },
+	{ 0, 11, "", 0 },
+	{ 0, 100, "", 0 },
+	{ 1, 0, "1234567890", 10 },
+	{ 1, 1, "134567890", 9 },
+	{ 1, 2, "14567890", 8 },
+	{ 8, 1, "123456780", 9 },
+	{ 8, 2, "12345678", 8 },
+	{ 8, 3, "12345678", 8 },
+	{ 9, 1, "123456789", 9 },
+	{ 9, 2, "123456789", 9 },
+	{ 10, 1, "1234567890", 10 },
+	{ 10, 2, "1234567890", 10 },
 };
 
 START_TEST(test_sdb_strbuf_skip)
@@ -389,7 +401,8 @@ START_TEST(test_sdb_strbuf_skip)
 		size_t n;
 
 		sdb_strbuf_sprintf(buf, input);
-		sdb_strbuf_skip(buf, skip_golden_data[i].n);
+		sdb_strbuf_skip(buf, skip_golden_data[i].offset,
+				skip_golden_data[i].n);
 
 		n = sdb_strbuf_len(buf);
 		fail_unless(n == skip_golden_data[i].expected_len,

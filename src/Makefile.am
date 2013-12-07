@@ -6,7 +6,7 @@ AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
-BUILT_SOURCES = include/sysdb.h
+BUILT_SOURCES = include/client/sysdb.h include/sysdb.h
 
 pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
@@ -26,10 +26,25 @@ pkgutilsinclude_HEADERS = \
 		include/utils/channel.h \
 		include/utils/dbi.h \
 		include/utils/llist.h \
+		include/utils/proto.h \
 		include/utils/strbuf.h \
 		include/utils/unixsock.h
 
-lib_LTLIBRARIES = libsysdb.la
+pkgclientincludedir = $(pkgincludedir)/client
+pkgclientinclude_HEADERS = \
+		include/client/sock.h
+
+lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
+
+libsysdbclient_la_SOURCES = \
+		client/client.c include/client/sysdb.h \
+		client/sock.c include/client/sock.h \
+		utils/proto.c include/utils/proto.h \
+		utils/strbuf.c include/utils/strbuf.h
+libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
+libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
+libsysdbclient_la_LDFLAGS = -version-info 0:0:0 -pthread
+libsysdbclient_la_LIBADD = $(LIBLTDL)
 
 libsysdb_la_SOURCES = \
 		sysdb.c include/sysdb.h \
@@ -45,6 +60,7 @@ libsysdb_la_SOURCES = \
 		frontend/query.c \
 		utils/channel.c include/utils/channel.h \
 		utils/llist.c include/utils/llist.h \
+		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		core/time.c include/core/time.h \
 		utils/unixsock.c include/utils/unixsock.h
@@ -60,7 +76,11 @@ libsysdb_la_SOURCES += \
 libsysdb_la_LIBADD += -ldbi
 endif
 
-bin_PROGRAMS = sysdbd
+bin_PROGRAMS = sysdb sysdbd
+
+sysdb_SOURCES = client/sysdb.c include/client/sysdb.h
+sysdb_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+sysdb_LDADD = libsysdbclient.la
 
 sysdbd_SOURCES = daemon/sysdbd.c include/sysdb.h \
 		daemon/config.c include/daemon/config.h
@@ -121,6 +141,15 @@ plugins_cname_dns_la_LDFLAGS = -module -avoid-version
 libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
 libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
 endif
+
+include/client/sysdb.h: include/client/sysdb.h.in ../version
+	source ../version; sed \
+	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
+	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
+	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
+	    -e "s/@SDB_VERSION_EXTRA@/$$VERSION_EXTRA/g" \
+	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
+	    include/client/sysdb.h.in > include/client/sysdb.h
 
 include/sysdb.h: include/sysdb.h.in ../version
 	source ../version; sed \

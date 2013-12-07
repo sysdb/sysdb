@@ -1,0 +1,70 @@
+/*
+ * SysDB - src/include/client/sysdb.h
+ * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef CLIENT_SYSDB_H
+#define CLIENT_SYSDB_H 1
+
+#define SDB_CLIENT_VERSION_MAJOR @SDB_VERSION_MAJOR@
+#define SDB_CLIENT_VERSION_MINOR @SDB_VERSION_MINOR@
+#define SDB_CLIENT_VERSION_PATCH @SDB_VERSION_PATCH@
+
+#define SDB_CLIENT_VERSION_EXTRA "@SDB_VERSION_EXTRA@"
+
+#define SDB_CLIENT_VERSION_STRING "@SDB_VERSION_STRING@"
+
+#define SDB_CLIENT_VERSION_ENCODE(major, minor, patch) \
+	((major) * 10000 + (minor) * 100 + (patch))
+#define SDB_CLIENT_VERSION_DECODE(version) \
+	(int)((version) / 10000), \
+	(int)((version) / 100) - (int)((version) / 10000) * 100, \
+	(int)(version) - (int)((version) / 100) * 100
+
+#define SDB_CLIENT_VERSION \
+	SDB_CLIENT_VERSION_ENCODE(SDB_CLIENT_VERSION_MAJOR, \
+			SDB_CLIENT_VERSION_MINOR, SDB_CLIENT_VERSION_PATCH)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+unsigned int
+sdb_client_version(void);
+
+const char *
+sdb_client_version_string(void);
+
+const char *
+sdb_client_version_extra(void);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+#endif /* ! CLIENT_SYSDB_H */
+
+/* vim: set tw=78 sw=4 ts=4 noexpandtab : */
+

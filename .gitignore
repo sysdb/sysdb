@@ -36,6 +36,7 @@ src/liboconfig/scanner.c
 *.la
 *.lo
 *.o
+sysdb
 sysdbd
 sysdbd.1
 sysdbd.conf.5

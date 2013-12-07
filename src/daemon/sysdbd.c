@@ -89,7 +89,7 @@ exit_usage(char *name, int status)
 "\nOptions:\n"
 "  -C FILE   the main configuration file\n"
 "            default: "CONFIGFILE"\n"
-"  -d        run in background (daemonize)\n"
+"  -D        do not run in background (daemonize)\n"
 "\n"
 "  -h        display this help and exit\n"
 "  -V        display the version number and copyright\n"
@@ -104,8 +104,8 @@ exit_version(void)
 {
 	printf("SysDBd version "SDB_VERSION_STRING SDB_VERSION_EXTRA", "
 			"built "BUILD_DATE"\n"
-			"using libsysdb verion %s%s\n"
-			"Copyright (C) 2012 "PACKAGE_MAINTAINER"\n"
+			"using libsysdb version %s%s\n"
+			"Copyright (C) 2012-2013 "PACKAGE_MAINTAINER"\n"
 
 			"\nThis is free software under the terms of the BSD license, see "
 			"the source for\ncopying conditions. There is NO WARRANTY; not "
@@ -178,7 +178,7 @@ int
 main(int argc, char **argv)
 {
 	char *config_filename = NULL;
-	_Bool do_daemonize = 0;
+	_Bool do_daemonize = 1;
 
 	pthread_t backend_thread;
 
@@ -186,7 +186,7 @@ main(int argc, char **argv)
 	int status;
 
 	while (42) {
-		int opt = getopt(argc, argv, "C:dhV");
+		int opt = getopt(argc, argv, "C:DhV");
 
 		if (-1 == opt)
 			break;
@@ -195,8 +195,8 @@ main(int argc, char **argv)
 			case 'C':
 				config_filename = optarg;
 				break;
-			case 'd':
-				do_daemonize = 1;
+			case 'D':
+				do_daemonize = 0;
 				break;
 
 			case 'h':
