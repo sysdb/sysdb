@@ -537,7 +537,7 @@ sdb_store_tojson(sdb_strbuf_t *buf)
 		}
 
 		sdb_llist_iter_destroy(svc_iter);
-		sdb_strbuf_append(buf, "]}");
+		sdb_strbuf_append(buf, "]},");
 	}
 
 	sdb_strbuf_append(buf, "]}");
