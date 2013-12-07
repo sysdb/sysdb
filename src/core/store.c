@@ -418,11 +418,15 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
 
-	SDB_ATTR(updated_attr)->value = strdup(value);
-	if (! SDB_ATTR(updated_attr)->value) {
-		sdb_object_deref(SDB_OBJ(updated_attr));
-		status = -1;
+	if (status >= 0) {
+		assert(updated_attr);
+		SDB_ATTR(updated_attr)->value = strdup(value);
+		if (! SDB_ATTR(updated_attr)->value) {
+			sdb_object_deref(SDB_OBJ(updated_attr));
+			status = -1;
+		}
 	}
+
 	pthread_rwlock_unlock(&obj_lock);
 	return status;
 } /* sdb_store_attribute */
