@@ -174,7 +174,7 @@ START_TEST(test_store_tojson)
 			"\"services\": ["
 				"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
 				"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-			"]}"
+			"]},"
 	"]}";
 
 	sdb_store_host("h1", 1);
