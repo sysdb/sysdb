@@ -28,6 +28,7 @@
 #ifndef SDB_FRONTEND_CONNECTION_H
 #define SDB_FRONTEND_CONNECTION_H 1
 
+#include "frontend/proto.h"
 #include "utils/strbuf.h"
 
 #include <inttypes.h>
@@ -35,23 +36,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* status codes returned to a client */
-typedef enum {
-	CONNECTION_OK = 0,
-	CONNECTION_ERROR
-} sdb_conn_status_t;
-
-/* accepted commands / state of the connection */
-typedef enum {
-	/* connection handling */
-	CONNECTION_IDLE = 0,
-	CONNECTION_PING,
-	CONNECTION_STARTUP,
-
-	/* querying */
-	CONNECTION_LIST,
-} sdb_conn_state_t;
 
 typedef struct sdb_conn sdb_conn_t;
 

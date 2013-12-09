@@ -20,6 +20,7 @@ pkgcoreinclude_HEADERS = \
 pkgfeincludedir = $(pkgincludedir)/frontend
 pkgfeinclude_HEADERS = \
 		include/frontend/connection.h \
+		include/frontend/proto.h \
 		include/frontend/sock.h
 pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
