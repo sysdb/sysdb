@@ -31,6 +31,8 @@
 #include "core/object.h"
 #include "core/data.h"
 
+#include "frontend/proto.h"
+
 #include "utils/strbuf.h"
 
 #include <sys/socket.h>
@@ -65,14 +67,14 @@ sdb_client_destroy(sdb_client_t *client);
 
 /*
  * sdb_client_connect:
- * Connect to the client's address.
+ * Connect to the client's address using the specified username.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_client_connect(sdb_client_t *client);
+sdb_client_connect(sdb_client_t *client, const char *username);
 
 /*
  * sdb_client_close:

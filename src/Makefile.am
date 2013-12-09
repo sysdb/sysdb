@@ -33,7 +33,8 @@ pkgutilsinclude_HEADERS = \
 
 pkgclientincludedir = $(pkgincludedir)/client
 pkgclientinclude_HEADERS = \
-		include/client/sock.h
+		include/client/sock.h \
+		include/client/sysdb.h
 
 lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
 

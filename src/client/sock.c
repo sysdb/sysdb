@@ -120,8 +120,12 @@ sdb_client_destroy(sdb_client_t *client)
 } /* sdb_client_destroy */
 
 int
-sdb_client_connect(sdb_client_t *client)
+sdb_client_connect(sdb_client_t *client, const char *username)
 {
+	sdb_strbuf_t *buf;
+	ssize_t status;
+	uint32_t rstatus;
+
 	if ((! client) || (! client->address))
 		return -1;
 
@@ -137,6 +141,32 @@ sdb_client_connect(sdb_client_t *client)
 
 	if (client->fd < 0)
 		return -1;
+
+	/* XXX */
+	if (! username)
+		username = "";
+
+	status = sdb_client_send(client, CONNECTION_STARTUP,
+			(uint32_t)strlen(username), username);
+	if (status < 0) {
+		sdb_client_close(client);
+		return (int)status;
+	}
+
+	buf = sdb_strbuf_create(64);
+	rstatus = 0;
+	status = sdb_client_recv(client, &rstatus, buf);
+	if (status < 0) {
+		sdb_client_close(client);
+		sdb_strbuf_destroy(buf);
+		return (int)status;
+	}
+
+	if (rstatus != CONNECTION_OK) {
+		sdb_client_close(client);
+		sdb_strbuf_destroy(buf);
+		return -((int)rstatus);
+	}
 	return 0;
 } /* sdb_client_connect */
 
