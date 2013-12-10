@@ -1,5 +1,5 @@
 /*
- * SysDB - src/include/core/error.h
+ * SysDB - src/include/utils/error.h
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -34,8 +34,8 @@
  * message at once. The message will be sent to all registered log functions.
  */
 
-#ifndef SDB_CORE_ERROR_H
-#define SDB_CORE_ERROR_H 1
+#ifndef SDB_UTILS_ERROR_H
+#define SDB_UTILS_ERROR_H 1
 
 #include <stddef.h>
 
@@ -133,7 +133,7 @@ sdb_strerror(int errnum, char *strerrbuf, size_t buflen);
 } /* extern "C" */
 #endif
 
-#endif /* ! SDB_CORE_ERROR_H */
+#endif /* ! SDB_UTILS_ERROR_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

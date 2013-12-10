@@ -26,9 +26,9 @@
  */
 
 #include "sysdb.h"
-#include "core/error.h"
 #include "core/object.h"
 #include "frontend/connection-private.h"
+#include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
 

@@ -26,12 +26,12 @@
  */
 
 #include "sysdb.h"
-#include "core/error.h"
 #include "core/object.h"
 #include "frontend/connection-private.h"
 #include "frontend/sock.h"
 
 #include "utils/channel.h"
+#include "utils/error.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
 

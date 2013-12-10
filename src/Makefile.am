@@ -12,7 +12,6 @@ pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
 pkgcoreinclude_HEADERS = \
 		include/core/data.h \
-		include/core/error.h \
 		include/core/object.h \
 		include/core/plugin.h \
 		include/core/store.h \
@@ -26,6 +25,7 @@ pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
 		include/utils/channel.h \
 		include/utils/dbi.h \
+		include/utils/error.h \
 		include/utils/llist.h \
 		include/utils/proto.h \
 		include/utils/strbuf.h \
@@ -54,13 +54,13 @@ libsysdb_la_SOURCES = \
 		core/plugin.c include/core/plugin.h \
 		core/store.c include/core/store.h \
 		include/core/data.h \
-		core/error.c include/core/error.h \
 		frontend/connection.c include/frontend/connection.h \
 		include/frontend/connection-private.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
 		utils/channel.c include/utils/channel.h \
+		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \
 		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h \

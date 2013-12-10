@@ -27,7 +27,7 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
-#include "core/error.h"
+#include "utils/error.h"
 
 #include <assert.h>
 #include <syslog.h>

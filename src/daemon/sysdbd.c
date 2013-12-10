@@ -32,7 +32,7 @@
 #include "sysdb.h"
 #include "core/plugin.h"
 #include "core/store.h"
-#include "core/error.h"
+#include "utils/error.h"
 
 #include "frontend/sock.h"
 

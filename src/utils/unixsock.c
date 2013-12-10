@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "utils/error.h"
 #include "utils/unixsock.h"
-#include "core/error.h"
 
 #include <assert.h>
 #include <errno.h>

@@ -28,7 +28,7 @@
 #include "sysdb.h"
 #include "core/plugin.h"
 #include "core/store.h"
-#include "core/error.h"
+#include "utils/error.h"
 #include "utils/unixsock.h"
 
 #include "liboconfig/utils.h"

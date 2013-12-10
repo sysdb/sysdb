@@ -25,8 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "utils/error.h"
 #include "utils/proto.h"
-#include "core/error.h"
 
 #include <arpa/inet.h>
 #include <errno.h>

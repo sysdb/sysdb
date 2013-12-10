@@ -27,8 +27,8 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
-#include "core/error.h"
 #include "core/time.h"
+#include "utils/error.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
 

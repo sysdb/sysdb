@@ -27,9 +27,9 @@
 
 #include "sysdb.h"
 
-#include "core/error.h"
 #include "core/store.h"
 #include "frontend/connection-private.h"
+#include "utils/error.h"
 #include "utils/strbuf.h"
 
 #include <errno.h>
