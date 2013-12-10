@@ -106,7 +106,7 @@ sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)
 		return UINT32_MAX;
 
 	/* not enough data to read */
-	if (offset + sizeof(uint32_t) < sdb_strbuf_len(buf))
+	if (offset + sizeof(uint32_t) > sdb_strbuf_len(buf))
 		return UINT32_MAX;
 
 	data = sdb_strbuf_string(buf);
