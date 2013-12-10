@@ -41,6 +41,7 @@ lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
 libsysdbclient_la_SOURCES = \
 		client/client.c include/client/sysdb.h \
 		client/sock.c include/client/sock.h \
+		utils/error.c include/utils/error.h \
 		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS)

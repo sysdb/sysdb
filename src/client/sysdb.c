@@ -31,6 +31,9 @@
 
 #include "client/sysdb.h"
 #include "client/sock.h"
+#include "utils/error.h"
+
+#include <errno.h>
 
 #if HAVE_LIBGEN_H
 #	include <libgen.h>
@@ -106,7 +109,9 @@ get_current_user(void)
 	status = getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result);
 
 	if (status || (! result)) {
-		fprintf(stderr, "Failed to determine current username\n");
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to determine current username: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return NULL;
 	}
 	return result->pw_name;
@@ -155,16 +160,16 @@ main(int argc, char **argv)
 
 	client = sdb_client_create(host);
 	if (! client) {
-		fprintf(stderr, "Failed to create client object\n");
+		sdb_log(SDB_LOG_ERR, "Failed to create client object");
 		exit(1);
 	}
 	if (sdb_client_connect(client, user)) {
-		fprintf(stderr, "Failed to connect to SysDBd\n");
+		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
 		sdb_client_destroy(client);
 		exit(1);
 	}
 
-	printf("SysDB client "SDB_CLIENT_VERSION_STRING
+	sdb_log(SDB_LOG_INFO, "SysDB client "SDB_CLIENT_VERSION_STRING
 			SDB_CLIENT_VERSION_EXTRA"\n");
 
 	sdb_client_destroy(client);
