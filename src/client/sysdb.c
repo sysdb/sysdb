@@ -47,6 +47,10 @@
 
 #include <unistd.h>
 
+#include <sys/types.h>
+
+#include <pwd.h>
+
 #ifndef DEFAULT_SOCKET
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
@@ -82,16 +86,54 @@ exit_version(void)
 	exit(0);
 } /* exit_version */
 
+static const char *
+get_current_user(void)
+{
+	struct passwd pw_entry;
+	struct passwd *result = NULL;
+
+	uid_t uid;
+
+	/* needs to be static because we return a pointer into this buffer
+	 * to the caller */
+	static char buf[1024];
+
+	int status;
+
+	uid = geteuid();
+
+	memset(&pw_entry, 0, sizeof(pw_entry));
+	status = getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result);
+
+	if (status || (! result)) {
+		fprintf(stderr, "Failed to determine current username\n");
+		return NULL;
+	}
+	return result->pw_name;
+} /* get_current_user */
+
 int
 main(int argc, char **argv)
 {
+	sdb_client_t *client;
+
+	const char *host = NULL;
+	const char *user = NULL;
+
 	while (42) {
-		int opt = getopt(argc, argv, "hV");
+		int opt = getopt(argc, argv, "H:U:hV");
 
 		if (-1 == opt)
 			break;
 
 		switch (opt) {
+			case 'H':
+				host = optarg;
+				break;
+			case 'U':
+				user = optarg;
+				break;
+
 			case 'h':
 				exit_usage(argv[0], 0);
 				break;
@@ -106,8 +148,26 @@ main(int argc, char **argv)
 	if (optind < argc)
 		exit_usage(argv[0], 1);
 
+	if (! host)
+		host = DEFAULT_SOCKET;
+	if (! user)
+		user = get_current_user();
+
+	client = sdb_client_create(host);
+	if (! client) {
+		fprintf(stderr, "Failed to create client object\n");
+		exit(1);
+	}
+	if (sdb_client_connect(client, user)) {
+		fprintf(stderr, "Failed to connect to SysDBd\n");
+		sdb_client_destroy(client);
+		exit(1);
+	}
+
 	printf("SysDB client "SDB_CLIENT_VERSION_STRING
 			SDB_CLIENT_VERSION_EXTRA"\n");
+
+	sdb_client_destroy(client);
 	return 0;
 } /* main */
 
