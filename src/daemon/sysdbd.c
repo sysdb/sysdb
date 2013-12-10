@@ -186,6 +186,8 @@ main(int argc, char **argv)
 	struct sigaction sa_intterm;
 	int status;
 
+	sdb_error_set_logger(sdb_plugin_log);
+
 	while (42) {
 		int opt = getopt(argc, argv, "C:DhV");
 

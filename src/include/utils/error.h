@@ -67,6 +67,15 @@ enum {
 		: ((prio) == SDB_LOG_DEBUG) ? "DEBUG" : "UNKNOWN")
 
 /*
+ * sdb_error_set_logger:
+ * Set the logging callback to be used for logging messages. By default (or
+ * when explicitely setting the logger to NULL), logs will be written to the
+ * stderr channel.
+ */
+void
+sdb_error_set_logger(int (*f)(int, const char *));
+
+/*
  * sdb_log:
  * Log the specified message. The string will be formatted in printf-style
  * using the specified format and arguments and logged with the specified

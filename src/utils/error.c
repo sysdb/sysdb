@@ -25,7 +25,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "core/plugin.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
 
@@ -56,6 +55,8 @@ static sdb_error_ctx_t default_error_ctx = SDB_ERROR_INIT;
 
 static pthread_key_t error_ctx_key;
 static _Bool         error_ctx_key_initialized = 0;
+
+static int (*logger)(int prio, const char *msg) = NULL;
 
 /*
  * private helper functions
@@ -163,7 +164,12 @@ sdb_do_log(int prio)
 	if (ctx->logged)
 		return 0;
 
-	ret = sdb_plugin_log(prio, sdb_strbuf_string(ctx->msg));
+	if (logger)
+		ret = logger(prio, sdb_strbuf_string(ctx->msg));
+	else
+		ret = fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio),
+				sdb_strbuf_string(ctx->msg));
+
 	ctx->logged = 1;
 	return ret;
 } /* sdb_do_log */
@@ -171,6 +177,12 @@ sdb_do_log(int prio)
 /*
  * public API
  */
+
+void
+sdb_error_set_logger(int (*f)(int, const char *))
+{
+	logger = f;
+} /* sdb_error_set_logger */
 
 int
 sdb_log(int prio, const char *fmt, ...)
