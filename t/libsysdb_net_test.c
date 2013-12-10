@@ -33,6 +33,7 @@
 
 #include <check.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int
 main(void)
@@ -47,6 +48,8 @@ main(void)
 		{ NULL, "Skipping util::unixsock; missing fopencookie" },
 #endif /* HAVE_FOPENCOOKIE */
 	};
+
+	putenv("TZ=UTC");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
 		SRunner *sr;

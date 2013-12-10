@@ -29,6 +29,7 @@
 
 #include <check.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int
 main(void)
@@ -38,11 +39,14 @@ main(void)
 
 	suite_creator_t creators[] = {
 		{ core_object_suite, NULL },
+		{ core_store_suite, NULL },
 		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },
 		{ util_llist_suite, NULL },
 		{ util_strbuf_suite, NULL },
 	};
+
+	putenv("TZ=UTC");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
 		SRunner *sr;

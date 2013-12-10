@@ -63,6 +63,10 @@ typedef struct {
 Suite *
 core_object_suite(void);
 
+/* t/core/store_test */
+Suite *
+core_store_suite(void);
+
 /* t/utils/channel_test */
 Suite *
 util_channel_suite(void);
