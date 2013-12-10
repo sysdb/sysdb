@@ -171,6 +171,7 @@ static void *
 backend_handler(void __attribute__((unused)) *data)
 {
 	sdb_plugin_collector_loop(&plugin_main_loop);
+	sdb_log(SDB_LOG_INFO, "Shutting down backend thread");
 	return NULL;
 } /* backend_handler */
 
@@ -281,6 +282,7 @@ main(int argc, char **argv)
 
 		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
 		plugin_main_loop.do_loop = 0;
+		pthread_kill(backend_thread, SIGINT);
 		pthread_join(backend_thread, NULL);
 		sdb_fe_sock_destroy(sock);
 	}
