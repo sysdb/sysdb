@@ -104,6 +104,13 @@ open_unix_sock(listener_t *listener)
 	strncpy(sa.sun_path, listener->address + strlen("unix:"),
 			sizeof(sa.sun_path));
 
+	if (unlink(listener->address + strlen("unix:")) && (errno != ENOENT)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_WARNING, "frontend: Failed to remove stale UNIX "
+				"socket %s: %s", listener->address + strlen("unix:"),
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+	}
+
 	status = bind(listener->sock_fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (status) {
 		char buf[1024];
