@@ -155,8 +155,11 @@ main(int argc, char **argv)
 
 	if (! host)
 		host = DEFAULT_SOCKET;
-	if (! user)
+	if (! user) {
 		user = get_current_user();
+		if (! user)
+			exit(1);
+	}
 
 	client = sdb_client_create(host);
 	if (! client) {
