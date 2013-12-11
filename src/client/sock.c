@@ -26,6 +26,7 @@
  */
 
 #include "client/sock.h"
+#include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
 
@@ -63,15 +64,22 @@ connect_unixsock(sdb_client_t *client, const char *address)
 	struct sockaddr_un sa;
 
 	client->fd = socket(AF_UNIX, SOCK_STREAM, /* protocol = */ 0);
-	if (client->fd < 0)
+	if (client->fd < 0) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to open socket: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
+	}
 
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, address, sizeof(sa.sun_path));
 	sa.sun_path[sizeof(sa.sun_path) - 1] = '\0';
 
 	if (connect(client->fd, (struct sockaddr *)&sa, sizeof(sa))) {
+		char errbuf[1024];
 		sdb_client_close(client);
+		sdb_log(SDB_LOG_ERR, "Failed to connect to '%s': %s",
+				sa.sun_path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
 	return client->fd;
@@ -90,14 +98,17 @@ sdb_client_create(const char *address)
 		return NULL;
 
 	client = malloc(sizeof(*client));
-	if (! client)
+	if (! client) {
+		sdb_log(SDB_LOG_ERR, "Out of memory");
 		return NULL;
+	}
 	memset(client, 0, sizeof(*client));
 	client->fd = -1;
 
 	client->address = strdup(address);
 	if (! client->address) {
 		sdb_client_destroy(client);
+		sdb_log(SDB_LOG_ERR, "Out of memory");
 		return NULL;
 	}
 
@@ -136,8 +147,10 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 		connect_unixsock(client, client->address + strlen("unix:"));
 	else if (*client->address == '/')
 		connect_unixsock(client, client->address);
-	else
+	else {
+		sdb_log(SDB_LOG_ERR, "Unknown address type: %s", client->address);
 		return -1;
+	}
 
 	if (client->fd < 0)
 		return -1;
@@ -149,7 +162,10 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	status = sdb_client_send(client, CONNECTION_STARTUP,
 			(uint32_t)strlen(username), username);
 	if (status < 0) {
+		char errbuf[1024];
 		sdb_client_close(client);
+		sdb_log(SDB_LOG_ERR, "Failed to send STARTUP message to server: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return (int)status;
 	}
 
@@ -157,14 +173,18 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	rstatus = 0;
 	status = sdb_client_recv(client, &rstatus, buf);
 	if (status < 0) {
+		char errbuf[1024];
 		sdb_client_close(client);
 		sdb_strbuf_destroy(buf);
+		sdb_log(SDB_LOG_ERR, "Failed to receive server response: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return (int)status;
 	}
 
 	if (rstatus != CONNECTION_OK) {
 		sdb_client_close(client);
 		sdb_strbuf_destroy(buf);
+		sdb_log(SDB_LOG_ERR, "Access denied for user '%s'", username);
 		return -((int)rstatus);
 	}
 	return 0;
