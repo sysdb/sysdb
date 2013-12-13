@@ -32,6 +32,7 @@
 #include "client/sysdb.h"
 #include "client/sock.h"
 #include "utils/error.h"
+#include "utils/strbuf.h"
 
 #include <errno.h>
 

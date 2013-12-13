@@ -145,6 +145,13 @@ void
 sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n);
 
 /*
+ * sdb_strbuf_clear:
+ * Clear the buffer but do not deallocate memory.
+ */
+void
+sdb_strbuf_clear(sdb_strbuf_t *strbuf);
+
+/*
  * sdb_strbuf_string:
  * Returns the content of the string buffer. The caller may not modify the
  * string.

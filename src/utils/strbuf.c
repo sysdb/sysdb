@@ -311,6 +311,16 @@ sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n)
 	strbuf->string[strbuf->pos] = '\0';
 } /* sdb_strbuf_skip */
 
+void
+sdb_strbuf_clear(sdb_strbuf_t *strbuf)
+{
+	if ((! strbuf) || (! strbuf->size))
+		return;
+
+	strbuf->string[0] = '\0';
+	strbuf->pos = 0;
+} /* sdb_strbuf_clear */
+
 const char *
 sdb_strbuf_string(sdb_strbuf_t *strbuf)
 {
