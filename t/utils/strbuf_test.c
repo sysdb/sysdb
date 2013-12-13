@@ -55,7 +55,7 @@ teardown(void)
  * tests
  */
 
-START_TEST(test_empty)
+START_TEST(test_null)
 {
 	sdb_strbuf_t *b = NULL;
 	va_list ap;
@@ -65,6 +65,7 @@ START_TEST(test_empty)
 	sdb_strbuf_skip(b, 0, 0);
 	sdb_strbuf_skip(b, 0, 10);
 	sdb_strbuf_skip(b, 10, 10);
+	sdb_strbuf_clear(b);
 
 	/* check that methods return an error */
 	fail_unless(sdb_strbuf_vappend(b, "test", ap) < 0,
@@ -83,6 +84,28 @@ START_TEST(test_empty)
 			"sdb_strbuf_read(NULL) didn't report failure");
 	fail_unless(sdb_strbuf_chomp(b) < 0,
 			"sdb_strbuf_chomp(NULL) didn't report failure");
+}
+END_TEST
+
+START_TEST(test_empty)
+{
+	sdb_strbuf_t *b = sdb_strbuf_create(0);
+	const char *data;
+	size_t len;
+
+	/* check that methods don't crash */
+	sdb_strbuf_skip(b, 1, 1);
+	sdb_strbuf_clear(b);
+	sdb_strbuf_chomp(b);
+
+	data = sdb_strbuf_string(b);
+	fail_unless(data && (*data == '\0'),
+			"sdb_strbuf_string(<empty>) = '%s'; expected: ''", data);
+	len = sdb_strbuf_len(b);
+	fail_unless(len == 0,
+			"sdb_strbuf_len(<empty>) = %zu; expected: 0", len);
+
+	sdb_strbuf_destroy(b);
 }
 END_TEST
 
@@ -483,6 +506,7 @@ util_strbuf_suite(void)
 	TCase *tc;
 
 	tc = tcase_create("empty");
+	tcase_add_test(tc, test_null);
 	tcase_add_test(tc, test_empty);
 	suite_add_tcase(s, tc);
 
