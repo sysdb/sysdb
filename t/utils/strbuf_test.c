@@ -447,6 +447,27 @@ START_TEST(test_sdb_strbuf_skip)
 }
 END_TEST
 
+START_TEST(test_sdb_strbuf_clear)
+{
+	const char *data;
+	size_t len;
+
+	sdb_strbuf_append(buf, "abc");
+	len = sdb_strbuf_len(buf);
+	fail_unless(len != 0,
+			"sdb_strbuf_len() = %zu; expected: != 0", len);
+
+	sdb_strbuf_clear(buf);
+	len = sdb_strbuf_len(buf);
+	fail_unless(len == 0,
+			"sdb_strbuf_len() = %zu (after clear); expected: 0", len);
+
+	data = sdb_strbuf_string(buf);
+	fail_unless(*data == '\0',
+			"sdb_strbuf_string() = '%s' (after clear); expected: ''", data);
+}
+END_TEST
+
 static struct {
 	const char *input;
 	const char *expected;
@@ -520,6 +541,7 @@ util_strbuf_suite(void)
 	tcase_add_test(tc, test_sdb_strbuf_memappend);
 	tcase_add_test(tc, test_sdb_strbuf_chomp);
 	tcase_add_test(tc, test_sdb_strbuf_skip);
+	tcase_add_test(tc, test_sdb_strbuf_clear);
 	tcase_add_test(tc, test_sdb_strbuf_string);
 	tcase_add_test(tc, test_sdb_strbuf_len);
 	suite_add_tcase(s, tc);
