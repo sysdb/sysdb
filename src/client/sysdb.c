@@ -240,11 +240,15 @@ main(int argc, char **argv)
 
 		if (! line)
 			break;
-		if (*line == '\0')
+		if (*line == '\0') {
+			free(line);
 			continue;
+		}
 
 		if (*line != ' ')
 			add_history(line);
+
+		free(line);
 	}
 
 	if (hist_file[0] != '\0') {
