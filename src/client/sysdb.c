@@ -228,7 +228,7 @@ main(int argc, char **argv)
 		hist_file[sizeof(hist_file) - 1] = '\0';
 
 		errno = 0;
-		if (read_history(hist_file)) {
+		if (read_history(hist_file) && (errno != ENOENT)) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_WARNING, "Failed to load history (%s): %s",
 					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
