@@ -54,6 +54,23 @@
 
 #include <pwd.h>
 
+#if HAVE_EDITLINE_READLINE_H
+#	include <editline/readline.h>
+#	if HAVE_EDITLINE_HISTORY_H
+#		include <editline/history.h>
+#	endif
+#elif HAVE_READLINE_READLINE_H
+#	include <readline/readline.h>
+#	if HAVE_READLINE_HISTORY_H
+#		include <readline/history.h>
+#	endif
+#elif HAVE_READLINE_H
+#	include <readline.h>
+#	if HAVE_HISTORY_H
+#		include <history.h>
+#	endif
+#endif /* READLINEs */
+
 #ifndef DEFAULT_SOCKET
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
@@ -117,6 +134,31 @@ get_current_user(void)
 	return result->pw_name;
 } /* get_current_user */
 
+static const char *
+get_homedir(const char *username)
+{
+	struct passwd pw_entry;
+	struct passwd *result = NULL;
+
+	/* needs to be static because we return a pointer into this buffer
+	 * to the caller */
+	static char buf[1024];
+
+	int status;
+
+	memset(&pw_entry, 0, sizeof(pw_entry));
+	status = getpwnam_r(username, &pw_entry, buf, sizeof(buf), &result);
+
+	if (status || (! result)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_WARNING, "Failed to determine home directory "
+				"for user %s: %s", username,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return NULL;
+	}
+	return result->pw_dir;
+} /* get_homedir */
+
 int
 main(int argc, char **argv)
 {
@@ -124,6 +166,9 @@ main(int argc, char **argv)
 
 	const char *host = NULL;
 	const char *user = NULL;
+
+	const char *homedir;
+	char hist_file[1024] = "";
 
 	while (42) {
 		int opt = getopt(argc, argv, "H:U:hV");
@@ -174,6 +219,42 @@ main(int argc, char **argv)
 
 	sdb_log(SDB_LOG_INFO, "SysDB client "SDB_CLIENT_VERSION_STRING
 			SDB_CLIENT_VERSION_EXTRA"\n");
+
+	using_history();
+
+	if ((homedir = get_homedir(user))) {
+		snprintf(hist_file, sizeof(hist_file) - 1,
+				"%s/.sysdb_history", homedir);
+		hist_file[sizeof(hist_file) - 1] = '\0';
+
+		errno = 0;
+		if (read_history(hist_file)) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_WARNING, "Failed to load history (%s): %s",
+					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		}
+	}
+
+	while (42) {
+		char *line = readline("sysdb> ");
+
+		if (! line)
+			break;
+		if (*line == '\0')
+			continue;
+
+		if (*line != ' ')
+			add_history(line);
+	}
+
+	if (hist_file[0] != '\0') {
+		errno = 0;
+		if (write_history(hist_file)) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_WARNING, "Failed to store history (%s): %s",
+					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		}
+	}
 
 	sdb_client_destroy(client);
 	return 0;
