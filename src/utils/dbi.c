@@ -284,8 +284,10 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 	if ((! client) || (! client->driver) || (! client->database))
 		return -1;
 
-	if (client->conn)
+	if (client->conn) {
 		dbi_conn_close(client->conn);
+		client->conn = NULL;
+	}
 
 	driver = dbi_driver_open(client->driver);
 	if (! driver) {
@@ -332,6 +334,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 			sdb_error_log(SDB_LOG_ERR);
 
 			dbi_conn_close(client->conn);
+			client->conn = NULL;
 			return -1;
 		}
 	}
@@ -340,6 +343,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 		sdb_log(SDB_LOG_ERR, "dbi: failed to set option 'dbname': %s",
 				sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
+		client->conn = NULL;
 		return -1;
 	}
 
@@ -347,6 +351,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 		sdb_log(SDB_LOG_ERR, "dbi: failed to connect to database '%s': %s",
 				client->database, sdb_dbi_strerror(client->conn));
 		dbi_conn_close(client->conn);
+		client->conn = NULL;
 		return -1;
 	}
 	return 0;
@@ -467,6 +472,7 @@ sdb_dbi_client_destroy(sdb_dbi_client_t *client)
 
 	if (client->conn)
 		dbi_conn_close(client->conn);
+	client->conn = NULL;
 
 	if (client->options)
 		sdb_dbi_options_destroy(client->options);
