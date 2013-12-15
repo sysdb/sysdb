@@ -171,6 +171,8 @@ main(int argc, char **argv)
 	const char *homedir;
 	char hist_file[1024] = "";
 
+	sdb_strbuf_t *buf;
+
 	while (42) {
 		int opt = getopt(argc, argv, "H:U:hV");
 
@@ -236,20 +238,30 @@ main(int argc, char **argv)
 		}
 	}
 
+	buf = sdb_strbuf_create(1024);
+
 	while (42) {
-		char *line = readline("sysdb> ");
+		const char *prompt = "sysdb=> ";
+		const char *query;
+		char *input;
 
-		if (! line)
+		if (sdb_strbuf_len(buf))
+			prompt = "sysdb-> ";
+
+		input = readline(prompt);
+
+		if (! input)
 			break;
-		if (*line == '\0') {
-			free(line);
+
+		sdb_strbuf_append(buf, input);
+		free(input);
+
+		query = sdb_strbuf_string(buf);
+		if (! strchr(query, (int)';'))
 			continue;
-		}
 
-		if (*line != ' ')
-			add_history(line);
-
-		free(line);
+		/* XXX */
+		sdb_strbuf_clear(buf);
 	}
 
 	if (hist_file[0] != '\0') {
