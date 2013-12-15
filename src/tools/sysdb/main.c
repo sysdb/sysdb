@@ -1,5 +1,5 @@
 /*
- * SysDB - src/client/sysdb.c
+ * SysDB - src/tools/sysdb/main.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

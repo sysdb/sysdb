@@ -83,20 +83,20 @@ bin_PROGRAMS = sysdbd
 if BUILD_CLIENT
 bin_PROGRAMS += sysdb
 
-sysdb_SOURCES = client/sysdb.c include/client/sysdb.h
+sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
 		$(AM_CFLAGS) @READLINE_CFLAGS@
 sysdb_LDADD = libsysdbclient.la @READLINE_LIBS@
 endif
 
-sysdbd_SOURCES = daemon/sysdbd.c include/sysdb.h \
-		daemon/config.c include/daemon/config.h
+sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
+		tools/sysdbd/configfile.c tools/sysdbd/configfile.h
 sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdbd_LDADD = libsysdb.la liboconfig/liboconfig.la
 sysdbd_DEPENDENCIES = liboconfig/liboconfig.la
 
 sdbconfdir = $(sysconfdir)/sysdb
-dist_sdbconf_DATA = daemon/sysdbd.conf.sample
+dist_sdbconf_DATA = tools/sysdbd/sysdbd.conf.sample
 
 pkgbackendlibdir = $(pkglibdir)/backend
 pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
