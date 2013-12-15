@@ -37,7 +37,7 @@ AC_CONFIG_SRCDIR([src/sysdb.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_PREFIX_DEFAULT([/opt/sysdb])
 
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 
 AC_LANG(C)
 
@@ -48,6 +48,7 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AM_PROG_AR
 
 AM_PROG_CC_C_O
 AM_PROG_LEX
