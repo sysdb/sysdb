@@ -443,6 +443,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	if ((! sock) || (! sock->listeners_num) || (! loop) || sock->chan)
 		return -1;
 
+	if (! loop->do_loop)
+		return 0;
+
 	FD_ZERO(&sockets);
 	for (i = 0; i < sock->listeners_num; ++i) {
 		listener_t *listener = sock->listeners + i;

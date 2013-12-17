@@ -129,6 +129,15 @@ START_TEST(test_listen_and_serve)
 	pthread_join(thr, NULL);
 
 	unlink(tmp_file);
+
+	/* should do nothing and not report errors */
+	check = sdb_fe_sock_listen_and_serve(sock, &loop);
+	fail_unless(check == 0,
+			"sdb_fe_sock_listen_and_serve() = %i; "
+			"expected: <0 (do_loop == 0)", check);
+	fail_unless(access(tmp_file, F_OK),
+			"sdb_fe_sock_listen_and_serve() recreated socket "
+			"(do_loop == 0)");
 }
 END_TEST
 
