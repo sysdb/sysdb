@@ -40,6 +40,7 @@ main(void)
 	suite_creator_t creators[] = {
 		{ core_object_suite, NULL },
 		{ core_store_suite, NULL },
+		{ fe_sock_suite, NULL },
 		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },
 		{ util_llist_suite, NULL },

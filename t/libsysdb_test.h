@@ -67,6 +67,10 @@ core_object_suite(void);
 Suite *
 core_store_suite(void);
 
+/* t/frontend/sock_test */
+Suite *
+fe_sock_suite(void);
+
 /* t/utils/channel_test */
 Suite *
 util_channel_suite(void);
