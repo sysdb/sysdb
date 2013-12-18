@@ -68,6 +68,7 @@ typedef struct {
 	const char *prefix;
 
 	int (*opener)(listener_t *);
+	void (*closer)(listener_t *);
 } fe_listener_impl_t;
 
 struct sdb_fe_socket {
@@ -121,6 +122,20 @@ open_unix_sock(listener_t *listener)
 	return 0;
 } /* open_unix_sock */
 
+static void
+close_unix_sock(listener_t *listener)
+{
+	assert(listener);
+	if (! listener->address)
+		return;
+
+	if (listener->sock_fd >= 0)
+		close(listener->sock_fd);
+	listener->sock_fd = -1;
+
+	unlink(listener->address + strlen("unix:"));
+} /* close_unix_sock */
+
 /*
  * private variables
  */
@@ -131,12 +146,45 @@ enum {
 	LISTENER_UNIXSOCK = 0,
 };
 static fe_listener_impl_t listener_impls[] = {
-	{ LISTENER_UNIXSOCK, "unix", open_unix_sock },
+	{ LISTENER_UNIXSOCK, "unix", open_unix_sock, close_unix_sock },
 };
 
 /*
  * private helper functions
  */
+
+static int
+listener_listen(listener_t *listener)
+{
+	assert(listener);
+
+	/* try to reopen */
+	if (listener->sock_fd < 0)
+		if (listener_impls[listener->type].opener(listener))
+			return -1;
+	assert(listener->sock_fd >= 0);
+
+	if (listen(listener->sock_fd, /* backlog = */ 32)) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
+				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
+		return -1;
+	}
+	return 0;
+} /* listener_listen */
+
+static void
+listener_close(listener_t *listener)
+{
+	assert(listener);
+
+	if (listener_impls[listener->type].closer)
+		listener_impls[listener->type].closer(listener);
+
+	if (listener->sock_fd >= 0)
+		close(listener->sock_fd);
+	listener->sock_fd = -1;
+} /* listener_close */
 
 static int
 get_type(const char *address)
@@ -169,12 +217,11 @@ listener_destroy(listener_t *listener)
 	if (! listener)
 		return;
 
-	if (listener->sock_fd >= 0)
-		close(listener->sock_fd);
-	listener->sock_fd = -1;
+	listener_close(listener);
 
 	if (listener->address)
 		free(listener->address);
+	listener->address = NULL;
 } /* listener_destroy */
 
 static listener_t *
@@ -222,38 +269,6 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	++sock->listeners_num;
 	return listener;
 } /* listener_create */
-
-static int
-listener_listen(listener_t *listener)
-{
-	assert(listener);
-
-	/* try to reopen */
-	if (listener->sock_fd < 0)
-		if (listener_impls[listener->type].opener(listener))
-			return -1;
-	assert(listener->sock_fd >= 0);
-
-	if (listen(listener->sock_fd, /* backlog = */ 32)) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to listen on socket %s: %s",
-				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
-		return -1;
-	}
-	return 0;
-} /* listener_listen */
-
-static void
-listener_close(listener_t *listener)
-{
-	assert(listener);
-
-	if (listener->sock_fd < 0)
-		return;
-
-	close(listener->sock_fd);
-	listener->sock_fd = -1;
-} /* listener_close */
 
 static void
 socket_close(sdb_fe_socket_t *sock)

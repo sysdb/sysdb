@@ -128,7 +128,9 @@ START_TEST(test_listen_and_serve)
 	loop.do_loop = 0;
 	pthread_join(thr, NULL);
 
-	unlink(tmp_file);
+	fail_unless(access(tmp_file, F_OK),
+			"sdb_fe_sock_listen_and_serve() did not clean up "
+			"socket %s", tmp_file);
 
 	/* should do nothing and not report errors */
 	check = sdb_fe_sock_listen_and_serve(sock, &loop);
