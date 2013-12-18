@@ -30,12 +30,18 @@
 
 #include <check.h>
 
+#include <errno.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <unistd.h>
 
 #include <pthread.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 /*
  * private variables
@@ -107,6 +113,9 @@ START_TEST(test_listen_and_serve)
 
 	pthread_t thr;
 
+	int sock_fd;
+	struct sockaddr_un sa;
+
 	check = sdb_fe_sock_listen_and_serve(sock, &loop);
 	fail_unless(check < 0,
 			"sdb_fe_sock_listen_and_serve() = %i; "
@@ -119,11 +128,26 @@ START_TEST(test_listen_and_serve)
 	fail_unless(check == 0,
 			"INTERNAL ERROR: pthread_create() = %i; expected: 0", check);
 
-	/* wait for the socket to appear */
-	while (access(tmp_file, F_OK)) {
-		struct timespec ts = { 0, 100000000 };
-		nanosleep(&ts, NULL);
+	sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	fail_unless(sock_fd >= 0,
+			"INTERNAL ERROR: socket() = %d; expected: >= 0", sock_fd);
+
+	sa.sun_family = AF_UNIX;
+	strncpy(sa.sun_path, tmp_file, sizeof(sa.sun_path));
+
+	/* wait for socket to become available */
+	errno = ECONNREFUSED;
+	while (errno == ECONNREFUSED) {
+		check = connect(sock_fd, (struct sockaddr *)&sa, sizeof(sa));
+		if (! check)
+			break;
+
+		fail_unless(errno == ECONNREFUSED,
+				"INTERNAL ERROR: connect() = %d [errno=%d]; expected: 0",
+				check, errno);
 	}
+
+	close(sock_fd);
 
 	loop.do_loop = 0;
 	pthread_join(thr, NULL);
