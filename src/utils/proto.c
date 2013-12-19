@@ -36,9 +36,56 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/select.h>
+
 /*
  * public API
  */
+
+int
+sdb_proto_select(int fd, int type)
+{
+	fd_set fds;
+	fd_set *readfds = NULL;
+	fd_set *writefds = NULL;
+	fd_set *exceptfds = NULL;
+
+	if (fd < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	FD_ZERO(&fds);
+
+	switch (type) {
+		case SDB_PROTO_SELECTIN:
+			readfds = &fds;
+			break;
+		case SDB_PROTO_SELECTOUT:
+			writefds = &fds;
+			break;
+		case SDB_PROTO_SELECTERR:
+			exceptfds = &fds;
+			break;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+
+	FD_SET(fd, &fds);
+
+	while (42) {
+		int n;
+		errno = 0;
+		n = select(fd + 1, readfds, writefds, exceptfds, NULL);
+
+		if ((n < 0) && (errno != EINTR))
+			return (ssize_t)n;
+		if (n > 0)
+			break;
+	}
+	return 0;
+} /* sdb_proto_select */
 
 ssize_t
 sdb_proto_send(int fd, size_t msg_len, const char *msg)
@@ -56,7 +103,8 @@ sdb_proto_send(int fd, size_t msg_len, const char *msg)
 	while (len > 0) {
 		ssize_t status;
 
-		/* XXX: use select() */
+		if (sdb_proto_select(fd, SDB_PROTO_SELECTOUT))
+			return -1;
 
 		errno = 0;
 		status = write(fd, buf, len);
