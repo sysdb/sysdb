@@ -454,6 +454,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 	/* XXX: make the number of threads configurable */
 	pthread_t handler_threads[5];
+	size_t num_threads;
 
 	if ((! sock) || (! sock->listeners_num) || (! loop) || sock->chan)
 		return -1;
@@ -481,11 +482,20 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		return -1;
 	}
 
+	num_threads = SDB_STATIC_ARRAY_LEN(handler_threads);
 	memset(&handler_threads, 0, sizeof(handler_threads));
-	/* XXX: error handling */
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
-		pthread_create(&handler_threads[i], /* attr = */ NULL,
-				connection_handler, /* arg = */ sock);
+	for (i = 0; i < num_threads; ++i) {
+		errno = 0;
+		if (pthread_create(&handler_threads[i], /* attr = */ NULL,
+					connection_handler, /* arg = */ sock)) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+					"connection handler thread: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			num_threads = i;
+			break;
+		}
+	}
 
 	while (loop->do_loop) {
 		struct timeval timeout = { 1, 0 }; /* one second */
@@ -543,7 +553,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	sdb_log(SDB_LOG_INFO, "frontend: Waiting for connection handler threads "
 			"to terminate");
 	if (! sdb_channel_shutdown(sock->chan))
-		for (i = 0; i < SDB_STATIC_ARRAY_LEN(handler_threads); ++i)
+		for (i = 0; i < num_threads; ++i)
 			pthread_join(handler_threads[i], NULL);
 	/* else: we tried our best; let the operating system clean up */
 
