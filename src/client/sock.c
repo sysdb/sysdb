@@ -233,7 +233,8 @@ sdb_client_recv(sdb_client_t *client,
 	while (42) {
 		ssize_t status;
 
-		/* XXX: use select */
+		if (sdb_proto_select(client->fd, SDB_PROTO_SELECTIN))
+			return -1;
 
 		errno = 0;
 		status = sdb_strbuf_read(buf, client->fd, req);
