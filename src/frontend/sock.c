@@ -497,7 +497,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		}
 	}
 
-	while (loop->do_loop) {
+	while (loop->do_loop && num_threads) {
 		struct timeval timeout = { 1, 0 }; /* one second */
 		sdb_llist_iter_t *iter;
 
@@ -559,6 +559,9 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 	sdb_channel_destroy(sock->chan);
 	sock->chan = NULL;
+
+	if (! num_threads)
+		return -1;
 	return 0;
 } /* sdb_fe_sock_listen_and_server */
 
