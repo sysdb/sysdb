@@ -25,6 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <unistd.h>
+
 #ifndef SDB_FRONTEND_SOCK_H
 #define SDB_FRONTEND_SOCK_H 1
 
@@ -34,9 +36,13 @@ extern "C" {
 
 /* manage a front-end listener loop */
 typedef struct {
+	/* number of handler threads to create */
+	size_t num_threads;
+
+	/* front-end listener shuts down when this is set to false */
 	_Bool do_loop;
 } sdb_fe_loop_t;
-#define SDB_FE_LOOP_INIT { 1 }
+#define SDB_FE_LOOP_INIT { 5, 1 }
 
 /*
  * sdb_fe_socket_t:

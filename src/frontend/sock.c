@@ -452,11 +452,11 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 	int max_listen_fd = 0;
 	size_t i;
 
-	/* XXX: make the number of threads configurable */
-	pthread_t handler_threads[5];
+	pthread_t handler_threads[loop->num_threads];
 	size_t num_threads;
 
-	if ((! sock) || (! sock->listeners_num) || (! loop) || sock->chan)
+	if ((! sock) || (! sock->listeners_num) || sock->chan
+			|| (! loop) || (loop->num_threads <= 0))
 		return -1;
 
 	if (! loop->do_loop)
@@ -482,7 +482,12 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		return -1;
 	}
 
-	num_threads = SDB_STATIC_ARRAY_LEN(handler_threads);
+	sdb_log(SDB_LOG_INFO, "frontend: Starting %d connection "
+			"handler thread%s managing %d listener%s",
+			loop->num_threads, loop->num_threads == 1 ? "" : "s",
+			sock->listeners_num, sock->listeners_num == 1 ? "" : "s");
+
+	num_threads = loop->num_threads;
 	memset(&handler_threads, 0, sizeof(handler_threads));
 	for (i = 0; i < num_threads; ++i) {
 		errno = 0;
