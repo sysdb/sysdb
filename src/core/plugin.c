@@ -117,6 +117,9 @@ static sdb_plugin_info_t plugin_default_info = SDB_PLUGIN_INFO_INIT;
 static pthread_key_t     plugin_ctx_key;
 static _Bool             plugin_ctx_key_initialized = 0;
 
+/* a list of the plugin contexts of all registered plugins */
+static sdb_llist_t      *all_plugins = NULL;
+
 static sdb_llist_t      *config_list = NULL;
 static sdb_llist_t      *init_list = NULL;
 static sdb_llist_t      *collector_list = NULL;
@@ -257,11 +260,11 @@ static sdb_type_t ctx_type = {
 };
 
 static ctx_t *
-ctx_create(void)
+ctx_create(const char *name)
 {
 	ctx_t *ctx;
 
-	ctx = CTX(sdb_object_create("plugin-context", ctx_type));
+	ctx = CTX(sdb_object_create(name, ctx_type));
 	if (! ctx)
 		return NULL;
 
@@ -433,7 +436,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	if (ctx_get())
 		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
 
-	ctx = ctx_create();
+	ctx = ctx_create(real_name);
 	if (! ctx) {
 		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
 		return -1;
@@ -470,6 +473,18 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 				"(%i.%i.%i); this might cause problems",
 				name, SDB_VERSION_DECODE(ctx->info.version),
 				SDB_VERSION_DECODE(SDB_VERSION));
+
+	if (! all_plugins) {
+		if (! (all_plugins = sdb_llist_create())) {
+			sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
+					"internal error while creating linked list", name);
+			plugin_unregister_by_name(ctx->info.plugin_name);
+			sdb_object_deref(SDB_OBJ(ctx));
+			return -1;
+		}
+	}
+
+	sdb_llist_append(all_plugins, SDB_OBJ(ctx));
 
 	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
 			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
@@ -695,8 +710,12 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(config_list, name));
 	if (! plugin) {
 		/* XXX: check if any such plugin has been loaded */
-		sdb_log(SDB_LOG_ERR, "core: Plugin '%s' did not register "
-				"a config callback.", name);
+		ctx_t *ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
+		if (! ctx)
+			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' not loaded.", name);
+		else
+			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' did not register "
+					"a config callback.", name);
 		errno = ENOENT;
 		return -1;
 	}
