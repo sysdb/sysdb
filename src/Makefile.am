@@ -83,10 +83,15 @@ bin_PROGRAMS = sysdbd
 if BUILD_CLIENT
 bin_PROGRAMS += sysdb
 
-sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h
+# don't use strict CFLAGS for flex code
+noinst_LIBRARIES = sysdb_scanner.a
+sysdb_scanner_a_SOURCES = tools/sysdb/scanner.l
+sysdb_scanner_a_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
+		tools/sysdb/input.c tools/sysdb/input.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
 		$(AM_CFLAGS) @READLINE_CFLAGS@
-sysdb_LDADD = libsysdbclient.la @READLINE_LIBS@
+sysdb_LDADD = sysdb_scanner.a libsysdbclient.la @READLINE_LIBS@
 endif
 
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \

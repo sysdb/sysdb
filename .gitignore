@@ -32,10 +32,12 @@ ltmain.sh
 src/liboconfig/parser.c
 src/liboconfig/parser.h
 src/liboconfig/scanner.c
+src/tools/sysdb/scanner.c
 src/sysdb
 src/sysdbd
 .dirstamp
 .libs
+*.a
 *.la
 *.lo
 *.o

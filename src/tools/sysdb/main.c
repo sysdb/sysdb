@@ -29,6 +29,8 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "tools/sysdb/input.h"
+
 #include "client/sysdb.h"
 #include "client/sock.h"
 #include "utils/error.h"
@@ -75,6 +77,8 @@
 #ifndef DEFAULT_SOCKET
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
+
+extern int yylex(void);
 
 static void
 exit_usage(char *name, int status)
@@ -171,7 +175,7 @@ main(int argc, char **argv)
 	const char *homedir;
 	char hist_file[1024] = "";
 
-	sdb_strbuf_t *buf;
+	sdb_input_t input = SDB_INPUT_INIT;
 
 	while (42) {
 		int opt = getopt(argc, argv, "H:U:hV");
@@ -238,31 +242,9 @@ main(int argc, char **argv)
 		}
 	}
 
-	buf = sdb_strbuf_create(1024);
-
-	while (42) {
-		const char *prompt = "sysdb=> ";
-		const char *query;
-		char *input;
-
-		if (sdb_strbuf_len(buf))
-			prompt = "sysdb-> ";
-
-		input = readline(prompt);
-
-		if (! input)
-			break;
-
-		sdb_strbuf_append(buf, input);
-		free(input);
-
-		query = sdb_strbuf_string(buf);
-		if (! strchr(query, (int)';'))
-			continue;
-
-		/* XXX */
-		sdb_strbuf_clear(buf);
-	}
+	input.buf = sdb_strbuf_create(2048);
+	sdb_input_set(&input);
+	yylex();
 
 	if (hist_file[0] != '\0') {
 		errno = 0;
