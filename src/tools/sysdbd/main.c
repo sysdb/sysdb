@@ -1,5 +1,5 @@
 /*
- * SysDB - src/sysdbd.c
+ * SysDB - src/tools/sysdbd/main.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -36,7 +36,7 @@
 
 #include "frontend/sock.h"
 
-#include "daemon/config.h"
+#include "tools/sysdbd/configfile.h"
 
 #if HAVE_LIBGEN_H
 #	include <libgen.h>

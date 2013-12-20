@@ -1,5 +1,5 @@
 /*
- * SysDB - src/daemon/config.h
+ * SysDB - src/tools/sysdbd/configfile.h
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -24,6 +24,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <unistd.h>
 
 #ifndef DAEMON_CONFIG_H
 #define DAEMON_CONFIG_H 1

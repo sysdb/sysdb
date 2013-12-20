@@ -1,5 +1,5 @@
 /*
- * SysDB - src/daemon/config.c
+ * SysDB - src/tools/sysdbd/configfile.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,12 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tools/sysdbd/configfile.h"
+
 #include "sysdb.h"
 #include "core/plugin.h"
 #include "core/time.h"
 #include "utils/error.h"
-
-#include "daemon/config.h"
 
 #include "liboconfig/oconfig.h"
 #include "liboconfig/utils.h"

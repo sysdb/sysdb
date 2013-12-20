@@ -11,6 +11,7 @@ src/config.h*
 Makefile
 Makefile.in
 aclocal.m4
+ar-lib
 autom4te.cache
 compile
 /config.*
@@ -31,13 +32,13 @@ ltmain.sh
 src/liboconfig/parser.c
 src/liboconfig/parser.h
 src/liboconfig/scanner.c
+src/sysdb
+src/sysdbd
 .dirstamp
 .libs
 *.la
 *.lo
 *.o
-sysdb
-sysdbd
 sysdbd.1
 sysdbd.conf.5
 sysdb.h

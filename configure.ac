@@ -37,7 +37,7 @@ AC_CONFIG_SRCDIR([src/sysdb.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_PREFIX_DEFAULT([/opt/sysdb])
 
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 
 AC_LANG(C)
 
@@ -48,6 +48,7 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AM_PROG_AR
 
 AM_PROG_CC_C_O
 AM_PROG_LEX
@@ -184,6 +185,9 @@ if test "x$enable_strict_checks" = "xyes"; then
 fi
 AC_SUBST([STRICT_CFLAGS])
 
+m4_divert_once([HELP_ENABLE], [
+Build dependencies:])
+
 dnl Testing.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
 		[build_testing="yes"], [build_testing="no"])
@@ -218,6 +222,82 @@ AM_CONDITIONAL([BUILD_WITH_FOPENCOOKIE], test "x$have_fopencookie" = "xyes")
 if test "x$have_fopencookie" = "xyes"; then
 	AC_DEFINE([HAVE_FOPENCOOKIE], 1)
 fi
+
+dnl readline support
+AC_ARG_WITH([readline],
+		[AS_HELP_STRING([--with-readline],
+			[readline support (libedit/libreadline) (default: auto, prefer libedit)])],
+		[readline_support="$withval"],
+		[readline_support="auto"])
+
+if test "x$readline_support" = "xyes"; then
+	readline_support="auto"
+fi
+
+have_libedit="no"
+if test "x$readline_support" = "xauto" \
+		|| test "x$readline_support" = "xlibedit"; then
+	PKG_CHECK_MODULES([LIBEDIT], [libedit],
+			[have_libedit="yes"], [have_libedit="no"])
+	if test "x$have_libedit" = "xyes"; then
+		AC_CHECK_HEADERS([editline/readline.h], [],
+				[AC_CHECK_HEADERS([readline.h], [],
+						[have_libedit="no (readline header not found"])])
+	fi
+	if test "x$have_libedit" = "xyes"; then
+		AC_CHECK_HEADERS([editline/history.h], [],
+				[AC_CHECK_HEADERS([history.h], [],
+						[have_libedit="no (history header not found"])])
+	fi
+else
+	have_libedit="disabled on command-line"
+fi
+
+have_libreadline="no"
+if test "x$have_libedit" = "xno"; then
+	if test "x$readline_support" = "xauto" \
+			|| test "x$readline_support" = "xlibreadline"; then
+		AC_CHECK_LIB([readline], [readline],
+				[have_libreadline="yes"],
+				[have_libreadline="no (libreadline or symbol 'readline' not found)"])
+	fi
+	if test "x$have_libreadline" = "xyes"; then
+		AC_CHECK_HEADERS([readline/readline.h], [],
+				[AC_CHECK_HEADERS([readline.h], [],
+						[have_libreadline="no (readline header not found"])])
+	fi
+	if test "x$have_libreadline" = "xyes"; then
+		AC_CHECK_HEADERS([readline/history.h], [],
+				[AC_CHECK_HEADERS([history.h], [],
+						[have_libreadline="no (history header not found"])])
+	fi
+else
+	have_libreadline="unchecked (prefer libedit)"
+fi
+
+if test "x$have_libedit" = "xyes"; then
+	READLINE_LIBS="$LIBEDIT_LIBS"
+	READLINE_CFLAGS="$LIBEDIT_CFLAGS"
+	readline_support="libedit"
+else if test "x$have_libreadline" = "xyes"; then
+	READLINE_LIBS="-lreadline -lhistory"
+	READLINE_CFLAGS=""
+	readline_support="libreadline"
+else
+	READLINE_LIBS=""
+	READLINE_CFLAGS=""
+	if test "x$readline_support" = "xno"; then
+		AC_MSG_WARN([*** readline support disabled; disabling SysDB client])
+	else if test "x$readline_support" = "xauto"; then
+		AC_MSG_WARN([*** readline not found; disabling SysDB client])
+	else
+		AC_MSG_ERROR([readline not found])
+	fi; fi
+	readline_support="no"
+fi; fi
+AC_SUBST([READLINE_LIBS])
+AC_SUBST([READLINE_CFLAGS])
+AM_CONDITIONAL([BUILD_CLIENT], test "x$readline_support" != "no")
 
 dnl Feature checks.
 build_documentation="yes"
@@ -296,6 +376,8 @@ AC_MSG_RESULT([      stdio mocking:  . . . . . $have_fopencookie])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])
+AC_MSG_RESULT([    libedit:  . . . . . . . . . $have_libedit])
+AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])
