@@ -191,9 +191,21 @@ AC_ARG_ENABLE([gcov],
 		[enable_gcov="$enableval"],
 		[enable_gcov="no"])
 
+dnl $GCC is based on some heuristics which might apply to clang as well.
+dnl However, clang does not support gcov.
+cc_is_gcc="no"
+case "x$CC" in
+	gcc)
+		cc_is_gcc="yes"
+		;;
+	gcc-*)
+		cc_is_gcc="yes"
+		;;
+esac
+
 COVERAGE_CFLAGS=""
 COVERAGE_LDFLAGS=""
-if test "x$enable_gcov" = "xyes" && test "x$GCC" == "xyes"; then
+if test "x$enable_gcov" = "xyes" && test "x$GCC$cc_is_gcc" == "xyesyes"; then
 	COVERAGE_CFLAGS="-O0"
 	cov_flag_have_problem="no"
 
