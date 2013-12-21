@@ -195,10 +195,10 @@ dnl $GCC is based on some heuristics which might apply to clang as well.
 dnl However, clang does not support gcov.
 cc_is_gcc="no"
 case "x$CC" in
-	gcc)
+	xgcc)
 		cc_is_gcc="yes"
 		;;
-	gcc-*)
+	xgcc-*)
 		cc_is_gcc="yes"
 		;;
 esac
