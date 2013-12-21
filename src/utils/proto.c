@@ -80,7 +80,7 @@ sdb_proto_select(int fd, int type)
 		n = select(fd + 1, readfds, writefds, exceptfds, NULL);
 
 		if ((n < 0) && (errno != EINTR))
-			return (ssize_t)n;
+			return n;
 		if (n > 0)
 			break;
 	}
