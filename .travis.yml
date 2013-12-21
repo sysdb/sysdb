@@ -7,9 +7,12 @@ before_install:
 install:
   - sudo apt-get install -qq check flex bison libtool
   - sudo apt-get install -qq libdbi-dev libedit-dev libltdl-dev
+  - sudo pip install cpp-coveralls --use-mirrors
 before_script:
   - ./autogen.sh
-script: ./configure CFLAGS="-Wno-sign-conversion" && make && make test
+script: ./configure CFLAGS="-O0 --coverage --no-inline -Wno-sign-conversion" && make && make test
+after_success:
+  - coveralls --exclude t
 branches:
   only:
     - master
