@@ -185,6 +185,46 @@ if test "x$enable_strict_checks" = "xyes"; then
 fi
 AC_SUBST([STRICT_CFLAGS])
 
+AC_ARG_ENABLE([gcov],
+		AS_HELP_STRING([--enable-gcov],
+				[Gcov coverage statistics @<:@default=no@:>@]),
+		[enable_gcov="$enableval"],
+		[enable_gcov="no"])
+
+COVERAGE_CFLAGS=""
+COVERAGE_LDFLAGS=""
+if test "x$enable_gcov" = "xyes"; then
+	COVERAGE_CFLAGS="-O0"
+	cov_flag_have_problem="no"
+
+	AC_MSG_CHECKING([whether $CC accepts --coverage])
+	if test_cc_flags --coverage; then
+		COVERAGE_CFLAGS="$COVERAGE_CFLAGS --coverage"
+		COVERAGE_LDFLAGS="$COVERAGE_LDFLAGS --coverage"
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([no])
+		cov_flag_have_problem="yes"
+	fi
+
+	for flag in -fno-inline; do
+		AC_MSG_CHECKING([whether $CC accepts $flag])
+		if test_cc_flags $flag; then
+			COVERAGE_CFLAGS="$COVERAGE_CFLAGS $flag"
+			AC_MSG_RESULT([yes])
+		else
+			AC_MSG_RESULT([no])
+			cov_flag_have_problem="yes"
+		fi
+	done
+
+	if test "x$cov_flag_have_problem" != "xno"; then
+		AC_MSG_WARN([Some coverage flags are not supported by your compiler!])
+	fi
+fi
+AC_SUBST([COVERAGE_CFLAGS])
+AC_SUBST([COVERAGE_LDFLAGS])
+
 m4_divert_once([HELP_ENABLE], [
 Build dependencies:])
 
@@ -373,6 +413,7 @@ AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
 AC_MSG_RESULT([    unit testing: . . . . . . . $build_testing])
 AC_MSG_RESULT([      stdio mocking:  . . . . . $have_fopencookie])
+AC_MSG_RESULT([    coverage testing: . . . . . $enable_gcov])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])

@@ -1,6 +1,8 @@
 SUBDIRS = liboconfig
 
-AM_CFLAGS = @STRICT_CFLAGS@
+# coverage related flags are only set when gcov is enabled
+AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
+AM_LDFLAGS = @COVERAGE_LDFLAGS@
 AM_CPPFLAGS  = -Iinclude
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
@@ -46,7 +48,7 @@ libsysdbclient_la_SOURCES = \
 		utils/strbuf.c include/utils/strbuf.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdbclient_la_LDFLAGS = -version-info 0:0:0 -pthread
+libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
 libsysdbclient_la_LIBADD = $(LIBLTDL)
 
 libsysdb_la_SOURCES = \
@@ -69,7 +71,7 @@ libsysdb_la_SOURCES = \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdb_la_LDFLAGS = -version-info 0:0:0 -pthread
+libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
 libsysdb_la_LIBADD = $(LIBLTDL) -lrt liboconfig/liboconfig.la
 libsysdb_la_DEPENDENCIES = liboconfig/liboconfig.la
 
@@ -117,7 +119,7 @@ pkgcnamelib_LTLIBRARIES =
 if BUILD_PLUGIN_COLLECTD
 pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
 backend_collectd_unixsock_la_SOURCES = backend/collectd/unixsock.c
-backend_collectd_unixsock_la_LDFLAGS = -module -avoid-version
+backend_collectd_unixsock_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen backend/collectd/unixsock.la
 libsysdb_la_DEPENDENCIES += backend/collectd/unixsock.la
 endif
@@ -125,7 +127,7 @@ endif
 if BUILD_PLUGIN_MKLIVESTATUS
 pkgbackendlib_LTLIBRARIES += backend/mk-livestatus.la
 backend_mk_livestatus_la_SOURCES = backend/mk-livestatus.c
-backend_mk_livestatus_la_LDFLAGS = -module -avoid-version
+backend_mk_livestatus_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen backend/mk-livestatus.la
 libsysdb_la_DEPENDENCIES += backend/mk-livestatus.la
 endif
@@ -133,7 +135,7 @@ endif
 if BUILD_PLUGIN_PUPPETSTORECONFIGS
 pkgbackendpuppetlib_LTLIBRARIES += backend/puppet/store-configs.la
 backend_puppet_store_configs_la_SOURCES = backend/puppet/store-configs.c
-backend_puppet_store_configs_la_LDFLAGS = -module -avoid-version
+backend_puppet_store_configs_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen backend/puppet/store-configs.la
 libsysdb_la_DEPENDENCIES += backend/puppet/store-configs.la
 endif
@@ -141,7 +143,7 @@ endif
 if BUILD_PLUGIN_SYSLOG
 pkglib_LTLIBRARIES += plugins/syslog.la
 plugins_syslog_la_SOURCE = plugins/syslog.c
-plugins_syslog_la_LDFLAGS = -module -avoid-version
+plugins_syslog_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen plugins/syslog.la
 libsysdb_la_DEPENDENCIES += plugins/syslog.la
 endif
@@ -149,7 +151,7 @@ endif
 if BUILD_PLUGIN_CNAMEDNS
 pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
 plugins_cname_dns_la_SOURCE = plugins/cname/dns.c
-plugins_cname_dns_la_LDFLAGS = -module -avoid-version
+plugins_cname_dns_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
 libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
 endif
