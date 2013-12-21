@@ -1,0 +1,15 @@
+language: c
+compiler:
+  - clang
+  - gcc
+before_install:
+  - sudo apt-get update -qq
+install:
+  - sudo apt-get install -qq check flex bison libtool
+  - sudo apt-get install -qq libdbi-dev libedit-dev libltdl-dev
+before_script:
+  - ./autogen.sh
+script: ./configure && make && make test
+branches:
+  only:
+    - master
