@@ -193,7 +193,7 @@ AC_ARG_ENABLE([gcov],
 
 COVERAGE_CFLAGS=""
 COVERAGE_LDFLAGS=""
-if test "x$enable_gcov" = "xyes"; then
+if test "x$enable_gcov" = "xyes" && test "x$GCC" == "xyes"; then
 	COVERAGE_CFLAGS="-O0"
 	cov_flag_have_problem="no"
 
@@ -221,7 +221,10 @@ if test "x$enable_gcov" = "xyes"; then
 	if test "x$cov_flag_have_problem" != "xno"; then
 		AC_MSG_WARN([Some coverage flags are not supported by your compiler!])
 	fi
-fi
+else if test "x$enable_gcov" = "xyes"; then
+	AC_MSG_WARN([Your compiler ($CC) is not known to support Gcov!])
+	enable_gcov="no (requires GCC)"
+fi; fi
 AC_SUBST([COVERAGE_CFLAGS])
 AC_SUBST([COVERAGE_LDFLAGS])
 
@@ -242,7 +245,7 @@ AC_ARG_WITH([libdbi],
 if test "x$with_libdbi" = "xyes"; then
 	AC_CHECK_HEADERS([dbi/dbi.h],
 			[with_libdbi="yes"],
-			[with_libdbi="no (dbi/dbi.h) not found"])
+			[with_libdbi="no (dbi/dbi.h not found)"])
 fi
 if test "x$with_libdbi" = "xyes"; then
 	AC_CHECK_LIB([dbi], [dbi_initialize],
