@@ -12,7 +12,7 @@ before_script:
   - ./autogen.sh
 script: ./configure CFLAGS="-O0 --coverage --no-inline -Wno-sign-conversion" && make && make test
 after_success:
-  - coveralls --exclude t
+  - coveralls --exclude t --verbose
 branches:
   only:
     - master
