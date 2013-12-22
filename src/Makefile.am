@@ -9,6 +9,7 @@ AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
 BUILT_SOURCES = include/client/sysdb.h include/sysdb.h
+EXTRA_DIST = include/client/sysdb.h.in include/sysdb.h.in
 
 pkginclude_HEADERS = include/sysdb.h
 pkgcoreincludedir = $(pkgincludedir)/core
