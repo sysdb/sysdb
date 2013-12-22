@@ -1,4 +1,6 @@
-AM_CFLAGS = @STRICT_CFLAGS@
+# coverage related flags are only set when gcov is enabled
+AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
+AM_LDFLAGS = @COVERAGE_LDFLAGS@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 TESTS = libsysdb_test libsysdb_net_test
