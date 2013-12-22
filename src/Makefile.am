@@ -58,7 +58,7 @@ libsysdb_la_SOURCES = \
 		core/store.c include/core/store.h \
 		include/core/data.h \
 		frontend/connection.c include/frontend/connection.h \
-		include/frontend/connection-private.h \
+		frontend/connection-private.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
