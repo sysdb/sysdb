@@ -12,7 +12,7 @@ EXTRA_DIST = autogen.sh version-gen.sh
 
 version: FORCE
 	@# As a side-effect, this updates version.
-	@echo Building $(PACKAGE_NAME) version $$( cd .. && ./version-gen.sh )
+	@echo Building $(PACKAGE_NAME) version $$( ./version-gen.sh )
 .PHONY: FORCE
 
 test: check
