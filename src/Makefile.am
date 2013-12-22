@@ -3,7 +3,7 @@ SUBDIRS = liboconfig
 # coverage related flags are only set when gcov is enabled
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@
-AM_CPPFLAGS  = -Iinclude
+AM_CPPFLAGS  = -I"${top_srcdir}/src/include"
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'

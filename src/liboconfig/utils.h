@@ -19,7 +19,7 @@
 #ifndef OCONFIG_UTILS_H
 #define OCONFIG_UTILS_H 1
 
-#include "liboconfig/oconfig.h"
+#include "oconfig.h"
 
 #ifdef __cplusplus
 extern "C" {
