@@ -174,3 +174,5 @@ include/sysdb.h: include/sysdb.h.in ../version
 	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
 	    include/sysdb.h.in > include/sysdb.h
 
+../version:
+	cd .. && make version
