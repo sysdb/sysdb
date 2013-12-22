@@ -19,31 +19,74 @@ Prerequisites
 
   * A build environment: autotools, libtool, C compiler, ...
 
+    <http://www.gnu.org/software/automake/>
+    <http://www.gnu.org/software/autoconf/>
+    <http://www.gnu.org/software/libtool/>
+    <http://www.freedesktop.org/wiki/Software/pkg-config/>
+    <http://gcc.gnu.org/>
+
   * When building from Git, you also need the flex lexical analyzer generator
     and bison parser generator (other lex and yacc compatible tools might work
     as well if you are lucky).
 
+    <http://www.gnu.org/software/bison/>
+    <http://flex.sourceforge.net/>
+
   * A POSIX + Single UNIX Specification compatible C library.
+
+    <http://pubs.opengroup.org/onlinepubs/9699919799/>
 
   * asciidoc, xsltproc, xmlto:
     The AsciiDoc text document format is used to write the manpages.
+
+    <http://www.methods.co.nz/asciidoc/>
+    <http://xmlsoft.org/XSLT/>
+    <https://fedorahosted.org/xmlto/>
+
+  * libedit or libreadline:
+    A readline compatible command line editor and history library is used for
+    handling input in the sysdb client program.
+
+    <http://thrysoee.dk/editline/>
+    <http://tiswww.case.edu/php/chet/readline/rltop.html>
+
+  The following optional libraries may be used by various plugins:
+
+  * libdbi:
+    The database independent abstraction layer is used for database access by
+    the puppet::store-configs plugin.
+
+    <http://libdbi.sourceforge.net/>
+
+Testing
+-------
+
+  Unit tests for SysDB are shipped along with the source code in the ‘t’
+  subdirectory. Run ‘make test’ to run all available tests.
+
+  Some tests require the ‘fopencookie’ function as provided by the GNU libc
+  library. It used used to mock I/O related functions. In case this function
+  is not available, the respective tests will be disabled automatically.
+
+  Code coverage testing using Gcov may be enabled when using the
+  ‘--enable-gcov’ configure option.
 
 Configuring / Compiling / Installing
 ------------------------------------
 
   To configure, build and install SysDB with the default settings, run
-  `./configure && make && make install'. For detailed, generic instructions
+  ‘./configure && make && make install’. For detailed, generic instructions
   see INSTALL. For a complete list of configure options and their description,
-  run `./configure --help'.
+  run ‘./configure --help’.
 
-  By default, SysDB will be installed into `/opt/sysdb'. You can adjust this
-  setting by specifying the `--prefix' configure option - see INSTALL for
-  details. If you pass DESTDIR=<path> to `make install', <path> will be
+  By default, SysDB will be installed into ‘/opt/sysdb’. You can adjust this
+  setting by specifying the ‘--prefix’ configure option - see INSTALL for
+  details. If you pass DESTDIR=<path> to ‘make install’, <path> will be
   prefixed to all installation directories. This might be useful when creating
   packages for SysDB.
 
 Author
 ------
 
-  Sebastian "tokkee" Harl <sh@tokkee.org>
+  Sebastian “tokkee” Harl <sh@tokkee.org>
 
