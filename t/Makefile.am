@@ -1,5 +1,5 @@
 AM_CFLAGS = @STRICT_CFLAGS@
-AM_CPPFLAGS = -I$(top_builddir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 TESTS = libsysdb_test libsysdb_net_test
 check_PROGRAMS = libsysdb_test libsysdb_net_test
