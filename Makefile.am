@@ -8,7 +8,7 @@ if BUILD_TESTING
 SUBDIRS += t
 endif
 
-EXTRA_DIST = autogen.sh version-gen.sh
+EXTRA_DIST = autogen.sh coverage.sh version-gen.sh
 
 version: FORCE
 	@# As a side-effect, this updates version.
