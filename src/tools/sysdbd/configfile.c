@@ -129,15 +129,15 @@ daemon_add_listener(oconfig_item_t *ci)
 		return -1;
 	}
 
-	tmp[listen_addresses_num] = strdup(address);
-	if (! tmp[listen_addresses_num]) {
+	listen_addresses = tmp;
+	listen_addresses[listen_addresses_num] = strdup(address);
+	if (! listen_addresses[listen_addresses_num]) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "config: Failed to allocate memory: %s",
 				sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
 
-	listen_addresses = tmp;
 	++listen_addresses_num;
 	return 0;
 } /* daemon_add_listener */

@@ -61,6 +61,7 @@ oconfig_item_t *oconfig_parse_fh (FILE *fh)
   if (status != 0)
   {
     fprintf (stderr, "yyparse returned error #%i\n", status);
+    c_file = NULL;
     return (NULL);
   }
 

@@ -172,7 +172,7 @@ sdb_dbi_options_create(void)
 {
 	sdb_dbi_options_t *options;
 
-	options = malloc(sizeof(options));
+	options = malloc(sizeof(*options));
 	if (! options)
 		return NULL;
 

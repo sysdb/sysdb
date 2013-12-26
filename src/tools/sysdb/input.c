@@ -91,10 +91,9 @@ sdb_input_readline(sdb_input_t *input, char *buf,
 		int *n_chars, size_t max_chars)
 {
 	const char *query;
-	size_t buflen, len;
+	size_t len;
 
-	buflen = sdb_strbuf_len(input->buf);
-	len = buflen - input->tokenizer_pos;
+	len = sdb_strbuf_len(input->buf) - input->tokenizer_pos;
 
 	if (! len) {
 		size_t n = input_readline(input->buf);
@@ -102,7 +101,6 @@ sdb_input_readline(sdb_input_t *input, char *buf,
 			*n_chars = 0; /* YY_NULL */
 			return 0;
 		}
-		buflen += n;
 		len += n;
 	}
 

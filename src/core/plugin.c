@@ -386,7 +386,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 int
 sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 {
-	char  real_name[strlen(name) > 0 ? strlen(name) : 1];
+	char  real_name[name ? strlen(name) + 1 : 1];
 	const char *name_ptr;
 	char *tmp;
 
