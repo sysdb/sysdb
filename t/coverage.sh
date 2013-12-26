@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# SysDB -- coverage.sh
+# SysDB -- t/coverage.sh
 #
 # Create a test coverage report for the System DataBase.
 
@@ -11,10 +11,10 @@ if ! which lcov || ! which genhtml; then
 	exit 1
 fi
 
-cd $( dirname "$0" )
+cd $( dirname "$0" )/..
 
-if test -e coverage; then
-	echo "coverage exists already; please remove manually" >&2
+if test -e t/coverage; then
+	echo "t/coverage exists already; please remove manually" >&2
 	exit 1
 fi
 
@@ -52,7 +52,7 @@ make test
 lcov --base-directory src --directory src --no-external \
 	--capture -o sysdb_coverage.info
 
-genhtml -o "$srcdir"/coverage \
+genhtml -o "$srcdir"/t/coverage \
 	-t "SysDB $V1 test coverage" --num-spaces=4 --legend \
 	sysdb_coverage.info
 

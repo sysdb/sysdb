@@ -1,3 +1,5 @@
+EXTRA_DIST = coverage.sh
+
 # coverage related flags are only set when gcov is enabled
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@
