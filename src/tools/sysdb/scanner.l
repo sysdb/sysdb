@@ -40,9 +40,12 @@ static sdb_input_t *sdb_input;
 %}
 
 %option interactive
+%option 8bit
 %option yylineno
+%option nodefault
 %option noyywrap
 %option verbose
+%option warn
 
 %%
 
