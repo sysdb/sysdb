@@ -1,6 +1,6 @@
 /*
  * SysDB - src/core/store.c
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2012-2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -224,6 +224,10 @@ sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 			return sobj;
 		}
 
+		/* don't lookups non-host types from hierarchical hosts */
+		if ((type != SDB_HOST) && (sobj->type == SDB_HOST))
+			continue;
+
 		sobj = sdb_store_lookup_in_list(sobj->children, type, name);
 		if (sobj) {
 			sdb_llist_iter_destroy(iter);
@@ -308,13 +312,15 @@ store_obj(int parent_type, const char *parent_name,
 			parent_list = parent->children;
 	}
 
-	/* TODO: only look into direct children? */
 	if (type == SDB_HOST)
 		/* make sure that each host is unique */
 		old = STORE_OBJ(sdb_store_lookup_in_list(obj_list, type, name));
 	else if (type == SDB_ATTRIBUTE)
+		/* look into attributes of this host */
 		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	else
+		/* look into services assigned to this host (sdb_store_lookup_in_list
+		 * does not look up services from hierarchical hosts) */
 		old = STORE_OBJ(sdb_store_lookup_in_list(parent_list, type, name));
 
 	if (old) {
