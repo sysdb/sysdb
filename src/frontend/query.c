@@ -67,7 +67,7 @@ sdb_fe_list(sdb_conn_t *conn)
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	return 0;
-} /* session_start */
+} /* sdb_fe_list */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
