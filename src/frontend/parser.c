@@ -1,5 +1,5 @@
 /*
- * SysDB - src/tools/sysdb/scanner.l
+ * SysDB - src/frontend/parser.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,46 +25,38 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-%{
+#include "sysdb.h"
+
+#include "frontend/parser.h"
+#include "frontend/grammar.h"
+#include "frontend/connection-private.h"
+
+#include <string.h>
 
 /*
- * This is a simplified version of frontend/scanner.l. The only purpose is to
- * find queries (terminated by semicolon).
+ * public API
  */
 
-#include "tools/sysdb/input.h"
-
-#ifdef YY_INPUT
-#	undef YY_INPUT
-#endif
-#define YY_INPUT(buf, result, max_size) \
-	do { \
-		sdb_input_readline(sdb_input, (buf), &(result), (max_size)); \
-	} while (0)
-
-static sdb_input_t *sdb_input;
-
-%}
-
-%option interactive
-%option 8bit
-%option yylineno
-%option nodefault
-%option noyywrap
-%option verbose
-%option warn
-
-%%
-
-. { /* do nothing */ }
-
-%%
-
-void
-sdb_input_set(sdb_input_t *new_input)
+int
+sdb_fe_parse(const char *query)
 {
-	sdb_input = new_input;
-} /* sdb_input_set */
+	sdb_fe_yyscan_t scanner;
+	int yyres;
+
+	if (! query)
+		return -1;
+
+	scanner = sdb_fe_scanner_init(query);
+	if (! scanner)
+		return -1;
+
+	yyres = sdb_fe_yyparse(scanner);
+	sdb_fe_scanner_destroy(scanner);
+
+	if (yyres)
+		return -1;
+	return 0;
+} /* sdb_fe_parse */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

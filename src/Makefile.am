@@ -8,6 +8,8 @@ AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
+AM_YFLAGS = -d
+
 BUILT_SOURCES = include/client/sysdb.h include/sysdb.h
 EXTRA_DIST = include/client/sysdb.h.in include/sysdb.h.in
 
@@ -53,6 +55,11 @@ libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
 libsysdbclient_la_LIBADD = $(LIBLTDL)
 
+# don't use strict CFLAGS for flex code
+noinst_LTLIBRARIES += libsysdb_fe_parser.la
+libsysdb_fe_parser_la_SOURCES = \
+		frontend/grammar.y frontend/scanner.l
+libsysdb_fe_parser_la_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 libsysdb_la_SOURCES = \
 		sysdb.c include/sysdb.h \
 		core/object.c include/core/object.h \
@@ -61,6 +68,7 @@ libsysdb_la_SOURCES = \
 		include/core/data.h \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
+		frontend/parser.c \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
@@ -74,8 +82,9 @@ libsysdb_la_SOURCES = \
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
-libsysdb_la_LIBADD = $(LIBLTDL) -lrt liboconfig/liboconfig.la
-libsysdb_la_DEPENDENCIES = liboconfig/liboconfig.la
+libsysdb_la_LIBADD = libsysdb_fe_parser.la \
+		$(LIBLTDL) -lrt liboconfig/liboconfig.la
+libsysdb_la_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
 
 if BUILD_WITH_LIBDBI
 libsysdb_la_SOURCES += \

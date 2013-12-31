@@ -1,5 +1,5 @@
 /*
- * SysDB - src/tools/sysdb/scanner.l
+ * SysDB - src/frontend/grammar.y
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -27,44 +27,63 @@
 
 %{
 
-/*
- * This is a simplified version of frontend/scanner.l. The only purpose is to
- * find queries (terminated by semicolon).
- */
+#include "frontend/parser.h"
+#include "frontend/grammar.h"
+#include "utils/error.h"
 
-#include "tools/sysdb/input.h"
+#include <stdio.h>
 
-#ifdef YY_INPUT
-#	undef YY_INPUT
-#endif
-#define YY_INPUT(buf, result, max_size) \
-	do { \
-		sdb_input_readline(sdb_input, (buf), &(result), (max_size)); \
-	} while (0)
-
-static sdb_input_t *sdb_input;
+void
+sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %}
 
-%option interactive
-%option 8bit
-%option yylineno
-%option nodefault
-%option noyywrap
-%option verbose
-%option warn
+%pure-parser
+%lex-param {sdb_fe_yyscan_t scanner}
+%parse-param {sdb_fe_yyscan_t scanner}
+%locations
+%error-verbose
+%expect 0
+%name-prefix="sdb_fe_yy"
+
+%start statements
+
+%token SCANNER_ERROR
+
+%token IDENTIFIER
+%token LIST
 
 %%
 
-. { /* do nothing */ }
+statements:
+	statements ';' statement
+		{
+		}
+	|
+	statement
+		{
+		}
+	;
+
+statement:
+	list_statement
+		{
+		}
+	|
+	/* empty */
+	;
+
+list_statement:
+	LIST
+	;
 
 %%
 
 void
-sdb_input_set(sdb_input_t *new_input)
+sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
-	sdb_input = new_input;
-} /* sdb_input_set */
+	sdb_log(SDB_LOG_ERR, "frontend: parse error: %s", msg);
+} /* sdb_fe_yyerror */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

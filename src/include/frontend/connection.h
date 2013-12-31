@@ -94,6 +94,13 @@ int
 sdb_connection_ping(sdb_conn_t *conn);
 
 /*
+ * sdb_fe_parse:
+ * Parse the query text specified in 'query'.
+ */
+int
+sdb_fe_parse(const char *query);
+
+/*
  * session handling
  */
 

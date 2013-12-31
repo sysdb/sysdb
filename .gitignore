@@ -29,6 +29,9 @@ libtool
 ltmain.sh
 
 # build output
+src/frontend/grammar.c
+src/frontend/grammar.h
+src/frontend/scanner.c
 src/liboconfig/parser.c
 src/liboconfig/parser.h
 src/liboconfig/scanner.c

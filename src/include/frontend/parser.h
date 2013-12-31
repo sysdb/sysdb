@@ -1,5 +1,5 @@
 /*
- * SysDB - src/tools/sysdb/scanner.l
+ * SysDB - src/include/frontend/parser.h
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,46 +25,27 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-%{
+#ifndef SDB_FRONTEND_PARSER_H
+#define SDB_FRONTEND_PARSER_H 1
 
-/*
- * This is a simplified version of frontend/scanner.l. The only purpose is to
- * find queries (terminated by semicolon).
- */
-
-#include "tools/sysdb/input.h"
-
-#ifdef YY_INPUT
-#	undef YY_INPUT
+#ifdef __cplusplus
+extern "C" {
 #endif
-#define YY_INPUT(buf, result, max_size) \
-	do { \
-		sdb_input_readline(sdb_input, (buf), &(result), (max_size)); \
-	} while (0)
 
-static sdb_input_t *sdb_input;
+/* see yyscan_t */
+typedef void *sdb_fe_yyscan_t;
 
-%}
-
-%option interactive
-%option 8bit
-%option yylineno
-%option nodefault
-%option noyywrap
-%option verbose
-%option warn
-
-%%
-
-. { /* do nothing */ }
-
-%%
+sdb_fe_yyscan_t
+sdb_fe_scanner_init(const char *str);
 
 void
-sdb_input_set(sdb_input_t *new_input)
-{
-	sdb_input = new_input;
-} /* sdb_input_set */
+sdb_fe_scanner_destroy(sdb_fe_yyscan_t scanner);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+#endif /* ! SDB_FRONTEND_PARSER_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

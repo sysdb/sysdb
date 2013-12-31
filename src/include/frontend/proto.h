@@ -46,6 +46,7 @@ typedef enum {
 	CONNECTION_STARTUP,
 
 	/* querying */
+	CONNECTION_QUERY,
 	CONNECTION_LIST,
 } sdb_conn_state_t;
 

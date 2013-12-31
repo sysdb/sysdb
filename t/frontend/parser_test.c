@@ -1,5 +1,5 @@
 /*
- * SysDB - src/tools/sysdb/scanner.l
+ * SysDB - t/frontend/parser_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,46 +25,70 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-%{
+#include "frontend/connection.h"
+#include "libsysdb_test.h"
+
+#include <check.h>
 
 /*
- * This is a simplified version of frontend/scanner.l. The only purpose is to
- * find queries (terminated by semicolon).
+ * tests
  */
 
-#include "tools/sysdb/input.h"
-
-#ifdef YY_INPUT
-#	undef YY_INPUT
-#endif
-#define YY_INPUT(buf, result, max_size) \
-	do { \
-		sdb_input_readline(sdb_input, (buf), &(result), (max_size)); \
-	} while (0)
-
-static sdb_input_t *sdb_input;
-
-%}
-
-%option interactive
-%option 8bit
-%option yylineno
-%option nodefault
-%option noyywrap
-%option verbose
-%option warn
-
-%%
-
-. { /* do nothing */ }
-
-%%
-
-void
-sdb_input_set(sdb_input_t *new_input)
+START_TEST(test_parse)
 {
-	sdb_input = new_input;
-} /* sdb_input_set */
+	struct {
+		const char *query;
+		int expected;
+	} golden_data[] = {
+		/* empty commands */
+		{ NULL,                 -1 },
+		{ "",                    0 },
+		{ ";",                   0 },
+		{ ";;",                  0 },
+
+		/* valid commands */
+		{ "LIST",                0 },
+		{ "LIST;",               0 },
+
+		/* comments */
+		{ "/* some comment */",  0 },
+		{ "-- another comment",  0 },
+
+		/* syntax errors */
+		{ "INVALID",            -1 },
+		{ "/* some incomplete", -1 },
+	};
+
+	size_t i;
+	int check;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		_Bool ok;
+
+		check = sdb_fe_parse(golden_data[i].query);
+		if (golden_data[i].expected < 0)
+			ok = check < 0;
+		else
+			ok = check == golden_data[i].expected;
+
+		fail_unless(ok, "sdb_fe_parse(%s) = %d; expected: %d",
+				golden_data[i].query, check, golden_data[i].expected);
+	}
+}
+END_TEST
+
+Suite *
+fe_parser_suite(void)
+{
+	Suite *s = suite_create("frontend::parser");
+	TCase *tc;
+
+	tc = tcase_create("core");
+	tcase_add_test(tc, test_parse);
+	suite_add_tcase(s, tc);
+
+	return s;
+} /* util_parser_suite */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -12,6 +12,7 @@ libsysdb_test_SOURCES = \
 		libsysdb_test.c libsysdb_test.h \
 		core/object_test.c \
 		core/store_test.c \
+		frontend/parser_test.c \
 		frontend/sock_test.c \
 		utils/channel_test.c \
 		utils/dbi_test.c \
