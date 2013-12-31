@@ -10,7 +10,8 @@ AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
 AM_YFLAGS = -d
 
-BUILT_SOURCES = include/client/sysdb.h include/sysdb.h
+BUILT_SOURCES = include/client/sysdb.h include/sysdb.h \
+		frontend/grammar.h
 EXTRA_DIST = include/client/sysdb.h.in include/sysdb.h.in
 
 pkginclude_HEADERS = include/sysdb.h
