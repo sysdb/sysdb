@@ -69,7 +69,7 @@ libsysdb_la_SOURCES = \
 		include/core/data.h \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
-		frontend/parser.c \
+		frontend/parser.c include/frontend/parser.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
