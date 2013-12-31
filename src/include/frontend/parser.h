@@ -41,6 +41,9 @@ sdb_fe_scanner_init(const char *str);
 void
 sdb_fe_scanner_destroy(sdb_fe_yyscan_t scanner);
 
+int
+sdb_fe_yyparse(sdb_fe_yyscan_t scanner);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
