@@ -170,6 +170,22 @@ START_TEST(test_validate_insert)
 }
 END_TEST
 
+START_TEST(test_sdb_llist_get)
+{
+	size_t i;
+	populate();
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_object_t *check = sdb_llist_get(list, i);
+		fail_unless(check == &golden_data[i],
+				"sdb_llist_get() = NULL; expected: %p",
+				&golden_data[i]);
+		fail_unless(check->ref_cnt == 2,
+				"sdb_llist_get() changed reference count; got: %i; "
+				"expected: 2", check->ref_cnt);
+	}
+}
+END_TEST
+
 START_TEST(test_sdb_llist_search)
 {
 	size_t i;
@@ -289,6 +305,7 @@ util_llist_suite(void)
 	tcase_add_test(tc, test_sdb_llist_append);
 	tcase_add_test(tc, test_sdb_llist_insert);
 	tcase_add_test(tc, test_validate_insert);
+	tcase_add_test(tc, test_sdb_llist_get);
 	tcase_add_test(tc, test_sdb_llist_search);
 	tcase_add_test(tc, test_sdb_llist_shift);
 	tcase_add_test(tc, test_sdb_llist_iter);

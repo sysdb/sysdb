@@ -120,6 +120,13 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 		sdb_object_t *obj, sdb_llist_cmp_cb);
 
 /*
+ * sdb_llist_get:
+ * Returns the i-th element of the list or NULL in case of an error.
+ */
+sdb_object_t *
+sdb_llist_get(sdb_llist_t *list, size_t i);
+
+/*
  * sdb_llist_search:
  * Search for a object in the given 'list'. The function will return the first
  * entry for which the 'lookup' callback returns 0. The 'user_data' is passed

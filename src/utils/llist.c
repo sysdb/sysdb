@@ -305,6 +305,22 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 } /* sdb_llist_insert_sorted */
 
 sdb_object_t *
+sdb_llist_get(sdb_llist_t *list, size_t i)
+{
+	sdb_llist_elem_t *elem;
+	size_t j;
+
+	if ((! list) || (i >= list->length))
+		return NULL;
+
+	for (elem = list->head, j = 0; j < i; elem = elem->next, ++j)
+		/* iterate */;
+
+	assert(elem);
+	return elem->obj;
+} /* sdb_llist_get */
+
+sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
 		sdb_llist_lookup_cb lookup, const void *user_data)
 {
