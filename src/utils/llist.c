@@ -458,5 +458,13 @@ sdb_llist_iter_remove_current(sdb_llist_iter_t *iter)
 	return 0;
 } /* sdb_llist_iter_remove */
 
+size_t
+sdb_llist_len(sdb_llist_t *list)
+{
+	if (! list)
+		return 0;
+	return list->length;
+} /* sdb_llist_len */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

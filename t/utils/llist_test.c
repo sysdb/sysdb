@@ -118,6 +118,11 @@ END_TEST
 START_TEST(test_sdb_llist_append)
 {
 	size_t i;
+
+	fail_unless(sdb_llist_len(list) == 0,
+			"sdb_llist_len(<empty list>) = %zu; expected: 0",
+			sdb_llist_len(list));
+
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int check = sdb_llist_append(list, &golden_data[i]);
 		fail_unless(check == 0,
@@ -126,6 +131,9 @@ START_TEST(test_sdb_llist_append)
 		fail_unless(golden_data[i].ref_cnt == 2,
 				"sdb_llist_append(%s) did not take ownership",
 				golden_data[i].name);
+		fail_unless(sdb_llist_len(list) == i + 1,
+				"sdb_llist_len(<empty list>) = %zu; expected: zu",
+				sdb_llist_len(list), i + 1);
 	}
 }
 END_TEST

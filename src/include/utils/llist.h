@@ -203,6 +203,13 @@ sdb_llist_iter_get_next(sdb_llist_iter_t *iter);
 int
 sdb_llist_iter_remove_current(sdb_llist_iter_t *iter);
 
+/*
+ * sdb_llist_len:
+ * Return the length (number of elements) of the list.
+ */
+size_t
+sdb_llist_len(sdb_llist_t *list);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
