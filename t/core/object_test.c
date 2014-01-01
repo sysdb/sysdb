@@ -90,6 +90,12 @@ START_TEST(test_obj_create)
 	fail_unless(obj->type.size == test_type.size,
 			"after sdb_object_create(): type size mismatch; got: %zu; "
 			"expected: %zu", obj->type.size, test_type.size);
+	fail_unless(obj->type.init == obj_init_noop,
+			"after sdb_object_create(): type init = %p; exptected: %p",
+			obj->type.init, obj_init_noop);
+	fail_unless(obj->type.destroy == obj_destroy_noop,
+			"after sdb_object_create(): type destroy = %p; exptected: %p",
+			obj->type.destroy, obj_destroy_noop);
 	fail_unless(obj->ref_cnt == 1,
 			"after sdb_object_create(): obj->ref_cnt = %d; expected: 1",
 			obj->ref_cnt);
@@ -155,6 +161,35 @@ START_TEST(test_obj_create)
 	obj = sdb_object_create(name, test_type);
 	fail_unless(obj != NULL,
 			"sdb_object_create() fails without destroy callback");
+	sdb_object_deref(obj);
+
+	init_noop_called = 0;
+	obj = sdb_object_create_simple(name, sizeof(struct noop));
+	fail_unless(obj != NULL,
+			"sdb_object_create_simple() = NULL; expected: <obj>");
+	fail_unless(obj->type.size == sizeof(struct noop),
+			"sdb_object_create_simple() created object of size %zu; "
+			"expected: %zu", obj->type.size, sizeof(struct noop));
+	fail_unless(obj->type.init == NULL,
+			"sdb_object_create_simple() did not set init=NULL");
+	fail_unless(obj->type.destroy == NULL,
+			"sdb_object_create_simple() did not set destroy=NULL");
+	fail_unless(init_noop_called == 0,
+			"sdb_object_create_simple() unexpectedly called noop's init");
+	sdb_object_deref(obj);
+
+	obj = sdb_object_create_T(NULL, struct noop);
+	fail_unless(obj != NULL,
+			"sdb_object_create_simple() = NULL; expected: <obj>");
+	fail_unless(obj->type.size == sizeof(struct noop),
+			"sdb_object_create_simple() created object of size %zu; "
+			"expected: %zu", obj->type.size, sizeof(struct noop));
+	fail_unless(obj->type.init == NULL,
+			"sdb_object_create_simple() did not set init=NULL");
+	fail_unless(obj->type.destroy == NULL,
+			"sdb_object_create_simple() did not set destroy=NULL");
+	fail_unless(init_noop_called == 0,
+			"sdb_object_create_simple() unexpectedly called noop's init");
 	sdb_object_deref(obj);
 }
 END_TEST
