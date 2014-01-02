@@ -27,6 +27,7 @@
 
 %{
 
+#include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
 #include "utils/error.h"
@@ -34,6 +35,8 @@
 #include <errno.h>
 
 #include <string.h>
+
+#define YY_EXTRA_TYPE sdb_fe_yyextra_t *
 
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
@@ -94,7 +97,7 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 %%
 
 sdb_fe_yyscan_t
-sdb_fe_scanner_init(const char *str)
+sdb_fe_scanner_init(const char *str, sdb_fe_yyextra_t *yyext)
 {
 	yyscan_t scanner;
 
@@ -104,6 +107,8 @@ sdb_fe_scanner_init(const char *str)
 			sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return NULL;
 	}
+
+	sdb_fe_yyset_extra(yyext, scanner);
 
 	/* the newly allocated buffer state (YY_BUFFER_STATE) is stored inside the
 	 * scanner and, thus, will be freed by yylex_destroy */

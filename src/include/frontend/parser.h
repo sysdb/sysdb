@@ -28,15 +28,23 @@
 #ifndef SDB_FRONTEND_PARSER_H
 #define SDB_FRONTEND_PARSER_H 1
 
+#include "utils/llist.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* YY_EXTRA data */
+typedef struct {
+	/* list of sdb_conn_node_t objects */
+	sdb_llist_t *parsetree;
+} sdb_fe_yyextra_t;
 
 /* see yyscan_t */
 typedef void *sdb_fe_yyscan_t;
 
 sdb_fe_yyscan_t
-sdb_fe_scanner_init(const char *str);
+sdb_fe_scanner_init(const char *str, sdb_fe_yyextra_t *yyext);
 
 void
 sdb_fe_scanner_destroy(sdb_fe_yyscan_t scanner);

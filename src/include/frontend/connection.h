@@ -29,6 +29,7 @@
 #define SDB_FRONTEND_CONNECTION_H 1
 
 #include "frontend/proto.h"
+#include "utils/llist.h"
 #include "utils/strbuf.h"
 
 #include <inttypes.h>
@@ -38,6 +39,18 @@ extern "C" {
 #endif
 
 typedef struct sdb_conn sdb_conn_t;
+
+/*
+ * sdb_conn_node_t represents an interface for the result of parsing a command
+ * string. The first field of an actual implementation of the interface is a
+ * sdb_conn_state_t in order to fascilitate casting to and from the interface
+ * type to the implementation type.
+ */
+typedef struct {
+	sdb_object_t super;
+	sdb_conn_state_t cmd;
+} sdb_conn_node_t;
+#define SDB_CONN_NODE(obj) ((sdb_conn_node_t *)(obj))
 
 /*
  * sdb_connection_accpet:
@@ -95,10 +108,27 @@ sdb_connection_ping(sdb_conn_t *conn);
 
 /*
  * sdb_fe_parse:
- * Parse the query text specified in 'query'.
+ * Parse the query text specified in 'query' and return a list of parse trees
+ * (for each command) to be executed by sdb_fe_exec. The list has to be freed
+ * by the caller.
+ *
+ * Returns:
+ *  - an sdb_llist_t object of sdb_conn_node_t on success
+ *  - NULL in case of an error
+ */
+sdb_llist_t *
+sdb_fe_parse(const char *query);
+
+/*
+ * sdb_fe_exec:
+ * Execute the command identified by 'node'.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
  */
 int
-sdb_fe_parse(const char *query);
+sdb_fe_exec(sdb_conn_node_t *node);
 
 /*
  * session handling

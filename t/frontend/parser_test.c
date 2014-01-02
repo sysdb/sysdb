@@ -47,8 +47,8 @@ START_TEST(test_parse)
 		{ ";;",                  0 },
 
 		/* valid commands */
-		{ "LIST",                0 },
-		{ "LIST;",               0 },
+		{ "LIST",                1 },
+		{ "LIST;",               1 },
 
 		/* comments */
 		{ "/* some comment */",  0 },
@@ -60,19 +60,32 @@ START_TEST(test_parse)
 	};
 
 	size_t i;
-	int check;
+	sdb_llist_t *check;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		_Bool ok;
 
 		check = sdb_fe_parse(golden_data[i].query);
 		if (golden_data[i].expected < 0)
-			ok = check < 0;
+			ok = check == 0;
 		else
-			ok = check == golden_data[i].expected;
+			ok = sdb_llist_len(check) == (size_t)golden_data[i].expected;
 
-		fail_unless(ok, "sdb_fe_parse(%s) = %d; expected: %d",
-				golden_data[i].query, check, golden_data[i].expected);
+		fail_unless(ok, "sdb_fe_parse(%s) = %p (len: %zu); expected: %d",
+				golden_data[i].query, check, sdb_llist_len(check),
+				golden_data[i].expected);
+
+		if (! check)
+			continue;
+
+		if ((! strcmp(golden_data[i].query, "LIST"))
+				|| (! strcmp(golden_data[i].query, "LIST;"))) {
+			sdb_object_t *obj = sdb_llist_get(check, 0);
+			fail_unless(SDB_CONN_NODE(obj)->cmd == CONNECTION_LIST,
+					"sdb_fe_parse(LIST)->cmd = %i; expected: %d "
+					"(CONNECTION_LIST)", SDB_CONN_NODE(obj)->cmd,
+					CONNECTION_LIST);
+		}
 	}
 }
 END_TEST

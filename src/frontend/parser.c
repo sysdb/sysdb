@@ -27,9 +27,11 @@
 
 #include "sysdb.h"
 
+#include "frontend/connection-private.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
-#include "frontend/connection-private.h"
+
+#include "utils/llist.h"
 
 #include <string.h>
 
@@ -37,25 +39,33 @@
  * public API
  */
 
-int
+sdb_llist_t *
 sdb_fe_parse(const char *query)
 {
 	sdb_fe_yyscan_t scanner;
+	sdb_fe_yyextra_t yyextra;
 	int yyres;
 
 	if (! query)
-		return -1;
+		return NULL;
 
-	scanner = sdb_fe_scanner_init(query);
-	if (! scanner)
-		return -1;
+	memset(&yyextra, 0, sizeof(yyextra));
+	yyextra.parsetree = sdb_llist_create();
+
+	scanner = sdb_fe_scanner_init(query, &yyextra);
+	if (! scanner) {
+		sdb_llist_destroy(yyextra.parsetree);
+		return NULL;
+	}
 
 	yyres = sdb_fe_yyparse(scanner);
 	sdb_fe_scanner_destroy(scanner);
 
-	if (yyres)
-		return -1;
-	return 0;
+	if (yyres) {
+		sdb_llist_destroy(yyextra.parsetree);
+		return NULL;
+	}
+	return yyextra.parsetree;
 } /* sdb_fe_parse */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

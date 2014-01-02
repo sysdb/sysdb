@@ -27,14 +27,23 @@
 
 %{
 
+#include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
+
 #include "utils/error.h"
+#include "utils/llist.h"
 
 #include <stdio.h>
 
+sdb_fe_yyextra_t *
+sdb_fe_yyget_extra(sdb_fe_yyscan_t scanner);
+
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
+
+/* quick access to the current parse tree */
+#define pt sdb_fe_yyget_extra(scanner)->parsetree
 
 %}
 
@@ -46,35 +55,57 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %expect 0
 %name-prefix="sdb_fe_yy"
 
+%union {
+	sdb_llist_t     *list;
+	sdb_conn_node_t *node;
+}
+
 %start statements
 
 %token SCANNER_ERROR
 
 %token IDENTIFIER
-%token LIST
+%token <node> LIST
+
+%type <list> statements
+%type <node> statement
+	list_statement
 
 %%
 
 statements:
 	statements ';' statement
 		{
+			if ($3) {
+				sdb_llist_append(pt, SDB_OBJ($3));
+				sdb_object_deref(SDB_OBJ($3));
+			}
 		}
 	|
 	statement
 		{
+			if ($1) {
+				sdb_llist_append(pt, SDB_OBJ($1));
+				sdb_object_deref(SDB_OBJ($1));
+			}
 		}
 	;
 
 statement:
 	list_statement
-		{
-		}
 	|
 	/* empty */
+		{
+			$$ = NULL;
+		}
 	;
 
 list_statement:
 	LIST
+		{
+			$$ = sdb_object_create_T(/* name = */ NULL, sdb_conn_node_t);
+			((sdb_conn_node_t *)$$)->cmd = CONNECTION_LIST;
+		}
 	;
 
 %%
