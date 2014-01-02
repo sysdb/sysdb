@@ -403,6 +403,8 @@ setup(void)
 	client = sdb_dbi_client_create("mockdriver", "mockdatabase");
 	fail_unless(client != NULL,
 			"sdb_dbi_client_create() = NULL; expected client object");
+
+	dbi_conn_connect_called = 0;
 } /* setup */
 
 static void
