@@ -86,6 +86,8 @@ START_TEST(test_parse)
 					"(CONNECTION_LIST)", SDB_CONN_NODE(obj)->cmd,
 					CONNECTION_LIST);
 		}
+
+		sdb_llist_destroy(check);
 	}
 }
 END_TEST
