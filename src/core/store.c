@@ -57,6 +57,11 @@ static sdb_type_t sdb_attribute_type;
 
 struct sdb_store_base {
 	sdb_object_t super;
+
+	/* object type */
+	int type;
+
+	/* common meta information */
 	sdb_time_t last_update;
 	sdb_store_base_t *parent;
 };
@@ -74,9 +79,7 @@ typedef struct {
 typedef struct {
 	sdb_store_base_t super;
 
-	int type;
 	sdb_llist_t *children;
-
 	sdb_llist_t *attributes;
 } sdb_store_obj_t;
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
@@ -100,8 +103,10 @@ static int
 store_base_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_store_base_t *sobj = STORE_BASE(obj);
-	sobj->last_update = va_arg(ap, sdb_time_t);
 
+	sobj->type = va_arg(ap, int);
+
+	sobj->last_update = va_arg(ap, sdb_time_t);
 	sobj->parent = NULL;
 	return 0;
 } /* store_base_init */
@@ -121,11 +126,10 @@ sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
 	int ret;
 
+	/* this will consume the first argument (type) of ap */
 	ret = store_base_init(obj, ap);
 	if (ret)
 		return ret;
-
-	sobj->type = va_arg(ap, int);
 
 	sobj->children = sdb_llist_create();
 	if (! sobj->children)
@@ -157,6 +161,7 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 	const char *value;
 	int ret;
 
+	/* this will consume the first argument (type) of ap */
 	ret = store_base_init(obj, ap);
 	if (ret)
 		return ret;
@@ -215,14 +220,14 @@ sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 		sdb_store_obj_t *sobj = SDB_STORE_OBJ(sdb_llist_iter_get_next(iter));
 		assert(sobj);
 
-		if ((sobj->type == type)
+		if ((STORE_BASE(sobj)->type == type)
 				&& (! strcasecmp(SDB_OBJ(sobj)->name, name))) {
 			sdb_llist_iter_destroy(iter);
 			return sobj;
 		}
 
 		/* don't lookups non-host types from hierarchical hosts */
-		if ((type != SDB_HOST) && (sobj->type == SDB_HOST))
+		if ((type != SDB_HOST) && (STORE_BASE(sobj)->type == SDB_HOST))
 			continue;
 
 		sobj = sdb_store_lookup_in_list(sobj->children, type, name);
@@ -342,10 +347,10 @@ store_obj(int parent_type, const char *parent_name,
 		if (type == SDB_ATTRIBUTE)
 			/* the value will be updated by the caller */
 			new = STORE_BASE(sdb_object_create(name, sdb_attribute_type,
-						last_update, NULL));
+						type, last_update, NULL));
 		else
 			new = STORE_BASE(sdb_object_create(name, sdb_store_obj_type,
-						last_update, type));
+						type, last_update));
 
 		if (! new) {
 			char errbuf[1024];
