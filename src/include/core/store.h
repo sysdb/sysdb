@@ -41,6 +41,14 @@ extern "C" {
 #endif
 
 /*
+ * sdb_store_base_t represents the super-class of any object stored in the
+ * database. It inherits from sdb_object_t and may safely be cast to a generic
+ * object to access its name.
+ */
+struct sdb_store_base;
+typedef struct sdb_store_base sdb_store_base_t;
+
+/*
  * sdb_store_host:
  * Add/update a host in the store. If the host, identified by its
  * canonicalized name, already exists, it will be updated according to the

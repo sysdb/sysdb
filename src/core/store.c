@@ -55,19 +55,16 @@ static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
 static sdb_type_t sdb_store_obj_type;
 static sdb_type_t sdb_attribute_type;
 
-struct store_obj;
-typedef struct store_obj store_obj_t;
-
-struct store_obj {
+struct sdb_store_base {
 	sdb_object_t super;
 	sdb_time_t last_update;
-	store_obj_t *parent;
+	sdb_store_base_t *parent;
 };
-#define STORE_OBJ(obj) ((store_obj_t *)(obj))
-#define STORE_CONST_OBJ(obj) ((const store_obj_t *)(obj))
+#define STORE_BASE(obj) ((sdb_store_base_t *)(obj))
+#define STORE_CONST_BASE(obj) ((const sdb_store_base_t *)(obj))
 
 typedef struct {
-	store_obj_t super;
+	sdb_store_base_t super;
 
 	char *value;
 } sdb_attribute_t;
@@ -75,7 +72,7 @@ typedef struct {
 #define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
 
 typedef struct {
-	store_obj_t super;
+	sdb_store_base_t super;
 
 	int type;
 	sdb_llist_t *children;
@@ -100,23 +97,23 @@ enum {
 #define _last_update super.last_update
 
 static int
-store_obj_init(sdb_object_t *obj, va_list ap)
+store_base_init(sdb_object_t *obj, va_list ap)
 {
-	store_obj_t *sobj = STORE_OBJ(obj);
+	sdb_store_base_t *sobj = STORE_BASE(obj);
 	sobj->last_update = va_arg(ap, sdb_time_t);
 
 	sobj->parent = NULL;
 	return 0;
-} /* store_obj_init */
+} /* store_base_init */
 
 static void
-store_obj_destroy(sdb_object_t *obj)
+store_base_destroy(sdb_object_t *obj)
 {
-	const store_obj_t *sobj = STORE_OBJ(obj);
+	const sdb_store_base_t *sobj = STORE_CONST_BASE(obj);
 
 	if (sobj->parent)
 		sdb_object_deref(SDB_OBJ(sobj->parent));
-} /* store_obj_destroy */
+} /* store_base_destroy */
 
 static int
 sdb_store_obj_init(sdb_object_t *obj, va_list ap)
@@ -124,7 +121,7 @@ sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
 	int ret;
 
-	ret = store_obj_init(obj, ap);
+	ret = store_base_init(obj, ap);
 	if (ret)
 		return ret;
 
@@ -146,7 +143,7 @@ sdb_store_obj_destroy(sdb_object_t *obj)
 
 	assert(obj);
 
-	store_obj_destroy(obj);
+	store_base_destroy(obj);
 
 	if (sobj->children)
 		sdb_llist_destroy(sobj->children);
@@ -160,7 +157,7 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 	const char *value;
 	int ret;
 
-	ret = store_obj_init(obj, ap);
+	ret = store_base_init(obj, ap);
 	if (ret)
 		return ret;
 	value = va_arg(ap, const char *);
@@ -178,7 +175,7 @@ sdb_attr_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 
-	store_obj_destroy(obj);
+	store_base_destroy(obj);
 
 	if (SDB_ATTR(obj)->value)
 		free(SDB_ATTR(obj)->value);
@@ -248,12 +245,12 @@ sdb_store_lookup(int type, const char *name)
 static int
 store_obj(int parent_type, const char *parent_name,
 		int type, const char *name, sdb_time_t last_update,
-		store_obj_t **updated_obj)
+		sdb_store_base_t **updated_obj)
 {
 	char *parent_cname = NULL, *cname = NULL;
 
 	sdb_llist_t *parent_list;
-	store_obj_t *old;
+	sdb_store_base_t *old;
 	int status = 0;
 
 	if (last_update <= 0)
@@ -314,14 +311,14 @@ store_obj(int parent_type, const char *parent_name,
 
 	if (type == SDB_HOST)
 		/* make sure that each host is unique */
-		old = STORE_OBJ(sdb_store_lookup_in_list(obj_list, type, name));
+		old = STORE_BASE(sdb_store_lookup_in_list(obj_list, type, name));
 	else if (type == SDB_ATTRIBUTE)
 		/* look into attributes of this host */
-		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
+		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
 	else
 		/* look into services assigned to this host (sdb_store_lookup_in_list
 		 * does not look up services from hierarchical hosts) */
-		old = STORE_OBJ(sdb_store_lookup_in_list(parent_list, type, name));
+		old = STORE_BASE(sdb_store_lookup_in_list(parent_list, type, name));
 
 	if (old) {
 		if (old->last_update > last_update) {
@@ -340,14 +337,14 @@ store_obj(int parent_type, const char *parent_name,
 			*updated_obj = old;
 	}
 	else {
-		store_obj_t *new;
+		sdb_store_base_t *new;
 
 		if (type == SDB_ATTRIBUTE)
 			/* the value will be updated by the caller */
-			new = STORE_OBJ(sdb_object_create(name, sdb_attribute_type,
+			new = STORE_BASE(sdb_object_create(name, sdb_attribute_type,
 						last_update, NULL));
 		else
-			new = STORE_OBJ(sdb_object_create(name, sdb_store_obj_type,
+			new = STORE_BASE(sdb_object_create(name, sdb_store_obj_type,
 						last_update, type));
 
 		if (! new) {
@@ -414,7 +411,7 @@ sdb_store_attribute(const char *hostname, const char *key, const char *value,
 {
 	int status;
 
-	store_obj_t *updated_attr = NULL;
+	sdb_store_base_t *updated_attr = NULL;
 
 	if ((! hostname) || (! key))
 		return -1;
