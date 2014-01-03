@@ -443,6 +443,11 @@ sdb_llist_iter_get_next(sdb_llist_iter_t *iter)
 
 	pthread_rwlock_rdlock(&iter->list->lock);
 
+	/* XXX: increment ref-cnt for this object?
+	 *      also: when letting an element take ownership of next and prev
+	 *      elements, this might be a fairly cheap way to implement a weak
+	 *      type of snapshotting */
+
 	obj = iter->elem->obj;
 	iter->elem = iter->elem->next;
 
