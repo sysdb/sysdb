@@ -153,44 +153,12 @@ START_TEST(test_store_service)
 }
 END_TEST
 
-START_TEST(test_store_tojson)
+static void
+verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
 {
-	sdb_strbuf_t *buf;
-
-	int status, pos;
+	int pos;
 	size_t len1, len2;
 	size_t i;
-
-	const char *expected = "{\"hosts\":["
-		"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
-			"\"attributes\": ["
-				"{\"name\": \"k1\", \"value\": \"v1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-				"{\"name\": \"k2\", \"value\": \"v2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-				"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
-			"], "
-			"\"services\": []},"
-		"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
-			"\"attributes\": [], "
-			"\"services\": ["
-				"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-				"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
-			"]}"
-	"]}";
-
-	sdb_store_host("h1", 1);
-	sdb_store_host("h2", 1);
-
-	sdb_store_attribute("h1", "k1", "v1", 1);
-	sdb_store_attribute("h1", "k2", "v2", 1);
-	sdb_store_attribute("h1", "k3", "v3", 1);
-
-	sdb_store_service("h2", "s1", 1);
-	sdb_store_service("h2", "s2", 1);
-
-	buf = sdb_strbuf_create(0);
-	status = sdb_store_tojson(buf, /* flags = */ 0);
-	fail_unless(status == 0,
-			"sdb_store_tojson() = %d; expected: 0", status);
 
 	len1 = strlen(sdb_strbuf_string(buf));
 	len2 = strlen(expected);
@@ -207,9 +175,88 @@ START_TEST(test_store_tojson)
 	}
 
 	fail_unless(pos == -1,
-			"sdb_store_tojson() returned unexpected result\n"
+			"sdb_store_tojson(%x) returned unexpected result\n"
 			"         got: %s\n              %*s\n    expected: %s",
-			sdb_strbuf_string(buf), pos + 1, "^", expected);
+			flags, sdb_strbuf_string(buf), pos + 1, "^", expected);
+} /* verify_json_output */
+
+START_TEST(test_store_tojson)
+{
+	sdb_strbuf_t *buf;
+	size_t i;
+
+	struct {
+		int flags;
+		const char *expected;
+	} golden_data[] = {
+		{ 0, "{\"hosts\":["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"attributes\": ["
+						"{\"name\": \"k1\", \"value\": \"v1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"k2\", \"value\": \"v2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
+					"], "
+					"\"services\": []},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"attributes\": [], "
+					"\"services\": ["
+						"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
+					"]}"
+			"]}" },
+		{ SDB_SKIP_SERVICES,
+			"{\"hosts\":["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"attributes\": ["
+						"{\"name\": \"k1\", \"value\": \"v1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"k2\", \"value\": \"v2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
+					"]},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"attributes\": []}"
+			"]}" },
+		{ SDB_SKIP_ATTRIBUTES,
+			"{\"hosts\":["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"services\": []},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"services\": ["
+						"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+						"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
+					"]}"
+			"]}" },
+		{ SDB_SKIP_SERVICES | SDB_SKIP_ATTRIBUTES,
+			"{\"hosts\":["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
+			"]}" },
+	};
+
+	sdb_store_host("h1", 1);
+	sdb_store_host("h2", 1);
+
+	sdb_store_attribute("h1", "k1", "v1", 1);
+	sdb_store_attribute("h1", "k2", "v2", 1);
+	sdb_store_attribute("h1", "k3", "v3", 1);
+
+	sdb_store_service("h2", "s1", 1);
+	sdb_store_service("h2", "s2", 1);
+
+	buf = sdb_strbuf_create(0);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		int status;
+
+		sdb_strbuf_clear(buf);
+
+		status = sdb_store_tojson(buf, golden_data[i].flags);
+		fail_unless(status == 0,
+				"sdb_store_tojson(%x) = %d; expected: 0",
+				golden_data[i].flags, status);
+
+		verify_json_output(buf, golden_data[i].expected, golden_data[i].flags);
+	}
+	sdb_strbuf_destroy(buf);
 }
 END_TEST
 
