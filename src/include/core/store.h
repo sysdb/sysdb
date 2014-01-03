@@ -108,6 +108,18 @@ sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
 /*
+ * Flags for serialization functions.
+ *
+ * By default, the full object will be included in the serialized output. When
+ * specifying any of the flags, the respective information will be left out.
+ */
+enum {
+	SDB_SKIP_ATTRIBUTES         = 1 << 0,
+	SDB_SKIP_SERVICES           = 1 << 1,
+	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 2,
+};
+
+/*
  * sdb_store_tojson:
  * Serialize the entire store to JSON and append the result to the specified
  * buffer.
@@ -117,7 +129,7 @@ sdb_store_service(const char *hostname, const char *name,
  *  - a negative value on error
  */
 int
-sdb_store_tojson(sdb_strbuf_t *buf);
+sdb_store_tojson(sdb_strbuf_t *buf, int flags);
 
 /*
  * sdb_store_host_tojson:
@@ -129,7 +141,7 @@ sdb_store_tojson(sdb_strbuf_t *buf);
  *  - a negative value on error
  */
 int
-sdb_store_host_tojson(sdb_store_base_t *host, sdb_strbuf_t *buf);
+sdb_store_host_tojson(sdb_store_base_t *host, sdb_strbuf_t *buf, int flags);
 
 #ifdef __cplusplus
 } /* extern "C" */

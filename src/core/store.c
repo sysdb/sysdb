@@ -376,7 +376,57 @@ store_obj(int parent_type, const char *parent_name,
 	free(parent_cname);
 	free(cname);
 	return status;
-} /* sdb_store_obj */
+} /* store_obj */
+
+/*
+ * store_obj_tojson serializes attribute / service objects to JSON.
+ *
+ * The function never returns an error. Rather, an error message will be part
+ * of the serialized data.
+ */
+static void
+store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
+{
+	sdb_llist_iter_t *iter;
+	char time_str[64];
+
+	assert((type == SDB_ATTRIBUTE) || (type == SDB_SERVICE));
+
+	sdb_strbuf_append(buf, "[");
+
+	iter = sdb_llist_get_iter(list);
+	if (! iter) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "store: Failed to retrieve %ss: %s\n",
+				TYPE_TO_NAME(type),
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve %ss: %s\"}",
+				TYPE_TO_NAME(type), errbuf);
+	}
+
+	/* has_next returns false if the iterator is NULL */
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_store_base_t *sobj = STORE_BASE(sdb_llist_iter_get_next(iter));
+		assert(sobj);
+
+		if (! sdb_strftime(time_str, sizeof(time_str),
+					"%F %T %z", sobj->last_update))
+			snprintf(time_str, sizeof(time_str), "<error>");
+		time_str[sizeof(time_str) - 1] = '\0';
+
+		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
+		if (type == SDB_ATTRIBUTE)
+			sdb_strbuf_append(buf, "\"value\": \"%s\", ",
+					SDB_ATTR(sobj)->value);
+		sdb_strbuf_append(buf, "\"last_update\": \"%s\"}", time_str);
+
+		if (sdb_llist_iter_has_next(iter))
+			sdb_strbuf_append(buf, ",");
+	}
+
+	sdb_llist_iter_destroy(iter);
+	sdb_strbuf_append(buf, "]");
+} /* store_obj_tojson */
 
 /*
  * public API
@@ -457,13 +507,9 @@ sdb_store_service(const char *hostname, const char *name,
 } /* sdb_store_service */
 
 int
-sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf)
+sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 {
 	sdb_store_obj_t *host;
-
-	sdb_llist_iter_t *svc_iter;
-	sdb_llist_iter_t *attr_iter;
-
 	char time_str[64];
 
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
@@ -477,68 +523,26 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf)
 	time_str[sizeof(time_str) - 1] = '\0';
 
 	sdb_strbuf_append(buf, "{\"name\": \"%s\", "
-			"\"last_update\": \"%s\", "
-			"\"attributes\": [",
+			"\"last_update\": \"%s\"",
 			SDB_OBJ(host)->name, time_str);
 
-	attr_iter = sdb_llist_get_iter(host->attributes);
-	if (! attr_iter) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "store: Failed to retrieve attributes: %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
-				"attributes: %s\"}", errbuf);
+	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
+		sdb_strbuf_append(buf, ", \"attributes\": ");
+		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf);
 	}
 
-	/* has_next returns false if the iterator is NULL */
-	while (sdb_llist_iter_has_next(attr_iter)) {
-		sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(attr_iter));
-		assert(attr);
-
-		if (! sdb_strftime(time_str, sizeof(time_str),
-					"%F %T %z", attr->_last_update))
-			snprintf(time_str, sizeof(time_str), "<error>");
-		time_str[sizeof(time_str) - 1] = '\0';
-
-		sdb_strbuf_append(buf, "{\"name\": \"%s\", "
-				"\"value\": \"%s\", \"last_update\": \"%s\"},",
-				SDB_OBJ(attr)->name, attr->value, time_str);
+	if (! (flags & SDB_SKIP_SERVICES)) {
+		sdb_strbuf_append(buf, ", \"services\": ");
+		store_obj_tojson(host->children, SDB_SERVICE, buf);
 	}
 
-	sdb_llist_iter_destroy(attr_iter);
-	sdb_strbuf_append(buf, "], \"services\": [");
-
-	svc_iter = sdb_llist_get_iter(host->children);
-	if (! svc_iter) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "store: Failed to retrieve services: %s\n",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve "
-				"services: %s\"}", errbuf);
-	}
-
-	while (sdb_llist_iter_has_next(svc_iter)) {
-		sdb_store_obj_t *svc = SDB_STORE_OBJ(sdb_llist_iter_get_next(svc_iter));
-		assert(svc);
-
-		if (! sdb_strftime(time_str, sizeof(time_str),
-					"%F %T %z", svc->_last_update))
-			snprintf(time_str, sizeof(time_str), "<error>");
-		time_str[sizeof(time_str) - 1] = '\0';
-
-		sdb_strbuf_append(buf, "{\"name\": \"%s\", "
-				"\"last_update\": \"%s\"},",
-				SDB_OBJ(svc)->name, time_str);
-	}
-
-	sdb_llist_iter_destroy(svc_iter);
-	sdb_strbuf_append(buf, "]}");
+	sdb_strbuf_append(buf, "}");
 	return 0;
 } /* sdb_store_host_tojson */
 
 /* TODO: actually support hierarchical data */
 int
-sdb_store_tojson(sdb_strbuf_t *buf)
+sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 {
 	sdb_llist_iter_t *host_iter;
 
@@ -559,7 +563,7 @@ sdb_store_tojson(sdb_strbuf_t *buf)
 		sdb_store_base_t *host = STORE_BASE(sdb_llist_iter_get_next(host_iter));
 		assert(host);
 
-		if (sdb_store_host_tojson(host, buf))
+		if (sdb_store_host_tojson(host, buf, flags))
 			return -1;
 
 		if (sdb_llist_iter_has_next(host_iter))

@@ -166,14 +166,14 @@ START_TEST(test_store_tojson)
 			"\"attributes\": ["
 				"{\"name\": \"k1\", \"value\": \"v1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
 				"{\"name\": \"k2\", \"value\": \"v2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-				"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"k3\", \"value\": \"v3\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
 			"], "
 			"\"services\": []},"
 		"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 			"\"attributes\": [], "
 			"\"services\": ["
 				"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
-				"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"},"
+				"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\"}"
 			"]}"
 	"]}";
 
@@ -188,7 +188,7 @@ START_TEST(test_store_tojson)
 	sdb_store_service("h2", "s2", 1);
 
 	buf = sdb_strbuf_create(0);
-	status = sdb_store_tojson(buf);
+	status = sdb_store_tojson(buf, /* flags = */ 0);
 	fail_unless(status == 0,
 			"sdb_store_tojson() = %d; expected: 0", status);
 
