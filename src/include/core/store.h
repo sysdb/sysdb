@@ -119,6 +119,18 @@ sdb_store_service(const char *hostname, const char *name,
 int
 sdb_store_tojson(sdb_strbuf_t *buf);
 
+/*
+ * sdb_store_host_tojson:
+ * Serialize a host object to JSON and append the result to the specified
+ * buffer.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value on error
+ */
+int
+sdb_store_host_tojson(sdb_store_base_t *host, sdb_strbuf_t *buf);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
