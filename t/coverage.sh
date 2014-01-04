@@ -36,6 +36,10 @@ tar --strip-components=1 -zxf "$srcdir"/sysdb-$V.tar.gz
 if test -d "$srcdir"/.git/; then
 	# copy Git database for version-gen.sh
 	cp -a "$srcdir"/.git .
+
+	# reset all files which are not part of the tarball
+	# (e.g. .gitignore, .travis.yml which would else cause a "dirty" version)
+	git reset --hard
 fi
 
 ./configure --enable-gcov --disable-shared CFLAGS="-O0 -g"
