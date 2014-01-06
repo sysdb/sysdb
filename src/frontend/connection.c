@@ -184,13 +184,49 @@ command_handle(sdb_conn_t *conn)
 			status = sdb_fe_session_start(conn);
 			break;
 
+		case CONNECTION_QUERY:
+		{
+			sdb_llist_t *parsetree;
+			sdb_conn_node_t *node = NULL;
+
+			parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
+					(int)conn->cmd_len);
+			if (! parsetree) {
+				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s'",
+						sdb_strbuf_string(conn->buf));
+				status = -1;
+				break;
+			}
+
+			switch (sdb_llist_len(parsetree)) {
+				case 0:
+					/* skipping empty command */
+					break;
+				case 1:
+					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+					break;
+
+				default:
+					sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %d command%s "
+							"in multi-statement query '%s'",
+							sdb_llist_len(parsetree) - 1,
+							sdb_llist_len(parsetree) == 2 ? "" : "s",
+							sdb_strbuf_string(conn->buf));
+					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+			}
+
+			if (node)
+				status = sdb_fe_exec(conn, node);
+		}
+
 		case CONNECTION_LIST:
 			status = sdb_fe_list(conn);
 			break;
 
 		default:
 		{
-			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command");
+			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
+					conn->cmd);
 			sdb_strbuf_sprintf(conn->errbuf, "Invalid command %#x", conn->cmd);
 			status = -1;
 			break;
