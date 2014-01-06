@@ -39,6 +39,23 @@
  */
 
 int
+sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
+{
+	if (! node)
+		return -1;
+
+	switch (node->cmd) {
+		case CONNECTION_LIST:
+			return sdb_fe_list(conn);
+
+		default:
+			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);
+			return -1;
+	}
+	return -1;
+} /* sdb_fe_exec */
+
+int
 sdb_fe_list(sdb_conn_t *conn)
 {
 	sdb_strbuf_t *buf;

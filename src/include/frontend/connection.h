@@ -121,14 +121,14 @@ sdb_fe_parse(const char *query);
 
 /*
  * sdb_fe_exec:
- * Execute the command identified by 'node'.
+ * Execute the command identified by 'node' on the specified connection.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_exec(sdb_conn_node_t *node);
+sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node);
 
 /*
  * session handling
