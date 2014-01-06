@@ -38,25 +38,26 @@ START_TEST(test_parse)
 {
 	struct {
 		const char *query;
+		int len;
 		int expected;
 	} golden_data[] = {
 		/* empty commands */
-		{ NULL,                 -1 },
-		{ "",                    0 },
-		{ ";",                   0 },
-		{ ";;",                  0 },
+		{ NULL,                 -1, -1 },
+		{ "",                   -1,  0 },
+		{ ";",                  -1,  0 },
+		{ ";;",                 -1,  0 },
 
 		/* valid commands */
-		{ "LIST",                1 },
-		{ "LIST;",               1 },
+		{ "LIST",               -1,  1 },
+		{ "LIST;",              -1,  1 },
 
 		/* comments */
-		{ "/* some comment */",  0 },
-		{ "-- another comment",  0 },
+		{ "/* some comment */", -1,  0 },
+		{ "-- another comment", -1,  0 },
 
 		/* syntax errors */
-		{ "INVALID",            -1 },
-		{ "/* some incomplete", -1 },
+		{ "INVALID",            -1, -1 },
+		{ "/* some incomplete", -1, -1 },
 	};
 
 	size_t i;
@@ -65,7 +66,7 @@ START_TEST(test_parse)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		_Bool ok;
 
-		check = sdb_fe_parse(golden_data[i].query);
+		check = sdb_fe_parse(golden_data[i].query, golden_data[i].len);
 		if (golden_data[i].expected < 0)
 			ok = check == 0;
 		else

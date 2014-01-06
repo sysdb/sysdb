@@ -97,9 +97,12 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 %%
 
 sdb_fe_yyscan_t
-sdb_fe_scanner_init(const char *str, sdb_fe_yyextra_t *yyext)
+sdb_fe_scanner_init(const char *str, int len, sdb_fe_yyextra_t *yyext)
 {
 	yyscan_t scanner;
+
+	if (! str)
+		return NULL;
 
 	if (sdb_fe_yylex_init(&scanner)) {
 		char errbuf[1024];
@@ -110,9 +113,12 @@ sdb_fe_scanner_init(const char *str, sdb_fe_yyextra_t *yyext)
 
 	sdb_fe_yyset_extra(yyext, scanner);
 
+	if (len < 0)
+		len = strlen(str);
+
 	/* the newly allocated buffer state (YY_BUFFER_STATE) is stored inside the
 	 * scanner and, thus, will be freed by yylex_destroy */
-	yy_scan_string(str, scanner);
+	sdb_fe_yy_scan_bytes(str, len, scanner);
 	return scanner;
 } /* sdb_fe_scanner_init */
 

@@ -40,7 +40,7 @@
  */
 
 sdb_llist_t *
-sdb_fe_parse(const char *query)
+sdb_fe_parse(const char *query, int len)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
@@ -52,7 +52,7 @@ sdb_fe_parse(const char *query)
 	memset(&yyextra, 0, sizeof(yyextra));
 	yyextra.parsetree = sdb_llist_create();
 
-	scanner = sdb_fe_scanner_init(query, &yyextra);
+	scanner = sdb_fe_scanner_init(query, len, &yyextra);
 	if (! scanner) {
 		sdb_llist_destroy(yyextra.parsetree);
 		return NULL;

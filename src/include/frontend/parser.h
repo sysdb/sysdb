@@ -44,7 +44,7 @@ typedef struct {
 typedef void *sdb_fe_yyscan_t;
 
 sdb_fe_yyscan_t
-sdb_fe_scanner_init(const char *str, sdb_fe_yyextra_t *yyext);
+sdb_fe_scanner_init(const char *str, int len, sdb_fe_yyextra_t *yyext);
 
 void
 sdb_fe_scanner_destroy(sdb_fe_yyscan_t scanner);

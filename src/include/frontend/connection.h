@@ -108,16 +108,17 @@ sdb_connection_ping(sdb_conn_t *conn);
 
 /*
  * sdb_fe_parse:
- * Parse the query text specified in 'query' and return a list of parse trees
- * (for each command) to be executed by sdb_fe_exec. The list has to be freed
- * by the caller.
+ * Parse the query text specified in 'query' of length 'len' and return a list
+ * of parse trees (for each command) to be executed by sdb_fe_exec. The list
+ * has to be freed by the caller. If 'len' is less than zero, parse the whole
+ * (nul-terminated) string.
  *
  * Returns:
  *  - an sdb_llist_t object of sdb_conn_node_t on success
  *  - NULL in case of an error
  */
 sdb_llist_t *
-sdb_fe_parse(const char *query);
+sdb_fe_parse(const char *query, int len);
 
 /*
  * sdb_fe_exec:
