@@ -50,6 +50,7 @@ START_TEST(test_parse)
 		/* valid commands */
 		{ "LIST",               -1,  1 },
 		{ "LIST;",              -1,  1 },
+		{ "LIST; INVALID",       5,  1 },
 
 		/* comments */
 		{ "/* some comment */", -1,  0 },
@@ -57,6 +58,7 @@ START_TEST(test_parse)
 
 		/* syntax errors */
 		{ "INVALID",            -1, -1 },
+		{ "LIST; INVALID",       8, -1 },
 		{ "/* some incomplete", -1, -1 },
 	};
 
