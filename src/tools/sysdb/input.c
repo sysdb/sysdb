@@ -75,9 +75,10 @@ input_readline(sdb_strbuf_t *buf)
 	if (! line)
 		return 0;
 
-	len = strlen(line);
+	len = strlen(line) + 1;
 
 	sdb_strbuf_append(buf, line);
+	sdb_strbuf_append(buf, "\n");
 	free(line);
 	return len;
 } /* input_readline */
