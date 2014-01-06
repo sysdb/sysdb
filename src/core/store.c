@@ -460,6 +460,22 @@ sdb_store_has_host(const char *name)
 	return host != NULL;
 } /* sdb_store_has_host */
 
+sdb_store_base_t *
+sdb_store_get_host(const char *name)
+{
+	sdb_store_obj_t *host;
+
+	if (! name)
+		return NULL;
+
+	host = sdb_store_lookup(SDB_HOST, name);
+	if (! host)
+		return NULL;
+
+	sdb_object_ref(SDB_OBJ(host));
+	return STORE_BASE(host);
+} /* sdb_store_get_host */
+
 int
 sdb_store_attribute(const char *hostname, const char *key, const char *value,
 		sdb_time_t last_update)

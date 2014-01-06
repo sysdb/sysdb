@@ -81,6 +81,67 @@ START_TEST(test_store_host)
 }
 END_TEST
 
+START_TEST(test_store_get_host)
+{
+	char *golden_hosts[] = { "a", "b", "c" };
+	char *unknown_hosts[] = { "x", "y", "z" };
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
+		int status = sdb_store_host(golden_hosts[i], 1);
+		fail_unless(status >= 0,
+				"sdb_store_host(%s) = %d; expected: >=0",
+				golden_hosts[i], status);
+	}
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
+		sdb_store_base_t *sobj1, *sobj2;
+		int ref_cnt;
+
+		fail_unless(sdb_store_has_host(golden_hosts[i]),
+				"sdb_store_has_host(%s) = FALSE; expected: TRUE",
+				golden_hosts[i]);
+
+		sobj1 = sdb_store_get_host(golden_hosts[i]);
+		fail_unless(sobj1 != NULL,
+				"sdb_store_get_host(%s) = NULL; expected: <host>",
+				golden_hosts[i]);
+		ref_cnt = SDB_OBJ(sobj1)->ref_cnt;
+
+		fail_unless(ref_cnt > 1,
+				"sdb_store_get_host(%s) did not increment ref count: "
+				"got: %d; expected: >1", golden_hosts[i], ref_cnt);
+
+		sobj2 = sdb_store_get_host(golden_hosts[i]);
+		fail_unless(sobj2 != NULL,
+				"sdb_store_get_host(%s) = NULL; expected: <host>",
+				golden_hosts[i]);
+
+		fail_unless(sobj1 == sobj2,
+				"sdb_store_get_host(%s) returned different objects "
+				"in successive calls", golden_hosts[i]);
+		fail_unless(SDB_OBJ(sobj2)->ref_cnt == ref_cnt + 1,
+				"sdb_store_get_hosts(%s) did not increment ref count "
+				"(first call: %d; second call: %d)",
+				golden_hosts[i], ref_cnt, SDB_OBJ(sobj2)->ref_cnt);
+
+		sdb_object_deref(SDB_OBJ(sobj1));
+		sdb_object_deref(SDB_OBJ(sobj2));
+	}
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unknown_hosts); ++i) {
+		sdb_store_base_t *sobj;
+
+		fail_unless(!sdb_store_has_host(unknown_hosts[i]),
+				"sdb_store_has_host(%s) = TRUE; expected: FALSE",
+				unknown_hosts[i]);
+
+		sobj = sdb_store_get_host(unknown_hosts[i]);
+		fail_unless(!sobj, "sdb_store_get_host(%s) = <host:%s>; expected: NULL",
+				unknown_hosts[i], sobj ? SDB_OBJ(sobj)->name : "NULL");
+	}
+}
+END_TEST
+
 START_TEST(test_store_attr)
 {
 	struct {
@@ -271,6 +332,7 @@ core_store_suite(void)
 	 * even when using CK_NOFORK */
 	tcase_add_test(tc, test_store_tojson);
 	tcase_add_test(tc, test_store_host);
+	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
 	suite_add_tcase(s, tc);
