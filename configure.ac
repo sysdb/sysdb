@@ -309,7 +309,7 @@ else
 fi
 
 have_libreadline="no"
-if test "x$have_libedit" = "xno"; then
+if test "x$have_libedit" != "xyes"; then
 	if test "x$readline_support" = "xauto" \
 			|| test "x$readline_support" = "xlibreadline"; then
 		AC_CHECK_LIB([readline], [readline],
