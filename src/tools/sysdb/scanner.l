@@ -33,13 +33,19 @@
  */
 
 #include "tools/sysdb/input.h"
+#include "tools/sysdb/command.h"
+
+#include <string.h>
 
 #ifdef YY_INPUT
 #	undef YY_INPUT
 #endif
 #define YY_INPUT(buf, result, max_size) \
+	sdb_input_readline(sdb_input, (buf), &(result), (max_size))
+
+#define APPEND() \
 	do { \
-		sdb_input_readline(sdb_input, (buf), &(result), (max_size)); \
+		sdb_input->query_len += strlen(yytext); \
 	} while (0)
 
 static sdb_input_t *sdb_input;
@@ -54,9 +60,39 @@ static sdb_input_t *sdb_input;
 %option verbose
 %option warn
 
+%x CSC
+
+whitespace		([ \t\n\r\f]+)
+simple_comment	("--"[^\n\r]*)
+
+/*
+ * C style comments
+ */
+csc_start	\/\*
+csc_inside	([^*/]+|[^*]\/|\*[^/])
+csc_end		\*\/
+
+identifier	([A-Za-z_][A-Za-z_0-9$]*)
+
 %%
 
-. { /* do nothing */ }
+{whitespace}		{ APPEND(); }
+{simple_comment}	{ APPEND(); }
+
+{csc_start}			{ APPEND(); BEGIN(CSC); }
+<CSC>{csc_inside}	{ APPEND(); }
+<CSC>{csc_end}		{ APPEND(); BEGIN(INITIAL); }
+<CSC><<EOF>>		{ return -1; }
+
+{identifier}		{ APPEND(); }
+
+	/*
+	 * The following rules are specific to the command line tool.
+	 */
+
+";"	{ APPEND(); sdb_command_exec(sdb_input); }
+
+.	{ APPEND(); }
 
 %%
 

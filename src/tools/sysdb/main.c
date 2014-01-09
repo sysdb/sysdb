@@ -167,8 +167,6 @@ get_homedir(const char *username)
 int
 main(int argc, char **argv)
 {
-	sdb_client_t *client;
-
 	const char *host = NULL;
 	const char *user = NULL;
 
@@ -213,14 +211,14 @@ main(int argc, char **argv)
 			exit(1);
 	}
 
-	client = sdb_client_create(host);
-	if (! client) {
+	input.client = sdb_client_create(host);
+	if (! input.client) {
 		sdb_log(SDB_LOG_ERR, "Failed to create client object");
 		exit(1);
 	}
-	if (sdb_client_connect(client, user)) {
+	if (sdb_client_connect(input.client, user)) {
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
-		sdb_client_destroy(client);
+		sdb_client_destroy(input.client);
 		exit(1);
 	}
 
@@ -242,7 +240,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	input.buf = sdb_strbuf_create(2048);
+	input.input = sdb_strbuf_create(2048);
 	sdb_input_set(&input);
 	yylex();
 
@@ -255,7 +253,8 @@ main(int argc, char **argv)
 		}
 	}
 
-	sdb_client_destroy(client);
+	sdb_client_destroy(input.client);
+	sdb_strbuf_destroy(input.input);
 	return 0;
 } /* main */
 

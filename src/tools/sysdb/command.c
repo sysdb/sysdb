@@ -1,6 +1,6 @@
 /*
- * SysDB - src/tools/sysdb/input.h
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/tools/sysdb/command.c
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,67 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "client/sock.h"
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
+
+#include "tools/sysdb/command.h"
+#include "tools/sysdb/input.h"
+
+#include "frontend/proto.h"
 #include "utils/strbuf.h"
 
-#ifndef SYSDB_INPUT_H
-#define SYSDB_INPUT_H 1
-
-typedef struct {
-	sdb_client_t *client;
-
-	sdb_strbuf_t *input;
-	size_t tokenizer_pos;
-	size_t query_len;
-} sdb_input_t;
-
-#define SDB_INPUT_INIT { NULL, NULL, 0, 0 }
+#include <assert.h>
+#include <ctype.h>
 
 /*
- * sdb_input_readline:
- * This function is supposed to be used with a flex scanner's YY_INPUT. It
- * reads input from the user using reading() and places available input in the
- * specified buffer, returning the number of bytes in 'n_chars' (no more than
- * 'max_chars'.
- *
- * Returns:
- *  - The number of newly read bytes.
- *  - A negative value in case of an error.
- */
-ssize_t
-sdb_input_readline(sdb_input_t *input, char *buf,
-		int *n_chars, size_t max_chars);
-
-/*
- * scanner
+ * public API
  */
 
-void
-sdb_input_set(sdb_input_t *new_input);
+int
+sdb_command_exec(sdb_input_t *input)
+{
+	const char *query;
+	uint32_t query_len;
 
-#endif /* SYSDB_INPUT_H */
+	query = sdb_strbuf_string(input->input);
+	query_len = (uint32_t)input->query_len;
+
+	assert(input->query_len <= input->tokenizer_pos);
+
+	/* removing leading and trailing whitespace */
+	while (isspace((int)*query) && query_len) {
+		++query;
+		--query_len;
+	}
+	while (query_len && (isspace((int)query[query_len - 1])
+				|| (query[query_len - 1] == ';')))
+		--query_len;
+
+	if (query_len) {
+		sdb_strbuf_t *recv_buf;
+		uint32_t rcode = 0;
+
+		recv_buf = sdb_strbuf_create(1024);
+		if (! recv_buf)
+			return -1;
+
+		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
+		if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
+			rcode = UINT32_MAX;
+
+		if (rcode == UINT32_MAX)
+			printf("ERROR: ");
+		printf("%s\n", sdb_strbuf_string(recv_buf));
+
+		sdb_strbuf_destroy(recv_buf);
+	}
+
+	sdb_strbuf_skip(input->input, 0, input->query_len);
+	input->tokenizer_pos -= input->query_len;
+	input->query_len = 0;
+	return 0;
+} /* sdb_command_exec */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

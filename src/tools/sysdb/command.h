@@ -1,6 +1,6 @@
 /*
- * SysDB - src/tools/sysdb/input.h
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/tools/sysdb/command.h
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,23 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "client/sock.h"
-#include "utils/strbuf.h"
+#include "tools/sysdb/input.h"
 
-#ifndef SYSDB_INPUT_H
-#define SYSDB_INPUT_H 1
-
-typedef struct {
-	sdb_client_t *client;
-
-	sdb_strbuf_t *input;
-	size_t tokenizer_pos;
-	size_t query_len;
-} sdb_input_t;
-
-#define SDB_INPUT_INIT { NULL, NULL, 0, 0 }
+#ifndef SYSDB_COMMAND_H
+#define SYSDB_COMMAND_H 1
 
 /*
- * sdb_input_readline:
- * This function is supposed to be used with a flex scanner's YY_INPUT. It
- * reads input from the user using reading() and places available input in the
- * specified buffer, returning the number of bytes in 'n_chars' (no more than
- * 'max_chars'.
+ * sdb_command_exec:
+ * Execute the current command buffer.
  *
  * Returns:
- *  - The number of newly read bytes.
- *  - A negative value in case of an error.
+ *  - 0 on success
+ *  - a negative value else
  */
-ssize_t
-sdb_input_readline(sdb_input_t *input, char *buf,
-		int *n_chars, size_t max_chars);
+int
+sdb_command_exec(sdb_input_t *input);
 
-/*
- * scanner
- */
-
-void
-sdb_input_set(sdb_input_t *new_input);
-
-#endif /* SYSDB_INPUT_H */
+#endif /* SYSDB_COMMAND_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

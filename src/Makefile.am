@@ -102,6 +102,7 @@ noinst_LTLIBRARIES += libsysdb_scanner.la
 libsysdb_scanner_la_SOURCES = tools/sysdb/scanner.l
 libsysdb_scanner_la_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
+		tools/sysdb/command.c tools/sysdb/command.h \
 		tools/sysdb/input.c tools/sysdb/input.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
 		$(AM_CFLAGS) @READLINE_CFLAGS@
