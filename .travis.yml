@@ -1,16 +1,17 @@
 language: c
+env:
+  - CIOPTIONS="--with-readline=libedit"
+  - CIOPTIONS="--with-readline=libreadline"
 compiler:
   - clang
   - gcc
 before_install:
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -qq check flex bison libtool
-  - sudo apt-get install -qq libdbi-dev libedit-dev libltdl-dev
+  - sudo apt-get install -qq check flex bison libtool libltdl-dev
+  - sudo apt-get install -qq libdbi-dev libedit-dev libreadline-dev
   - sudo pip install cpp-coveralls --use-mirrors
-before_script:
-  - ./autogen.sh
-script: ./configure --enable-gcov CFLAGS="-O0 -Wno-sign-conversion" && make && make test
+script: ./t/cibuild.sh
 after_success:
   - coveralls --exclude t --verbose
 branches:
