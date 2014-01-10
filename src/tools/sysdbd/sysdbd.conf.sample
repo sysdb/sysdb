@@ -10,6 +10,9 @@
 # default interval used for actively polling plugins
 Interval 300
 
+# listening socket for client connections
+Listen "unix:/var/run/sysdbd.sock"
+
 #============================================================================#
 # Logging settings:                                                          #
 # These plugins should be loaded first. Else, any log messages will be       #

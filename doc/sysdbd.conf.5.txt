@@ -13,6 +13,8 @@ SYNOPSIS
 --------
   Interval 300
 
+  Listen "unix:/var/run/sysdbd.sock"
+
   LoadPlugin "syslog"
 
   LoadBackend "collectd::unixsock"
@@ -65,6 +67,11 @@ GLOBAL SETTINGS
 	specified in seconds and might be a floating-point value. This option will
 	be used by any "active" backend, that is, those that actively query some
 	external system rather than receiving some stream of events.
+
+*Listen* '<socket>'::
+	Sets the address on which sysdbd is to listen for client connections. It
+	supports UNIX domain sockets. The path name needs to be prefixed by
+	'unix:'.
 
 *LoadBackend* '<name>'::
 	Loads the backend named '<name>'. Backends are special plugins taking care
