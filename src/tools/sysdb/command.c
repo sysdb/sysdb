@@ -53,13 +53,12 @@ sdb_command_exec(sdb_input_t *input)
 
 	assert(input->query_len <= input->tokenizer_pos);
 
-	/* removing leading and trailing whitespace */
-	while (isspace((int)*query) && query_len) {
+	/* removing leading and trailing newlines */
+	while (query_len && (*query == '\n')) {
 		++query;
 		--query_len;
 	}
-	while (query_len && (isspace((int)query[query_len - 1])
-				|| (query[query_len - 1] == ';')))
+	while (query_len && (query[query_len - 1]) == '\n')
 		--query_len;
 
 	if (query_len) {
