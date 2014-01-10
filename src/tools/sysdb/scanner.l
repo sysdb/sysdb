@@ -33,7 +33,6 @@
  */
 
 #include "tools/sysdb/input.h"
-#include "tools/sysdb/command.h"
 
 #include <string.h>
 
@@ -90,7 +89,7 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 	 * The following rules are specific to the command line tool.
 	 */
 
-";"	{ APPEND(); sdb_command_exec(sdb_input); }
+";"	{ APPEND(); sdb_input_exec_query(sdb_input); }
 
 .	{ APPEND(); }
 

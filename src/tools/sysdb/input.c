@@ -30,6 +30,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "tools/sysdb/input.h"
+#include "tools/sysdb/command.h"
 
 #include "utils/strbuf.h"
 
@@ -111,6 +112,20 @@ sdb_input_readline(sdb_input_t *input, char *buf,
 
 	return (ssize_t)len;
 } /* sdb_input_readline */
+
+int
+sdb_input_exec_query(sdb_input_t *input)
+{
+	char *query = sdb_command_exec(input);
+
+	if (! query)
+		return -1;
+
+	if (*query != ' ')
+		add_history(query);
+	free(query);
+	return 0;
+} /* sdb_input_exec_query */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

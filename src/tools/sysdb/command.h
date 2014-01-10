@@ -32,13 +32,15 @@
 
 /*
  * sdb_command_exec:
- * Execute the current command buffer.
+ * Execute the current command buffer and return the query as send to the
+ * server. The query buffer points to dynamically allocated memory which has
+ * to be free'd by the caller.
  *
  * Returns:
- *  - 0 on success
- *  - a negative value else
+ *  - the query (nul-terminated string) on success
+ *  - NULL else
  */
-int
+char *
 sdb_command_exec(sdb_input_t *input);
 
 #endif /* SYSDB_COMMAND_H */

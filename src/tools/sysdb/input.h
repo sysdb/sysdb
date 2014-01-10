@@ -57,6 +57,14 @@ sdb_input_readline(sdb_input_t *input, char *buf,
 		int *n_chars, size_t max_chars);
 
 /*
+ * sdb_input_exec_query:
+ * Execute the query currently stored in the input buffer. Waits for the
+ * server's reply and prints errors or returned data to standard output.
+ */
+int
+sdb_input_exec_query(sdb_input_t *input);
+
+/*
  * scanner
  */
 

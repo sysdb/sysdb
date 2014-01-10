@@ -37,16 +37,19 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <string.h>
 
 /*
  * public API
  */
 
-int
+char *
 sdb_command_exec(sdb_input_t *input)
 {
 	const char *query;
 	uint32_t query_len;
+
+	char *data = NULL;
 
 	query = sdb_strbuf_string(input->input);
 	query_len = (uint32_t)input->query_len;
@@ -67,7 +70,10 @@ sdb_command_exec(sdb_input_t *input)
 
 		recv_buf = sdb_strbuf_create(1024);
 		if (! recv_buf)
-			return -1;
+			return NULL;
+
+		data = strndup(query, query_len);
+		/* ignore errors; we'll only hide the command from the caller */
 
 		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
 		if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
@@ -83,7 +89,7 @@ sdb_command_exec(sdb_input_t *input)
 	sdb_strbuf_skip(input->input, 0, input->query_len);
 	input->tokenizer_pos -= input->query_len;
 	input->query_len = 0;
-	return 0;
+	return data;
 } /* sdb_command_exec */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
