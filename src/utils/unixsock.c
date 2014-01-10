@@ -292,21 +292,30 @@ char *
 sdb_unixsock_client_recv(sdb_unixsock_client_t *client,
 		char *buffer, size_t buflen)
 {
+	char *tmp;
+
 	if ((! client) || (! client->fh) || (! buffer))
 		return NULL;
 
 	if (client->shutdown & SDB_SHUT_RD) /* reconnect */
 		sdb_unixsock_client_connect(client);
 
-	buffer = fgets(buffer, (int)buflen - 1, client->fh);
-	if (! buffer) {
-		if (! feof(client->fh)) {
-			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "unixsock: Failed to read "
-					"from socket (%s): %s", client->path,
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+	tmp = NULL;
+	while (tmp == NULL) {
+		errno = 0;
+		tmp = fgets(buffer, (int)buflen - 1, client->fh);
+		if (! tmp) {
+			if ((errno == EAGAIN) || (errno == EINTR))
+				continue;
+
+			if (! feof(client->fh)) {
+				char errbuf[1024];
+				sdb_log(SDB_LOG_ERR, "unixsock: Failed to read "
+						"from socket (%s): %s", client->path,
+						sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			}
+			return NULL;
 		}
-		return buffer;
 	}
 	buffer[buflen - 1] = '\0';
 
