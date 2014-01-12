@@ -7,6 +7,8 @@
 set -ex
 
 ./autogen.sh
-./configure --enable-gcov $CIOPTIONS CFLAGS="-O0 -Wno-sign-conversion"
+./configure --enable-gcov $CIOPTIONS \
+	CFLAGS="-O0 -Wno-sign-conversion $CICFLAGS" \
+	LDFLAGS="$CILDFLAGS"
 make clean all
 make test

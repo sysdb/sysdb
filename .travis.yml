@@ -2,6 +2,7 @@ language: c
 env:
   - CIOPTIONS="--with-readline=libedit"
   - CIOPTIONS="--with-readline=libreadline"
+  - CICFLAGS="-fsanitize=address -fno-omit-frame-pointer" CILDFLAGS="-fsanitize=address"
 compiler:
   - clang
   - gcc
