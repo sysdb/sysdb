@@ -118,11 +118,19 @@ sdb_input_exec_query(sdb_input_t *input)
 {
 	char *query = sdb_command_exec(input);
 
+	HIST_ENTRY *current_hist;
+	const char *hist_line = NULL;
+
 	if (! query)
 		return -1;
 
+	current_hist = current_history();
+	if (current_hist)
+		hist_line = current_hist->line;
+
 	if (*query != ' ')
-		add_history(query);
+		if ((! hist_line) || strcmp(hist_line, query))
+			add_history(query);
 	free(query);
 	return 0;
 } /* sdb_input_exec_query */
