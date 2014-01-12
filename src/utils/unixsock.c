@@ -320,7 +320,7 @@ sdb_unixsock_client_recv(sdb_unixsock_client_t *client,
 	buffer[buflen - 1] = '\0';
 
 	buflen = strlen(buffer);
-	while ((buffer[buflen - 1] == '\n') || (buffer[buflen - 1] == '\r')) {
+	while (buflen && ((buffer[buflen - 1] == '\n') || (buffer[buflen - 1] == '\r'))) {
 		buffer[buflen - 1] = '\0';
 		--buflen;
 	}

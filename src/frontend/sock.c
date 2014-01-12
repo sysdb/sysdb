@@ -238,7 +238,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	}
 
 	listener = realloc(sock->listeners,
-			sock->listeners_num * sizeof(*sock->listeners));
+			(sock->listeners_num + 1) * sizeof(*sock->listeners));
 	if (! listener) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to allocate memory: %s",
