@@ -113,11 +113,6 @@ START_TEST(test_obj_create)
 			"sdb_object_create() did not initialize data to zero");
 
 	sdb_object_deref(obj);
-	/* the memory address at 'obj' is no longer valid but usually this check
-	 * should still work */
-	fail_unless(obj->ref_cnt == 0,
-			"after sdb_object_deref(): obj->ref_cnt = %d; expected: 0",
-			obj->ref_cnt);
 	fail_unless(destroy_noop_called == 1,
 			"sdb_object_deref() did not call object's destroy function");
 
@@ -283,10 +278,6 @@ START_TEST(test_obj_ref)
 	/* test_obj_create already checks the ref_cnt == 1 case */
 	obj->ref_cnt = 0;
 	sdb_object_deref(obj);
-	fail_unless(obj->ref_cnt <= 0,
-			"after db_object_deref(): obj->ref_cnt = %d; expected: <= 0",
-			obj->ref_cnt);
-
 	fail_unless(init_noop_called == 1,
 			"after some sdb_object_{de,}ref(); object's init called %d times; "
 			"expected: 1", init_noop_called);
