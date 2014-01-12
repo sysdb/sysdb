@@ -241,7 +241,7 @@ main(int argc, char **argv)
 	}
 
 	input.input = sdb_strbuf_create(2048);
-	sdb_input_set(&input);
+	sdb_input_init(&input);
 	yylex();
 
 	if (hist_file[0] != '\0') {
