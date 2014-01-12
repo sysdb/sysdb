@@ -217,6 +217,8 @@ command_handle(sdb_conn_t *conn)
 
 			if (node)
 				status = sdb_fe_exec(conn, node);
+
+			sdb_llist_destroy(parsetree);
 		}
 
 		case CONNECTION_LIST:
