@@ -254,11 +254,15 @@ AC_ARG_WITH([libdbi],
 		[AS_HELP_STRING([--with-libdbi], [libdbi support (default: auto)])],
 		[with_libdbi="$withval"],
 		[with_libdbi="yes"])
-if test "x$with_libdbi" = "xyes"; then
+if test "x$with_libdbi" = "xyes" || test "x$with_libdbi" = "xauto"; then
 	AC_CHECK_HEADERS([dbi/dbi.h],
 			[with_libdbi="yes"],
 			[with_libdbi="no (dbi/dbi.h not found)"])
-fi
+else if test "x$with_libdbi" = "xno"; then
+	with_libdbi="$with_libdbi (disabled on command-line)"
+else
+	AC_MSG_ERROR([Invalid value for option --with-libdbi=$with_libdbi (expected "yes", "no", or "auto")])
+fi; fi
 if test "x$with_libdbi" = "xyes"; then
 	AC_CHECK_LIB([dbi], [dbi_initialize],
 			[with_libdbi="yes"],
@@ -287,7 +291,12 @@ AC_ARG_WITH([readline],
 
 if test "x$readline_support" = "xyes"; then
 	readline_support="auto"
-fi
+else if test "x$readline_support" != "xauto" \
+		&& test "x$readline_support" != "xno" \
+		&& test "x$readline_support" != "xlibedit" \
+		&& test "x$readline_support" != "xlibreadline"; then
+	AC_MSG_ERROR([Invalid value for option --with-readline=$readline_support (expected "yes", "no", "auto", "libedit", or "libreadline")])
+fi; fi
 
 have_libedit="no"
 if test "x$readline_support" = "xauto" \
