@@ -33,7 +33,10 @@
 #include "tools/sysdb/input.h"
 
 #include "frontend/proto.h"
+#include "utils/error.h"
 #include "utils/strbuf.h"
+
+#include <errno.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -66,6 +69,7 @@ sdb_command_exec(sdb_input_t *input)
 
 	if (query_len) {
 		sdb_strbuf_t *recv_buf;
+		const char *result;
 		uint32_t rcode = 0;
 
 		recv_buf = sdb_strbuf_create(1024);
@@ -81,7 +85,13 @@ sdb_command_exec(sdb_input_t *input)
 
 		if (rcode == UINT32_MAX)
 			printf("ERROR: ");
-		printf("%s\n", sdb_strbuf_string(recv_buf));
+		result = sdb_strbuf_string(recv_buf);
+		if (result && *result)
+			printf("%s\n", result);
+		else if (rcode == UINT32_MAX) {
+			char errbuf[1024];
+			printf("%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		}
 
 		sdb_strbuf_destroy(recv_buf);
 	}

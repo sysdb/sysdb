@@ -222,13 +222,13 @@ sdb_client_recv(sdb_client_t *client,
 
 	size_t data_offset = sdb_strbuf_len(buf);
 
+	if (code)
+		*code = UINT32_MAX;
+
 	if ((! client) || (! client->fd) || (! buf)) {
 		errno = EBADF;
 		return -1;
 	}
-
-	if (code)
-		*code = UINT32_MAX;
 
 	while (42) {
 		ssize_t status;
