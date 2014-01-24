@@ -129,6 +129,14 @@ pkgbackendcollectdlib_LTLIBRARIES =
 pkgbackendpuppetlib_LTLIBRARIES =
 pkgcnamelib_LTLIBRARIES =
 
+if BUILD_PLUGIN_CNAMEDNS
+pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
+plugins_cname_dns_la_SOURCE = plugins/cname/dns.c
+plugins_cname_dns_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
+libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
+libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
+endif
+
 if BUILD_PLUGIN_COLLECTD
 pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
 backend_collectd_unixsock_la_SOURCES = backend/collectd/unixsock.c
@@ -159,14 +167,6 @@ plugins_syslog_la_SOURCE = plugins/syslog.c
 plugins_syslog_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 libsysdb_la_LIBADD += -dlopen plugins/syslog.la
 libsysdb_la_DEPENDENCIES += plugins/syslog.la
-endif
-
-if BUILD_PLUGIN_CNAMEDNS
-pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
-plugins_cname_dns_la_SOURCE = plugins/cname/dns.c
-plugins_cname_dns_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
-libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
 endif
 
 include/client/sysdb.h: include/client/sysdb.h.in ../version

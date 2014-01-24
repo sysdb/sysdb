@@ -404,10 +404,14 @@ AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
 AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
-AC_SDB_PLUGIN([syslog], [yes],
-		[plugin logging to syslog])
+
+m4_divert_once([HELP_ENABLE], [
+Plugins:])
+
 AC_SDB_PLUGIN([cname-dns], [yes],
 		[canonicalize hostnames by querying DNS])
+AC_SDB_PLUGIN([syslog], [yes],
+		[plugin logging to syslog])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
 AM_CONDITIONAL([BUILD_TESTING], test "x$build_testing" = "xyes")
@@ -451,6 +455,7 @@ AC_MSG_RESULT([    puppet-storeconfigs:  . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Plugins:])
 AC_MSG_RESULT([    cname::dns: . . . . . . . . $enable_cname_dns])
+AC_MSG_RESULT([    syslog: . . . . . . . . . . $enable_syslog])
 AC_MSG_RESULT()
 AC_MSG_RESULT([This package is maintained by $PACKAGE_MAINTAINER.])
 AC_MSG_RESULT([Please report bugs to $PACKAGE_BUGREPORT.])
