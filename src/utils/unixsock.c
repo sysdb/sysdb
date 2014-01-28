@@ -113,7 +113,7 @@ sdb_unixsock_parse_cell(char *string, int type, sdb_data_t *data)
 		case SDB_TYPE_BINARY:
 			/* we don't support any binary information containing 0-bytes */
 			data->data.binary.length = strlen(string);
-			data->data.binary.datum = (const unsigned char *)string;
+			data->data.binary.datum = (unsigned char *)string;
 			break;
 		default:
 			sdb_log(SDB_LOG_ERR, "unixsock: Unexpected type %i while "

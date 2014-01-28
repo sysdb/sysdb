@@ -58,11 +58,11 @@ typedef struct {
 	union {
 		int64_t     integer;  /* SDB_TYPE_INTEGER */
 		double      decimal;  /* SDB_TYPE_DECIMAL */
-		const char *string;   /* SDB_TYPE_STRING  */
+		char       *string;   /* SDB_TYPE_STRING  */
 		sdb_time_t  datetime; /* SDB_TYPE_DATETIME */
 		struct {
 			size_t length;
-			const unsigned char *datum;
+			unsigned char *datum;
 		} binary;             /* SDB_TYPE_BINARY */
 	} data;
 } sdb_data_t;

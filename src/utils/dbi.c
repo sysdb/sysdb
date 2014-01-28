@@ -84,7 +84,7 @@ sdb_dbi_get_field(dbi_result res, unsigned int i,
 			data->data.decimal = dbi_result_get_double_idx(res, i);
 			break;
 		case SDB_TYPE_STRING:
-			data->data.string = dbi_result_get_string_idx(res, i);
+			data->data.string = dbi_result_get_string_copy_idx(res, i);
 			break;
 		case SDB_TYPE_DATETIME:
 			{
@@ -96,7 +96,7 @@ sdb_dbi_get_field(dbi_result res, unsigned int i,
 		case SDB_TYPE_BINARY:
 			{
 				size_t length = dbi_result_get_field_length_idx(res, i);
-				const unsigned char *datum = dbi_result_get_binary_idx(res, i);
+				unsigned char *datum = dbi_result_get_binary_copy_idx(res, i);
 				data->data.binary.length = length;
 				data->data.binary.datum = datum;
 			}
@@ -141,6 +141,8 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 		return -1;
 
 	for (n = 0; n < num_rows; ++n) {
+		int status;
+
 		if (! dbi_result_seek_row(res, n + 1)) {
 			sdb_log(SDB_LOG_ERR, "dbi: Failed to retrieve row %llu: %s",
 					n, sdb_dbi_strerror(client->conn));
@@ -152,7 +154,16 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 						types[i], &data[i]))
 				continue;
 
-		if (callback(client, num_fields, data, user_data))
+		status = callback(client, num_fields, data, user_data);
+		for (i = 0; i < num_fields; ++i) {
+			if ((data[i].type == SDB_TYPE_STRING) && (data[i].data.string))
+				free(data[i].data.string);
+			else if ((data[i].type == SDB_TYPE_BINARY)
+					&& (data[i].data.binary.datum))
+				free(data[i].data.binary.datum);
+		}
+
+		if (status)
 			continue;
 
 		++success;
