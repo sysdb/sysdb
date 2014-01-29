@@ -87,7 +87,7 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 
 	const char *hostname;
 	const char *key;
-	const char *value;
+	sdb_data_t  value;
 	sdb_time_t  last_update;
 
 	assert(n == 4);
@@ -98,10 +98,11 @@ sdb_puppet_stcfg_get_attrs(sdb_dbi_client_t __attribute__((unused)) *client,
 
 	hostname = data[0].data.string;
 	key = data[1].data.string;
-	value = data[2].data.string;
+	value.type = SDB_TYPE_STRING;
+	value.data.string = data[2].data.string;
 	last_update = data[3].data.datetime;
 
-	status = sdb_store_attribute(hostname, key, value, last_update);
+	status = sdb_store_attribute(hostname, key, &value, last_update);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: Failed to "

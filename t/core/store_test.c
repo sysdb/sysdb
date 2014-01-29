@@ -147,7 +147,7 @@ START_TEST(test_store_attr)
 	struct {
 		const char *host;
 		const char *key;
-		const char *value;
+		char       *value;
 		sdb_time_t  last_update;
 		int         expected;
 	} golden_data[] = {
@@ -166,10 +166,15 @@ START_TEST(test_store_attr)
 	sdb_store_host("l", 1);
 	sdb_store_host("m", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_data_t datum;
 		int status;
 
+		/* XXX: test other types as well */
+		datum.type = SDB_TYPE_STRING;
+		datum.data.string = golden_data[i].value;
+
 		status = sdb_store_attribute(golden_data[i].host,
-				golden_data[i].key, golden_data[i].value,
+				golden_data[i].key, &datum,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
 				"sdb_store_attribute(%s, %s, %s, %d) = %d; expected: %d",
@@ -244,6 +249,7 @@ verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
 START_TEST(test_store_tojson)
 {
 	sdb_strbuf_t *buf;
+	sdb_data_t datum;
 	size_t i;
 
 	struct {
@@ -296,9 +302,13 @@ START_TEST(test_store_tojson)
 	sdb_store_host("h1", 1);
 	sdb_store_host("h2", 1);
 
-	sdb_store_attribute("h1", "k1", "v1", 1);
-	sdb_store_attribute("h1", "k2", "v2", 1);
-	sdb_store_attribute("h1", "k3", "v3", 1);
+	datum.type = SDB_TYPE_STRING;
+	datum.data.string = "v1";
+	sdb_store_attribute("h1", "k1", &datum, 1);
+	datum.data.string = "v2";
+	sdb_store_attribute("h1", "k2", &datum, 1);
+	datum.data.string = "v3";
+	sdb_store_attribute("h1", "k3", &datum, 1);
 
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 1);

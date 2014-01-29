@@ -30,6 +30,7 @@
 
 #include "sysdb.h"
 #include "core/object.h"
+#include "core/data.h"
 #include "core/time.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
@@ -95,7 +96,8 @@ sdb_store_get_host(const char *name);
  *  - a negative value on error
  */
 int
-sdb_store_attribute(const char *hostname, const char *key, const char *value,
+sdb_store_attribute(const char *hostname,
+		const char *key, const sdb_data_t *value,
 		sdb_time_t last_update);
 
 /*
