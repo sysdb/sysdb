@@ -331,6 +331,17 @@ dbi_result_get_string_idx(dbi_result res, unsigned int i)
 	return get_golden_data(res, i).string;
 } /* dbi_result_get_string_idx */
 
+char *
+dbi_result_get_string_copy_idx(dbi_result res, unsigned int i)
+{
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_STRING,
+			"dbi_result_get_string_copy_idx() called for non-string "
+			"column type %u", current_query->field_types[i - 1]);
+	if (! get_golden_data(res, i).string)
+		return NULL;
+	return strdup(get_golden_data(res, i).string);
+} /* dbi_result_get_string_copy_idx */
+
 time_t
 dbi_result_get_datetime_idx(dbi_result res, unsigned int i)
 {
@@ -378,6 +389,19 @@ dbi_result_get_binary_idx(dbi_result res, unsigned int i)
 			"column type %u", current_query->field_types[i - 1]);
 	return get_golden_data(res, i).binary.datum;
 } /* dbi_result_get_binary_idx */
+
+unsigned char *
+dbi_result_get_binary_copy_idx(dbi_result res, unsigned int i)
+{
+	const char *data;
+	fail_unless(current_query->field_types[i - 1] == DBI_TYPE_BINARY,
+			"dbi_result_get_binary_copy_idx() called for non-binary "
+			"column type %u", current_query->field_types[i - 1]);
+	data = (const char *)get_golden_data(res, i).binary.datum;
+	if (! data)
+		return NULL;
+	return (unsigned char *)strdup(data);
+} /* dbi_result_get_binary_copy_idx */
 
 static unsigned long long dbi_result_free_called = 0;
 int
@@ -467,7 +491,7 @@ query_callback(sdb_dbi_client_t *c,
 						data[i].data.decimal, i, expected_data.decimal);
 				break;
 			case SDB_TYPE_STRING:
-				fail_unless(data[i].data.string == expected_data.string,
+				fail_unless(!strcmp(data[i].data.string, expected_data.string),
 						"query callback received unexpected data %s "
 						"for column %zu; expected: %s",
 						data[i].data.string, i, expected_data.string);
@@ -487,8 +511,9 @@ query_callback(sdb_dbi_client_t *c,
 						"binary data length %zu for column %zu; "
 						"expected: %lli", data[i].data.binary.length, i,
 						expected_data.binary.length);
-				fail_unless(data[i].data.binary.datum ==
+				fail_unless(!memcmp(data[i].data.binary.datum,
 							expected_data.binary.datum,
+							expected_data.binary.length),
 						"query callback received unexpected binary data %p "
 						"for column %zu; expected: %p",
 						data[i].data.binary.datum, i,
