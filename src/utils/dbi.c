@@ -155,13 +155,8 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 				continue;
 
 		status = callback(client, num_fields, data, user_data);
-		for (i = 0; i < num_fields; ++i) {
-			if ((data[i].type == SDB_TYPE_STRING) && (data[i].data.string))
-				free(data[i].data.string);
-			else if ((data[i].type == SDB_TYPE_BINARY)
-					&& (data[i].data.binary.datum))
-				free(data[i].data.binary.datum);
-		}
+		for (i = 0; i < num_fields; ++i)
+			sdb_data_free_datum(&data[i]);
 
 		if (status)
 			continue;
