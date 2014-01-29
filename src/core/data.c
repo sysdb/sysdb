@@ -1,6 +1,6 @@
 /*
- * SysDB - t/libsysdb_test.h
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/core/data.c
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,81 +25,63 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef T_LIBSYSDB_H
-#define T_LIBSYSDB_H 1
+#include "core/data.h"
 
-#include "config.h"
-
-#include "sysdb.h"
-#include "core/object.h"
-
-#include <check.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*
- * private testing helpers
+ * public API
  */
 
-/* static string object:
- * Any such object may is of type sdb_object_t but may never be destroyed. */
-#define SSTRING_OBJ(name) { \
-	/* type = */ { sizeof(sdb_object_t), NULL, NULL }, \
-	/* ref_cnt = */ 1, /* name = */ (name) }
+int
+sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
+{
+	sdb_data_t tmp;
 
-/*
- * test-related data-types
- */
+	if ((! dst) || (! src))
+		return -1;
 
-typedef struct {
-	Suite *(*creator)(void);
-	const char *msg;
-} suite_creator_t;
+	tmp = *src;
+	switch (src->type) {
+		case SDB_TYPE_STRING:
+			tmp.data.string = strdup(src->data.string);
+			if (! tmp.data.string)
+				return -1;
+			break;
+		case SDB_TYPE_BINARY:
+			tmp.data.binary.datum = malloc(src->data.binary.length);
+			if (! tmp.data.binary.datum)
+				return -1;
+			memcpy(tmp.data.binary.datum, src->data.binary.datum,
+					src->data.binary.length);
+			break;
+	}
 
-/*
- * test suites
- */
+	*dst = tmp;
+	return 0;
+} /* sdb_data_copy */
 
-/* t/core/data_test */
-Suite *
-core_data_suite(void);
+void
+sdb_data_free_datum(sdb_data_t *datum)
+{
+	if (! datum)
+		return;
 
-/* t/core/object_test */
-Suite *
-core_object_suite(void);
-
-/* t/core/store_test */
-Suite *
-core_store_suite(void);
-
-/* t/frontend/parser_test */
-Suite *
-fe_parser_suite(void);
-
-/* t/frontend/sock_test */
-Suite *
-fe_sock_suite(void);
-
-/* t/utils/channel_test */
-Suite *
-util_channel_suite(void);
-
-/* t/utils/dbi_test */
-Suite *
-util_dbi_suite(void);
-
-/* t/utils/llist_test */
-Suite *
-util_llist_suite(void);
-
-/* t/utils/strbuf_test */
-Suite *
-util_strbuf_suite(void);
-
-/* t/utils/unixsock_test */
-Suite *
-util_unixsock_suite(void);
-
-#endif /* T_LIBSYSDB_H */
+	switch (datum->type) {
+		case SDB_TYPE_STRING:
+			if (datum->data.string)
+				free(datum->data.string);
+			datum->data.string = NULL;
+			break;
+		case SDB_TYPE_BINARY:
+			if (datum->data.binary.datum)
+				free(datum->data.binary.datum);
+			datum->data.binary.datum = NULL;
+			datum->data.binary.length = 0;
+			break;
+	}
+} /* sdb_data_free_datum */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

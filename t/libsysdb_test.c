@@ -38,6 +38,7 @@ main(void)
 	size_t i;
 
 	suite_creator_t creators[] = {
+		{ core_data_suite, NULL },
 		{ core_object_suite, NULL },
 		{ core_store_suite, NULL },
 		{ fe_parser_suite, NULL },

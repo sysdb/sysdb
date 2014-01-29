@@ -67,6 +67,30 @@ typedef struct {
 	} data;
 } sdb_data_t;
 
+/*
+ * sdb_data_copy:
+ * Copy the datum stored in 'src' to the memory location pointed to by 'dst'.
+ * Any dynamic data (strings, binary data) is copied to newly allocated
+ * memory. Use, for example, sdb_data_free_datum() to free any dynamic memory
+ * stored in a datum.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src);
+
+/*
+ * sdb_data_free_datum:
+ * Free any dynamic memory referenced by the specified datum. Does not free
+ * the memory allocated for the sdb_data_t object itself. This function must
+ * not be used if any static or stack memory is referenced from the data
+ * object.
+ */
+void
+sdb_data_free_datum(sdb_data_t *datum);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

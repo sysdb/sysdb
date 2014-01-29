@@ -10,6 +10,7 @@ check_PROGRAMS = libsysdb_test libsysdb_net_test
 
 libsysdb_test_SOURCES = \
 		libsysdb_test.c libsysdb_test.h \
+		core/data_test.c \
 		core/object_test.c \
 		core/store_test.c \
 		frontend/parser_test.c \
