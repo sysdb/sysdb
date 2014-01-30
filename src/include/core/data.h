@@ -48,10 +48,6 @@ enum {
 /*
  * sdb_data_t:
  * A datum retrieved from an arbitrary data source.
- *
- * The string and binary objects are managed by whoever creates the data
- * object, thus, they must not be freed or modified. If you want to keep them,
- * make sure to make a copy.
  */
 typedef struct {
 	int type;
