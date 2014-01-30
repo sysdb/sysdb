@@ -29,6 +29,7 @@
 #define SDB_CORE_DATA_H 1
 
 #include "core/time.h"
+#include "utils/strbuf.h"
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -86,6 +87,18 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src);
  */
 void
 sdb_data_free_datum(sdb_data_t *datum);
+
+/*
+ * sdb_data_format:
+ * Append the specified datum to the specified string buffer using a default
+ * format.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf);
 
 #ifdef __cplusplus
 } /* extern "C" */

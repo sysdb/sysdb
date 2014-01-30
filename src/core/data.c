@@ -27,6 +27,8 @@
 
 #include "core/data.h"
 
+#include <inttypes.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -82,6 +84,50 @@ sdb_data_free_datum(sdb_data_t *datum)
 			break;
 	}
 } /* sdb_data_free_datum */
+
+int
+sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
+{
+	if ((! datum) || (! buf))
+		return -1;
+
+	switch (datum->type) {
+		case SDB_TYPE_INTEGER:
+			sdb_strbuf_append(buf, "%"PRIi64, datum->data.integer);
+			break;
+		case SDB_TYPE_DECIMAL:
+			sdb_strbuf_append(buf, "%a", datum->data.decimal);
+			break;
+		case SDB_TYPE_STRING:
+			/* TODO: escape special characters */
+			sdb_strbuf_append(buf, "\"%s\"", datum->data.string);
+			break;
+		case SDB_TYPE_DATETIME:
+			{
+				char tmp[64];
+				if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
+							datum->data.datetime))
+					return -1;
+				tmp[sizeof(tmp) - 1] = '\0';
+				sdb_strbuf_append(buf, "%s", tmp);
+			}
+			break;
+		case SDB_TYPE_BINARY:
+			{
+				size_t i;
+				/* TODO: improve this! */
+				sdb_strbuf_append(buf, "%s", "\"");
+				for (i = 0; i < datum->data.binary.length; ++i)
+					sdb_strbuf_append(buf, "\\%x",
+							(int)datum->data.binary.datum[i]);
+				sdb_strbuf_append(buf, "%s", "\"");
+			}
+			break;
+		default:
+			return -1;
+	}
+	return 0;
+} /* sdb_data_format */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
