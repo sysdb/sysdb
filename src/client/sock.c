@@ -190,6 +190,14 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	return 0;
 } /* sdb_client_connect */
 
+int
+sdb_client_sockfd(sdb_client_t *client)
+{
+	if (! client)
+		return -1;
+	return client->fd;
+} /* sdb_client_sockfd */
+
 void
 sdb_client_close(sdb_client_t *client)
 {

@@ -57,18 +57,24 @@
 #endif /* READLINEs */
 
 /*
+ * public variables
+ */
+
+sdb_input_t *sysdb_input = NULL;
+
+/*
  * private helper functions
  */
 
 static size_t
-input_readline(sdb_input_t *input)
+input_readline(void)
 {
 	const char *prompt = "sysdb=> ";
 	char *line;
 
 	size_t len;
 
-	if (input->query_len)
+	if (sysdb_input->query_len)
 		prompt = "sysdb-> ";
 
 	line = readline(prompt);
@@ -78,26 +84,34 @@ input_readline(sdb_input_t *input)
 
 	len = strlen(line) + 1;
 
-	sdb_strbuf_append(input->input, line);
-	sdb_strbuf_append(input->input, "\n");
+	sdb_strbuf_append(sysdb_input->input, line);
+	sdb_strbuf_append(sysdb_input->input, "\n");
 	free(line);
 	return len;
 } /* input_readline */
 
 /*
- * API
+ * public API
  */
 
-ssize_t
-sdb_input_readline(sdb_input_t *input, char *buf,
-		int *n_chars, size_t max_chars)
+int
+sdb_input_init(sdb_input_t *input)
 {
+	/* register input handler */
+	sysdb_input = input;
+	return 0;
+} /* sdb_input_init */
+
+ssize_t
+sdb_input_readline(char *buf, int *n_chars, size_t max_chars)
+{
+	const char *data;
 	size_t len;
 
-	len = sdb_strbuf_len(input->input) - input->tokenizer_pos;
+	len = sdb_strbuf_len(sysdb_input->input) - sysdb_input->tokenizer_pos;
 
 	if (! len) {
-		size_t n = input_readline(input);
+		size_t n = input_readline();
 		if (! n) {
 			*n_chars = 0; /* YY_NULL */
 			return 0;
@@ -106,17 +120,19 @@ sdb_input_readline(sdb_input_t *input, char *buf,
 	}
 
 	len = (len < max_chars) ? len : max_chars;
-	strncpy(buf, sdb_strbuf_string(input->input) + input->tokenizer_pos, len);
-	input->tokenizer_pos += len;
-	*n_chars = (int)len;
+	data = sdb_strbuf_string(sysdb_input->input);
+	data += sysdb_input->tokenizer_pos;
+	strncpy(buf, data, len);
 
+	sysdb_input->tokenizer_pos += len;
+	*n_chars = (int)len;
 	return (ssize_t)len;
 } /* sdb_input_readline */
 
 int
-sdb_input_exec_query(sdb_input_t *input)
+sdb_input_exec_query()
 {
-	char *query = sdb_command_exec(input);
+	char *query = sdb_command_exec(sysdb_input);
 
 	HIST_ENTRY *current_hist;
 	const char *hist_line = NULL;

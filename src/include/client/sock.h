@@ -77,6 +77,13 @@ int
 sdb_client_connect(sdb_client_t *client, const char *username);
 
 /*
+ * sdb_client_sockfd:
+ * Return the client socket's file descriptor.
+ */
+int
+sdb_client_sockfd(sdb_client_t *client);
+
+/*
  * sdb_client_close:
  * Close the client connection.
  */

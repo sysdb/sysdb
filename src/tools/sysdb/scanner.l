@@ -40,14 +40,12 @@
 #	undef YY_INPUT
 #endif
 #define YY_INPUT(buf, result, max_size) \
-	sdb_input_readline(sdb_input, (buf), &(result), (max_size))
+	sdb_input_readline((buf), &(result), (max_size))
 
 #define APPEND() \
 	do { \
-		sdb_input->query_len += strlen(yytext); \
+		sysdb_input->query_len += strlen(yytext); \
 	} while (0)
-
-static sdb_input_t *sdb_input;
 
 %}
 
@@ -89,17 +87,11 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 	 * The following rules are specific to the command line tool.
 	 */
 
-";"	{ APPEND(); sdb_input_exec_query(sdb_input); }
+";"	{ APPEND(); sdb_input_exec_query(); }
 
 .	{ APPEND(); }
 
 %%
-
-void
-sdb_input_set(sdb_input_t *new_input)
-{
-	sdb_input = new_input;
-} /* sdb_input_set */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

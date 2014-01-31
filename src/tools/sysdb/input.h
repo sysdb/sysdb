@@ -42,6 +42,19 @@ typedef struct {
 #define SDB_INPUT_INIT { NULL, NULL, 0, 0 }
 
 /*
+ * sysdb_input:
+ * Input object to be used by the 'sysdb' command line tool.
+ */
+extern sdb_input_t *sysdb_input;
+
+/*
+ * sdb_input_init:
+ * Initialize the input handler.
+ */
+int
+sdb_input_init(sdb_input_t *input);
+
+/*
  * sdb_input_readline:
  * This function is supposed to be used with a flex scanner's YY_INPUT. It
  * reads input from the user using reading() and places available input in the
@@ -53,8 +66,7 @@ typedef struct {
  *  - A negative value in case of an error.
  */
 ssize_t
-sdb_input_readline(sdb_input_t *input, char *buf,
-		int *n_chars, size_t max_chars);
+sdb_input_readline(char *buf, int *n_chars, size_t max_chars);
 
 /*
  * sdb_input_exec_query:
@@ -62,14 +74,7 @@ sdb_input_readline(sdb_input_t *input, char *buf,
  * server's reply and prints errors or returned data to standard output.
  */
 int
-sdb_input_exec_query(sdb_input_t *input);
-
-/*
- * scanner
- */
-
-void
-sdb_input_set(sdb_input_t *new_input);
+sdb_input_exec_query(void);
 
 #endif /* SYSDB_INPUT_H */
 
