@@ -99,7 +99,7 @@ exit_version(void)
 	printf("SysDB version "SDB_CLIENT_VERSION_STRING
 			SDB_CLIENT_VERSION_EXTRA", built "BUILD_DATE"\n"
 			"using libsysdbclient version %s%s\n"
-			"Copyright (C) 2012-2013 "PACKAGE_MAINTAINER"\n"
+			"Copyright (C) 2012-2014 "PACKAGE_MAINTAINER"\n"
 
 			"\nThis is free software under the terms of the BSD license, see "
 			"the source for\ncopying conditions. There is NO WARRANTY; not "
