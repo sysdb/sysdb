@@ -37,9 +37,11 @@ typedef struct {
 	sdb_strbuf_t *input;
 	size_t tokenizer_pos;
 	size_t query_len;
+
+	_Bool eof;
 } sdb_input_t;
 
-#define SDB_INPUT_INIT { NULL, NULL, 0, 0 }
+#define SDB_INPUT_INIT { NULL, NULL, 0, 0, 0 }
 
 /*
  * sysdb_input:

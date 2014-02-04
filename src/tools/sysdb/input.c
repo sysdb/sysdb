@@ -34,10 +34,15 @@
 
 #include "utils/strbuf.h"
 
+#include <sys/select.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <string.h>
+
+#include <termios.h>
+#include <unistd.h>
 
 #if HAVE_EDITLINE_READLINE_H
 #	include <editline/readline.h>
@@ -63,31 +68,108 @@
 sdb_input_t *sysdb_input = NULL;
 
 /*
+ * private variables
+ */
+
+static struct termios orig_term_attrs;
+
+/*
  * private helper functions
  */
 
-static size_t
-input_readline(void)
+static void
+reset_term_attrs(void)
 {
-	const char *prompt = "sysdb=> ";
-	char *line;
+	tcsetattr(STDIN_FILENO, TCSANOW, &orig_term_attrs);
+} /* reset_term_attrs */
 
-	size_t len;
+static void
+term_rawmode(void)
+{
+	struct termios attrs;
 
-	if (sysdb_input->query_len)
-		prompt = "sysdb-> ";
+	/* setup terminal to operate in non-canonical mode
+	 * and single character input */
+	memset(&orig_term_attrs, 0, sizeof(orig_term_attrs));
+	tcgetattr(STDIN_FILENO, &orig_term_attrs);
+	atexit(reset_term_attrs);
 
-	line = readline(prompt);
+	memset(&attrs, 0, sizeof(attrs));
+	tcgetattr(STDIN_FILENO, &attrs);
+	attrs.c_lflag &= (tcflag_t)(~ICANON);
+	attrs.c_cc[VMIN] = 1;
+	tcsetattr(STDIN_FILENO, TCSANOW, &attrs);
+} /* term_rawmode */
 
-	if (! line)
-		return 0;
-
-	len = strlen(line) + 1;
+static void
+handle_input(char *line)
+{
+	if (! line) {
+		sysdb_input->eof = 1;
+		return;
+	}
 
 	sdb_strbuf_append(sysdb_input->input, line);
 	sdb_strbuf_append(sysdb_input->input, "\n");
 	free(line);
-	return len;
+
+	rl_callback_handler_remove();
+} /* handle_input */
+
+/* wait for a new line of data to be available */
+static ssize_t
+input_readline(void)
+{
+	size_t len;
+
+	fd_set fds;
+	int client_fd;
+
+	const char *prompt = "sysdb=> ";
+
+	if (sysdb_input->query_len)
+		prompt = "sysdb-> ";
+
+	rl_callback_handler_install(prompt, handle_input);
+	client_fd = sdb_client_sockfd(sysdb_input->client);
+
+	len = sdb_strbuf_len(sysdb_input->input);
+	while ((sdb_strbuf_len(sysdb_input->input) == len)
+			&& (! sysdb_input->eof)) {
+		int n;
+
+		/* XXX: some versions of libedit don't properly reset the terminal in
+		 * rl_callback_read_char(); detect those versions */
+		term_rawmode();
+
+		FD_ZERO(&fds);
+		FD_SET(STDIN_FILENO, &fds);
+		FD_SET(client_fd, &fds);
+
+		n = select(client_fd + 1, &fds, NULL, NULL, /* timeout = */ NULL);
+		if (n < 0)
+			return (ssize_t)n;
+		else if (! n)
+			continue;
+
+		/* handle user input with highest priority */
+		if (FD_ISSET(STDIN_FILENO, &fds)) {
+			rl_callback_read_char();
+			continue;
+		}
+
+		if (! FD_ISSET(client_fd, &fds))
+			continue;
+
+		/* some response / error message from the server pending */
+		/* XXX: clear current line */
+		printf("\n");
+		sdb_command_print_reply(sysdb_input);
+		rl_forced_update_display();
+	}
+
+	/* new data available */
+	return (ssize_t)(sdb_strbuf_len(sysdb_input->input) - len);
 } /* input_readline */
 
 /*
@@ -99,6 +181,11 @@ sdb_input_init(sdb_input_t *input)
 {
 	/* register input handler */
 	sysdb_input = input;
+
+	if (! isatty(STDIN_FILENO))
+		return -1;
+
+	term_rawmode();
 	return 0;
 } /* sdb_input_init */
 
@@ -111,12 +198,12 @@ sdb_input_readline(char *buf, int *n_chars, size_t max_chars)
 	len = sdb_strbuf_len(sysdb_input->input) - sysdb_input->tokenizer_pos;
 
 	if (! len) {
-		size_t n = input_readline();
-		if (! n) {
+		ssize_t n = input_readline();
+		if (n <= 0) {
 			*n_chars = 0; /* YY_NULL */
-			return 0;
+			return n;
 		}
-		len += n;
+		len += (size_t)n;
 	}
 
 	len = (len < max_chars) ? len : max_chars;
@@ -130,7 +217,7 @@ sdb_input_readline(char *buf, int *n_chars, size_t max_chars)
 } /* sdb_input_readline */
 
 int
-sdb_input_exec_query()
+sdb_input_exec_query(void)
 {
 	char *query = sdb_command_exec(sysdb_input);
 
