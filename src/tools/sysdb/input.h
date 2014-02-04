@@ -57,6 +57,18 @@ int
 sdb_input_init(sdb_input_t *input);
 
 /*
+ * sdb_input_mainloop:
+ * Wait for and handle all user and server input until end-of-file is read
+ * from the user (on the standard input channel).
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_input_mainloop(void);
+
+/*
  * sdb_input_readline:
  * This function is supposed to be used with a flex scanner's YY_INPUT. It
  * reads input from the user using reading() and places available input in the

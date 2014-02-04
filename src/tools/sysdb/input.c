@@ -25,6 +25,21 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * This module implements the core of the command line tool. It handles all
+ * input from the user and the remote server, interacting with the scanner and
+ * command handling as needed.
+ *
+ * The main loop is managed by the flex scanner which parses the user input.
+ * It will call into this module (using sdb_input_readline()) whenever it
+ * needs further input to continue parsing. Whenever it finds a full query
+ * (terminated by a semicolon), it will hand the query back to this module
+ * (using sdb_input_exec_query()) which will then execute it.
+ *
+ * Most of the process life-time will be spend waiting for input. User input
+ * and (asynchronous) server replies are handled at the same time.
+ */
+
 #if HAVE_CONFIG_H
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
@@ -60,6 +75,8 @@
 #		include <history.h>
 #	endif
 #endif /* READLINEs */
+
+extern int yylex(void);
 
 /*
  * public variables
@@ -188,6 +205,13 @@ sdb_input_init(sdb_input_t *input)
 	term_rawmode();
 	return 0;
 } /* sdb_input_init */
+
+int
+sdb_input_mainloop(void)
+{
+	yylex();
+	return 0;
+} /* sdb_input_mainloop */
 
 ssize_t
 sdb_input_readline(char *buf, int *n_chars, size_t max_chars)

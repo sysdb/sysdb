@@ -78,8 +78,6 @@
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
 
-extern int yylex(void);
-
 static void
 exit_usage(char *name, int status)
 {
@@ -242,7 +240,7 @@ main(int argc, char **argv)
 
 	input.input = sdb_strbuf_create(2048);
 	sdb_input_init(&input);
-	yylex();
+	sdb_input_mainloop();
 
 	if (hist_file[0] != '\0') {
 		errno = 0;
