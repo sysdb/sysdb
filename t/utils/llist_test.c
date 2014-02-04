@@ -186,6 +186,13 @@ START_TEST(test_sdb_llist_get)
 }
 END_TEST
 
+static int
+dummy_lookup(const sdb_object_t __attribute__((unused)) *obj,
+		const void __attribute__((unused)) *user_data)
+{
+	return 0;
+} /* dummy_lookup */
+
 START_TEST(test_sdb_llist_search)
 {
 	size_t i;
@@ -205,6 +212,28 @@ START_TEST(test_sdb_llist_search)
 				"sdb_llist_search_by_name(%s) = %p; expected: NULL",
 				unused_names[i], check);
 	}
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		/* dummy_lookup always return 0, thus, this will always return the
+		 * first element */
+		sdb_object_t *check = sdb_llist_search(list, dummy_lookup, NULL);
+		fail_unless(check == &golden_data[i],
+				"sdb_llist_search() = %p (%s); expected: %p (%s)",
+				check, check->name, &golden_data[i], golden_data[i].name);
+
+		/* => remove the first element */
+		check = sdb_llist_remove(list, dummy_lookup, NULL);
+		fail_unless(check == &golden_data[i],
+				"sdb_llist_remove() = %p (%s); expected: %p (%s)",
+				check, check->name, &golden_data[i], golden_data[i].name);
+		fail_unless(check->ref_cnt == 2,
+				"sdb_llist_remove() changed reference count; got: %i; "
+				"expected: 2", check->ref_cnt);
+	}
+	/* should now be empty */
+	fail_unless(sdb_llist_len(list) == 0,
+			"Still have %i elements in the list; expected: 0",
+			sdb_llist_len(list));
 }
 END_TEST
 
