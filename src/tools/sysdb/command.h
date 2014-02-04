@@ -31,10 +31,24 @@
 #define SYSDB_COMMAND_H 1
 
 /*
+ * sdb_command_print_reply:
+ * Read a reply from the server and print it to the standard output channel.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_command_print_reply(sdb_input_t *input);
+
+/*
  * sdb_command_exec:
  * Execute the current command buffer and return the query as send to the
  * server. The query buffer points to dynamically allocated memory which has
  * to be free'd by the caller.
+ *
+ * The function waits for the server's reply and prints it to the standard
+ * output channel.
  *
  * Returns:
  *  - the query (nul-terminated string) on success

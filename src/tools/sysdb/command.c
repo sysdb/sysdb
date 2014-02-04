@@ -46,6 +46,34 @@
  * public API
  */
 
+int
+sdb_command_print_reply(sdb_input_t *input)
+{
+	sdb_strbuf_t *recv_buf;
+	const char *result;
+	uint32_t rcode = 0;
+
+	recv_buf = sdb_strbuf_create(1024);
+	if (! recv_buf)
+		return -1;
+
+	if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
+		rcode = UINT32_MAX;
+
+	if (rcode == UINT32_MAX)
+		printf("ERROR: ");
+	result = sdb_strbuf_string(recv_buf);
+	if (result && *result)
+		printf("%s\n", result);
+	else if (rcode == UINT32_MAX) {
+		char errbuf[1024];
+		printf("%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+	}
+
+	sdb_strbuf_destroy(recv_buf);
+	return 0;
+} /* sdb_command_print_reply */
+
 char *
 sdb_command_exec(sdb_input_t *input)
 {
@@ -68,32 +96,12 @@ sdb_command_exec(sdb_input_t *input)
 		--query_len;
 
 	if (query_len) {
-		sdb_strbuf_t *recv_buf;
-		const char *result;
-		uint32_t rcode = 0;
-
-		recv_buf = sdb_strbuf_create(1024);
-		if (! recv_buf)
-			return NULL;
-
 		data = strndup(query, query_len);
 		/* ignore errors; we'll only hide the command from the caller */
 
 		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
-		if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
-			rcode = UINT32_MAX;
-
-		if (rcode == UINT32_MAX)
-			printf("ERROR: ");
-		result = sdb_strbuf_string(recv_buf);
-		if (result && *result)
-			printf("%s\n", result);
-		else if (rcode == UINT32_MAX) {
-			char errbuf[1024];
-			printf("%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		}
-
-		sdb_strbuf_destroy(recv_buf);
+		if (sdb_command_print_reply(input))
+			return NULL;
 	}
 
 	sdb_strbuf_skip(input->input, 0, input->query_len);
