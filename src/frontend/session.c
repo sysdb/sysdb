@@ -29,6 +29,8 @@
 
 #include "frontend/connection-private.h"
 
+#include <string.h>
+
 /*
  * public API
  */
@@ -36,13 +38,26 @@
 int
 sdb_fe_session_start(sdb_conn_t *conn)
 {
+	const char *username;
+
 	if ((! conn) || (conn->username))
 		return -1;
 
 	if (conn->cmd != CONNECTION_STARTUP)
 		return -1;
 
+	username = sdb_strbuf_string(conn->buf);
+	if ((! username) || (! conn->cmd_len) || (! *username)) {
+		sdb_strbuf_sprintf(conn->errbuf, "Invalid empty username");
+		return -1;
+	}
+
 	/* XXX: for now, simply accept all connections */
+	conn->username = strndup(username, conn->cmd_len);
+	if (! conn->username) {
+		sdb_strbuf_sprintf(conn->errbuf, "Authentication failed");
+		return -1;
+	}
 	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
 	return 0;
 } /* sdb_fe_session_start */
