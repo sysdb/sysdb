@@ -173,6 +173,13 @@ command_handle(sdb_conn_t *conn)
 	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
 			conn->cmd, conn->cmd_len);
 
+	if ((! conn->username) && (conn->cmd != CONNECTION_STARTUP)) {
+		const char *errmsg = "Authentication required";
+		sdb_connection_send(conn, CONNECTION_ERROR,
+				(uint32_t)strlen(errmsg), errmsg);
+		return -1;
+	}
+
 	/* reset */
 	sdb_strbuf_sprintf(conn->errbuf, "");
 
