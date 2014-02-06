@@ -53,6 +53,20 @@ typedef struct {
 #define SDB_CONN_NODE(obj) ((sdb_conn_node_t *)(obj))
 
 /*
+ * sdb_connection_enable_logging:
+ * Enable logging of connection-related messages to the current client
+ * connection. After this function has been called all log messages
+ * originating from the thread handling the current client connection will
+ * also be sent to the client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_connection_enable_logging(void);
+
+/*
  * sdb_connection_accpet:
  * Accept a new connection on the specified file-descriptor 'fd' and return a
  * newly allocated connection object.

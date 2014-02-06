@@ -35,7 +35,9 @@ extern "C" {
 /* status codes returned to a client */
 typedef enum {
 	CONNECTION_OK = 0,
-	CONNECTION_ERROR
+	CONNECTION_ERROR,
+
+	CONNECTION_LOG,
 } sdb_conn_status_t;
 
 /* accepted commands / state of the connection */

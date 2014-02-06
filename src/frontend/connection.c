@@ -27,6 +27,7 @@
 
 #include "sysdb.h"
 #include "core/object.h"
+#include "core/plugin.h"
 #include "frontend/connection-private.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
@@ -38,10 +39,20 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
+#include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
+
 /*
- * private data types
+ * private variables
+ */
+
+static pthread_key_t conn_ctx_key;
+static _Bool         conn_ctx_key_initialized = 0;
+
+/*
+ * private types
  */
 
 /* name of connection objects */
@@ -146,8 +157,72 @@ static sdb_type_t connection_type = {
 };
 
 /*
+ * private helper functions
+ */
+
+static void
+sdb_conn_ctx_destructor(void *c)
+{
+	sdb_object_t *conn = c;
+
+	if (! conn)
+		return;
+	sdb_object_deref(conn);
+} /* sdb_conn_ctx_destructor */
+
+static void
+sdb_conn_ctx_init(void)
+{
+	if (conn_ctx_key_initialized)
+		return;
+
+	pthread_key_create(&conn_ctx_key, sdb_conn_ctx_destructor);
+	conn_ctx_key_initialized = 1;
+} /* sdb_conn_ctx_init */
+
+static void
+sdb_conn_set_ctx(sdb_conn_t *conn)
+{
+	sdb_conn_ctx_init();
+	if (conn)
+		sdb_object_ref(SDB_OBJ(conn));
+	pthread_setspecific(conn_ctx_key, conn);
+} /* sdb_conn_set_ctx */
+
+static sdb_conn_t *
+sdb_conn_get_ctx(void)
+{
+	if (! conn_ctx_key_initialized)
+		return NULL;
+	return pthread_getspecific(conn_ctx_key);
+} /* sdb_conn_get_ctx */
+
+/*
  * connection handler functions
  */
+
+/*
+ * connection_log:
+ * Send a log message originating from the current thread to the client.
+ */
+static int
+connection_log(int __attribute__((unused)) prio, const char *msg,
+		sdb_object_t __attribute__((unused)) *user_data)
+{
+	sdb_conn_t *conn;
+
+	conn = sdb_conn_get_ctx();
+	/* no connection associated to this thread
+	 * or user not authenticated yet => don't leak any information */
+	if ((! conn) || (! conn->username))
+		return 0;
+
+	/* TODO: Use CONNECTION_LOG_<prio>? */
+	if (sdb_connection_send(conn, CONNECTION_LOG,
+				(uint32_t)strlen(msg), msg) < 0)
+		return -1;
+	return 0;
+} /* connection_log */
 
 static uint32_t
 connection_get_int32(sdb_conn_t *conn, size_t offset)
@@ -303,6 +378,13 @@ connection_read(sdb_conn_t *conn)
  * public API
  */
 
+int
+sdb_connection_enable_logging(void)
+{
+	return sdb_plugin_register_log("connection-logger", connection_log,
+			/* user_data = */ NULL);
+} /* sdb_connection_enable_logging */
+
 sdb_conn_t *
 sdb_connection_accept(int fd)
 {
@@ -326,6 +408,8 @@ sdb_connection_read(sdb_conn_t *conn)
 {
 	ssize_t n = 0;
 
+	sdb_conn_set_ctx(conn);
+
 	while (42) {
 		ssize_t status = connection_read(conn);
 
@@ -341,6 +425,8 @@ sdb_connection_read(sdb_conn_t *conn)
 
 		n += status;
 	}
+
+	sdb_conn_set_ctx(NULL);
 	return n;
 } /* sdb_connection_read */
 

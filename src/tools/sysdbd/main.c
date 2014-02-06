@@ -34,6 +34,7 @@
 #include "core/store.h"
 #include "utils/error.h"
 
+#include "frontend/connection.h"
 #include "frontend/sock.h"
 
 #include "tools/sysdbd/configfile.h"
@@ -277,6 +278,8 @@ main(int argc, char **argv)
 		for (i = 0; i < listen_addresses_num; ++i)
 			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
 				break;
+
+		sdb_connection_enable_logging();
 
 		/* break on error */
 		if (i >= listen_addresses_num)
