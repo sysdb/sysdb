@@ -47,6 +47,7 @@
 #include "tools/sysdb/input.h"
 #include "tools/sysdb/command.h"
 
+#include "utils/error.h"
 #include "utils/strbuf.h"
 
 #include <sys/select.h>
@@ -177,6 +178,14 @@ input_readline(void)
 
 		if (! FD_ISSET(client_fd, &fds))
 			continue;
+
+		if (sdb_client_eof(sysdb_input->client)) {
+			/* XXX: try to reconnect */
+			printf("\n");
+			sdb_log(SDB_LOG_ERR, "Remote side closed the connection.");
+			/* return EOF */
+			return 0;
+		}
 
 		/* some response / error message from the server pending */
 		/* XXX: clear current line */
