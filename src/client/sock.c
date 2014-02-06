@@ -175,22 +175,26 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	buf = sdb_strbuf_create(64);
 	rstatus = 0;
 	status = sdb_client_recv(client, &rstatus, buf);
+	if ((status > 0) && (rstatus == CONNECTION_OK))
+		return 0;
+
 	if (status < 0) {
 		char errbuf[1024];
-		sdb_client_close(client);
-		sdb_strbuf_destroy(buf);
 		sdb_log(SDB_LOG_ERR, "Failed to receive server response: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		return (int)status;
 	}
+	else if (client->eof)
+		sdb_log(SDB_LOG_ERR, "Encountered end-of-file while waiting "
+				"for server response");
 
 	if (rstatus != CONNECTION_OK) {
-		sdb_client_close(client);
-		sdb_strbuf_destroy(buf);
 		sdb_log(SDB_LOG_ERR, "Access denied for user '%s'", username);
-		return -((int)rstatus);
+		status = -((int)rstatus);
 	}
-	return 0;
+
+	sdb_client_close(client);
+	sdb_strbuf_destroy(buf);
+	return (int)status;
 } /* sdb_client_connect */
 
 int
