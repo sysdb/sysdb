@@ -206,7 +206,7 @@ sdb_conn_get_ctx(void)
  * Send a log message originating from the current thread to the client.
  */
 static int
-connection_log(int __attribute__((unused)) prio, const char *msg,
+connection_log(int prio, const char *msg,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
 	sdb_conn_t *conn;
@@ -215,6 +215,10 @@ connection_log(int __attribute__((unused)) prio, const char *msg,
 	/* no connection associated to this thread
 	 * or user not authenticated yet => don't leak any information */
 	if ((! conn) || (! conn->username))
+		return 0;
+
+	/* XXX: make the log-level configurable by the client at runtime */
+	if (prio >= SDB_LOG_DEBUG)
 		return 0;
 
 	/* TODO: Use CONNECTION_LOG_<prio>? */
