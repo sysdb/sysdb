@@ -52,6 +52,7 @@
 struct sdb_client {
 	char *address;
 	int   fd;
+	_Bool eof;
 };
 
 /*
@@ -104,6 +105,7 @@ sdb_client_create(const char *address)
 	}
 	memset(client, 0, sizeof(*client));
 	client->fd = -1;
+	client->eof = 1;
 
 	client->address = strdup(address);
 	if (! client->address) {
@@ -154,6 +156,7 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 
 	if (client->fd < 0)
 		return -1;
+	client->eof = 0;
 
 	/* XXX */
 	if (! username)
@@ -206,6 +209,7 @@ sdb_client_close(sdb_client_t *client)
 
 	close(client->fd);
 	client->fd = -1;
+	client->eof = 1;
 } /* sdb_client_close */
 
 ssize_t
@@ -251,8 +255,10 @@ sdb_client_recv(sdb_client_t *client,
 				continue;
 			return status;
 		}
-		else if (! status) /* EOF */
+		else if (! status) {
+			client->eof = 1;
 			break;
+		}
 
 		total += (size_t)status;
 
@@ -289,6 +295,14 @@ sdb_client_recv(sdb_client_t *client,
 
 	return (ssize_t)total;
 } /* sdb_client_recv */
+
+_Bool
+sdb_client_eof(sdb_client_t *client)
+{
+	if ((! client) || (client->fd < 0))
+		return 1;
+	return client->eof;
+} /* sdb_client_eof */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

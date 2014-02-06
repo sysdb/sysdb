@@ -121,6 +121,14 @@ ssize_t
 sdb_client_recv(sdb_client_t *client,
 		uint32_t *code, sdb_strbuf_t *buf);
 
+/*
+ * sdb_client_eof:
+ * Returns true if end of file on the client connection was reached, that is,
+ * if the remote side closed the connection.
+ */
+_Bool
+sdb_client_eof(sdb_client_t *client);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
