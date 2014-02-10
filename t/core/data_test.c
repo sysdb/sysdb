@@ -162,7 +162,7 @@ START_TEST(test_format)
 	fail_unless(! check,
 			"sdb_data_format(DATETIME) = %d; expected: 0", check);
 	string = sdb_strbuf_string(buf);
-	expected = "1984-12-06 02:11:54 +0000";
+	expected = "\"1984-12-06 02:11:54 +0000\"";
 	fail_unless(! strcmp(string, expected),
 			"sdb_data_format() used wrong format: %s; expected: %s",
 			string, expected);

@@ -109,7 +109,7 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 							datum->data.datetime))
 					return -1;
 				tmp[sizeof(tmp) - 1] = '\0';
-				sdb_strbuf_append(buf, "%s", tmp);
+				sdb_strbuf_append(buf, "\"%s\"", tmp);
 			}
 			break;
 		case SDB_TYPE_BINARY:
