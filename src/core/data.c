@@ -114,13 +114,27 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 			break;
 		case SDB_TYPE_BINARY:
 			{
-				size_t i;
-				/* TODO: improve this! */
-				sdb_strbuf_append(buf, "%s", "\"");
-				for (i = 0; i < datum->data.binary.length; ++i)
-					sdb_strbuf_append(buf, "\\%x",
-							(int)datum->data.binary.datum[i]);
-				sdb_strbuf_append(buf, "%s", "\"");
+				char tmp[4 * datum->data.binary.length + 1];
+				size_t i, pos;
+
+				pos = 0;
+				for (i = 0; i < datum->data.binary.length; ++i) {
+					int byte = (int)datum->data.binary.datum[i];
+					char hex[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+						'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+					tmp[pos] = '\\';
+					++pos;
+
+					if (byte > 0xf) {
+						tmp[pos] = hex[byte >> 4];
+						++pos;
+					}
+					tmp[pos] = hex[byte & 0xf];
+					++pos;
+				}
+				tmp[pos] = '\0';
+				sdb_strbuf_append(buf, "\"%s\"", tmp);
 			}
 			break;
 		default:
