@@ -202,7 +202,7 @@ static sdb_type_t sdb_attribute_type = {
  */
 
 static sdb_store_obj_t *
-sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
+store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 {
 	sdb_llist_iter_t *iter;
 
@@ -227,7 +227,7 @@ sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 		if ((type != SDB_HOST) && (STORE_BASE(sobj)->type == SDB_HOST))
 			continue;
 
-		sobj = sdb_store_lookup_in_list(sobj->children, type, name);
+		sobj = store_lookup_in_list(sobj->children, type, name);
 		if (sobj) {
 			sdb_llist_iter_destroy(iter);
 			return sobj;
@@ -235,13 +235,13 @@ sdb_store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 	}
 	sdb_llist_iter_destroy(iter);
 	return NULL;
-} /* sdb_store_lookup_in_list */
+} /* store_lookup_in_list */
 
 static sdb_store_obj_t *
-sdb_store_lookup(int type, const char *name)
+store_lookup(int type, const char *name)
 {
-	return sdb_store_lookup_in_list(obj_list, type, name);
-} /* sdb_store_lookup */
+	return store_lookup_in_list(obj_list, type, name);
+} /* store_lookup */
 
 /* The obj_lock has to be acquired before calling this function. */
 static int
@@ -295,7 +295,7 @@ store_obj(int parent_type, const char *parent_name,
 	if (parent_type && parent_name) {
 		sdb_store_obj_t *parent;
 
-		parent = sdb_store_lookup(parent_type, parent_name);
+		parent = store_lookup(parent_type, parent_name);
 		if (! parent) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
 					"parent %s '%s' not found", TYPE_TO_NAME(type), name,
@@ -313,14 +313,14 @@ store_obj(int parent_type, const char *parent_name,
 
 	if (type == SDB_HOST)
 		/* make sure that each host is unique */
-		old = STORE_BASE(sdb_store_lookup_in_list(obj_list, type, name));
+		old = STORE_BASE(store_lookup_in_list(obj_list, type, name));
 	else if (type == SDB_ATTRIBUTE)
 		/* look into attributes of this host */
 		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
 	else
-		/* look into services assigned to this host (sdb_store_lookup_in_list
+		/* look into services assigned to this host (store_lookup_in_list
 		 * does not look up services from hierarchical hosts) */
-		old = STORE_BASE(sdb_store_lookup_in_list(parent_list, type, name));
+		old = STORE_BASE(store_lookup_in_list(parent_list, type, name));
 
 	if (old) {
 		if (old->last_update > last_update) {
@@ -454,7 +454,7 @@ sdb_store_has_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = sdb_store_lookup(SDB_HOST, name);
+	host = store_lookup(SDB_HOST, name);
 	return host != NULL;
 } /* sdb_store_has_host */
 
@@ -466,7 +466,7 @@ sdb_store_get_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = sdb_store_lookup(SDB_HOST, name);
+	host = store_lookup(SDB_HOST, name);
 	if (! host)
 		return NULL;
 
