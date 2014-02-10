@@ -124,7 +124,8 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 						'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
 					tmp[pos] = '\\';
-					++pos;
+					tmp[pos + 1] = 'x';
+					pos += 2;
 
 					if (byte > 0xf) {
 						tmp[pos] = hex[byte >> 4];

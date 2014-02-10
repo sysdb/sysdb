@@ -175,7 +175,8 @@ START_TEST(test_format)
 	fail_unless(! check,
 			"sdb_data_format(BINARY) = %d; expected: 0", check);
 	string = sdb_strbuf_string(buf);
-	expected = "\"\\62\\69\\6e\\61\\72\\79\\0\\63\\72\\61\\70\\42\"";
+	expected =
+		"\"\\x62\\x69\\x6e\\x61\\x72\\x79\\x0\\x63\\x72\\x61\\x70\\x42\"";
 	fail_unless(! strcmp(string, expected),
 			"sdb_data_format() used wrong format: %s; expected: %s",
 			string, expected);
