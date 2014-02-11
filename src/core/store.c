@@ -412,11 +412,13 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 		time_str[sizeof(time_str) - 1] = '\0';
 
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
-		if (type == SDB_ATTRIBUTE)
-			/* XXX: this needs to be type-dependent */
-			sdb_strbuf_append(buf, "\"value\": \"%s\", ",
-					SDB_ATTR(sobj)->value.data.string);
-		sdb_strbuf_append(buf, "\"last_update\": \"%s\"}", time_str);
+		if (type == SDB_ATTRIBUTE) {
+			sdb_strbuf_append(buf, "\"value\": ");
+			sdb_data_format(&SDB_ATTR(sobj)->value, buf);
+			sdb_strbuf_append(buf, ", \"last_update\": \"%s\"}", time_str);
+		}
+		else
+			sdb_strbuf_append(buf, "\"last_update\": \"%s\"}", time_str);
 
 		if (sdb_llist_iter_has_next(iter))
 			sdb_strbuf_append(buf, ",");
