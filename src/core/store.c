@@ -26,7 +26,7 @@
  */
 
 #include "sysdb.h"
-#include "core/store.h"
+#include "core/store-private.h"
 #include "core/plugin.h"
 #include "utils/error.h"
 #include "utils/llist.h"
@@ -54,50 +54,6 @@ static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 static sdb_type_t sdb_store_obj_type;
 static sdb_type_t sdb_attribute_type;
-
-struct sdb_store_base {
-	sdb_object_t super;
-
-	/* object type */
-	int type;
-
-	/* common meta information */
-	sdb_time_t last_update;
-	sdb_store_base_t *parent;
-};
-#define STORE_BASE(obj) ((sdb_store_base_t *)(obj))
-#define STORE_CONST_BASE(obj) ((const sdb_store_base_t *)(obj))
-
-typedef struct {
-	sdb_store_base_t super;
-
-	sdb_data_t value;
-} sdb_attribute_t;
-#define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
-#define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
-
-typedef struct {
-	sdb_store_base_t super;
-
-	sdb_llist_t *children;
-	sdb_llist_t *attributes;
-} sdb_store_obj_t;
-#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
-#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
-
-enum {
-	SDB_HOST = 1,
-	SDB_SERVICE,
-	SDB_ATTRIBUTE,
-};
-#define TYPE_TO_NAME(t) \
-	(((t) == SDB_HOST) ? "host" \
-		: ((t) == SDB_SERVICE) ? "service" \
-		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
-
-/* shortcuts for accessing the sdb_store_obj_t attributes
- * of inheriting objects */
-#define _last_update super.last_update
 
 static int
 store_base_init(sdb_object_t *obj, va_list ap)
