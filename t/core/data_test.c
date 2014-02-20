@@ -159,7 +159,8 @@ START_TEST(test_format)
 
 		memset(buf, (int)'A', sizeof(buf));
 
-		check = sdb_data_format(datum, buf, sizeof(buf) - 1);
+		check = sdb_data_format(datum, buf, sizeof(buf) - 1,
+				SDB_DOUBLE_QUOTED);
 		fail_unless(check > 0,
 				"sdb_data_format(type=%s) = %d; expected: >0",
 				SDB_TYPE_TO_STRING(datum->type), check);

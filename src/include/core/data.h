@@ -93,7 +93,7 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src);
 /*
  * sdb_data_free_datum:
  * Free any dynamic memory referenced by the specified datum. Does not free
- * the memory allocated for the sdb_data_t object itself. This function must
+ * the memory allocated by the sdb_data_t object itself. This function must
  * not be used if any static or stack memory is referenced from the data
  * object.
  */
@@ -109,12 +109,19 @@ sdb_data_free_datum(sdb_data_t *datum);
 size_t
 sdb_data_strlen(sdb_data_t *datum);
 
+enum {
+	SDB_UNQUOTED = 0,
+	SDB_SINGLE_QUOTED,
+	SDB_DOUBLE_QUOTED,
+};
+
 /*
  * sdb_data_format:
  * Output the specified datum to the specified string using a default format.
- * If the buffer size is less than the return value of sdb_data_strlen, the
- * datum may be truncated. The buffer will always be nul-terminated after
- * calling this function.
+ * The value of 'quoted' determines whether and how non-integer and
+ * non-decimal values are quoted. If the buffer size is less than the return
+ * value of sdb_data_strlen, the datum may be truncated. The buffer will
+ * always be nul-terminated after calling this function.
  *
  * Returns:
  *  - the number of characters written to the buffer (excluding the terminated
@@ -123,7 +130,7 @@ sdb_data_strlen(sdb_data_t *datum);
  *  - a negative value else
  */
 int
-sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen);
+sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen, int quoted);
 
 #ifdef __cplusplus
 } /* extern "C" */

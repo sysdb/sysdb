@@ -115,9 +115,13 @@ sdb_data_strlen(sdb_data_t *datum)
 } /* sdb_data_strlen */
 
 int
-sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
+sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 {
+	char tmp[sdb_data_strlen(datum) + 1];
+	char *data = NULL;
 	int ret = -1;
+
+	size_t i, pos;
 
 	if ((! datum) || (! buf))
 		return -1;
@@ -131,11 +135,8 @@ sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 			break;
 		case SDB_TYPE_STRING:
 			if (! datum->data.string)
-				ret = snprintf(buf, buflen, "\"NULL\"");
+				data = "NULL";
 			else {
-				char tmp[2 * strlen(datum->data.string) + 1];
-				size_t i, pos;
-
 				pos = 0;
 				for (i = 0; i < strlen(datum->data.string); ++i) {
 					char byte = datum->data.string[i];
@@ -148,45 +149,46 @@ sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 					++pos;
 				}
 				tmp[pos] = '\0';
-				ret = snprintf(buf, buflen, "\"%s\"", tmp);
+				data = tmp;
 			}
 			break;
 		case SDB_TYPE_DATETIME:
-			{
-				char tmp[64];
-				if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
-							datum->data.datetime))
-					return -1;
-				tmp[sizeof(tmp) - 1] = '\0';
-				ret = snprintf(buf, buflen, "\"%s\"", tmp);
-			}
+			if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
+						datum->data.datetime))
+				return -1;
+			tmp[sizeof(tmp) - 1] = '\0';
+			data = tmp;
 			break;
 		case SDB_TYPE_BINARY:
-			{
-				char tmp[4 * datum->data.binary.length + 1];
-				size_t i, pos;
+			pos = 0;
+			for (i = 0; i < datum->data.binary.length; ++i) {
+				int byte = (int)datum->data.binary.datum[i];
+				char hex[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+					'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-				pos = 0;
-				for (i = 0; i < datum->data.binary.length; ++i) {
-					int byte = (int)datum->data.binary.datum[i];
-					char hex[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-						'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+				tmp[pos] = '\\';
+				tmp[pos + 1] = 'x';
+				pos += 2;
 
-					tmp[pos] = '\\';
-					tmp[pos + 1] = 'x';
-					pos += 2;
-
-					if (byte > 0xf) {
-						tmp[pos] = hex[byte >> 4];
-						++pos;
-					}
-					tmp[pos] = hex[byte & 0xf];
+				if (byte > 0xf) {
+					tmp[pos] = hex[byte >> 4];
 					++pos;
 				}
-				tmp[pos] = '\0';
-				ret = snprintf(buf, buflen, "\"%s\"", tmp);
+				tmp[pos] = hex[byte & 0xf];
+				++pos;
 			}
+			tmp[pos] = '\0';
+			data = tmp;
 			break;
+	}
+
+	if (data) {
+		if (quoted == SDB_UNQUOTED)
+			ret = snprintf(buf, buflen, "%s", data);
+		else if (quoted == SDB_SINGLE_QUOTED)
+			ret = snprintf(buf, buflen, "'%s'", data);
+		else
+			ret = snprintf(buf, buflen, "\"%s\"", data);
 	}
 	buf[buflen - 1] = '\0';
 	return ret;
