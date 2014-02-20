@@ -167,6 +167,11 @@ START_TEST(test_format)
 				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
 				SDB_TYPE_TO_STRING(datum->type), buf, golden_data[i].expected);
 
+		fail_unless((size_t)check <= sizeof(buf) - 2,
+				"sdb_data_format(type=%s) wrote %d bytes; "
+				"expected <= %zu based on sdb_data_strlen()",
+				SDB_TYPE_TO_STRING(datum->type), check, sizeof(buf) - 2);
+
 		fail_unless(buf[sizeof(buf) - 2] == '\0',
 				"sdb_data_format(type=%s) did not nul-terminate the buffer",
 				SDB_TYPE_TO_STRING(datum->type));
