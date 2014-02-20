@@ -155,6 +155,17 @@ START_TEST(test_format)
 			"sdb_data_format() used wrong format: %s; expected: %s",
 			string, expected);
 
+	datum.data.string = NULL;
+	sdb_strbuf_clear(buf);
+	check = sdb_data_format(&datum, buf);
+	fail_unless(! check,
+			"sdb_data_format(STRING) = %d; expected: 0", check);
+	string = sdb_strbuf_string(buf);
+	expected = "\"NULL\"";
+	fail_unless(! strcmp(string, expected),
+			"sdb_data_format() used wrong format: %s; expected: %s",
+			string, expected);
+
 	datum.type = SDB_TYPE_DATETIME;
 	datum.data.datetime = 471147114711471100;
 	sdb_strbuf_clear(buf);
@@ -177,6 +188,18 @@ START_TEST(test_format)
 	string = sdb_strbuf_string(buf);
 	expected =
 		"\"\\x62\\x69\\x6e\\x61\\x72\\x79\\x0\\x63\\x72\\x61\\x70\\x42\"";
+	fail_unless(! strcmp(string, expected),
+			"sdb_data_format() used wrong format: %s; expected: %s",
+			string, expected);
+
+	datum.data.binary.datum = NULL;
+	datum.data.binary.length = 0;
+	sdb_strbuf_clear(buf);
+	check = sdb_data_format(&datum, buf);
+	fail_unless(! check,
+			"sdb_data_format(BINARY) = %d; expected: 0", check);
+	string = sdb_strbuf_string(buf);
+	expected = "\"\"";
 	fail_unless(! strcmp(string, expected),
 			"sdb_data_format() used wrong format: %s; expected: %s",
 			string, expected);

@@ -99,6 +99,10 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 			sdb_strbuf_append(buf, "%a", datum->data.decimal);
 			break;
 		case SDB_TYPE_STRING:
+			if (! datum->data.string) {
+				sdb_strbuf_append(buf, "\"NULL\"");
+				return 0;
+			}
 			/* TODO: escape special characters */
 			sdb_strbuf_append(buf, "\"%s\"", datum->data.string);
 			break;
