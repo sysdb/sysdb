@@ -155,6 +155,17 @@ START_TEST(test_format)
 			"sdb_data_format() used wrong format: %s; expected: %s",
 			string, expected);
 
+	datum.data.string = "now using special \\ \" characters";
+	sdb_strbuf_clear(buf);
+	check = sdb_data_format(&datum, buf);
+	fail_unless(! check,
+			"sdb_data_format(STRING) = %d; expected: 0", check);
+	string = sdb_strbuf_string(buf);
+	expected = "\"now using special \\\\ \\\" characters\"";
+	fail_unless(! strcmp(string, expected),
+			"sdb_data_format() used wrong format: %s; expected: %s",
+			string, expected);
+
 	datum.data.string = NULL;
 	sdb_strbuf_clear(buf);
 	check = sdb_data_format(&datum, buf);

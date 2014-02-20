@@ -103,8 +103,24 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 				sdb_strbuf_append(buf, "\"NULL\"");
 				return 0;
 			}
-			/* TODO: escape special characters */
-			sdb_strbuf_append(buf, "\"%s\"", datum->data.string);
+			{
+				char tmp[2 * strlen(datum->data.string) + 1];
+				size_t i, pos;
+
+				pos = 0;
+				for (i = 0; i < strlen(datum->data.string); ++i) {
+					char byte = datum->data.string[i];
+
+					if ((byte == '\\') || (byte == '"')) {
+						tmp[pos] = '\\';
+						++pos;
+					}
+					tmp[pos] = byte;
+					++pos;
+				}
+				tmp[pos] = '\0';
+				sdb_strbuf_append(buf, "\"%s\"", tmp);
+			}
 			break;
 		case SDB_TYPE_DATETIME:
 			{
