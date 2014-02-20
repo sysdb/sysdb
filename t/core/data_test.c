@@ -163,10 +163,12 @@ START_TEST(test_format)
 
 		check = sdb_data_format(&golden_data[i].datum, buf);
 		fail_unless(! check,
-				"sdb_data_format() = %d; expected: 0", check);
+				"sdb_data_format(type=%s) = %d; expected: 0",
+				SDB_TYPE_TO_STRING(golden_data[i].datum.type), check);
 		string = sdb_strbuf_string(buf);
 		fail_unless(! strcmp(string, golden_data[i].expected),
-				"sdb_data_format() used wrong format: %s; expected: %s",
+				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
+				SDB_TYPE_TO_STRING(golden_data[i].datum.type),
 				string, golden_data[i].expected);
 		sdb_strbuf_clear(buf);
 	}

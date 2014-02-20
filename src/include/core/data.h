@@ -46,6 +46,19 @@ enum {
 	SDB_TYPE_BINARY,
 };
 
+#define SDB_TYPE_TO_STRING(t) \
+	(((t) == SDB_TYPE_INTEGER) \
+		? "INTEGER" \
+		: ((t) == SDB_TYPE_DECIMAL) \
+			? "DECIMAL" \
+			: ((t) == SDB_TYPE_STRING) \
+				? "STRING" \
+				: ((t) == SDB_TYPE_DATETIME) \
+					? "DATETIME" \
+					: ((t) == SDB_TYPE_BINARY) \
+						? "BINARY" \
+						: "UNKNOWN")
+
 /*
  * sdb_data_t:
  * A datum retrieved from an arbitrary data source.
