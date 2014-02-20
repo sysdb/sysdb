@@ -117,7 +117,9 @@ sdb_data_strlen(sdb_data_t *datum);
  * calling this function.
  *
  * Returns:
- *  - 0 on success
+ *  - the number of characters written to the buffer (excluding the terminated
+ *    null byte) or the number of characters which would have been written in
+ *    case the output was truncated
  *  - a negative value else
  */
 int

@@ -117,23 +117,22 @@ sdb_data_strlen(sdb_data_t *datum)
 int
 sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 {
+	int ret = -1;
+
 	if ((! datum) || (! buf))
 		return -1;
 
 	switch (datum->type) {
 		case SDB_TYPE_INTEGER:
-			snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
+			ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
 			break;
 		case SDB_TYPE_DECIMAL:
-			snprintf(buf, buflen, "%a", datum->data.decimal);
+			ret = snprintf(buf, buflen, "%a", datum->data.decimal);
 			break;
 		case SDB_TYPE_STRING:
-			if (! datum->data.string) {
-				strncpy(buf, "\"NULL\"", buflen);
-				buf[buflen - 1] = '\0';
-				return 0;
-			}
-			{
+			if (! datum->data.string)
+				ret = snprintf(buf, buflen, "\"NULL\"");
+			else {
 				char tmp[2 * strlen(datum->data.string) + 1];
 				size_t i, pos;
 
@@ -149,7 +148,7 @@ sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 					++pos;
 				}
 				tmp[pos] = '\0';
-				snprintf(buf, buflen, "\"%s\"", tmp);
+				ret = snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
 		case SDB_TYPE_DATETIME:
@@ -159,7 +158,7 @@ sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 							datum->data.datetime))
 					return -1;
 				tmp[sizeof(tmp) - 1] = '\0';
-				snprintf(buf, buflen, "\"%s\"", tmp);
+				ret = snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
 		case SDB_TYPE_BINARY:
@@ -185,14 +184,12 @@ sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 					++pos;
 				}
 				tmp[pos] = '\0';
-				snprintf(buf, buflen, "\"%s\"", tmp);
+				ret = snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
-		default:
-			return -1;
 	}
 	buf[buflen - 1] = '\0';
-	return 0;
+	return ret;
 } /* sdb_data_format */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

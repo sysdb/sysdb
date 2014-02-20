@@ -160,8 +160,8 @@ START_TEST(test_format)
 		memset(buf, (int)'A', sizeof(buf));
 
 		check = sdb_data_format(datum, buf, sizeof(buf) - 1);
-		fail_unless(! check,
-				"sdb_data_format(type=%s) = %d; expected: 0",
+		fail_unless(check > 0,
+				"sdb_data_format(type=%s) = %d; expected: >0",
 				SDB_TYPE_TO_STRING(datum->type), check);
 		fail_unless(! strcmp(buf, golden_data[i].expected),
 				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
