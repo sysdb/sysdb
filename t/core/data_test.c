@@ -154,16 +154,25 @@ START_TEST(test_format)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_data_t *datum = &golden_data[i].datum;
-		char buf[sdb_data_strlen(datum) + 1];
+		char buf[sdb_data_strlen(datum) + 2];
 		int check;
 
-		check = sdb_data_format(datum, buf, sizeof(buf));
+		memset(buf, (int)'A', sizeof(buf));
+
+		check = sdb_data_format(datum, buf, sizeof(buf) - 1);
 		fail_unless(! check,
 				"sdb_data_format(type=%s) = %d; expected: 0",
 				SDB_TYPE_TO_STRING(datum->type), check);
 		fail_unless(! strcmp(buf, golden_data[i].expected),
 				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
 				SDB_TYPE_TO_STRING(datum->type), buf, golden_data[i].expected);
+
+		fail_unless(buf[sizeof(buf) - 2] == '\0',
+				"sdb_data_format(type=%s) did not nul-terminate the buffer",
+				SDB_TYPE_TO_STRING(datum->type));
+		fail_unless(buf[sizeof(buf) - 1] == 'A',
+				"sdb_data_format(type=%s) wrote past the end of the buffer",
+				SDB_TYPE_TO_STRING(datum->type));
 	}
 }
 END_TEST
