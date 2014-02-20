@@ -109,111 +109,69 @@ END_TEST
 
 START_TEST(test_format)
 {
-	sdb_data_t datum;
 	sdb_strbuf_t *buf;
-	const char *string;
-	const char *expected;
+	size_t i;
 
-	int check;
+	struct {
+		sdb_data_t datum;
+		const char *expected;
+	} golden_data[] = {
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
+			"4711",
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
+			"0x1p+16",
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = NULL } },
+			"\"NULL\"",
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "this is a test" } },
+			"\"this is a test\"",
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "special \\ \" characters" } },
+			"\"special \\\\ \\\" characters\"",
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime= 471147114711471100 } },
+			"\"1984-12-06 02:11:54 +0000\"",
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
+			"\"\"",
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 12, (unsigned char *)"binary\0crap\x42" } },
+			},
+			"\"\\x62\\x69\\x6e\\x61\\x72\\x79\\x0\\x63\\x72\\x61\\x70\\x42\"",
+		},
+	};
 
 	buf = sdb_strbuf_create(1024);
 	fail_unless(buf != NULL,
-			"INTERNAL ERROR: Failed to allocate string buffer");
+		"INTERNAL ERROR: Failed to allocate string buffer");
 
-	datum.type = SDB_TYPE_INTEGER;
-	datum.data.integer = 4711;
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(INTEGER) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "4711";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		const char *string;
+		int check;
 
-	datum.type = SDB_TYPE_DECIMAL;
-	datum.data.decimal = 65536.0;
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(DECIMAL) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "0x1p+16";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
+		check = sdb_data_format(&golden_data[i].datum, buf);
+		fail_unless(! check,
+				"sdb_data_format() = %d; expected: 0", check);
+		string = sdb_strbuf_string(buf);
+		fail_unless(! strcmp(string, golden_data[i].expected),
+				"sdb_data_format() used wrong format: %s; expected: %s",
+				string, golden_data[i].expected);
+		sdb_strbuf_clear(buf);
+	}
 
-	datum.type = SDB_TYPE_STRING;
-	datum.data.string = "this is a test";
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(STRING) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "\"this is a test\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
-
-	datum.data.string = "now using special \\ \" characters";
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(STRING) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "\"now using special \\\\ \\\" characters\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
-
-	datum.data.string = NULL;
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(STRING) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "\"NULL\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
-
-	datum.type = SDB_TYPE_DATETIME;
-	datum.data.datetime = 471147114711471100;
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(DATETIME) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "\"1984-12-06 02:11:54 +0000\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
-
-	datum.type = SDB_TYPE_BINARY;
-	datum.data.binary.datum = (unsigned char *)"binary\0crap\x42";
-	datum.data.binary.length = 12;
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(BINARY) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected =
-		"\"\\x62\\x69\\x6e\\x61\\x72\\x79\\x0\\x63\\x72\\x61\\x70\\x42\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
-
-	datum.data.binary.datum = NULL;
-	datum.data.binary.length = 0;
-	sdb_strbuf_clear(buf);
-	check = sdb_data_format(&datum, buf);
-	fail_unless(! check,
-			"sdb_data_format(BINARY) = %d; expected: 0", check);
-	string = sdb_strbuf_string(buf);
-	expected = "\"\"";
-	fail_unless(! strcmp(string, expected),
-			"sdb_data_format() used wrong format: %s; expected: %s",
-			string, expected);
+	sdb_strbuf_destroy(buf);
 }
 END_TEST
 
