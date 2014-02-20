@@ -67,6 +67,7 @@ libsysdb_la_SOURCES = \
 		core/plugin.c include/core/plugin.h \
 		core/store.c include/core/store.h \
 		core/store-private.h \
+		core/store_lookup.c \
 		core/data.c include/core/data.h \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
