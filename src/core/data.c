@@ -85,6 +85,34 @@ sdb_data_free_datum(sdb_data_t *datum)
 	}
 } /* sdb_data_free_datum */
 
+size_t
+sdb_data_strlen(sdb_data_t *datum)
+{
+	if (! datum)
+		return 0;
+
+	switch (datum->type) {
+		case SDB_TYPE_INTEGER:
+			/* log(64) */
+			return 20;
+		case SDB_TYPE_DECIMAL:
+			/* XXX: -0xN.NNNNNNp+NNN */
+			return 42;
+		case SDB_TYPE_STRING:
+			if (! datum->data.string)
+				return 6; /* "NULL" */
+			/* in the worst case, each character needs to be escaped */
+			return 2 * strlen(datum->data.string) + 2;
+		case SDB_TYPE_DATETIME:
+			/* "YYYY-MM-DD HH:MM:SS +zzzz" */
+			return 27;
+		case SDB_TYPE_BINARY:
+			/* "\xNN" */
+			return 4 * datum->data.binary.length + 2;
+	}
+	return 0;
+} /* sdb_data_strlen */
+
 int
 sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 {

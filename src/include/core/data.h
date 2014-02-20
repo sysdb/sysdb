@@ -102,6 +102,15 @@ void
 sdb_data_free_datum(sdb_data_t *datum);
 
 /*
+ * sdb_data_strlen:
+ * Returns a (worst-case) estimate for the number of bytes required to format
+ * the datum as a string. Does not take the terminating null byte into
+ * account.
+ */
+size_t
+sdb_data_strlen(sdb_data_t *datum);
+
+/*
  * sdb_data_format:
  * Append the specified datum to the specified string buffer using a default
  * format.
