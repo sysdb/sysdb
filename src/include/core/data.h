@@ -29,7 +29,6 @@
 #define SDB_CORE_DATA_H 1
 
 #include "core/time.h"
-#include "utils/strbuf.h"
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -112,15 +111,17 @@ sdb_data_strlen(sdb_data_t *datum);
 
 /*
  * sdb_data_format:
- * Append the specified datum to the specified string buffer using a default
- * format.
+ * Output the specified datum to the specified string using a default format.
+ * If the buffer size is less than the return value of sdb_data_strlen, the
+ * datum may be truncated. The buffer will always be nul-terminated after
+ * calling this function.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf);
+sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen);
 
 #ifdef __cplusplus
 } /* extern "C" */

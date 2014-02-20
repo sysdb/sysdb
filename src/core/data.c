@@ -29,6 +29,7 @@
 
 #include <inttypes.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -114,21 +115,22 @@ sdb_data_strlen(sdb_data_t *datum)
 } /* sdb_data_strlen */
 
 int
-sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
+sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen)
 {
 	if ((! datum) || (! buf))
 		return -1;
 
 	switch (datum->type) {
 		case SDB_TYPE_INTEGER:
-			sdb_strbuf_append(buf, "%"PRIi64, datum->data.integer);
+			snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
 			break;
 		case SDB_TYPE_DECIMAL:
-			sdb_strbuf_append(buf, "%a", datum->data.decimal);
+			snprintf(buf, buflen, "%a", datum->data.decimal);
 			break;
 		case SDB_TYPE_STRING:
 			if (! datum->data.string) {
-				sdb_strbuf_append(buf, "\"NULL\"");
+				strncpy(buf, "\"NULL\"", buflen);
+				buf[buflen - 1] = '\0';
 				return 0;
 			}
 			{
@@ -147,7 +149,7 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 					++pos;
 				}
 				tmp[pos] = '\0';
-				sdb_strbuf_append(buf, "\"%s\"", tmp);
+				snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
 		case SDB_TYPE_DATETIME:
@@ -157,7 +159,7 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 							datum->data.datetime))
 					return -1;
 				tmp[sizeof(tmp) - 1] = '\0';
-				sdb_strbuf_append(buf, "\"%s\"", tmp);
+				snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
 		case SDB_TYPE_BINARY:
@@ -183,12 +185,13 @@ sdb_data_format(sdb_data_t *datum, sdb_strbuf_t *buf)
 					++pos;
 				}
 				tmp[pos] = '\0';
-				sdb_strbuf_append(buf, "\"%s\"", tmp);
+				snprintf(buf, buflen, "\"%s\"", tmp);
 			}
 			break;
 		default:
 			return -1;
 	}
+	buf[buflen - 1] = '\0';
 	return 0;
 } /* sdb_data_format */
 

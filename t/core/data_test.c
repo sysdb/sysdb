@@ -109,9 +109,6 @@ END_TEST
 
 START_TEST(test_format)
 {
-	sdb_strbuf_t *buf;
-	size_t i;
-
 	struct {
 		sdb_data_t datum;
 		const char *expected;
@@ -153,27 +150,21 @@ START_TEST(test_format)
 		},
 	};
 
-	buf = sdb_strbuf_create(1024);
-	fail_unless(buf != NULL,
-		"INTERNAL ERROR: Failed to allocate string buffer");
+	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		const char *string;
+		sdb_data_t *datum = &golden_data[i].datum;
+		char buf[sdb_data_strlen(datum) + 1];
 		int check;
 
-		check = sdb_data_format(&golden_data[i].datum, buf);
+		check = sdb_data_format(datum, buf, sizeof(buf));
 		fail_unless(! check,
 				"sdb_data_format(type=%s) = %d; expected: 0",
-				SDB_TYPE_TO_STRING(golden_data[i].datum.type), check);
-		string = sdb_strbuf_string(buf);
-		fail_unless(! strcmp(string, golden_data[i].expected),
+				SDB_TYPE_TO_STRING(datum->type), check);
+		fail_unless(! strcmp(buf, golden_data[i].expected),
 				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
-				SDB_TYPE_TO_STRING(golden_data[i].datum.type),
-				string, golden_data[i].expected);
-		sdb_strbuf_clear(buf);
+				SDB_TYPE_TO_STRING(datum->type), buf, golden_data[i].expected);
 	}
-
-	sdb_strbuf_destroy(buf);
 }
 END_TEST
 
