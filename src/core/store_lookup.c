@@ -126,12 +126,12 @@ match_name(name_matcher_t *m, const char *name)
 	if (! name)
 		name = "";
 
-	if (m->name && (! strcasecmp(m->name, name)))
-		return 0;
-	if (m->name_re && (! regexec(m->name_re, name,
-					/* matches */ 0, NULL, /* flags = */ 0)))
-		return 0;
-	return -1;
+	if (m->name && strcasecmp(m->name, name))
+		return -1;
+	if (m->name_re && regexec(m->name_re, name,
+					/* matches */ 0, NULL, /* flags = */ 0))
+		return -1;
+	return 0;
 } /* match_name */
 
 /* match attribute specific values;
