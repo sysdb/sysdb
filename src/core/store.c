@@ -390,6 +390,13 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
  * public API
  */
 
+void
+sdb_store_clear(void)
+{
+	sdb_llist_destroy(obj_list);
+	obj_list = NULL;
+} /* sdb_store_clear */
+
 int
 sdb_store_host(const char *name, sdb_time_t last_update)
 {

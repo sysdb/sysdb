@@ -50,6 +50,13 @@ struct sdb_store_base;
 typedef struct sdb_store_base sdb_store_base_t;
 
 /*
+ * sdb_store_clear:
+ * Clear the entire store and remove all stored objects.
+ */
+void
+sdb_store_clear(void);
+
+/*
  * sdb_store_host:
  * Add/update a host in the store. If the host, identified by its
  * canonicalized name, already exists, it will be updated according to the
