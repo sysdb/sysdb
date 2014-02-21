@@ -148,7 +148,7 @@ match_attr(attr_matcher_t *m, sdb_store_base_t *obj)
 		sdb_attribute_t *attr = SDB_ATTR(obj);
 		char buf[sdb_data_strlen(&attr->value) + 1];
 
-		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED))
+		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
 			return -1;
 		return match_name(&m->value, buf);
 	}
