@@ -166,6 +166,9 @@ match_service(service_matcher_t *m, sdb_store_base_t *obj)
 	if (obj->type != SDB_SERVICE)
 		return -1;
 
+	if (! m->attr)
+		return 0;
+
 	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_store_base_t *attr = STORE_BASE(sdb_llist_iter_get_next(iter));
