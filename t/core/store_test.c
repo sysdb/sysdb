@@ -212,7 +212,7 @@ START_TEST(test_store_service)
 		status = sdb_store_service(golden_data[i].host,
 				golden_data[i].svc, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_attribute(%s, %s, %d) = %d; expected: %d",
+				"sdb_store_service(%s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].svc,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -338,13 +338,12 @@ core_store_suite(void)
 	TCase *tc;
 
 	tc = tcase_create("core");
-	/* test this first to ensure the store is empty
-	 * even when using CK_NOFORK */
 	tcase_add_test(tc, test_store_tojson);
 	tcase_add_test(tc, test_store_host);
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
+	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
 	suite_add_tcase(s, tc);
 
 	return s;
