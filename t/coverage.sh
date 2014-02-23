@@ -44,18 +44,13 @@ fi
 ./configure --enable-gcov --disable-shared CFLAGS="-O0 -g"
 make
 
-V1=$( grep '^PACKAGE_VERSION' Makefile | cut -d' ' -f3 )
-if test -z "$V1"; then
-	# this should not happen
-	V1="$V"
-fi
-
 lcov --base-directory src --directory src --zerocount
 make test
 lcov --base-directory src --directory src --no-external \
 	--capture -o sysdb_coverage.info
 
+V=$( ./version-gen.sh )
 genhtml -o "$srcdir"/t/coverage \
-	-t "SysDB $V1 test coverage" --num-spaces=4 --legend \
+	-t "SysDB $V test coverage" --num-spaces=4 --legend \
 	sysdb_coverage.info
 
