@@ -33,12 +33,14 @@
 
 #include "sysdb.h"
 #include "core/store-private.h"
+#include "core/object.h"
 
 #include <assert.h>
 
 #include <sys/types.h>
 #include <regex.h>
 
+#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -47,30 +49,31 @@
 
 /* match the name of something */
 typedef struct {
-	const char *name;
-	regex_t    *name_re;
+	char    *name;
+	regex_t *name_re;
 } name_matcher_t;
 
 /* matcher base type */
-typedef struct {
+struct sdb_store_matcher {
+	sdb_object_t super;
 	/* type of the matcher */
 	int type;
-} matcher_t;
-#define M(m) ((matcher_t *)(m))
+};
+#define M(m) ((sdb_store_matcher_t *)(m))
 
 /* logical operator matcher */
 typedef struct {
-	matcher_t super;
+	sdb_store_matcher_t super;
 
 	/* left and right hand operands */
-	matcher_t *left;
-	matcher_t *right;
+	sdb_store_matcher_t *left;
+	sdb_store_matcher_t *right;
 } op_matcher_t;
 #define OP_M(m) ((op_matcher_t *)(m))
 
 /* match any type of object by it's base information */
 typedef struct {
-	matcher_t super;
+	sdb_store_matcher_t super;
 
 	/* match by the name of the object */
 	name_matcher_t name;
@@ -109,9 +112,9 @@ typedef struct {
  */
 
 static int
-match_logical(matcher_t *m, sdb_store_base_t *obj);
+match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj);
 static int
-match_obj(matcher_t *m, sdb_store_base_t *obj);
+match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj);
 
 /* specific matchers */
 
@@ -244,7 +247,7 @@ enum {
 	MATCHER_HOST,
 };
 
-typedef int (*matcher_cb)(matcher_t *, sdb_store_base_t *);
+typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
 
 /* this array needs to be indexable by the matcher types */
 static matcher_cb matchers[] = {
@@ -256,35 +259,25 @@ static matcher_cb matchers[] = {
 };
 
 static int
-match(matcher_t *m, sdb_store_base_t *obj)
-{
-	assert(m && obj);
-	assert((0 <= m->type)
-			&& ((size_t)m->type < SDB_STATIC_ARRAY_LEN(matchers)));
-
-	return matchers[m->type](m, obj);
-} /* match */
-
-static int
-match_logical(matcher_t *m, sdb_store_base_t *obj)
+match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
 	int status;
 
 	assert(m && obj);
 	assert(OP_M(m)->left && OP_M(m)->right);
 
-	status = match(OP_M(m)->left, obj);
+	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
 	/* lazy evaluation */
 	if (status && (m->type == MATCHER_AND))
 		return status;
 	else if ((! status) && (m->type == MATCHER_OR))
 		return status;
 
-	return match(OP_M(m)->right, obj);
+	return sdb_store_matcher_matches(OP_M(m)->right, obj);
 } /* match_logical */
 
 static int
-match_obj(matcher_t *m, sdb_store_base_t *obj)
+match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
 	int status;
 
@@ -307,6 +300,198 @@ match_obj(matcher_t *m, sdb_store_base_t *obj)
 	}
 	return -1;
 } /* match_obj */
+
+/*
+ * private matcher types
+ */
+
+/* initializes a name matcher consuming two elements from ap */
+static int
+name_matcher_init(name_matcher_t *m, va_list ap)
+{
+	const char *name = va_arg(ap, const char *);
+	const char *name_re = va_arg(ap, const char *);
+
+	if (name) {
+		m->name = strdup(name);
+		if (! m->name)
+			return -1;
+	}
+	if (name_re) {
+		m->name_re = malloc(sizeof(*m->name_re));
+		if (! m->name_re)
+			return -1;
+		if (regcomp(m->name_re, name_re, REG_EXTENDED | REG_ICASE | REG_NOSUB))
+			return -1;
+	}
+	return 0;
+} /* name_matcher_init */
+
+static void
+name_matcher_destroy(name_matcher_t *m)
+{
+	if (m->name)
+		free(m->name);
+	if (m->name_re) {
+		regfree(m->name_re);
+		free(m->name_re);
+	}
+} /* name_matcher_destroy */
+
+/* initializes an object matcher consuming two elements from ap */
+static int
+obj_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	obj_matcher_t *m = OBJ_M(obj);
+	return name_matcher_init(&m->name, ap);
+} /* obj_matcher_init */
+
+static void
+obj_matcher_destroy(sdb_object_t *obj)
+{
+	obj_matcher_t *m = OBJ_M(obj);
+	name_matcher_destroy(&m->name);
+} /* obj_matcher_destroy */
+
+static int
+attr_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	attr_matcher_t *attr = ATTR_M(obj);
+	int status;
+
+	M(obj)->type = MATCHER_ATTR;
+
+	status = obj_matcher_init(obj, ap);
+	if (! status)
+		status = name_matcher_init(&attr->value, ap);
+	return status;
+} /* attr_matcher_init */
+
+static void
+attr_matcher_destroy(sdb_object_t *obj)
+{
+	attr_matcher_t *attr = ATTR_M(obj);
+
+	obj_matcher_destroy(obj);
+	name_matcher_destroy(&attr->value);
+} /* attr_matcher_destroy */
+
+static int
+service_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	attr_matcher_t *attr;
+	int status;
+
+	M(obj)->type = MATCHER_SERVICE;
+
+	status = obj_matcher_init(obj, ap);
+	if (status)
+		return status;
+
+	attr = va_arg(ap, attr_matcher_t *);
+
+	sdb_object_ref(SDB_OBJ(attr));
+	SERVICE_M(obj)->attr = attr;
+	return 0;
+} /* service_matcher_init */
+
+static void
+service_matcher_destroy(sdb_object_t *obj)
+{
+	obj_matcher_destroy(obj);
+	sdb_object_deref(SDB_OBJ(SERVICE_M(obj)->attr));
+} /* service_matcher_destroy */
+
+static int
+host_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	service_matcher_t *service;
+	attr_matcher_t *attr;
+	int status;
+
+	M(obj)->type = MATCHER_HOST;
+
+	status = obj_matcher_init(obj, ap);
+	if (status)
+		return status;
+
+	service = va_arg(ap, service_matcher_t *);
+	attr = va_arg(ap, attr_matcher_t *);
+
+	sdb_object_ref(SDB_OBJ(service));
+	HOST_M(obj)->service = service;
+	sdb_object_ref(SDB_OBJ(attr));
+	HOST_M(obj)->attr = attr;
+	return 0;
+} /* host_matcher_init */
+
+static void
+host_matcher_destroy(sdb_object_t *obj)
+{
+	obj_matcher_destroy(obj);
+	sdb_object_deref(SDB_OBJ(HOST_M(obj)->service));
+	sdb_object_deref(SDB_OBJ(HOST_M(obj)->attr));
+} /* host_matcher_destroy */
+
+static sdb_type_t attr_type = {
+	/* size = */ sizeof(attr_matcher_t),
+	/* init = */ attr_matcher_init,
+	/* destroy = */ attr_matcher_destroy,
+};
+
+static sdb_type_t service_type = {
+	/* size = */ sizeof(service_matcher_t),
+	/* init = */ service_matcher_init,
+	/* destroy = */ service_matcher_destroy,
+};
+
+static sdb_type_t host_type = {
+	/* size = */ sizeof(host_matcher_t),
+	/* init = */ host_matcher_init,
+	/* destroy = */ host_matcher_destroy,
+};
+
+/*
+ * public API
+ */
+
+sdb_store_matcher_t *
+sdb_store_attr_matcher(const char *attr_name, const char *attr_name_re,
+		const char *attr_value, const char *attr_value_re)
+{
+	return M(sdb_object_create("attr-matcher", attr_type,
+				attr_name, attr_name_re, attr_value, attr_value_re));
+} /* sdb_store_attr_matcher */
+
+sdb_store_matcher_t *
+sdb_store_service_matcher(const char *service_name, const char *service_name_re,
+		sdb_store_matcher_t *attr_matcher)
+{
+	return M(sdb_object_create("service-matcher", service_type,
+				service_name, service_name_re, attr_matcher));
+} /* sdb_store_service_matcher */
+
+sdb_store_matcher_t *
+sdb_store_host_matcher(const char *host_name, const char *host_name_re,
+		sdb_store_matcher_t *service_matcher,
+		sdb_store_matcher_t *attr_matcher)
+{
+	return M(sdb_object_create("host-matcher", host_type,
+				host_name, host_name_re, service_matcher, attr_matcher));
+} /* sdb_store_host_matcher */
+
+int
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	/* "NULL" always matches */
+	if ((! m) || (! obj))
+		return 0;
+
+	if ((m->type < 0) || ((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers)))
+		return -1;
+
+	return matchers[m->type](m, obj);
+} /* sdb_store_matcher_matches */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

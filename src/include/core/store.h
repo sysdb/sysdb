@@ -128,6 +128,58 @@ sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
 /*
+ * Store matchers may be used to lookup objects from the host based on their
+ * various attributes. Each type of matcher evaluates attributes of the
+ * respective object type.
+ *
+ * For each matcher object, *all* specified attributes have to match.
+ *
+ * A store matcher object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
+ */
+struct sdb_store_matcher;
+typedef struct sdb_store_matcher sdb_store_matcher_t;
+
+/*
+ * sdb_store_attr_matcher:
+ * Creates a matcher matching attributes based on their name or value. Either
+ * a complete name (which will have to match completely but case-independent)
+ * or an extended POSIX regular expression may be specified.
+ */
+sdb_store_matcher_t *
+sdb_store_attr_matcher(const char *attr_name, const char *attr_name_re,
+		const char *attr_value, const char *attr_value_re);
+
+/*
+ * sdb_store_service_matcher:
+ * Creates a matcher matching services based on their name or attributes.
+ */
+sdb_store_matcher_t *
+sdb_store_service_matcher(const char *service_name, const char *service_name_re,
+		sdb_store_matcher_t *attr_matcher);
+
+/*
+ * sdb_store_host_matcher:
+ * Creates a matcher matching hosts based on their name, services assigned to
+ * the host, or its attributes.
+ */
+sdb_store_matcher_t *
+sdb_store_host_matcher(const char *host_name, const char *host_name_re,
+		sdb_store_matcher_t *service_matcher,
+		sdb_store_matcher_t *attr_matcher);
+
+/*
+ * sdb_store_matcher_matches:
+ * Check whether the specified matcher matches the specified store object.
+ *
+ * Returns:
+ *  - 0 if the object matches
+ *  - a negative value else
+ */
+int
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj);
+
+/*
  * Flags for serialization functions.
  *
  * By default, the full object will be included in the serialized output. When
