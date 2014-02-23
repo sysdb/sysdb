@@ -52,7 +52,7 @@ typedef struct sdb_plugin_info sdb_plugin_info_t;
  * missing prototype warnings/errors for the plugin init
  * function */
 #define SDB_PLUGIN_MAGIC \
-	int sdb_module_init(sdb_plugin_info_t *info);
+	int sdb_module_init(sdb_plugin_info_t *info)
 
 typedef struct {
 	_Bool do_loop;
