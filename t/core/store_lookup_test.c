@@ -293,8 +293,10 @@ START_TEST(test_store_match_op)
 		else if (! strcmp(golden_data[i].op, "AND"))
 			m = sdb_store_con_matcher(golden_data[i].left,
 					golden_data[i].right);
-		else
+		else {
 			fail("INTERNAL ERROR: unexpected operator %s", golden_data[i].op);
+			continue;
+		}
 
 #define TO_NAME(v) (((v) == always) ? "always" \
 		: ((v) == never) ? "never" : "<unknown>")
