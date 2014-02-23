@@ -106,7 +106,8 @@ statement:
 list_statement:
 	LIST
 		{
-			$$ = sdb_object_create_T(/* name = */ NULL, sdb_conn_node_t);
+			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
+						sdb_conn_node_t));
 			((sdb_conn_node_t *)$$)->cmd = CONNECTION_LIST;
 		}
 	;

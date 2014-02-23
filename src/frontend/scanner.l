@@ -80,7 +80,7 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 <CSC>{csc_inside}	{ /* ignore */ }
 <CSC>{csc_end}		{ BEGIN(INITIAL); }
 <CSC><<EOF>> {
-		sdb_fe_yyerror(yylval, yyscanner, "unterminated C-style comment");
+		sdb_fe_yyerror(yylloc, yyscanner, "unterminated C-style comment");
 		return SCANNER_ERROR;
 	}
 
