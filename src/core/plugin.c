@@ -578,7 +578,7 @@ int
 sdb_plugin_register_config(const char *name, sdb_plugin_config_cb callback)
 {
 	return plugin_add_callback(&config_list, "init", name,
-			callback, NULL);
+			(void *)callback, NULL);
 } /* sdb_plugin_register_config */
 
 int
@@ -586,7 +586,7 @@ sdb_plugin_register_init(const char *name, sdb_plugin_init_cb callback,
 		sdb_object_t *user_data)
 {
 	return plugin_add_callback(&init_list, "init", name,
-			callback, user_data);
+			(void *)callback, user_data);
 } /* sdb_plugin_register_init */
 
 int
@@ -594,14 +594,14 @@ sdb_plugin_register_shutdown(const char *name, sdb_plugin_shutdown_cb callback,
 		sdb_object_t *user_data)
 {
 	return plugin_add_callback(&shutdown_list, "shutdown", name,
-			callback, user_data);
+			(void *)callback, user_data);
 } /* sdb_plugin_register_shutdown */
 
 int
 sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&log_list, "log", name, callback,
+	return plugin_add_callback(&log_list, "log", name, (void *)callback,
 			user_data);
 } /* sdb_plugin_register_log */
 
@@ -609,7 +609,7 @@ int
 sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&cname_list, "cname", name, callback,
+	return plugin_add_callback(&cname_list, "cname", name, (void *)callback,
 			user_data);
 } /* sdb_plugin_register_cname */
 
@@ -725,7 +725,7 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	}
 
 	old_ctx = ctx_set(plugin->cb_ctx);
-	callback = plugin->cb_callback;
+	callback = (sdb_plugin_config_cb)plugin->cb_callback;
 	status = callback(ci);
 	ctx_set(old_ctx);
 	return status;
@@ -747,7 +747,7 @@ sdb_plugin_init_all(void)
 		assert(obj);
 		cb = SDB_PLUGIN_CB(obj);
 
-		callback = cb->cb_callback;
+		callback = (sdb_plugin_init_cb)cb->cb_callback;
 
 		old_ctx = ctx_set(cb->cb_ctx);
 		if (callback(cb->cb_user_data)) {
@@ -784,7 +784,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (! obj)
 			return -1;
 
-		callback = SDB_PLUGIN_CCB(obj)->ccb_callback;
+		callback = (sdb_plugin_collector_cb)SDB_PLUGIN_CCB(obj)->ccb_callback;
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
@@ -882,7 +882,7 @@ sdb_plugin_cname(char *hostname)
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
 
-		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		callback = (sdb_plugin_cname_cb)SDB_PLUGIN_CB(obj)->cb_callback;
 		cname = callback(hostname, SDB_PLUGIN_CB(obj)->cb_user_data);
 		if (cname) {
 			free(hostname);
@@ -914,7 +914,7 @@ sdb_plugin_log(int prio, const char *msg)
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
 
-		callback = SDB_PLUGIN_CB(obj)->cb_callback;
+		callback = (sdb_plugin_log_cb)SDB_PLUGIN_CB(obj)->cb_callback;
 		tmp = callback(prio, msg, SDB_PLUGIN_CB(obj)->cb_user_data);
 		if (tmp > ret)
 			ret = tmp;

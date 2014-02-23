@@ -204,7 +204,9 @@ fdopen(int fd, const char *mode)
 	 * to use the original implementation */
 	if (fd != myfd) {
 		void *libc = dlopen_libc();
-		FILE *(*orig_fdopen)(int, const char *) = dlsym(libc, "fdopen");
+		FILE *(*orig_fdopen)(int, const char *);
+
+		orig_fdopen = (FILE *(*)(int, const char *))dlsym(libc, "fdopen");
 
 		if (! orig_fdopen)
 			fail("INTERNAL ERROR: failed to load fdopen() from libc");
