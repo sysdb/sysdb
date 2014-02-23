@@ -29,6 +29,9 @@ static int yyerror (const char *s);
 extern int yylineno;
 extern char *yytext;
 
+/* Lexer functions */
+int yylex (void);
+
 extern oconfig_item_t *ci_root;
 extern char           *c_file;
 %}

@@ -36,6 +36,9 @@
 
 #include <stdio.h>
 
+int
+sdb_fe_yylex(YYSTYPE *yylval, YYLTYPE *yylloc, sdb_fe_yyscan_t yyscanner);
+
 sdb_fe_yyextra_t *
 sdb_fe_yyget_extra(sdb_fe_yyscan_t scanner);
 
