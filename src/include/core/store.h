@@ -169,6 +169,20 @@ sdb_store_host_matcher(const char *host_name, const char *host_name_re,
 		sdb_store_matcher_t *attr_matcher);
 
 /*
+ * sdb_store_dis_matcher:
+ * Creates a matcher matching the disjunction (logical OR) of two matchers.
+ */
+sdb_store_matcher_t *
+sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
+
+/*
+ * sdb_store_con_matcher:
+ * Creates a matcher matching the conjunction (logical AND) of two matchers.
+ */
+sdb_store_matcher_t *
+sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
+
+/*
  * sdb_store_matcher_matches:
  * Check whether the specified matcher matches the specified store object.
  *

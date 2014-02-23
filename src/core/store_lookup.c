@@ -433,6 +433,32 @@ host_matcher_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_OBJ(HOST_M(obj)->attr));
 } /* host_matcher_destroy */
 
+static int
+op_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	M(obj)->type = va_arg(ap, int);
+	if ((M(obj)->type != MATCHER_OR) && (M(obj)->type != MATCHER_AND))
+		return -1;
+
+	OP_M(obj)->left = va_arg(ap, sdb_store_matcher_t *);
+	sdb_object_ref(SDB_OBJ(OP_M(obj)->left));
+	OP_M(obj)->right = va_arg(ap, sdb_store_matcher_t *);
+	sdb_object_ref(SDB_OBJ(OP_M(obj)->right));
+
+	if ((! OP_M(obj)->left) || (! OP_M(obj)->right))
+		return -1;
+	return 0;
+} /* op_matcher_init */
+
+static void
+op_matcher_destroy(sdb_object_t *obj)
+{
+	if (OP_M(obj)->left)
+		sdb_object_deref(SDB_OBJ(OP_M(obj)->left));
+	if (OP_M(obj)->right)
+		sdb_object_deref(SDB_OBJ(OP_M(obj)->right));
+} /* op_matcher_destroy */
+
 static sdb_type_t attr_type = {
 	/* size = */ sizeof(attr_matcher_t),
 	/* init = */ attr_matcher_init,
@@ -449,6 +475,12 @@ static sdb_type_t host_type = {
 	/* size = */ sizeof(host_matcher_t),
 	/* init = */ host_matcher_init,
 	/* destroy = */ host_matcher_destroy,
+};
+
+static sdb_type_t op_type = {
+	/* size = */ sizeof(op_matcher_t),
+	/* init = */ op_matcher_init,
+	/* destroy = */ op_matcher_destroy,
 };
 
 /*
@@ -479,6 +511,20 @@ sdb_store_host_matcher(const char *host_name, const char *host_name_re,
 	return M(sdb_object_create("host-matcher", host_type,
 				host_name, host_name_re, service_matcher, attr_matcher));
 } /* sdb_store_host_matcher */
+
+sdb_store_matcher_t *
+sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
+{
+	return M(sdb_object_create("dis-matcher", op_type, MATCHER_OR,
+				left, right));
+} /* sdb_store_dis_matcher */
+
+sdb_store_matcher_t *
+sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
+{
+	return M(sdb_object_create("con-matcher", op_type, MATCHER_AND,
+				left, right));
+} /* sdb_store_con_matcher */
 
 int
 sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)

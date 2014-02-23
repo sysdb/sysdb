@@ -249,6 +249,72 @@ START_TEST(test_store_match)
 }
 END_TEST
 
+START_TEST(test_store_match_op)
+{
+	sdb_store_base_t *obj;
+
+	sdb_store_matcher_t *always = sdb_store_host_matcher(NULL, NULL, NULL, NULL);
+	sdb_store_matcher_t *never = sdb_store_host_matcher("a", "b", NULL, NULL);
+
+	struct {
+		const char *op;
+		sdb_store_matcher_t *left;
+		sdb_store_matcher_t *right;
+		int expected;
+	} golden_data[] = {
+		{ "OR",  always, always,  0 },
+		{ "OR",  always, never,   0 },
+		{ "OR",  never,  always,  0 },
+		{ "OR",  never,  never,  -1 },
+		{ "AND", always, always,  0 },
+		{ "AND", always, never,  -1 },
+		{ "AND", never,  always, -1 },
+		{ "AND", never,  never,  -1 },
+	};
+
+	int status;
+	size_t i;
+
+	obj = sdb_store_get_host("a");
+
+	status = sdb_store_matcher_matches(always, obj);
+	fail_unless(status == 0,
+			"INTERNAL ERROR: 'always' did not match host");
+	status = sdb_store_matcher_matches(never, obj);
+	fail_unless(status < 0,
+			"INTERNAL ERROR: 'never' matches host");
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_matcher_t *m;
+
+		if (! strcmp(golden_data[i].op, "OR"))
+			m = sdb_store_dis_matcher(golden_data[i].left,
+					golden_data[i].right);
+		else if (! strcmp(golden_data[i].op, "AND"))
+			m = sdb_store_con_matcher(golden_data[i].left,
+					golden_data[i].right);
+		else
+			fail("INTERNAL ERROR: unexpected operator %s", golden_data[i].op);
+
+#define TO_NAME(v) (((v) == always) ? "always" \
+		: ((v) == never) ? "never" : "<unknown>")
+
+		status = sdb_store_matcher_matches(m, obj);
+		fail_unless(status == golden_data[i].expected,
+				"%s(%s, %s) = %d; expected: %d", golden_data[i].op,
+				TO_NAME(golden_data[i].left), TO_NAME(golden_data[i].right),
+				status, golden_data[i].expected);
+
+#undef TO_NAME
+
+		sdb_object_deref(SDB_OBJ(m));
+	}
+
+	sdb_object_deref(SDB_OBJ(always));
+	sdb_object_deref(SDB_OBJ(never));
+}
+END_TEST
+
 Suite *
 core_store_lookup_suite(void)
 {
@@ -258,6 +324,7 @@ core_store_lookup_suite(void)
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match);
+	tcase_add_test(tc, test_store_match_op);
 	suite_add_tcase(s, tc);
 
 	return s;
