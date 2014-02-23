@@ -27,6 +27,10 @@
 
 %{
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"

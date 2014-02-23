@@ -32,6 +32,10 @@
  * find queries (terminated by semicolon).
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include "tools/sysdb/input.h"
 
 #include <string.h>

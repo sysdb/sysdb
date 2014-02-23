@@ -28,8 +28,6 @@
 #ifndef T_LIBSYSDB_H
 #define T_LIBSYSDB_H 1
 
-#include "config.h"
-
 #include "sysdb.h"
 #include "core/object.h"
 

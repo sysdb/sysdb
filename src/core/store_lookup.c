@@ -31,6 +31,10 @@
  * simple full table scan is supported only.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include "sysdb.h"
 #include "core/store-private.h"
 #include "core/object.h"
