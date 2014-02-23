@@ -38,8 +38,7 @@ if test -d "$srcdir"/.git/; then
 	cp -a "$srcdir"/.git .
 
 	# reset all files which are not part of the tarball
-	# (e.g. .gitignore, .travis.yml which would else cause a "dirty" version)
-	git reset --hard
+	git checkout HEAD .gitignore .travis.yml
 fi
 
 ./configure --enable-gcov --disable-shared CFLAGS="-O0 -g"
