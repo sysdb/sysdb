@@ -79,6 +79,8 @@ test_cc_flags() {
 	return $ret
 }
 
+STRICT_CFLAGS=""
+
 m4_divert_once([HELP_ENABLE], [
 Build options:])
 
@@ -110,7 +112,7 @@ if test "x$enable_standards" = "xyes"; then
 		AC_MSG_CHECKING([whether $CC accepts $flag])
 
 		if test_cc_flags $flag; then
-			CFLAGS="$CFLAGS $flag"
+			STRICT_CFLAGS="$STRICT_CFLAGS $flag"
 			AC_MSG_RESULT([yes])
 		else
 			AC_MSG_RESULT([no])
@@ -135,7 +137,7 @@ if test "x$enable_hardening" = "xyes"; then
 		AC_MSG_CHECKING([whether $CC accepts $flag])
 
 		if test_cc_flags $flag; then
-			CFLAGS="$CFLAGS $flag"
+			STRICT_CFLAGS="$STRICT_CFLAGS $flag"
 			hardening=$(($hardening + 1))
 			AC_MSG_RESULT([yes])
 		else
@@ -155,7 +157,6 @@ AC_ARG_ENABLE([strict-checks],
 		[enable_strict_checks="$enableval"],
 		[enable_strict_checks="yes"])
 
-STRICT_CFLAGS=""
 for flag in -Wall -Werror; do
 	AC_MSG_CHECKING([whether $CC accepts $flag])
 
