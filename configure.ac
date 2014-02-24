@@ -168,11 +168,13 @@ for flag in -Wall -Werror; do
 done
 
 if test "x$enable_strict_checks" = "xyes"; then
+	dnl -Wsign-conversion may cause problems in expanded macros from libc
 	for flag in -Wextra \
 			-Wbad-function-cast \
 			-Wcast-align \
 			-Wcast-qual \
 			-Wconversion \
+			-Wno-sign-conversion \
 			-Wdeclaration-after-statement \
 			-Wmissing-prototypes \
 			-Wpointer-arith \
