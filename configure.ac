@@ -108,7 +108,7 @@ if test "x$enable_standards" = "xyes"; then
 	dnl strict standards compliance a bit to work around this.
 	AC_DEFINE([_BSD_SOURCE], 1, [Define to enable 4.3BSD support.])
 
-	for flag in -std=c99 -pedantic; do
+	for flag in -std=c99; do
 		AC_MSG_CHECKING([whether $CC accepts $flag])
 
 		if test_cc_flags $flag; then
