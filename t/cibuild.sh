@@ -7,7 +7,7 @@
 set -ex
 
 ./autogen.sh
-./configure --enable-gcov $CIOPTIONS \
+./configure --enable-standards --enable-gcov $CIOPTIONS \
 	CFLAGS="-O0 $CICFLAGS" \
 	LDFLAGS="$CILDFLAGS"
 make clean all
