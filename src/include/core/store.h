@@ -139,6 +139,7 @@ sdb_store_service(const char *hostname, const char *name,
  */
 struct sdb_store_matcher;
 typedef struct sdb_store_matcher sdb_store_matcher_t;
+#define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
 
 /*
  * sdb_store_attr_matcher:

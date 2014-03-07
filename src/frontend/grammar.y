@@ -27,9 +27,11 @@
 
 %{
 
-#include "frontend/connection.h"
+#include "frontend/connection-private.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
+
+#include "core/store.h"
 
 #include "utils/error.h"
 #include "utils/llist.h"
@@ -48,6 +50,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 /* quick access to the current parse tree */
 #define pt sdb_fe_yyget_extra(scanner)->parsetree
 
+/* quick access to the parser mode */
+#define parser_mode sdb_fe_yyget_extra(scanner)->mode
+
 %}
 
 %pure-parser
@@ -59,6 +64,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %name-prefix="sdb_fe_yy"
 
 %union {
+	char *str;
+
 	sdb_llist_t     *list;
 	sdb_conn_node_t *node;
 }
@@ -67,12 +74,13 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token IDENTIFIER
+%token <str> IDENTIFIER
 %token <node> LIST
 
 %type <list> statements
 %type <node> statement
 	list_statement
+	expression
 
 %%
 
@@ -87,6 +95,22 @@ statements:
 	|
 	statement
 		{
+			if ($1) {
+				sdb_llist_append(pt, SDB_OBJ($1));
+				sdb_object_deref(SDB_OBJ($1));
+			}
+		}
+	|
+	expression
+		{
+			/* only accept this in expression parse mode */
+			if (! (parser_mode & SDB_PARSE_EXPR)) {
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, unexpected expression, "
+							"expecting statement"));
+				YYABORT;
+			}
+
 			if ($1) {
 				sdb_llist_append(pt, SDB_OBJ($1));
 				sdb_object_deref(SDB_OBJ($1));
@@ -108,7 +132,22 @@ list_statement:
 		{
 			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
 						sdb_conn_node_t));
-			((sdb_conn_node_t *)$$)->cmd = CONNECTION_LIST;
+			$$->cmd = CONNECTION_LIST;
+		}
+	;
+
+expression:
+	IDENTIFIER
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
+						conn_node_matcher_t));
+			$$->cmd = CONNECTION_EXPR;
+			/* XXX: this is just a placeholder for now */
+			CONN_MATCHER($$)->matcher = sdb_store_host_matcher($1,
+					/* name_re = */ NULL, /* service = */ NULL,
+					/* attr = */ NULL);
+			free($1);
+			$1 = NULL;
 		}
 	;
 

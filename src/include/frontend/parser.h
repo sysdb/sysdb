@@ -28,16 +28,26 @@
 #ifndef SDB_FRONTEND_PARSER_H
 #define SDB_FRONTEND_PARSER_H 1
 
+#include "core/store.h"
 #include "utils/llist.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* parser modes */
+enum {
+	SDB_PARSE_DEFAULT = 0,
+	SDB_PARSE_EXPR,
+};
+
 /* YY_EXTRA data */
 typedef struct {
 	/* list of sdb_conn_node_t objects */
 	sdb_llist_t *parsetree;
+
+	/* parser mode */
+	int mode;
 } sdb_fe_yyextra_t;
 
 /* see yyscan_t */
@@ -51,6 +61,9 @@ sdb_fe_scanner_destroy(sdb_fe_yyscan_t scanner);
 
 int
 sdb_fe_yyparse(sdb_fe_yyscan_t scanner);
+
+sdb_store_matcher_t *
+sdb_fe_parse_matcher(const char *expr, int len);
 
 #ifdef __cplusplus
 } /* extern "C" */

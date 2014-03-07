@@ -50,6 +50,9 @@ typedef enum {
 	/* querying */
 	CONNECTION_QUERY,
 	CONNECTION_LIST,
+
+	/* command elements */
+	CONNECTION_EXPR,
 } sdb_conn_state_t;
 
 #ifdef __cplusplus

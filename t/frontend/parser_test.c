@@ -26,6 +26,8 @@
  */
 
 #include "frontend/connection.h"
+#include "frontend/parser.h"
+#include "core/object.h"
 #include "libsysdb_test.h"
 
 #include <check.h>
@@ -49,6 +51,7 @@ START_TEST(test_parse)
 
 		/* valid commands */
 		{ "LIST",               -1,  1 },
+		{ "LIST -- comment",    -1,  1 },
 		{ "LIST;",              -1,  1 },
 		{ "LIST; INVALID",       5,  1 },
 
@@ -95,6 +98,48 @@ START_TEST(test_parse)
 }
 END_TEST
 
+START_TEST(test_parse_matcher)
+{
+	struct {
+		const char *expr;
+		int len;
+		int expected;
+	} golden_data[] = {
+		/* empty expressions */
+		{ NULL,                 -1, -1 },
+		{ "",                   -1, -1 },
+
+		/* valid expressions */
+		{ "localhost",          -1,  0 },
+		{ "localhost -- foo",   -1,  0 },
+		{ "localhost <garbage>", 9,  0 },
+
+		/* syntax errors */
+		{ "LIST",               -1, -1 },
+		{ "foo &^ bar",         -1, -1 },
+	};
+
+	size_t i;
+	sdb_store_matcher_t *m;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		_Bool ok;
+
+		m = sdb_fe_parse_matcher(golden_data[i].expr, golden_data[i].len);
+		if (golden_data[i].expected < 0)
+			ok = m == NULL;
+		else
+			ok = m != NULL;
+
+		fail_unless(ok, "sdb_fe_parse_matcher(%s) = %p; expected: %s",
+				golden_data[i].expr, m, (golden_data[i].expected < 0)
+				? "NULL" : "<matcher>");
+
+		sdb_object_deref(SDB_OBJ(m));
+	}
+}
+END_TEST
+
 Suite *
 fe_parser_suite(void)
 {
@@ -103,6 +148,7 @@ fe_parser_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_parse);
+	tcase_add_test(tc, test_parse_matcher);
 	suite_add_tcase(s, tc);
 
 	return s;

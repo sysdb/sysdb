@@ -32,9 +32,11 @@
 #ifndef SDB_FRONTEND_CONNECTION_PRIVATE_H
 #define SDB_FRONTEND_CONNECTION_PRIVATE_H 1
 
-#include "core/object.h"
-#include "utils/strbuf.h"
 #include "frontend/connection.h"
+
+#include "core/object.h"
+#include "core/store.h"
+#include "utils/strbuf.h"
 
 #include <inttypes.h>
 #include <arpa/inet.h>
@@ -66,6 +68,16 @@ struct sdb_conn {
 	char *username; /* NULL if the user has not been authenticated */
 };
 #define CONN(obj) ((sdb_conn_t *)(obj))
+
+/*
+ * node types
+ */
+
+typedef struct {
+	sdb_conn_node_t super;
+	sdb_store_matcher_t *matcher;
+} conn_node_matcher_t;
+#define CONN_MATCHER(obj) ((conn_node_matcher_t *)(obj))
 
 #ifdef __cplusplus
 } /* extern "C" */

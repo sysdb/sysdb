@@ -31,9 +31,37 @@
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
 
+#include "core/store.h"
+
 #include "utils/llist.h"
 
 #include <string.h>
+
+/*
+ * private helper functions
+ */
+
+static int
+scanner_init(const char *input, int len,
+		sdb_fe_yyscan_t *scanner, sdb_fe_yyextra_t *extra)
+{
+	if (! input)
+		return -1;
+
+	memset(extra, 0, sizeof(*extra));
+	extra->parsetree = sdb_llist_create();
+	extra->mode = SDB_PARSE_DEFAULT;
+
+	if (! extra->parsetree)
+		return -1;
+
+	*scanner = sdb_fe_scanner_init(input, len, extra);
+	if (! scanner) {
+		sdb_llist_destroy(extra->parsetree);
+		return -1;
+	}
+	return 0;
+} /* scanner_init */
 
 /*
  * public API
@@ -46,17 +74,8 @@ sdb_fe_parse(const char *query, int len)
 	sdb_fe_yyextra_t yyextra;
 	int yyres;
 
-	if (! query)
+	if (scanner_init(query, len, &scanner, &yyextra))
 		return NULL;
-
-	memset(&yyextra, 0, sizeof(yyextra));
-	yyextra.parsetree = sdb_llist_create();
-
-	scanner = sdb_fe_scanner_init(query, len, &yyextra);
-	if (! scanner) {
-		sdb_llist_destroy(yyextra.parsetree);
-		return NULL;
-	}
 
 	yyres = sdb_fe_yyparse(scanner);
 	sdb_fe_scanner_destroy(scanner);
@@ -67,6 +86,43 @@ sdb_fe_parse(const char *query, int len)
 	}
 	return yyextra.parsetree;
 } /* sdb_fe_parse */
+
+sdb_store_matcher_t *
+sdb_fe_parse_matcher(const char *expr, int len)
+{
+	sdb_fe_yyscan_t scanner;
+	sdb_fe_yyextra_t yyextra;
+
+	sdb_conn_node_t *node;
+	sdb_store_matcher_t *m;
+
+	int yyres;
+
+	if (scanner_init(expr, len, &scanner, &yyextra))
+		return NULL;
+
+	yyextra.mode = SDB_PARSE_EXPR;
+
+	yyres = sdb_fe_yyparse(scanner);
+	sdb_fe_scanner_destroy(scanner);
+
+	if (yyres) {
+		sdb_llist_destroy(yyextra.parsetree);
+		return NULL;
+	}
+
+	node = SDB_CONN_NODE(sdb_llist_get(yyextra.parsetree, 0));
+	if (! node)
+		return NULL;
+
+	if (node->cmd == CONNECTION_EXPR)
+		m = CONN_MATCHER(node)->matcher;
+	else
+		m = NULL;
+
+	sdb_llist_destroy(yyextra.parsetree);
+	return m;
+} /* sdb_fe_parse_matcher */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
