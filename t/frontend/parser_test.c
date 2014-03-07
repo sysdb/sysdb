@@ -91,6 +91,7 @@ START_TEST(test_parse)
 					"sdb_fe_parse(LIST)->cmd = %i; expected: %d "
 					"(CONNECTION_LIST)", SDB_CONN_NODE(obj)->cmd,
 					CONNECTION_LIST);
+			sdb_object_deref(obj);
 		}
 
 		sdb_llist_destroy(check);

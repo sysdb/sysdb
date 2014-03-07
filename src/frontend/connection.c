@@ -301,8 +301,10 @@ command_handle(sdb_conn_t *conn)
 					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
 			}
 
-			if (node)
+			if (node) {
 				status = sdb_fe_exec(conn, node);
+				sdb_object_deref(SDB_OBJ(node));
+			}
 
 			sdb_llist_destroy(parsetree);
 			break;

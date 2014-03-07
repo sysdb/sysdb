@@ -321,6 +321,7 @@ sdb_llist_get(sdb_llist_t *list, size_t i)
 		/* iterate */;
 
 	assert(elem);
+	sdb_object_ref(elem->obj);
 	return elem->obj;
 } /* sdb_llist_get */
 

@@ -179,9 +179,10 @@ START_TEST(test_sdb_llist_get)
 		fail_unless(check == &golden_data[i],
 				"sdb_llist_get() = NULL; expected: %p",
 				&golden_data[i]);
-		fail_unless(check->ref_cnt == 2,
-				"sdb_llist_get() changed reference count; got: %i; "
-				"expected: 2", check->ref_cnt);
+		fail_unless(check->ref_cnt == 3,
+				"sdb_llist_get() didn't increment reference count; got: %i; "
+				"expected: 3", check->ref_cnt);
+		sdb_object_deref(check);
 	}
 }
 END_TEST

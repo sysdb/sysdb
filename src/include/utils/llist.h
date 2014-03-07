@@ -121,7 +121,9 @@ sdb_llist_insert_sorted(sdb_llist_t *list,
 
 /*
  * sdb_llist_get:
- * Returns the i-th element of the list or NULL in case of an error.
+ * Returns the i-th element of the list or NULL in case of an error. The
+ * reference count of the element is incremented before returning it to share
+ * ownership between the list and the caller.
  */
 sdb_object_t *
 sdb_llist_get(sdb_llist_t *list, size_t i);
