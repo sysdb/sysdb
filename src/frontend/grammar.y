@@ -87,6 +87,14 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 statements:
 	statements ';' statement
 		{
+			/* only accept this in default parse mode */
+			if (parser_mode != SDB_PARSE_DEFAULT) {
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, unexpected statement, "
+							"expecting expression"));
+				YYABORT;
+			}
+
 			if ($3) {
 				sdb_llist_append(pt, SDB_OBJ($3));
 				sdb_object_deref(SDB_OBJ($3));
@@ -95,6 +103,14 @@ statements:
 	|
 	statement
 		{
+			/* only accept this in default parse mode */
+			if (parser_mode != SDB_PARSE_DEFAULT) {
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, unexpected statement, "
+							"expecting expression"));
+				YYABORT;
+			}
+
 			if ($1) {
 				sdb_llist_append(pt, SDB_OBJ($1));
 				sdb_object_deref(SDB_OBJ($1));
