@@ -148,16 +148,6 @@ statement:
 	;
 
 fetch_statement:
-	FETCH IDENTIFIER
-		{
-			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
-						conn_fetch_t, conn_fetch_destroy));
-			CONN_FETCH($$)->name = strdup($2);
-			$$->cmd = CONNECTION_FETCH;
-			free($2);
-			$2 = NULL;
-		}
-	|
 	FETCH STRING
 		{
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
@@ -179,7 +169,7 @@ list_statement:
 	;
 
 expression:
-	IDENTIFIER
+	STRING
 		{
 			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
 						conn_node_matcher_t));

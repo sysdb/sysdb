@@ -51,7 +51,7 @@ START_TEST(test_parse)
 		{ ";;",                 -1,  0, 0 },
 
 		/* valid commands */
-		{ "FETCH host",         -1,  1, CONNECTION_FETCH },
+		{ "FETCH 'host'",       -1,  1, CONNECTION_FETCH },
 		{ "LIST",               -1,  1, CONNECTION_LIST  },
 		{ "LIST -- comment",    -1,  1, CONNECTION_LIST  },
 		{ "LIST;",              -1,  1, CONNECTION_LIST  },
@@ -63,7 +63,7 @@ START_TEST(test_parse)
 
 		/* syntax errors */
 		{ "INVALID",            -1, -1, 0 },
-		{ "FETCH $%&#",         -1, -1, 0 },
+		{ "FETCH host",         -1, -1, 0 },
 		{ "LIST; INVALID",       8, -1, 0 },
 		{ "/* some incomplete", -1, -1, 0 },
 	};
@@ -117,9 +117,9 @@ START_TEST(test_parse_matcher)
 		{ "",                   -1, -1 },
 
 		/* valid expressions */
-		{ "localhost",          -1,  0 },
-		{ "localhost -- foo",   -1,  0 },
-		{ "localhost <garbage>", 9,  0 },
+		{ "'localhost'",        -1,  0 },
+		{ "'localhost' -- foo", -1,  0 },
+		{ "'host' <garbage>",    6,  0 },
 
 		/* syntax errors */
 		{ "LIST",               -1, -1 },
