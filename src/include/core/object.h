@@ -110,6 +110,13 @@ sdb_object_create_simple(const char *name, size_t size,
 	sdb_object_create_simple((n), sizeof(t), NULL)
 
 /*
+ * sdb_object_create_dT:
+ * Create a simple object of dynamic type 't' using destructor 'd'.
+ */
+#define sdb_object_create_dT(n,t,d) \
+	sdb_object_create_simple((n), sizeof(t), d)
+
+/*
  * sdb_object_create_wrapper:
  * Create a new sdb_object_t wrapping some arbitrary other object.
  *
