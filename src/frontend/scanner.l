@@ -74,6 +74,8 @@ csc_inside	([^*/]+|[^*]\/|\*[^/])
 csc_end		\*\/
 
 identifier	([A-Za-z_][A-Za-z_0-9$]*)
+/* TODO: fully support SQL strings */
+string		('[^']*')
 
 %%
 
@@ -97,6 +99,11 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 
 		yylval->str = strdup(yytext);
 		return IDENTIFIER;
+	}
+{string} {
+		yytext[yyleng - 1] = '\0';
+		yylval->str = strdup(yytext + 1);
+		return STRING;
 	}
 
 .	{ /* do nothing for now */ }
