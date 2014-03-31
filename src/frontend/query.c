@@ -45,6 +45,8 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 		return -1;
 
 	switch (node->cmd) {
+		case CONNECTION_FETCH:
+			return sdb_fe_fetch(conn, CONN_FETCH(node)->name);
 		case CONNECTION_LIST:
 			return sdb_fe_list(conn);
 
@@ -54,6 +56,50 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 	}
 	return -1;
 } /* sdb_fe_exec */
+
+int
+sdb_fe_fetch(sdb_conn_t *conn, const char *name)
+{
+	sdb_strbuf_t *buf;
+	sdb_store_base_t *host;
+
+	host = sdb_store_get_host(name);
+	if (! host) {
+		sdb_log(SDB_LOG_DEBUG, "frontend: Failed to fetch host '%s': "
+				"not found", name);
+
+		sdb_strbuf_sprintf(conn->errbuf, "Host %s not found", name);
+		return -1;
+	}
+
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"buffer to handle FETCH command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		sdb_object_deref(SDB_OBJ(host));
+		return -1;
+	}
+
+	if (sdb_store_host_tojson(host, buf, /* flags = */ 0)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+				"host '%s' to JSON", name);
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		sdb_object_deref(SDB_OBJ(host));
+		return -1;
+	}
+
+	sdb_connection_send(conn, CONNECTION_OK,
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	sdb_object_deref(SDB_OBJ(host));
+	return 0;
+} /* sdb_fe_fetch */
 
 int
 sdb_fe_list(sdb_conn_t *conn)

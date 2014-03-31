@@ -41,6 +41,8 @@
 #include <inttypes.h>
 #include <arpa/inet.h>
 
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -75,9 +77,25 @@ struct sdb_conn {
 
 typedef struct {
 	sdb_conn_node_t super;
+	char *name;
+} conn_fetch_t;
+#define CONN_FETCH(obj) ((conn_fetch_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
 	sdb_store_matcher_t *matcher;
 } conn_node_matcher_t;
 #define CONN_MATCHER(obj) ((conn_node_matcher_t *)(obj))
+
+/*
+ * type helper functions
+ */
+static void __attribute__((unused))
+conn_fetch_destroy(sdb_object_t *obj)
+{
+	if (CONN_FETCH(obj)->name)
+		free(CONN_FETCH(obj)->name);
+} /* conn_fetch_destroy */
 
 #ifdef __cplusplus
 } /* extern "C" */

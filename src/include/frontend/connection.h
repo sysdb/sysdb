@@ -165,6 +165,17 @@ sdb_fe_session_start(sdb_conn_t *conn);
  */
 
 /*
+ * sdb_fe_fetch:
+ * Send the named host, serialized as JSON, to the client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_fe_fetch(sdb_conn_t *conn, const char *name);
+
+/*
  * sdb_fe_list:
  * Send a complete listing of the store, serialized as JSON, to the client.
  *

@@ -92,6 +92,8 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 		/* XXX */
 		if (! strcasecmp(yytext, "LIST"))
 			return LIST;
+		else if (! strcasecmp(yytext, "FETCH"))
+			return FETCH;
 
 		yylval->str = strdup(yytext);
 		return IDENTIFIER;

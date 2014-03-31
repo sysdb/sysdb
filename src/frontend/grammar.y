@@ -37,6 +37,7 @@
 #include "utils/llist.h"
 
 #include <stdio.h>
+#include <string.h>
 
 int
 sdb_fe_yylex(YYSTYPE *yylval, YYLTYPE *yylloc, sdb_fe_yyscan_t yyscanner);
@@ -75,10 +76,11 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token SCANNER_ERROR
 
 %token <str> IDENTIFIER
-%token <node> LIST
+%token <node> FETCH LIST
 
 %type <list> statements
 %type <node> statement
+	fetch_statement
 	list_statement
 	expression
 
@@ -135,11 +137,23 @@ statements:
 	;
 
 statement:
+	fetch_statement
+	|
 	list_statement
 	|
 	/* empty */
 		{
 			$$ = NULL;
+		}
+	;
+
+fetch_statement:
+	FETCH IDENTIFIER
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_fetch_t, conn_fetch_destroy));
+			CONN_FETCH($$)->name = strdup($2);
+			$$->cmd = CONNECTION_FETCH;
 		}
 	;
 
