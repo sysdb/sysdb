@@ -310,6 +310,9 @@ command_handle(sdb_conn_t *conn)
 			break;
 		}
 
+		case CONNECTION_FETCH:
+			status = sdb_fe_fetch(conn, sdb_strbuf_string(conn->buf));
+			break;
 		case CONNECTION_LIST:
 			status = sdb_fe_list(conn);
 			break;
