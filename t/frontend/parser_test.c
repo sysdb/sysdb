@@ -42,7 +42,7 @@ START_TEST(test_parse)
 		const char *query;
 		int len;
 		int expected;
-		int expected_cmd;
+		sdb_conn_state_t expected_cmd;
 	} golden_data[] = {
 		/* empty commands */
 		{ NULL,                 -1, -1, 0 },
