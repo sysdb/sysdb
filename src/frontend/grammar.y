@@ -154,6 +154,8 @@ fetch_statement:
 						conn_fetch_t, conn_fetch_destroy));
 			CONN_FETCH($$)->name = strdup($2);
 			$$->cmd = CONNECTION_FETCH;
+			free($2);
+			$2 = NULL;
 		}
 	;
 
