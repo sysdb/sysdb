@@ -125,9 +125,10 @@ sdb_object_create(const char *name, sdb_type_t type, ...)
 } /* sdb_object_create */
 
 sdb_object_t *
-sdb_object_create_simple(const char *name, size_t size)
+sdb_object_create_simple(const char *name, size_t size,
+		void (*destructor)(sdb_object_t *))
 {
-	sdb_type_t t = { size, NULL, NULL };
+	sdb_type_t t = { size, NULL, destructor };
 	return sdb_object_create(name, t);
 } /* sdb_object_create_simple */
 

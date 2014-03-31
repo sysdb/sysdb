@@ -159,7 +159,7 @@ START_TEST(test_obj_create)
 	sdb_object_deref(obj);
 
 	init_noop_called = 0;
-	obj = sdb_object_create_simple(name, sizeof(struct noop));
+	obj = sdb_object_create_simple(name, sizeof(struct noop), NULL);
 	fail_unless(obj != NULL,
 			"sdb_object_create_simple() = NULL; expected: <obj>");
 	fail_unless(obj->type.size == sizeof(struct noop),

@@ -95,17 +95,19 @@ sdb_object_vcreate(const char *name, sdb_type_t type, va_list ap);
 
 /*
  * sdb_object_create_simple:
- * Create a "simple" object without custom initialization and destructor.
- * See the description of sdb_object_create for more details.
+ * Create a "simple" object without custom initialization and optional
+ * destructor. See the description of sdb_object_create for more details.
  */
 sdb_object_t *
-sdb_object_create_simple(const char *name, size_t size);
+sdb_object_create_simple(const char *name, size_t size,
+		void (*destructor)(sdb_object_t *));
 
 /*
  * sdb_object_create_T:
  * Create a simple object of type 't'.
  */
-#define sdb_object_create_T(n,t) sdb_object_create_simple((n), sizeof(t))
+#define sdb_object_create_T(n,t) \
+	sdb_object_create_simple((n), sizeof(t), NULL)
 
 /*
  * sdb_object_create_wrapper:
