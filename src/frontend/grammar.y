@@ -147,6 +147,11 @@ statement:
 		}
 	;
 
+/*
+ * FETCH <hostname>;
+ *
+ * Retrieve detailed information about a single host.
+ */
 fetch_statement:
 	FETCH STRING
 		{
@@ -159,6 +164,11 @@ fetch_statement:
 		}
 	;
 
+/*
+ * LIST;
+ *
+ * Returns a list of all hosts in the store.
+ */
 list_statement:
 	LIST
 		{
