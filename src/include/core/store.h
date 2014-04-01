@@ -195,6 +195,26 @@ int
 sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj);
 
 /*
+ * sdb_store_lookup_cb:
+ * Lookup callback. It is called for each matching object when looking up data
+ * in the store. The lookup aborts if the callback returns non-zero.
+ */
+typedef int (*sdb_store_lookup_cb)(sdb_store_base_t *obj, void *user_data);
+
+/*
+ * sdb_store_lookup:
+ * Look up objects in the store. The specified callback function is called for
+ * each object in the store matching 'm'.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_lookup(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
+		void *user_data);
+
+/*
  * Flags for serialization functions.
  *
  * By default, the full object will be included in the serialized output. When

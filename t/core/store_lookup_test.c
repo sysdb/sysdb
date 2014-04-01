@@ -317,6 +317,35 @@ START_TEST(test_store_match_op)
 }
 END_TEST
 
+static int
+lookup_cb(sdb_store_base_t *obj, void *user_data)
+{
+	intptr_t *i = user_data;
+
+	fail_unless(obj != NULL,
+			"sdb_store_lookup callback received NULL obj; expected: "
+			"<store base obj>");
+	fail_unless(i != NULL,
+			"sdb_store_lookup callback received NULL user_data; "
+			"expected: <pointer to data>");
+
+	++(*i);
+	return 0;
+} /* lookup_cb */
+
+START_TEST(test_lookup)
+{
+	intptr_t i = 0;
+	int check;
+
+	check = sdb_store_lookup(NULL, lookup_cb, &i);
+	fail_unless(check == 0,
+			"sdb_store_lookup() = %d; expected: 0", check);
+	fail_unless(i == 3,
+			"sdb_store_lookup called callback %d times; expected: 3", (int)i);
+}
+END_TEST
+
 Suite *
 core_store_lookup_suite(void)
 {
@@ -327,6 +356,7 @@ core_store_lookup_suite(void)
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match);
 	tcase_add_test(tc, test_store_match_op);
+	tcase_add_test(tc, test_lookup);
 	suite_add_tcase(s, tc);
 
 	return s;

@@ -111,6 +111,26 @@ typedef struct {
 } host_matcher_t;
 #define HOST_M(m) ((host_matcher_t *)(m))
 
+typedef struct {
+	sdb_store_matcher_t *m;
+	sdb_store_lookup_cb  cb;
+	void *user_data;
+} lookup_iter_data_t;
+
+/*
+ * private helper functions
+ */
+
+static int
+lookup_iter(sdb_store_base_t *obj, void *user_data)
+{
+	lookup_iter_data_t *d = user_data;
+
+	if (! sdb_store_matcher_matches(d->m, obj))
+		return d->cb(obj, d->user_data);
+	return 0;
+} /* lookup_iter */
+
 /*
  * matcher implementations
  */
@@ -542,6 +562,17 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 
 	return matchers[m->type](m, obj);
 } /* sdb_store_matcher_matches */
+
+int
+sdb_store_lookup(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
+		void *user_data)
+{
+	lookup_iter_data_t data = { m, cb, user_data };
+
+	if (! cb)
+		return -1;
+	return sdb_store_iterate(lookup_iter, &data);
+} /* sdb_store_lookup */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
