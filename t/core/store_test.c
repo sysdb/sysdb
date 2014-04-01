@@ -31,6 +31,26 @@
 #include <check.h>
 #include <string.h>
 
+static void
+populate(void)
+{
+	sdb_data_t datum;
+
+	sdb_store_host("h1", 1);
+	sdb_store_host("h2", 1);
+
+	datum.type = SDB_TYPE_STRING;
+	datum.data.string = "v1";
+	sdb_store_attribute("h1", "k1", &datum, 1);
+	datum.data.string = "v2";
+	sdb_store_attribute("h1", "k2", &datum, 1);
+	datum.data.string = "v3";
+	sdb_store_attribute("h1", "k3", &datum, 1);
+
+	sdb_store_service("h2", "s1", 1);
+	sdb_store_service("h2", "s2", 1);
+} /* populate */
+
 START_TEST(test_store_host)
 {
 	struct {
@@ -249,7 +269,6 @@ verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
 START_TEST(test_store_tojson)
 {
 	sdb_strbuf_t *buf;
-	sdb_data_t datum;
 	size_t i;
 
 	struct {
@@ -299,21 +318,9 @@ START_TEST(test_store_tojson)
 			"]}" },
 	};
 
-	sdb_store_host("h1", 1);
-	sdb_store_host("h2", 1);
-
-	datum.type = SDB_TYPE_STRING;
-	datum.data.string = "v1";
-	sdb_store_attribute("h1", "k1", &datum, 1);
-	datum.data.string = "v2";
-	sdb_store_attribute("h1", "k2", &datum, 1);
-	datum.data.string = "v3";
-	sdb_store_attribute("h1", "k3", &datum, 1);
-
-	sdb_store_service("h2", "s1", 1);
-	sdb_store_service("h2", "s2", 1);
-
 	buf = sdb_strbuf_create(0);
+	fail_unless(buf != NULL, "INTERNAL ERROR: failed to create string buffer");
+	populate();
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
@@ -331,6 +338,68 @@ START_TEST(test_store_tojson)
 }
 END_TEST
 
+static int
+iter_incr(sdb_store_base_t *obj, void *user_data)
+{
+	intptr_t *i = user_data;
+
+	fail_unless(obj != NULL,
+			"sdb_store_iterate callback received NULL obj; expected: "
+			"<store base obj>");
+	fail_unless(i != NULL,
+			"sdb_store_iterate callback received NULL user_data; "
+			"expected: <pointer to data>");
+
+	++(*i);
+	return 0;
+} /* iter_incr */
+
+static int
+iter_error(sdb_store_base_t *obj, void *user_data)
+{
+	intptr_t *i = user_data;
+
+	fail_unless(obj != NULL,
+			"sdb_store_iterate callback received NULL obj; expected: "
+			"<store base obj>");
+	fail_unless(i != NULL,
+			"sdb_store_iterate callback received NULL user_data; "
+			"expected: <pointer to data>");
+
+	++(*i);
+	return -1;
+} /* iter_error */
+
+START_TEST(test_iterate)
+{
+	intptr_t i = 0;
+	int check;
+
+	/* empty store */
+	check = sdb_store_iterate(iter_incr, &i);
+	fail_unless(check == -1,
+			"sdb_store_iterate(), empty store = %d; expected: -1", check);
+	fail_unless(i == 0,
+			"sdb_store_iterate called callback %d times; expected: 0", (int)i);
+
+	populate();
+
+	check = sdb_store_iterate(iter_incr, &i);
+	fail_unless(check == 0,
+			"sdb_store_iterate() = %d; expected: 0", check);
+	fail_unless(i == 2,
+			"sdb_store_iterate called callback %d times; expected: 1", (int)i);
+
+	i = 0;
+	check = sdb_store_iterate(iter_error, &i);
+	fail_unless(check == -1,
+			"sdb_store_iterate(), error callback = %d; expected: -1", check);
+	fail_unless(i == 1,
+			"sdb_store_iterate called callback %d times "
+			"(callback returned error); expected: 1", (int)i);
+}
+END_TEST
+
 Suite *
 core_store_suite(void)
 {
@@ -343,6 +412,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
+	tcase_add_test(tc, test_iterate);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
 	suite_add_tcase(s, tc);
 

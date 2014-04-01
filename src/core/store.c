@@ -525,7 +525,6 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 	return 0;
 } /* sdb_store_host_tojson */
 
-/* TODO: actually support hierarchical data */
 int
 sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 {
@@ -561,6 +560,35 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 	pthread_rwlock_unlock(&obj_lock);
 	return 0;
 } /* sdb_store_tojson */
+
+/* TODO: actually support hierarchical data */
+int
+sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
+{
+	sdb_llist_iter_t *host_iter;
+	int status = 0;
+
+	pthread_rwlock_rdlock(&obj_lock);
+
+	host_iter = sdb_llist_get_iter(obj_list);
+	if (! host_iter)
+		status = -1;
+
+	/* has_next returns false if the iterator is NULL */
+	while (sdb_llist_iter_has_next(host_iter)) {
+		sdb_store_base_t *host = STORE_BASE(sdb_llist_iter_get_next(host_iter));
+		assert(host);
+
+		if (cb(host, user_data)) {
+			status = -1;
+			break;
+		}
+	}
+
+	sdb_llist_iter_destroy(host_iter);
+	pthread_rwlock_unlock(&obj_lock);
+	return status;
+} /* sdb_store_iterate */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
