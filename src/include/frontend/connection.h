@@ -29,6 +29,7 @@
 #define SDB_FRONTEND_CONNECTION_H 1
 
 #include "frontend/proto.h"
+#include "core/store.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
 
@@ -185,6 +186,17 @@ sdb_fe_fetch(sdb_conn_t *conn, const char *name);
  */
 int
 sdb_fe_list(sdb_conn_t *conn);
+
+/*
+ * sdb_fe_lookup:
+ * Send a list of hosts matching 'm', serialized as JSON, to the client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m);
 
 #ifdef __cplusplus
 } /* extern "C" */

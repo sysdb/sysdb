@@ -75,13 +75,16 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
+%token WHERE
+
 %token <str> IDENTIFIER STRING
-%token <node> FETCH LIST
+%token <node> FETCH LIST LOOKUP
 
 %type <list> statements
 %type <node> statement
 	fetch_statement
 	list_statement
+	lookup_statement
 	expression
 
 %%
@@ -141,6 +144,8 @@ statement:
 	|
 	list_statement
 	|
+	lookup_statement
+	|
 	/* empty */
 		{
 			$$ = NULL;
@@ -175,6 +180,32 @@ list_statement:
 			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
 						sdb_conn_node_t));
 			$$->cmd = CONNECTION_LIST;
+		}
+	;
+
+/*
+ * LOOKUP <type> WHERE <expression>;
+ *
+ * Returns detailed information about <type> matching expression.
+ */
+lookup_statement:
+	LOOKUP IDENTIFIER WHERE expression
+		{
+			/* TODO: support other types as well */
+			if (strcasecmp($2, "hosts")) {
+				char errmsg[strlen($2) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown table %s"), $2);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				YYABORT;
+			}
+
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_lookup_t, conn_lookup_destroy));
+			CONN_LOOKUP($$)->matcher = CONN_MATCHER($4);
+			$$->cmd = CONNECTION_LOOKUP;
+			free($2);
+			$2 = NULL;
 		}
 	;
 

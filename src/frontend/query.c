@@ -35,6 +35,19 @@
 #include <errno.h>
 
 /*
+ * private helper functions
+ */
+
+static int
+lookup_tojson(sdb_store_base_t *obj, void *user_data)
+{
+	sdb_strbuf_t *buf = user_data;
+	if (sdb_strbuf_len(buf) > 1)
+		sdb_strbuf_append(buf, ",");
+	return sdb_store_host_tojson(obj, buf, /* flags = */ 0);
+} /* lookup_tojson */
+
+/*
  * public API
  */
 
@@ -49,6 +62,8 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 			return sdb_fe_fetch(conn, CONN_FETCH(node)->name);
 		case CONNECTION_LIST:
 			return sdb_fe_list(conn);
+		case CONNECTION_LOOKUP:
+			return sdb_fe_lookup(conn, CONN_LOOKUP(node)->matcher->matcher);
 
 		default:
 			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);
@@ -131,6 +146,40 @@ sdb_fe_list(sdb_conn_t *conn)
 	sdb_strbuf_destroy(buf);
 	return 0;
 } /* sdb_fe_list */
+
+int
+sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m)
+{
+	sdb_strbuf_t *buf;
+
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"buffer to handle LOOKUP command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	sdb_strbuf_append(buf, "[");
+
+	if (sdb_store_lookup(m, lookup_tojson, buf)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
+		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	sdb_strbuf_append(buf, "]");
+
+	sdb_connection_send(conn, CONNECTION_OK,
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	return 0;
+} /* sdb_fe_lookup */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -52,6 +52,7 @@ typedef enum {
 	/* query commands */
 	CONNECTION_FETCH,
 	CONNECTION_LIST,
+	CONNECTION_LOOKUP,
 
 	/* command elements */
 	CONNECTION_EXPR,

@@ -87,6 +87,12 @@ typedef struct {
 } conn_node_matcher_t;
 #define CONN_MATCHER(obj) ((conn_node_matcher_t *)(obj))
 
+typedef struct {
+	sdb_conn_node_t super;
+	conn_node_matcher_t *matcher;
+} conn_lookup_t;
+#define CONN_LOOKUP(obj) ((conn_lookup_t *)(obj))
+
 /*
  * type helper functions
  */
@@ -95,6 +101,13 @@ conn_fetch_destroy(sdb_object_t *obj)
 {
 	if (CONN_FETCH(obj)->name)
 		free(CONN_FETCH(obj)->name);
+} /* conn_fetch_destroy */
+
+static void __attribute__((unused))
+conn_lookup_destroy(sdb_object_t *obj)
+{
+	if (CONN_LOOKUP(obj)->matcher)
+		sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
 } /* conn_fetch_destroy */
 
 #ifdef __cplusplus
