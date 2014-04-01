@@ -188,8 +188,8 @@ sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
  * Check whether the specified matcher matches the specified store object.
  *
  * Returns:
- *  - 0 if the object matches
- *  - a negative value else
+ *  - 1 if the object matches
+ *  - 0 else
  */
 int
 sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj);

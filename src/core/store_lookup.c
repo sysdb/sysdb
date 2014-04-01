@@ -126,7 +126,7 @@ lookup_iter(sdb_store_base_t *obj, void *user_data)
 {
 	lookup_iter_data_t *d = user_data;
 
-	if (! sdb_store_matcher_matches(d->m, obj))
+	if (sdb_store_matcher_matches(d->m, obj))
 		return d->cb(obj, d->user_data);
 	return 0;
 } /* lookup_iter */
@@ -148,17 +148,17 @@ match_name(name_matcher_t *m, const char *name)
 	assert(m);
 
 	if ((! m->name) && (! m->name_re))
-		return 0;
+		return 1;
 
 	if (! name)
 		name = "";
 
 	if (m->name && strcasecmp(m->name, name))
-		return -1;
+		return 0;
 	if (m->name_re && regexec(m->name_re, name,
 					/* matches */ 0, NULL, /* flags = */ 0))
-		return -1;
-	return 0;
+		return 0;
+	return 1;
 } /* match_name */
 
 /* match attribute specific values;
@@ -169,14 +169,14 @@ match_attr(attr_matcher_t *m, sdb_store_base_t *obj)
 	assert(m && obj);
 
 	if (obj->type != SDB_ATTRIBUTE)
-		return -1;
+		return 0;
 
 	{
 		sdb_attribute_t *attr = SDB_ATTR(obj);
 		char buf[sdb_data_strlen(&attr->value) + 1];
 
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
-			return -1;
+			return 0;
 		return match_name(&m->value, buf);
 	}
 } /* match_attr */
@@ -191,23 +191,23 @@ match_service(service_matcher_t *m, sdb_store_base_t *obj)
 	assert(m && obj);
 
 	if (obj->type != SDB_SERVICE)
-		return -1;
+		return 0;
 
 	if (! m->attr)
-		return 0;
+		return 1;
 
 	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_store_base_t *attr = STORE_BASE(sdb_llist_iter_get_next(iter));
 
 		/* if any of the attributes matches we found a matching service */
-		if (! match_obj(M(m->attr), attr)) {
+		if (match_obj(M(m->attr), attr)) {
 			sdb_llist_iter_destroy(iter);
-			return 0;
+			return 1;
 		}
 	}
 	sdb_llist_iter_destroy(iter);
-	return -1;
+	return 0;
 } /* match_service */
 
 /* match host specific values;
@@ -221,44 +221,44 @@ match_host(host_matcher_t *m, sdb_store_base_t *obj)
 	assert(m && obj);
 
 	if (obj->type != SDB_HOST)
-		return -1;
+		return 0;
 
 	if (m->service) {
 		iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->children);
-		status = -1;
+		status = 0;
 	}
 	else {
 		iter = NULL;
-		status = 0;
+		status = 1;
 	}
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_store_base_t *service = STORE_BASE(sdb_llist_iter_get_next(iter));
 
 		/* found a matching service */
-		if (! match_obj(M(m->service), service)) {
-			status = 0;
+		if (match_obj(M(m->service), service)) {
+			status = 1;
 			break;
 		}
 	}
 	sdb_llist_iter_destroy(iter);
 
-	if (status)
+	if (! status)
 		return status;
 	else if (! m->attr)
-		return 0;
+		return 1;
 
 	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_store_base_t *attr = STORE_BASE(sdb_llist_iter_get_next(iter));
 
 		/* if any attribute matches, we found a matching host */
-		if (! match_obj(M(m->attr), attr)) {
+		if (match_obj(M(m->attr), attr)) {
 			sdb_llist_iter_destroy(iter);
-			return 0;
+			return 1;
 		}
 	}
 	sdb_llist_iter_destroy(iter);
-	return -1;
+	return 0;
 } /* match_host */
 
 /* generic matchers */
@@ -292,9 +292,9 @@ match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 
 	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
 	/* lazy evaluation */
-	if (status && (m->type == MATCHER_AND))
+	if ((! status) && (m->type == MATCHER_AND))
 		return status;
-	else if ((! status) && (m->type == MATCHER_OR))
+	else if (status && (m->type == MATCHER_OR))
 		return status;
 
 	return sdb_store_matcher_matches(OP_M(m)->right, obj);
@@ -308,7 +308,7 @@ match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	assert(m && obj);
 
 	status = match_name(&OBJ_M(m)->name, obj->super.name);
-	if (status)
+	if (! status)
 		return status;
 
 	switch (m->type) {
@@ -322,7 +322,7 @@ match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 			return match_host(HOST_M(m), obj);
 			break;
 	}
-	return -1;
+	return 0;
 } /* match_obj */
 
 /*
@@ -555,10 +555,10 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
 	/* "NULL" always matches */
 	if ((! m) || (! obj))
-		return 0;
+		return 1;
 
 	if ((m->type < 0) || ((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers)))
-		return -1;
+		return 0;
 
 	return matchers[m->type](m, obj);
 } /* sdb_store_matcher_matches */

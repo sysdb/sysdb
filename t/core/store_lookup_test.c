@@ -101,107 +101,107 @@ START_TEST(test_store_match)
 		{
 			/* host */ NULL, NULL,
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", NULL,
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "b", NULL,
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ NULL, "^a$",
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ NULL, "^b$",
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^b$",
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "b", "^a$",
 			/* svc  */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ NULL, "^s1$",
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "x1", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ NULL, "x",
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "x1", "x",
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "x",
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "x1", "s",
-			/* attr */ NULL, NULL, NULL, NULL, -1
+			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ "k1", NULL, NULL, NULL, 0
+			/* attr */ "k1", NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ NULL, "^k", NULL, NULL, 0
+			/* attr */ NULL, "^k", NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ NULL, NULL, "v1", NULL, 0
+			/* attr */ NULL, NULL, "v1", NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ NULL, NULL, NULL, "^v1$", 0
+			/* attr */ NULL, NULL, NULL, "^v1$", 1
 		},
 		{
 			/* host */ "a", "^a$",
 			/* svc  */ "s1", "^s1$",
-			/* attr */ "k1", "1", "v1", "1", 0
+			/* attr */ "k1", "1", "v1", "1", 1
 		},
 	};
 
@@ -262,14 +262,14 @@ START_TEST(test_store_match_op)
 		sdb_store_matcher_t *right;
 		int expected;
 	} golden_data[] = {
-		{ "OR",  always, always,  0 },
-		{ "OR",  always, never,   0 },
-		{ "OR",  never,  always,  0 },
-		{ "OR",  never,  never,  -1 },
-		{ "AND", always, always,  0 },
-		{ "AND", always, never,  -1 },
-		{ "AND", never,  always, -1 },
-		{ "AND", never,  never,  -1 },
+		{ "OR",  always, always, 1 },
+		{ "OR",  always, never,  1 },
+		{ "OR",  never,  always, 1 },
+		{ "OR",  never,  never,  0 },
+		{ "AND", always, always, 1 },
+		{ "AND", always, never,  0 },
+		{ "AND", never,  always, 0 },
+		{ "AND", never,  never,  0 },
 	};
 
 	int status;
@@ -278,10 +278,10 @@ START_TEST(test_store_match_op)
 	obj = sdb_store_get_host("a");
 
 	status = sdb_store_matcher_matches(always, obj);
-	fail_unless(status == 0,
+	fail_unless(status == 1,
 			"INTERNAL ERROR: 'always' did not match host");
 	status = sdb_store_matcher_matches(never, obj);
-	fail_unless(status < 0,
+	fail_unless(status == 0,
 			"INTERNAL ERROR: 'never' matches host");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
