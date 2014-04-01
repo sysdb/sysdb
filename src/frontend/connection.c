@@ -29,6 +29,7 @@
 #include "core/object.h"
 #include "core/plugin.h"
 #include "frontend/connection-private.h"
+#include "frontend/parser.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
@@ -316,6 +317,23 @@ command_handle(sdb_conn_t *conn)
 		case CONNECTION_LIST:
 			status = sdb_fe_list(conn);
 			break;
+		case CONNECTION_LOOKUP:
+		{
+			sdb_store_matcher_t *m;
+
+			m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
+					(int)conn->cmd_len);
+			if (! m) {
+				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse expression '%s'",
+						sdb_strbuf_string(conn->buf));
+				status = -1;
+				break;
+			}
+
+			status = sdb_fe_lookup(conn, m);
+			sdb_object_deref(SDB_OBJ(m));
+			break;
+		}
 
 		default:
 		{
