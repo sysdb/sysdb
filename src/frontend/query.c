@@ -133,7 +133,7 @@ sdb_fe_list(sdb_conn_t *conn)
 		return -1;
 	}
 
-	if (sdb_store_tojson(buf, /* flags = */ 0)) {
+	if (sdb_store_tojson(buf, /* flags = */ SDB_SKIP_ALL)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");

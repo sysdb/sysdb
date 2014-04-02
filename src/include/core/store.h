@@ -224,6 +224,8 @@ enum {
 	SDB_SKIP_ATTRIBUTES         = 1 << 0,
 	SDB_SKIP_SERVICES           = 1 << 1,
 	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 2,
+
+	SDB_SKIP_ALL                = 0xffff,
 };
 
 /*
