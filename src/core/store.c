@@ -67,6 +67,7 @@ store_base_init(sdb_object_t *obj, va_list ap)
 	sobj->type = va_arg(ap, int);
 
 	sobj->last_update = va_arg(ap, sdb_time_t);
+	sobj->interval = 0;
 	sobj->parent = NULL;
 	return 0;
 } /* store_base_init */
@@ -292,7 +293,13 @@ store_obj(int parent_type, const char *parent_name,
 			status = 1;
 		}
 		else {
+			sdb_time_t interval = last_update - old->last_update;
 			old->last_update = last_update;
+			if (old->interval)
+				old->interval = (sdb_time_t)((0.9 * (double)old->interval)
+						+ (0.1 * interval));
+			else
+				old->interval = interval;
 		}
 
 		if (updated_obj)

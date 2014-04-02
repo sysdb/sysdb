@@ -46,6 +46,7 @@ struct sdb_store_base {
 
 	/* common meta information */
 	sdb_time_t last_update;
+	sdb_time_t interval; /* moving average */
 	sdb_store_base_t *parent;
 };
 #define STORE_BASE(obj) ((sdb_store_base_t *)(obj))
@@ -81,6 +82,7 @@ enum {
 /* shortcuts for accessing the sdb_store_obj_t attributes
  * of inheriting objects */
 #define _last_update super.last_update
+#define _interval super.interval
 
 #ifdef __cplusplus
 } /* extern "C" */
