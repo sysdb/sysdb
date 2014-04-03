@@ -353,6 +353,7 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 {
 	sdb_llist_iter_t *iter;
 	char time_str[64];
+	char interval_str[64];
 
 	assert((type == SDB_ATTRIBUTE) || (type == SDB_SERVICE));
 
@@ -378,16 +379,23 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 			snprintf(time_str, sizeof(time_str), "<error>");
 		time_str[sizeof(time_str) - 1] = '\0';
 
+		if (! sdb_strfinterval(interval_str, sizeof(interval_str),
+					sobj->interval))
+			snprintf(interval_str, sizeof(interval_str), "<error>");
+		interval_str[sizeof(interval_str) - 1] = '\0';
+
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
 		if (type == SDB_ATTRIBUTE) {
 			char tmp[sdb_data_strlen(&SDB_ATTR(sobj)->value) + 1];
 			sdb_data_format(&SDB_ATTR(sobj)->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED);
-			sdb_strbuf_append(buf, "\"value\": %s, \"last_update\": \"%s\"}",
-					tmp, time_str);
+			sdb_strbuf_append(buf, "\"value\": %s, \"last_update\": \"%s\", "
+					"\"update_interval\": \"%s\"}", tmp, time_str,
+					interval_str);
 		}
 		else
-			sdb_strbuf_append(buf, "\"last_update\": \"%s\"}", time_str);
+			sdb_strbuf_append(buf, "\"last_update\": \"%s\", "
+					"\"update_interval\": \"%s\"}", time_str, interval_str);
 
 		if (sdb_llist_iter_has_next(iter))
 			sdb_strbuf_append(buf, ",");
@@ -503,6 +511,7 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 {
 	sdb_store_obj_t *host;
 	char time_str[64];
+	char interval_str[64];
 
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
@@ -514,9 +523,14 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 		snprintf(time_str, sizeof(time_str), "<error>");
 	time_str[sizeof(time_str) - 1] = '\0';
 
+	if (! sdb_strfinterval(interval_str, sizeof(interval_str),
+				host->_interval))
+		snprintf(interval_str, sizeof(interval_str), "<error>");
+	interval_str[sizeof(interval_str) - 1] = '\0';
+
 	sdb_strbuf_append(buf, "{\"name\": \"%s\", "
-			"\"last_update\": \"%s\"",
-			SDB_OBJ(host)->name, time_str);
+			"\"last_update\": \"%s\", \"update_interval\": \"%s\"",
+			SDB_OBJ(host)->name, time_str, interval_str);
 
 	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
 		sdb_strbuf_append(buf, ", \"attributes\": ");
