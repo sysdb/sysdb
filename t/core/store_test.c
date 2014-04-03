@@ -26,6 +26,7 @@
  */
 
 #include "core/store.h"
+#include "core/store-private.h"
 #include "libsysdb_test.h"
 
 #include <check.h>
@@ -366,6 +367,40 @@ START_TEST(test_store_tojson)
 }
 END_TEST
 
+START_TEST(test_interval)
+{
+	sdb_store_base_t *host;
+
+	/* 10 us interval */
+	sdb_store_host("host", 10);
+	sdb_store_host("host", 20);
+	sdb_store_host("host", 30);
+	sdb_store_host("host", 40);
+
+	host = sdb_store_get_host("host");
+	fail_unless(host != NULL,
+			"INTERNAL ERROR: store doesn't have host after adding it");
+
+	fail_unless(host->interval == 10,
+			"sdb_store_host() did not calculate interval correctly: "
+			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 10);
+
+	/* new interval: 20 us */
+	sdb_store_host("host", 60);
+	fail_unless(host->interval == 11,
+			"sdb_store_host() did not calculate interval correctly: "
+			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 11);
+
+	/* new interval: 40 us */
+	sdb_store_host("host", 100);
+	fail_unless(host->interval == 13,
+			"sdb_store_host() did not calculate interval correctly: "
+			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 11);
+
+	sdb_object_deref(SDB_OBJ(host));
+}
+END_TEST
+
 static int
 iter_incr(sdb_store_base_t *obj, void *user_data)
 {
@@ -440,6 +475,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
+	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_iterate);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
 	suite_add_tcase(s, tc);
