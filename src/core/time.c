@@ -29,15 +29,27 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "sysdb.h"
 #include "core/time.h"
 
 #include <time.h>
 
+#include <stdio.h>
 #include <string.h>
 
 /*
  * public API
  */
+
+/* 1 second (in micro-seconds) */
+#define SEC 1000000000L
+
+const sdb_time_t SDB_INTERVAL_YEAR   = 3652425L   * 24L * 60L * 60L * 100000L;
+const sdb_time_t SDB_INTERVAL_MONTH  =  30436875L * 24L * 60L * 60L * 1000L;
+const sdb_time_t SDB_INTERVAL_DAY    =              24L * 60L * 60L * SEC;
+const sdb_time_t SDB_INTERVAL_HOUR   =                    60L * 60L * SEC;
+const sdb_time_t SDB_INTERVAL_MINUTE =                          60L * SEC;
+const sdb_time_t SDB_INTERVAL_SECOND =                                SEC;
 
 sdb_time_t
 sdb_gettime(void)
@@ -78,6 +90,62 @@ sdb_strftime(char *s, size_t len, const char *format, sdb_time_t t)
 
 	return strftime(s, len, format, &tm);
 } /* sdb_strftime */
+
+size_t
+sdb_strfinterval(char *s, size_t len, sdb_time_t interval)
+{
+	size_t n = 0;
+	size_t i;
+
+	/* special case the optional fractional part for seconds */
+	_Bool have_seconds = 0;
+
+	struct {
+		sdb_time_t  interval;
+		const char *suffix;
+	} specs[] = {
+		{ SDB_INTERVAL_YEAR,   "Y" },
+		{ SDB_INTERVAL_MONTH,  "M" },
+		{ SDB_INTERVAL_DAY,    "D" },
+		{ SDB_INTERVAL_HOUR,   "h" },
+		{ SDB_INTERVAL_MINUTE, "m" },
+		{ SDB_INTERVAL_SECOND, "" },
+	};
+
+#define LEN (len > n ? len - n : 0)
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(specs); ++i) {
+		if (interval >= specs[i].interval) {
+			n += snprintf(s + n, LEN, "%"PRIscTIME"%s",
+					interval / specs[i].interval, specs[i].suffix);
+			interval %= specs[i].interval;
+			if (i == SDB_STATIC_ARRAY_LEN(specs) - 1)
+				have_seconds = 1;
+		}
+	}
+
+	if (interval) {
+		n += snprintf(s + n, LEN, ".%09"PRIscTIME, interval);
+		have_seconds = 1;
+
+		/* removing trailing zeroes */
+		if (n <= len)
+			while (s[n - 1] == '0')
+				s[n--] = '\0';
+	}
+
+	if (! n) {
+		n = snprintf(s, len, "0");
+		have_seconds = 1;
+	}
+
+	if (have_seconds)
+		n += snprintf(s + n, LEN, "s");
+#undef LEN
+
+	if (len)
+		s[len - 1] = '\0';
+	return n;
+} /* sdb_strfinterval */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

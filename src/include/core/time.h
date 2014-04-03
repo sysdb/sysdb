@@ -54,6 +54,19 @@ typedef uint64_t sdb_time_t;
 #define TIMESPEC_TO_SDB_TIME(ts) (SECS_TO_SDB_TIME((ts).tv_sec) \
 		+ NSECS_TO_SDB_TIME((ts).tv_nsec))
 
+/*
+ * Interval constants:
+ * Each constant specifies the time interval, in nano-seconds, of the named
+ * time-frame. Year, month, and day are approximations which do not work well
+ * for very large time intervals.
+ */
+extern const sdb_time_t SDB_INTERVAL_YEAR;
+extern const sdb_time_t SDB_INTERVAL_MONTH;
+extern const sdb_time_t SDB_INTERVAL_DAY;
+extern const sdb_time_t SDB_INTERVAL_HOUR;
+extern const sdb_time_t SDB_INTERVAL_MINUTE;
+extern const sdb_time_t SDB_INTERVAL_SECOND;
+
 sdb_time_t
 sdb_gettime(void);
 
@@ -62,6 +75,9 @@ sdb_sleep(sdb_time_t reg, sdb_time_t *rem);
 
 size_t
 sdb_strftime(char *s, size_t len, const char *format, sdb_time_t);
+
+size_t
+sdb_strfinterval(char *s, size_t len, sdb_time_t interval);
 
 #ifdef __cplusplus
 } /* extern "C" */
