@@ -297,7 +297,7 @@ store_obj(int parent_type, const char *parent_name,
 			old->last_update = last_update;
 			if (old->interval)
 				old->interval = (sdb_time_t)((0.9 * (double)old->interval)
-						+ (0.1 * interval));
+						+ (0.1 * (double)interval));
 			else
 				old->interval = interval;
 		}
