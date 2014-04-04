@@ -63,10 +63,37 @@ typedef struct {
  * private helper functions
  */
 
+/* store the specified host-name (once per iteration) */
 static int
-sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
+sdb_collectd_store_host(sdb_collectd_state_t *state,
+		const char *hostname, sdb_time_t last_update)
 {
 	int status;
+
+	if (last_update > state->current_timestamp)
+		state->current_timestamp = last_update;
+
+	if (state->current_host && (! strcasecmp(state->current_host, hostname)))
+		return 0;
+	/* else: first/new host */
+
+	if (state->current_host) {
+		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
+				"%i service%s (%i failed) for host '%s'.",
+				state->svc_updated, state->svc_updated == 1 ? "" : "s",
+				state->svc_failed, state->current_host);
+		state->svc_updated = state->svc_failed = 0;
+		free(state->current_host);
+	}
+
+	state->current_host = strdup(hostname);
+	if (! state->current_host) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
+				"string buffer: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
 
 	status = sdb_store_host(hostname, last_update);
 
@@ -82,7 +109,7 @@ sdb_collectd_add_host(const char *hostname, sdb_time_t last_update)
 			"host '%s' (last update timestamp = %"PRIscTIME").",
 			hostname, last_update);
 	return 0;
-} /* sdb_collectd_add_host */
+} /* sdb_collectd_store_host */
 
 static int
 sdb_collectd_add_svc(const char *hostname, const char *plugin,
@@ -127,46 +154,13 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 	type     = data[3].data.string;
 
 	state = SDB_OBJ_WRAPPER(user_data)->data;
-
-	if (! state->current_host) {
-		state->current_host = strdup(hostname);
-		state->current_timestamp = last_update;
-	}
-
-	if (! state->current_host) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"string buffer: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+	if (sdb_collectd_store_host(state, hostname, last_update))
 		return -1;
-	}
-
-	if (! sdb_store_has_host(hostname))
-		sdb_collectd_add_host(hostname, last_update);
 
 	if (sdb_collectd_add_svc(hostname, plugin, type, last_update))
 		++state->svc_failed;
 	else
 		++state->svc_updated;
-
-	if (! strcasecmp(state->current_host, hostname)) {
-		if (last_update > state->current_timestamp)
-			state->current_timestamp = last_update;
-		return 0;
-	}
-
-	/* new host */
-	sdb_collectd_add_host(hostname, last_update);
-
-	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-			"%i service%s (%i failed) for host '%s'.",
-			state->svc_updated, state->svc_updated == 1 ? "" : "s",
-			state->svc_failed, state->current_host);
-	state->svc_updated = state->svc_failed = 0;
-
-	free(state->current_host);
-	state->current_host = strdup(hostname);
-	state->current_timestamp = last_update;
 	return 0;
 } /* sdb_collectd_get_data */
 
@@ -272,7 +266,6 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	}
 
 	if (state.current_host) {
-		sdb_collectd_add_host(state.current_host, state.current_timestamp);
 		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
 				"%i service%s (%i failed) for host '%s'.",
 				state.svc_updated, state.svc_updated == 1 ? "" : "s",
