@@ -57,8 +57,8 @@ START_TEST(test_parse)
 		{ "LIST;",              -1,  1, CONNECTION_LIST   },
 		{ "LIST; INVALID",       5,  1, CONNECTION_LIST   },
 
-		{ "LOOKUP hosts "
-		  "WHERE 'host'",       -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "host.name = 'host'", -1,  1, CONNECTION_LOOKUP },
 
 		/* comments */
 		{ "/* some comment */", -1,  0, 0 },
@@ -71,8 +71,8 @@ START_TEST(test_parse)
 		{ "/* some incomplete", -1, -1, 0 },
 
 		{ "LOOKUP hosts",       -1, -1, 0 },
-		{ "LOOKUP invalid "
-		  "WHERE 'host'",       -1, -1, 0 },
+		{ "LOOKUP foo WHERE "
+		  "host.name = 'host'", -1, -1, 0 },
 	};
 
 	size_t i;
@@ -120,17 +120,17 @@ START_TEST(test_parse_matcher)
 		int expected;
 	} golden_data[] = {
 		/* empty expressions */
-		{ NULL,                 -1, -1 },
-		{ "",                   -1, -1 },
+		{ NULL,                             -1, -1 },
+		{ "",                               -1, -1 },
 
 		/* valid expressions */
-		{ "'localhost'",        -1,  0 },
-		{ "'localhost' -- foo", -1,  0 },
-		{ "'host' <garbage>",    6,  0 },
+		{ "host.name = 'localhost'",        -1,  0 },
+		{ "host.name = 'localhost' -- foo", -1,  0 },
+		{ "host.name = 'host' <garbage>",   18,  0 },
 
 		/* syntax errors */
-		{ "LIST",               -1, -1 },
-		{ "foo &^ bar",         -1, -1 },
+		{ "LIST",                           -1, -1 },
+		{ "foo &^ bar",                     -1, -1 },
 	};
 
 	size_t i;
