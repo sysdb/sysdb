@@ -110,7 +110,7 @@ string		('[^']*')
 		return STRING;
 	}
 
-.	{ /* do nothing for now */ }
+.	{ /* XXX: */ return yytext[0]; }
 
 %%
 
