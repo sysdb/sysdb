@@ -32,6 +32,7 @@
 #include "frontend/grammar.h"
 
 #include "core/store.h"
+#include "core/store-private.h"
 
 #include "utils/error.h"
 #include "utils/llist.h"
@@ -69,6 +70,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 	sdb_llist_t     *list;
 	sdb_conn_node_t *node;
+
+	sdb_store_matcher_t *m;
 }
 
 %start statements
@@ -76,6 +79,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token SCANNER_ERROR
 
 %token WHERE
+
+%token CMP_EQUAL CMP_REGEX
 
 %token <str> IDENTIFIER STRING
 %token <node> FETCH LIST LOOKUP
@@ -86,6 +91,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	list_statement
 	lookup_statement
 	expression
+
+%type <m> compare_matcher
 
 %%
 
@@ -164,8 +171,7 @@ fetch_statement:
 						conn_fetch_t, conn_fetch_destroy));
 			CONN_FETCH($$)->name = strdup($2);
 			$$->cmd = CONNECTION_FETCH;
-			free($2);
-			$2 = NULL;
+			free($2); $2 = NULL;
 		}
 	;
 
@@ -204,23 +210,59 @@ lookup_statement:
 						conn_lookup_t, conn_lookup_destroy));
 			CONN_LOOKUP($$)->matcher = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_LOOKUP;
-			free($2);
-			$2 = NULL;
+			free($2); $2 = NULL;
 		}
 	;
 
 expression:
-	STRING
+	compare_matcher
 		{
+			sdb_store_matcher_t *m = $1;
+			if (! m) {
+				/* TODO: improve error reporting */
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, invalid expression"));
+				YYABORT;
+			}
+
 			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
 						conn_node_matcher_t));
 			$$->cmd = CONNECTION_EXPR;
-			/* XXX: this is just a placeholder for now */
-			CONN_MATCHER($$)->matcher = sdb_store_host_matcher($1,
-					/* name_re = */ NULL, /* service = */ NULL,
-					/* attr = */ NULL);
-			free($1);
-			$1 = NULL;
+
+			if (M(m)->type == MATCHER_HOST)
+				CONN_MATCHER($$)->matcher = m;
+			else if (M(m)->type == MATCHER_SERVICE)
+				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
+						/* name_re = */ NULL, /* service = */ m,
+						/* attr = */ NULL);
+			else if (M(m)->type == MATCHER_ATTR)
+				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
+						/* name_re = */ NULL, /* service = */ NULL,
+						/* attr = */ m);
+		}
+	;
+
+/*
+ * <object_type>.<object_attr> <op> <value>
+ *
+ * Parse matchers comparing object attributes with a value.
+ */
+compare_matcher:
+	IDENTIFIER '.' IDENTIFIER CMP_EQUAL STRING
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, $3, "=", $5);
+			/* TODO: simplify memory management in the parser */
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+			free($5); $5 = NULL;
+		}
+	|
+	IDENTIFIER '.' IDENTIFIER CMP_REGEX STRING
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, $3, "=~", $5);
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+			free($5); $5 = NULL;
 		}
 	;
 

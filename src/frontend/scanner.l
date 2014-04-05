@@ -110,6 +110,9 @@ string		('[^']*')
 		return STRING;
 	}
 
+=	{ return CMP_EQUAL; }
+=~	{ return CMP_REGEX; }
+
 .	{ /* XXX: */ return yytext[0]; }
 
 %%
