@@ -51,66 +51,6 @@
  * private data types
  */
 
-/* match the name of something */
-typedef struct {
-	char    *name;
-	regex_t *name_re;
-} name_matcher_t;
-
-/* matcher base type */
-struct sdb_store_matcher {
-	sdb_object_t super;
-	/* type of the matcher */
-	int type;
-};
-#define M(m) ((sdb_store_matcher_t *)(m))
-
-/* logical operator matcher */
-typedef struct {
-	sdb_store_matcher_t super;
-
-	/* left and right hand operands */
-	sdb_store_matcher_t *left;
-	sdb_store_matcher_t *right;
-} op_matcher_t;
-#define OP_M(m) ((op_matcher_t *)(m))
-
-/* match any type of object by it's base information */
-typedef struct {
-	sdb_store_matcher_t super;
-
-	/* match by the name of the object */
-	name_matcher_t name;
-} obj_matcher_t;
-#define OBJ_M(m) ((obj_matcher_t *)(m))
-
-/* match attributes */
-typedef struct {
-	obj_matcher_t super;
-	/* XXX: this needs to be more flexible;
-	 *      add support for type-specific operators */
-	name_matcher_t value;
-} attr_matcher_t;
-#define ATTR_M(m) ((attr_matcher_t *)(m))
-
-/* match services */
-typedef struct {
-	obj_matcher_t super;
-	/* match by attributes assigned to the service */
-	attr_matcher_t *attr;
-} service_matcher_t;
-#define SERVICE_M(m) ((service_matcher_t *)(m))
-
-/* match hosts */
-typedef struct {
-	obj_matcher_t super;
-	/* match by services assigned to the host */
-	service_matcher_t *service;
-	/* match by attributes assigned to the host */
-	attr_matcher_t *attr;
-} host_matcher_t;
-#define HOST_M(m) ((host_matcher_t *)(m))
-
 typedef struct {
 	sdb_store_matcher_t *m;
 	sdb_store_lookup_cb  cb;
@@ -263,17 +203,10 @@ match_host(host_matcher_t *m, sdb_store_base_t *obj)
 
 /* generic matchers */
 
-enum {
-	MATCHER_OR,
-	MATCHER_AND,
-	MATCHER_ATTR,
-	MATCHER_SERVICE,
-	MATCHER_HOST,
-};
-
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
 
-/* this array needs to be indexable by the matcher types */
+/* this array needs to be indexable by the matcher types;
+ * -> update the enum in store-private.h when updating this */
 static matcher_cb matchers[] = {
 	match_logical,
 	match_logical,
