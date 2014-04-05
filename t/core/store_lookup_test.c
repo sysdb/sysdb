@@ -26,6 +26,7 @@
  */
 
 #include "core/store.h"
+#include "core/store-private.h"
 #include "libsysdb_test.h"
 
 #include <check.h>
@@ -317,6 +318,63 @@ START_TEST(test_store_match_op)
 }
 END_TEST
 
+START_TEST(test_parse_cmp)
+{
+	sdb_store_matcher_t *check;
+
+	size_t i;
+
+	struct {
+		const char *obj_type;
+		const char *attr;
+		const char *op;
+		const char *value;
+		int expected;
+	} golden_data[] = {
+		{ "host",      "name", "=",  "hostname", MATCHER_HOST },
+		{ "host",      "name", "=~", "hostname", MATCHER_HOST },
+		{ "host",      "attr", "=",  "hostname", -1 },
+		{ "host",      "name", "&^", "hostname", -1 },
+		{ "service",   "name", "=",  "srvname",  MATCHER_SERVICE },
+		{ "service",   "name", "=",  "srvname",  MATCHER_SERVICE },
+		{ "service",   "attr", "=",  "srvname",  -1 },
+		{ "service",   "name", "&^", "srvname",  -1 },
+		{ "attribute", "name", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "name", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "&^", "attrname", -1 },
+	};
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		check = sdb_store_matcher_parse_cmp(golden_data[i].obj_type,
+				golden_data[i].attr, golden_data[i].op, golden_data[i].value);
+
+		if (golden_data[i].expected == -1) {
+			fail_unless(check == NULL,
+					"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) = %p; "
+					"expected: NULL", golden_data[i].obj_type,
+					golden_data[i].attr, golden_data[i].op,
+					golden_data[i].value, check);
+			continue;
+		}
+
+		fail_unless(check != NULL,
+				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) = %p; "
+				"expected: NULL", golden_data[i].obj_type,
+				golden_data[i].attr, golden_data[i].op,
+				golden_data[i].value, check);
+		fail_unless(M(check)->type == golden_data[i].expected,
+				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) returned matcher "
+				"of type %d; expected: %d", golden_data[i].obj_type,
+				golden_data[i].attr, golden_data[i].op, golden_data[i].value,
+				M(check)->type, golden_data[i].expected);
+
+		sdb_object_deref(SDB_OBJ(check));
+	}
+}
+END_TEST
+
 static int
 lookup_cb(sdb_store_base_t *obj, void *user_data)
 {
@@ -356,6 +414,7 @@ core_store_lookup_suite(void)
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match);
 	tcase_add_test(tc, test_store_match_op);
+	tcase_add_test(tc, test_parse_cmp);
 	tcase_add_test(tc, test_lookup);
 	suite_add_tcase(s, tc);
 

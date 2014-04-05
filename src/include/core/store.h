@@ -170,6 +170,18 @@ sdb_store_host_matcher(const char *host_name, const char *host_name_re,
 		sdb_store_matcher_t *attr_matcher);
 
 /*
+ * sdb_store_matcher_parse_cmp:
+ * Parse a simple compare expression (<obj_type>.<attr> <op> <value>).
+ *
+ * Returns:
+ *  - a matcher object on success
+ *  - NULL else
+ */
+sdb_store_matcher_t *
+sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
+		const char *op, const char *value);
+
+/*
  * sdb_store_dis_matcher:
  * Creates a matcher matching the disjunction (logical OR) of two matchers.
  */

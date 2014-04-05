@@ -470,6 +470,47 @@ sdb_store_host_matcher(const char *host_name, const char *host_name_re,
 } /* sdb_store_host_matcher */
 
 sdb_store_matcher_t *
+sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
+		const char *op, const char *value)
+{
+	int typ = -1;
+
+	const char *matcher = NULL;
+	const char *matcher_re = NULL;
+
+	if (! strcasecmp(obj_type, "host"))
+		typ = SDB_HOST;
+	else if (! strcasecmp(obj_type, "service"))
+		typ = SDB_SERVICE;
+	else if (! strcasecmp(obj_type, "attribute"))
+		typ = SDB_ATTRIBUTE;
+
+	/* TODO: support other operators */
+	if (! strcasecmp(op, "="))
+		matcher = value;
+	else if (! strcasecmp(op, "=~"))
+		matcher_re = value;
+	else
+		return NULL;
+
+	if (! strcasecmp(attr, "name")) {
+		/* accept */
+	}
+	else if (typ == SDB_ATTRIBUTE)
+		return sdb_store_attr_matcher(attr, NULL, matcher, matcher_re);
+	else
+		return NULL;
+
+	if (typ == SDB_HOST)
+		return sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
+	else if (typ == SDB_SERVICE)
+		return sdb_store_service_matcher(matcher, matcher_re, NULL);
+	else if (typ == SDB_ATTRIBUTE)
+		return sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL);
+	return NULL;
+} /* sdb_store_matcher_parse_cmp */
+
+sdb_store_matcher_t *
 sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
 {
 	return M(sdb_object_create("dis-matcher", op_type, MATCHER_OR,
