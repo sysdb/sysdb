@@ -78,12 +78,18 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token WHERE
+%token AND OR WHERE
 
 %token CMP_EQUAL CMP_REGEX
 
 %token <str> IDENTIFIER STRING
 %token <node> FETCH LIST LOOKUP
+
+/* Precedence (lowest first): */
+%left OR
+%left AND
+%left CMP_EQUAL
+%left CMP_REGEX
 
 %type <list> statements
 %type <node> statement
@@ -92,7 +98,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	lookup_statement
 	expression
 
-%type <m> compare_matcher
+%type <m> matcher
+	compare_matcher
 
 %%
 
@@ -215,7 +222,7 @@ lookup_statement:
 	;
 
 expression:
-	compare_matcher
+	matcher
 		{
 			sdb_store_matcher_t *m = $1;
 			if (! m) {
@@ -229,7 +236,9 @@ expression:
 						conn_node_matcher_t));
 			$$->cmd = CONNECTION_EXPR;
 
-			if (M(m)->type == MATCHER_HOST)
+			if ((M(m)->type == MATCHER_HOST)
+					|| (M(m)->type == MATCHER_AND)
+					|| (M(m)->type == MATCHER_OR))
 				CONN_MATCHER($$)->matcher = m;
 			else if (M(m)->type == MATCHER_SERVICE)
 				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
@@ -239,6 +248,31 @@ expression:
 				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
 						/* name_re = */ NULL, /* service = */ NULL,
 						/* attr = */ m);
+			else {
+				char errbuf[1024];
+				snprintf(errbuf, sizeof(errbuf),
+						YY_("syntax error, unexpected matcher type %d"),
+						M(m)->type);
+				sdb_fe_yyerror(&yylloc, scanner, errbuf);
+				YYABORT;
+			}
+		}
+	;
+
+matcher:
+	matcher AND matcher
+		{
+			$$ = sdb_store_con_matcher($1, $3);
+		}
+	|
+	matcher OR matcher
+		{
+			$$ = sdb_store_dis_matcher($1, $3);
+		}
+	|
+	compare_matcher
+		{
+			$$ = $1;
 		}
 	;
 

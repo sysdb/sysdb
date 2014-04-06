@@ -92,12 +92,16 @@ string		('[^']*')
 
 {identifier} {
 		/* XXX: simplify handling of reserved words */
-		if (! strcasecmp(yytext, "FETCH"))
+		if (! strcasecmp(yytext, "AND"))
+			return AND;
+		else if (! strcasecmp(yytext, "FETCH"))
 			return FETCH;
 		else if (! strcasecmp(yytext, "LIST"))
 			return LIST;
 		else if (! strcasecmp(yytext, "LOOKUP"))
 			return LOOKUP;
+		else if (! strcasecmp(yytext, "OR"))
+			return OR;
 		else if (! strcasecmp(yytext, "WHERE"))
 			return WHERE;
 

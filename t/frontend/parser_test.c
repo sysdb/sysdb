@@ -45,34 +45,41 @@ START_TEST(test_parse)
 		sdb_conn_state_t expected_cmd;
 	} golden_data[] = {
 		/* empty commands */
-		{ NULL,                 -1, -1, 0 },
-		{ "",                   -1,  0, 0 },
-		{ ";",                  -1,  0, 0 },
-		{ ";;",                 -1,  0, 0 },
+		{ NULL,                  -1, -1, 0 },
+		{ "",                    -1,  0, 0 },
+		{ ";",                   -1,  0, 0 },
+		{ ";;",                  -1,  0, 0 },
 
 		/* valid commands */
-		{ "FETCH 'host'",       -1,  1, CONNECTION_FETCH  },
-		{ "LIST",               -1,  1, CONNECTION_LIST   },
-		{ "LIST -- comment",    -1,  1, CONNECTION_LIST   },
-		{ "LIST;",              -1,  1, CONNECTION_LIST   },
-		{ "LIST; INVALID",       5,  1, CONNECTION_LIST   },
+		{ "FETCH 'host'",        -1,  1, CONNECTION_FETCH  },
+		{ "LIST",                -1,  1, CONNECTION_LIST   },
+		{ "LIST -- comment",     -1,  1, CONNECTION_LIST   },
+		{ "LIST;",               -1,  1, CONNECTION_LIST   },
+		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts WHERE "
-		  "host.name = 'host'", -1,  1, CONNECTION_LOOKUP },
+		  "host.name = 'host'",  -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "host.name =~ 'p' AND "
+		  "service.name =~ 'p'", -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "host.name =~ 'p' AND "
+		  "service.name =~ 'p' OR "
+		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
 
 		/* comments */
-		{ "/* some comment */", -1,  0, 0 },
-		{ "-- another comment", -1,  0, 0 },
+		{ "/* some comment */",  -1,  0, 0 },
+		{ "-- another comment",  -1,  0, 0 },
 
 		/* syntax errors */
-		{ "INVALID",            -1, -1, 0 },
-		{ "FETCH host",         -1, -1, 0 },
-		{ "LIST; INVALID",       8, -1, 0 },
-		{ "/* some incomplete", -1, -1, 0 },
+		{ "INVALID",             -1, -1, 0 },
+		{ "FETCH host",          -1, -1, 0 },
+		{ "LIST; INVALID",        8, -1, 0 },
+		{ "/* some incomplete",  -1, -1, 0 },
 
-		{ "LOOKUP hosts",       -1, -1, 0 },
+		{ "LOOKUP hosts",        -1, -1, 0 },
 		{ "LOOKUP foo WHERE "
-		  "host.name = 'host'", -1, -1, 0 },
+		  "host.name = 'host'",  -1, -1, 0 },
 	};
 
 	size_t i;
@@ -127,6 +134,10 @@ START_TEST(test_parse_matcher)
 		{ "host.name = 'localhost'",        -1,  0 },
 		{ "host.name = 'localhost' -- foo", -1,  0 },
 		{ "host.name = 'host' <garbage>",   18,  0 },
+		{ "host.name =~ 'pattern' AND "
+		  "service.name =~ 'pattern'",      -1,  0 },
+		{ "host.name =~ 'pattern' OR "
+		  "service.name =~ 'pattern'",      -1,  0 },
 
 		/* syntax errors */
 		{ "LIST",                           -1, -1 },
