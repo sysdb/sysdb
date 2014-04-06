@@ -213,7 +213,7 @@ START_TEST(test_store_match)
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_matcher_t *h, *s, *a;
+		sdb_store_matcher_t *h, *s, *a, *n;
 		int status;
 
 		s = sdb_store_service_matcher(golden_data[i].service_name,
@@ -245,7 +245,23 @@ START_TEST(test_store_match)
 				golden_data[i].attr_value, golden_data[i].attr_value_re,
 				status, golden_data[i].expected);
 
+		n = sdb_store_inv_matcher(h);
+		fail_unless(n != NULL,
+				"sdb_store_inv_matcher() = NULL; expected: <matcher>");
 		sdb_object_deref(SDB_OBJ(h));
+
+		/* now match the inverted set of objects */
+		status = sdb_store_matcher_matches(n, obj);
+		fail_unless(status == !golden_data[i].expected,
+				"sdb_store_matcher_matches(NOT{{%s, %s},{%s, %s},"
+				"{%s, %s, %s, %s}}, <host a>) = %d; expected: %d",
+				golden_data[i].hostname, golden_data[i].hostname_re,
+				golden_data[i].service_name, golden_data[i].service_name_re,
+				golden_data[i].attr_name, golden_data[i].attr_name_re,
+				golden_data[i].attr_value, golden_data[i].attr_value_re,
+				status, !golden_data[i].expected);
+
+		sdb_object_deref(SDB_OBJ(n));
 	}
 }
 END_TEST

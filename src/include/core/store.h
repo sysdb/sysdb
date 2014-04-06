@@ -196,6 +196,13 @@ sdb_store_matcher_t *
 sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
 
 /*
+ * sdb_store_con_matcher::
+ * Creates a matcher matching the inverse (logical NOT) of a matcher.
+ */
+sdb_store_matcher_t *
+sdb_store_inv_matcher(sdb_store_matcher_t *m);
+
+/*
  * sdb_store_matcher_matches:
  * Check whether the specified matcher matches the specified store object.
  *

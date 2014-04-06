@@ -95,6 +95,7 @@ enum {
 enum {
 	MATCHER_OR,
 	MATCHER_AND,
+	MATCHER_NOT,
 	MATCHER_ATTR,
 	MATCHER_SERVICE,
 	MATCHER_HOST,
@@ -114,7 +115,7 @@ struct sdb_store_matcher {
 };
 #define M(m) ((sdb_store_matcher_t *)(m))
 
-/* logical operator matcher */
+/* logical infix operator matcher */
 typedef struct {
 	sdb_store_matcher_t super;
 
@@ -123,6 +124,15 @@ typedef struct {
 	sdb_store_matcher_t *right;
 } op_matcher_t;
 #define OP_M(m) ((op_matcher_t *)(m))
+
+/* logical unary operator matcher */
+typedef struct {
+	sdb_store_matcher_t super;
+
+	/* operand */
+	sdb_store_matcher_t *op;
+} uop_matcher_t;
+#define UOP_M(m) ((uop_matcher_t *)(m))
 
 /* match any type of object by it's base information */
 typedef struct {

@@ -78,6 +78,8 @@ lookup_iter(sdb_store_base_t *obj, void *user_data)
 static int
 match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj);
 static int
+match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj);
+static int
 match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj);
 
 /* specific matchers */
@@ -210,6 +212,7 @@ typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
 static matcher_cb matchers[] = {
 	match_logical,
 	match_logical,
+	match_unary,
 	match_obj,
 	match_obj,
 	match_obj,
@@ -232,6 +235,15 @@ match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 
 	return sdb_store_matcher_matches(OP_M(m)->right, obj);
 } /* match_logical */
+
+static int
+match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	assert(m && obj);
+	assert(UOP_M(m)->op);
+
+	return !sdb_store_matcher_matches(UOP_M(m)->op, obj);
+} /* match_unary */
 
 static int
 match_obj(sdb_store_matcher_t *m, sdb_store_base_t *obj)
@@ -416,6 +428,28 @@ op_matcher_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(OP_M(obj)->right));
 } /* op_matcher_destroy */
 
+static int
+uop_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	M(obj)->type = va_arg(ap, int);
+	if (M(obj)->type != MATCHER_NOT)
+		return -1;
+
+	UOP_M(obj)->op = va_arg(ap, sdb_store_matcher_t *);
+	sdb_object_ref(SDB_OBJ(UOP_M(obj)->op));
+
+	if (! UOP_M(obj)->op)
+		return -1;
+	return 0;
+} /* uop_matcher_init */
+
+static void
+uop_matcher_destroy(sdb_object_t *obj)
+{
+	if (UOP_M(obj)->op)
+		sdb_object_deref(SDB_OBJ(UOP_M(obj)->op));
+} /* uop_matcher_destroy */
+
 static sdb_type_t attr_type = {
 	/* size = */ sizeof(attr_matcher_t),
 	/* init = */ attr_matcher_init,
@@ -438,6 +472,12 @@ static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
 	/* destroy = */ op_matcher_destroy,
+};
+
+static sdb_type_t uop_type = {
+	/* size = */ sizeof(uop_matcher_t),
+	/* init = */ uop_matcher_init,
+	/* destroy = */ uop_matcher_destroy,
 };
 
 /*
@@ -523,6 +563,12 @@ sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
 	return M(sdb_object_create("con-matcher", op_type, MATCHER_AND,
 				left, right));
 } /* sdb_store_con_matcher */
+
+sdb_store_matcher_t *
+sdb_store_inv_matcher(sdb_store_matcher_t *m)
+{
+	return M(sdb_object_create("inv-matcher", uop_type, MATCHER_NOT, m));
+} /* sdb_store_inv_matcher */
 
 int
 sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
