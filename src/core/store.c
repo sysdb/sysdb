@@ -295,11 +295,13 @@ store_obj(int parent_type, const char *parent_name,
 		else {
 			sdb_time_t interval = last_update - old->last_update;
 			old->last_update = last_update;
-			if (old->interval)
-				old->interval = (sdb_time_t)((0.9 * (double)old->interval)
-						+ (0.1 * (double)interval));
-			else
-				old->interval = interval;
+			if (interval) {
+				if (old->interval)
+					old->interval = (sdb_time_t)((0.9 * (double)old->interval)
+							+ (0.1 * (double)interval));
+				else
+					old->interval = interval;
+			}
 		}
 
 		if (updated_obj)

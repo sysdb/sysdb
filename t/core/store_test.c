@@ -385,6 +385,28 @@ START_TEST(test_interval)
 			"sdb_store_host() did not calculate interval correctly: "
 			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 10);
 
+	/* multiple updates for the same timestamp don't modify the interval */
+	sdb_store_host("host", 40);
+	sdb_store_host("host", 40);
+	sdb_store_host("host", 40);
+	sdb_store_host("host", 40);
+
+	fail_unless(host->interval == 10,
+			"sdb_store_host() changed interval when doing multiple updates "
+			"using the same timestamp; got: %"PRIscTIME"; "
+			"expected: %"PRIscTIME, host->interval, 10);
+
+	/* multiple updates using an timestamp don't modify the interval */
+	sdb_store_host("host", 20);
+	sdb_store_host("host", 20);
+	sdb_store_host("host", 20);
+	sdb_store_host("host", 20);
+
+	fail_unless(host->interval == 10,
+			"sdb_store_host() changed interval when doing multiple updates "
+			"using an old timestamp; got: %"PRIscTIME"; expected: %"PRIscTIME,
+			host->interval, 10);
+
 	/* new interval: 20 us */
 	sdb_store_host("host", 60);
 	fail_unless(host->interval == 11,
