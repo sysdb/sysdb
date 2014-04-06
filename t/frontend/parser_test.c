@@ -60,10 +60,19 @@ START_TEST(test_parse)
 
 		{ "LOOKUP hosts WHERE "
 		  "host.name = 'host'",  -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE NOT "
+		  "host.name = 'host'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE "
 		  "host.name =~ 'p' AND "
 		  "service.name =~ 'p'", -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE NOT "
+		  "host.name =~ 'p' AND "
+		  "service.name =~ 'p'", -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE "
+		  "host.name =~ 'p' AND "
+		  "service.name =~ 'p' OR "
+		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE NOT "
 		  "host.name =~ 'p' AND "
 		  "service.name =~ 'p' OR "
 		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
@@ -139,6 +148,7 @@ START_TEST(test_parse_matcher)
 		  "service.name =~ 'pattern'",      -1,  MATCHER_AND },
 		{ "host.name =~ 'pattern' OR "
 		  "service.name =~ 'pattern'",      -1,  MATCHER_OR },
+		{ "NOT host.name = 'host'",         -1,  MATCHER_NOT },
 
 		/* check operator precedence */
 		{ "host.name = 'name' OR "
@@ -157,6 +167,12 @@ START_TEST(test_parse_matcher)
 		  "service.name = 'name') AND "
 		  "(attribute.name = 'name' OR "
 		  "attribute.foo = 'bar')",         -1,  MATCHER_AND },
+		{ "NOT host.name = 'name' OR "
+		  "service.name = 'name'",          -1,  MATCHER_OR },
+		{ "NOT host.name = 'name' OR "
+		  "NOT service.name = 'name'",      -1,  MATCHER_OR },
+		{ "NOT (host.name = 'name' OR "
+		  "NOT service.name = 'name')",     -1,  MATCHER_NOT },
 
 		/* syntax errors */
 		{ "LIST",                           -1, -1 },

@@ -100,6 +100,8 @@ string		('[^']*')
 			return LIST;
 		else if (! strcasecmp(yytext, "LOOKUP"))
 			return LOOKUP;
+		else if (! strcasecmp(yytext, "NOT"))
+			return NOT;
 		else if (! strcasecmp(yytext, "OR"))
 			return OR;
 		else if (! strcasecmp(yytext, "WHERE"))

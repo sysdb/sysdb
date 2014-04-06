@@ -246,7 +246,8 @@ expression:
 
 			if ((M(m)->type == MATCHER_HOST)
 					|| (M(m)->type == MATCHER_AND)
-					|| (M(m)->type == MATCHER_OR))
+					|| (M(m)->type == MATCHER_OR)
+					|| (M(m)->type == MATCHER_NOT))
 				CONN_MATCHER($$)->matcher = m;
 			else if (M(m)->type == MATCHER_SERVICE)
 				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
