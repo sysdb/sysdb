@@ -115,7 +115,9 @@ string		('[^']*')
 	}
 
 =	{ return CMP_EQUAL; }
+!=	{ return CMP_NEQUAL; }
 =~	{ return CMP_REGEX; }
+!~	{ return CMP_NREGEX; }
 
 .	{ /* XXX: */ return yytext[0]; }
 

@@ -78,9 +78,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token AND OR WHERE
+%token AND OR NOT WHERE
 
-%token CMP_EQUAL CMP_REGEX
+%token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 
 %token <str> IDENTIFIER STRING
 %token <node> FETCH LIST LOOKUP
@@ -88,8 +88,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 /* Precedence (lowest first): */
 %left OR
 %left AND
-%left CMP_EQUAL
-%left CMP_REGEX
+%left NOT
+%left CMP_EQUAL CMP_NEQUAL
+%left CMP_REGEX CMP_NREGEX
 %left '(' ')'
 %left '.'
 
@@ -283,6 +284,11 @@ matcher:
 			$$ = sdb_store_dis_matcher($1, $3);
 		}
 	|
+	NOT matcher
+		{
+			$$ = sdb_store_inv_matcher($2);
+		}
+	|
 	compare_matcher
 		{
 			$$ = $1;
@@ -304,9 +310,26 @@ compare_matcher:
 			free($5); $5 = NULL;
 		}
 	|
+	IDENTIFIER '.' IDENTIFIER CMP_NEQUAL STRING
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, $3, "!=", $5);
+			/* TODO: simplify memory management in the parser */
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+			free($5); $5 = NULL;
+		}
+	|
 	IDENTIFIER '.' IDENTIFIER CMP_REGEX STRING
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, $3, "=~", $5);
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+			free($5); $5 = NULL;
+		}
+	|
+	IDENTIFIER '.' IDENTIFIER CMP_NREGEX STRING
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, $3, "!~", $5);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 			free($5); $5 = NULL;

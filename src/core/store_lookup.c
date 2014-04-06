@@ -514,6 +514,9 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		const char *op, const char *value)
 {
 	int typ = -1;
+	int inv = 0;
+
+	sdb_store_matcher_t *m = NULL;
 
 	const char *matcher = NULL;
 	const char *matcher_re = NULL;
@@ -526,10 +529,20 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		typ = SDB_ATTRIBUTE;
 
 	/* TODO: support other operators */
-	if (! strcasecmp(op, "="))
+	if (! strcasecmp(op, "=")) {
 		matcher = value;
-	else if (! strcasecmp(op, "=~"))
+	}
+	else if (! strcasecmp(op, "!=")) {
+		matcher = value;
+		inv = 1;
+	}
+	else if (! strcasecmp(op, "=~")) {
 		matcher_re = value;
+	}
+	else if (! strcasecmp(op, "!~")) {
+		matcher_re = value;
+		inv = 1;
+	}
 	else
 		return NULL;
 
@@ -537,17 +550,28 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		/* accept */
 	}
 	else if (typ == SDB_ATTRIBUTE)
-		return sdb_store_attr_matcher(attr, NULL, matcher, matcher_re);
+		m = sdb_store_attr_matcher(attr, NULL, matcher, matcher_re);
 	else
 		return NULL;
 
-	if (typ == SDB_HOST)
-		return sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
+	if (m) {
+		/* accept the attribute value matcher */
+	}
+	else if (typ == SDB_HOST)
+		m = sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
 	else if (typ == SDB_SERVICE)
-		return sdb_store_service_matcher(matcher, matcher_re, NULL);
+		m = sdb_store_service_matcher(matcher, matcher_re, NULL);
 	else if (typ == SDB_ATTRIBUTE)
-		return sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL);
-	return NULL;
+		m = sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL);
+
+	if (m && inv) {
+		sdb_store_matcher_t *tmp;
+		tmp = sdb_store_inv_matcher(m);
+		/* pass ownership to the inverse matcher */
+		sdb_object_deref(SDB_OBJ(m));
+		m = tmp;
+	}
+	return m;
 } /* sdb_store_matcher_parse_cmp */
 
 sdb_store_matcher_t *

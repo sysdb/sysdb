@@ -348,17 +348,27 @@ START_TEST(test_parse_cmp)
 		int expected;
 	} golden_data[] = {
 		{ "host",      "name", "=",  "hostname", MATCHER_HOST },
+		{ "host",      "name", "!=", "hostname", MATCHER_NOT },
 		{ "host",      "name", "=~", "hostname", MATCHER_HOST },
+		{ "host",      "name", "!~", "hostname", MATCHER_NOT },
 		{ "host",      "attr", "=",  "hostname", -1 },
+		{ "host",      "attr", "!=", "hostname", -1 },
 		{ "host",      "name", "&^", "hostname", -1 },
 		{ "service",   "name", "=",  "srvname",  MATCHER_SERVICE },
-		{ "service",   "name", "=",  "srvname",  MATCHER_SERVICE },
+		{ "service",   "name", "!=", "srvname",  MATCHER_NOT },
+		{ "service",   "name", "=~", "srvname",  MATCHER_SERVICE },
+		{ "service",   "name", "!~", "srvname",  MATCHER_NOT },
 		{ "service",   "attr", "=",  "srvname",  -1 },
+		{ "service",   "attr", "!=", "srvname",  -1 },
 		{ "service",   "name", "&^", "srvname",  -1 },
 		{ "attribute", "name", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "name", "!=", "attrname", MATCHER_NOT },
 		{ "attribute", "name", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "name", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "!=", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "&^", "attrname", -1 },
 	};
 
