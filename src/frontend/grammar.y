@@ -90,6 +90,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %left AND
 %left CMP_EQUAL
 %left CMP_REGEX
+%left '(' ')'
+%left '.'
 
 %type <list> statements
 %type <node> statement
@@ -266,6 +268,11 @@ expression:
 	;
 
 matcher:
+	'(' matcher ')'
+		{
+			$$ = $2;
+		}
+	|
 	matcher AND matcher
 		{
 			$$ = sdb_store_con_matcher($1, $3);
