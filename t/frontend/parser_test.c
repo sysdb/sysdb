@@ -140,6 +140,20 @@ START_TEST(test_parse_matcher)
 		{ "host.name =~ 'pattern' OR "
 		  "service.name =~ 'pattern'",      -1,  MATCHER_OR },
 
+		/* check operator precedence */
+		{ "host.name = 'name' OR "
+		  "service.name = 'name' AND "
+		  "attribute.name = 'name' OR "
+		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
+		{ "host.name = 'name' AND "
+		  "service.name = 'name' AND "
+		  "attribute.name = 'name' OR "
+		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
+		{ "host.name = 'name' AND "
+		  "service.name = 'name' OR "
+		  "attribute.name = 'name' AND "
+		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
+
 		/* syntax errors */
 		{ "LIST",                           -1, -1 },
 		{ "foo &^ bar",                     -1, -1 },
