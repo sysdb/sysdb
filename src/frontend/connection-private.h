@@ -104,11 +104,18 @@ conn_fetch_destroy(sdb_object_t *obj)
 } /* conn_fetch_destroy */
 
 static void __attribute__((unused))
+conn_matcher_destroy(sdb_object_t *obj)
+{
+	if (CONN_MATCHER(obj)->matcher)
+		sdb_object_deref(SDB_OBJ(CONN_MATCHER(obj)->matcher));
+} /* conn_matcher_destroy */
+
+static void __attribute__((unused))
 conn_lookup_destroy(sdb_object_t *obj)
 {
 	if (CONN_LOOKUP(obj)->matcher)
 		sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
-} /* conn_fetch_destroy */
+} /* conn_lookup_destroy */
 
 #ifdef __cplusplus
 } /* extern "C" */

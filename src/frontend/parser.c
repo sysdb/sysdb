@@ -120,6 +120,7 @@ sdb_fe_parse_matcher(const char *expr, int len)
 	else
 		m = NULL;
 
+	CONN_MATCHER(node)->matcher = NULL;
 	sdb_llist_destroy(yyextra.parsetree);
 	sdb_object_deref(SDB_OBJ(node));
 	return m;

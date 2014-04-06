@@ -111,6 +111,7 @@ statements:
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
 							"expecting expression"));
+				sdb_object_deref(SDB_OBJ($3));
 				YYABORT;
 			}
 
@@ -127,6 +128,7 @@ statements:
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
 							"expecting expression"));
+				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
 
@@ -143,6 +145,7 @@ statements:
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, unexpected expression, "
 							"expecting statement"));
+				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
 
@@ -210,6 +213,8 @@ lookup_statement:
 				snprintf(errmsg, sizeof(errmsg),
 						YY_("unknown table %s"), $2);
 				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($2); $2 = NULL;
+				sdb_object_deref(SDB_OBJ($4));
 				YYABORT;
 			}
 
@@ -232,8 +237,8 @@ expression:
 				YYABORT;
 			}
 
-			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
-						conn_node_matcher_t));
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_node_matcher_t, conn_matcher_destroy));
 			$$->cmd = CONNECTION_EXPR;
 
 			if ((M(m)->type == MATCHER_HOST)
@@ -253,6 +258,7 @@ expression:
 				snprintf(errbuf, sizeof(errbuf),
 						YY_("syntax error, unexpected matcher type %d"),
 						M(m)->type);
+				sdb_object_deref(SDB_OBJ($$));
 				sdb_fe_yyerror(&yylloc, scanner, errbuf);
 				YYABORT;
 			}
