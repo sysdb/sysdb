@@ -27,6 +27,7 @@
 
 #include "frontend/connection.h"
 #include "frontend/parser.h"
+#include "core/store-private.h"
 #include "core/object.h"
 #include "libsysdb_test.h"
 
@@ -131,13 +132,13 @@ START_TEST(test_parse_matcher)
 		{ "",                               -1, -1 },
 
 		/* valid expressions */
-		{ "host.name = 'localhost'",        -1,  0 },
-		{ "host.name = 'localhost' -- foo", -1,  0 },
-		{ "host.name = 'host' <garbage>",   18,  0 },
+		{ "host.name = 'localhost'",        -1,  MATCHER_HOST },
+		{ "host.name = 'localhost' -- foo", -1,  MATCHER_HOST },
+		{ "host.name = 'host' <garbage>",   18,  MATCHER_HOST },
 		{ "host.name =~ 'pattern' AND "
-		  "service.name =~ 'pattern'",      -1,  0 },
+		  "service.name =~ 'pattern'",      -1,  MATCHER_AND },
 		{ "host.name =~ 'pattern' OR "
-		  "service.name =~ 'pattern'",      -1,  0 },
+		  "service.name =~ 'pattern'",      -1,  MATCHER_OR },
 
 		/* syntax errors */
 		{ "LIST",                           -1, -1 },
@@ -145,20 +146,24 @@ START_TEST(test_parse_matcher)
 	};
 
 	size_t i;
-	sdb_store_matcher_t *m;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		_Bool ok;
-
+		sdb_store_matcher_t *m;
 		m = sdb_fe_parse_matcher(golden_data[i].expr, golden_data[i].len);
-		if (golden_data[i].expected < 0)
-			ok = m == NULL;
-		else
-			ok = m != NULL;
 
-		fail_unless(ok, "sdb_fe_parse_matcher(%s) = %p; expected: %s",
-				golden_data[i].expr, m, (golden_data[i].expected < 0)
-				? "NULL" : "<matcher>");
+		if (golden_data[i].expected < 0) {
+			fail_unless(m == NULL,
+					"sdb_fe_parse_matcher(%s) = %p; expected: NULL",
+					golden_data[i].expr, m);
+			continue;
+		}
+
+		fail_unless(m != NULL, "sdb_fe_parse_matcher(%s) = NULL; "
+				"expected: <matcher>", golden_data[i].expr);
+		fail_unless(M(m)->type == golden_data[i].expected,
+				"sdb_fe_parse_matcher(%s) returned matcher of type %d; "
+				"expected: %d", golden_data[i].expr, M(m)->type,
+				golden_data[i].expected);
 
 		sdb_object_deref(SDB_OBJ(m));
 	}
