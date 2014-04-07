@@ -713,7 +713,6 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 
 	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(config_list, name));
 	if (! plugin) {
-		/* XXX: check if any such plugin has been loaded */
 		ctx_t *ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 		if (! ctx)
 			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' not loaded.", name);
