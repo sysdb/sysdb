@@ -38,7 +38,7 @@ if test -d "$srcdir"/.git/; then
 	cp -a "$srcdir"/.git .
 
 	# reset all files which are not part of the tarball
-	git checkout HEAD .gitignore .travis.yml
+	git checkout HEAD .gitignore .travis.yml t/cibuild.sh
 fi
 
 ./configure --enable-gcov --disable-shared CFLAGS="-O0 -g"
