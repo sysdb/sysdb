@@ -232,8 +232,7 @@ lookup_statement:
 expression:
 	matcher
 		{
-			sdb_store_matcher_t *m = $1;
-			if (! m) {
+			if (! $1) {
 				/* TODO: improve error reporting */
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, invalid expression"));
@@ -243,29 +242,7 @@ expression:
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_node_matcher_t, conn_matcher_destroy));
 			$$->cmd = CONNECTION_EXPR;
-
-			if ((M(m)->type == MATCHER_HOST)
-					|| (M(m)->type == MATCHER_AND)
-					|| (M(m)->type == MATCHER_OR)
-					|| (M(m)->type == MATCHER_NOT))
-				CONN_MATCHER($$)->matcher = m;
-			else if (M(m)->type == MATCHER_SERVICE)
-				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
-						/* name_re = */ NULL, /* service = */ m,
-						/* attr = */ NULL);
-			else if (M(m)->type == MATCHER_ATTR)
-				CONN_MATCHER($$)->matcher = sdb_store_host_matcher(NULL,
-						/* name_re = */ NULL, /* service = */ NULL,
-						/* attr = */ m);
-			else {
-				char errbuf[1024];
-				snprintf(errbuf, sizeof(errbuf),
-						YY_("syntax error, unexpected matcher type %d"),
-						M(m)->type);
-				sdb_object_deref(SDB_OBJ($$));
-				sdb_fe_yyerror(&yylloc, scanner, errbuf);
-				YYABORT;
-			}
+			CONN_MATCHER($$)->matcher = $1;
 		}
 	;
 

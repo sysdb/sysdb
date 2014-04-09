@@ -550,7 +550,9 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		/* accept */
 	}
 	else if (typ == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, NULL, matcher, matcher_re);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				/* service = */ NULL,
+				sdb_store_attr_matcher(attr, NULL, matcher, matcher_re));
 	else
 		return NULL;
 
@@ -560,9 +562,13 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else if (typ == SDB_HOST)
 		m = sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
 	else if (typ == SDB_SERVICE)
-		m = sdb_store_service_matcher(matcher, matcher_re, NULL);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				sdb_store_service_matcher(matcher, matcher_re, NULL),
+				/* attr = */ NULL);
 	else if (typ == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				/* service = */ NULL,
+				sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL));
 
 	if (m && inv) {
 		sdb_store_matcher_t *tmp;
