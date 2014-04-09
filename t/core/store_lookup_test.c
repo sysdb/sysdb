@@ -438,15 +438,15 @@ START_TEST(test_lookup)
 		{ "attribute.k1 != 'v2'",  3 },
 	};
 
-	size_t i;
 	int check, n;
+	size_t i;
 
-	i = 0;
-	check = sdb_store_lookup(NULL, lookup_cb, &i);
+	n = 0;
+	check = sdb_store_lookup(NULL, lookup_cb, &n);
 	fail_unless(check == 0,
 			"sdb_store_lookup() = %d; expected: 0", check);
-	fail_unless(i == 3,
-			"sdb_store_lookup called callback %d times; expected: 3", (int)i);
+	fail_unless(n == 3,
+			"sdb_store_lookup called callback %d times; expected: 3", (int)n);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *m = sdb_fe_parse_matcher(golden_data[i].query, -1);
