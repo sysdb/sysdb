@@ -1,6 +1,6 @@
 /*
- * SysDB - t/libsysdb_test.h
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - t/libsysdb_testutils.h
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,89 +25,25 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef T_LIBSYSDB_H
-#define T_LIBSYSDB_H 1
-
-#include "sysdb.h"
-#include "core/object.h"
-
-#include "libsysdb_testutils.h"
-
-#include <check.h>
-#include <string.h>
-
 /*
- * private testing helpers
+ * Utility functions for test suites.
  */
 
-/* static string object:
- * Any such object may is of type sdb_object_t but may never be destroyed. */
-#define SSTRING_OBJ(name) { \
-	/* type = */ { sizeof(sdb_object_t), NULL, NULL }, \
-	/* ref_cnt = */ 1, /* name = */ (name) }
+#ifndef T_LIBSYSDB_UTILS_H
+#define T_LIBSYSDB_UTILS_H 1
 
 /*
- * test-related data-types
+ * sdb_regmatches:
+ * Check if a regex matches a string.
+ *
+ * Returns:
+ *  - 0 if the regex matches
+ *  - a non-zero error value else (see regcomp(3) for details)
  */
+int
+sdb_regmatches(const char *regex, const char *string);
 
-typedef struct {
-	Suite *(*creator)(void);
-	const char *msg;
-} suite_creator_t;
-
-/*
- * test suites
- */
-
-/* t/core/data_test */
-Suite *
-core_data_suite(void);
-
-/* t/core/object_test */
-Suite *
-core_object_suite(void);
-
-/* t/core/store_test */
-Suite *
-core_store_suite(void);
-
-/* t/core/store_lookup_test */
-Suite *
-core_store_lookup_suite(void);
-
-/* t/core/time_test */
-Suite *
-core_time_suite(void);
-
-/* t/frontend/parser_test */
-Suite *
-fe_parser_suite(void);
-
-/* t/frontend/sock_test */
-Suite *
-fe_sock_suite(void);
-
-/* t/utils/channel_test */
-Suite *
-util_channel_suite(void);
-
-/* t/utils/dbi_test */
-Suite *
-util_dbi_suite(void);
-
-/* t/utils/llist_test */
-Suite *
-util_llist_suite(void);
-
-/* t/utils/strbuf_test */
-Suite *
-util_strbuf_suite(void);
-
-/* t/utils/unixsock_test */
-Suite *
-util_unixsock_suite(void);
-
-#endif /* T_LIBSYSDB_H */
+#endif /* T_LIBSYSDB_UTILS_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
