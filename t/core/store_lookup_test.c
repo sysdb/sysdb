@@ -466,6 +466,13 @@ START_TEST(test_lookup)
 			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v2', \\(nil\\) \\} "
 				"\\} \\})" },
+		{ "attribute.name != 'x' "
+		  "AND attribute.y !~ 'x'", 3,
+			"\\(AND, \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'x', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
+				"\\} \\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+						"NAME\\{ 'y', \\(nil\\) }, VALUE\\{ NULL, "PTR_RE" \\} "
+					"\\} \\}\\)\\)" },
 	};
 
 	int check, n;
