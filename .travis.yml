@@ -15,7 +15,7 @@ install:
   - pip show cpp-coveralls
 script: ./t/cibuild.sh
 after_success:
-  - coveralls --exclude t --verbose
+  - coveralls --build-root src --exclude t --verbose
 branches:
   only:
     - master
