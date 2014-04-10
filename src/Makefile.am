@@ -105,7 +105,9 @@ libsysdb_scanner_la_SOURCES = tools/sysdb/scanner.l
 libsysdb_scanner_la_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
 		tools/sysdb/command.c tools/sysdb/command.h \
-		tools/sysdb/input.c tools/sysdb/input.h
+		tools/sysdb/input.c tools/sysdb/input.h \
+		core/object.c include/core/object.h \
+		utils/llist.c include/utils/llist.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
 		$(AM_CFLAGS) @READLINE_CFLAGS@
 sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la @READLINE_LIBS@

@@ -29,11 +29,13 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "tools/sysdb/command.h"
 #include "tools/sysdb/input.h"
 
 #include "client/sysdb.h"
 #include "client/sock.h"
 #include "utils/error.h"
+#include "utils/llist.h"
 #include "utils/strbuf.h"
 
 #include <errno.h>
@@ -142,6 +144,7 @@ exit_usage(char *name, int status)
 "            default: "DEFAULT_SOCKET"\n"
 "  -U USER   the username to connect as\n"
 "            default: %s\n"
+"  -c CMD    execute the specified command and then exit\n"
 "\n"
 "  -h        display this help and exit\n"
 "  -V        display the version number and copyright\n"
@@ -167,6 +170,38 @@ exit_version(void)
 	exit(0);
 } /* exit_version */
 
+static int
+execute_commands(sdb_client_t *client, sdb_llist_t *commands)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	iter = sdb_llist_get_iter(commands);
+	if (! iter) {
+		sdb_log(SDB_LOG_ERR, "Failed to iterate commands");
+		return 1;
+	}
+
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+		if (sdb_client_send(client, CONNECTION_QUERY,
+					(uint32_t)strlen(obj->name), obj->name) <= 0) {
+			sdb_log(SDB_LOG_ERR, "Failed to send command '%s' to server",
+					obj->name);
+			status = 1;
+			break;
+		}
+		if (sdb_command_print_reply(client)) {
+			sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
+			status = 1;
+			break;
+		}
+	}
+
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* execute_commands */
+
 int
 main(int argc, char **argv)
 {
@@ -177,9 +212,10 @@ main(int argc, char **argv)
 	char hist_file[1024] = "";
 
 	sdb_input_t input = SDB_INPUT_INIT;
+	sdb_llist_t *commands = NULL;
 
 	while (42) {
-		int opt = getopt(argc, argv, "H:U:hV");
+		int opt = getopt(argc, argv, "H:U:c:hV");
 
 		if (-1 == opt)
 			break;
@@ -190,6 +226,30 @@ main(int argc, char **argv)
 				break;
 			case 'U':
 				user = optarg;
+				break;
+
+			case 'c':
+				{
+					sdb_object_t *obj;
+
+					if (! commands)
+						commands = sdb_llist_create();
+					if (! commands) {
+						sdb_log(SDB_LOG_ERR, "Failed to create list object");
+						exit(1);
+					}
+
+					if (! (obj = sdb_object_create_T(optarg, sdb_object_t))) {
+						sdb_log(SDB_LOG_ERR, "Failed to create object");
+						exit(1);
+					}
+					if (sdb_llist_append(commands, obj)) {
+						sdb_log(SDB_LOG_ERR, "Failed to append command to list");
+						sdb_object_deref(obj);
+						exit(1);
+					}
+					sdb_object_deref(obj);
+				}
 				break;
 
 			case 'h':
@@ -223,6 +283,13 @@ main(int argc, char **argv)
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
 		sdb_client_destroy(input.client);
 		exit(1);
+	}
+
+	if (commands) {
+		int status = execute_commands(input.client, commands);
+		sdb_llist_destroy(commands);
+		sdb_client_destroy(input.client);
+		exit(status);
 	}
 
 	sdb_log(SDB_LOG_INFO, "SysDB client "SDB_CLIENT_VERSION_STRING

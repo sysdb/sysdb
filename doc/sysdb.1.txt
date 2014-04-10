@@ -32,6 +32,12 @@ OPTIONS
 	The username used to authenticate against the server. Defaults to the
 	current user.
 
+*-c* '<command>'::
+	Send the specified command to the server after authenticating. This option
+	may be used multiple times. Each command will be send to the server
+	separately. Exit the process after handling the reply from the last
+	command.
+
 *-h*::
 	Display a usage and help summary and exit.
 
