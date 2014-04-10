@@ -82,7 +82,7 @@ sdb_object_vcreate(const char *name, sdb_type_t type, va_list ap)
 {
 	sdb_object_t *obj;
 
-	if (type.size <= sizeof(sdb_object_t))
+	if (type.size < sizeof(sdb_object_t))
 		return NULL;
 
 	obj = malloc(type.size);
