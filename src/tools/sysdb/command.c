@@ -47,7 +47,7 @@
  */
 
 int
-sdb_command_print_reply(sdb_input_t *input)
+sdb_command_print_reply(sdb_client_t *client)
 {
 	sdb_strbuf_t *recv_buf;
 	const char *result;
@@ -57,10 +57,10 @@ sdb_command_print_reply(sdb_input_t *input)
 	if (! recv_buf)
 		return -1;
 
-	if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
+	if (sdb_client_recv(client, &rcode, recv_buf) < 0)
 		rcode = UINT32_MAX;
 
-	if (sdb_client_eof(input->client))
+	if (sdb_client_eof(client))
 		return -1;
 
 	if (rcode == UINT32_MAX)
@@ -103,7 +103,7 @@ sdb_command_exec(sdb_input_t *input)
 		/* ignore errors; we'll only hide the command from the caller */
 
 		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
-		if (sdb_command_print_reply(input))
+		if (sdb_command_print_reply(input->client))
 			return NULL;
 	}
 
