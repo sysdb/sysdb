@@ -11,7 +11,7 @@ before_install:
 install:
   - sudo apt-get install -qq check flex bison libtool libltdl-dev
   - sudo apt-get install -qq libdbi-dev libedit-dev libreadline-dev
-  - sudo pip install cpp-coveralls --use-mirrors
+  - sudo pip install cpp-coveralls
   - pip show cpp-coveralls
 script: ./t/cibuild.sh
 after_success:
