@@ -534,6 +534,13 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		while (sdb_llist_iter_has_next(iter)) {
 			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+
+			if (CONN(obj)->fd < 0) {
+				sdb_llist_iter_remove_current(iter);
+				sdb_object_deref(obj);
+				continue;
+			}
+
 			FD_SET(CONN(obj)->fd, &ready);
 			FD_SET(CONN(obj)->fd, &exceptions);
 

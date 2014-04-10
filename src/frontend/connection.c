@@ -142,7 +142,8 @@ connection_destroy(sdb_object_t *obj)
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i",
 			conn->fd);
-	close(conn->fd);
+	if (conn->fd >= 0)
+		close(conn->fd);
 	conn->fd = -1;
 
 	sdb_strbuf_destroy(conn->buf);
@@ -382,6 +383,9 @@ connection_read(sdb_conn_t *conn)
 {
 	ssize_t n = 0;
 
+	if ((! conn) || (conn->fd < 0))
+		return -1;
+
 	while (42) {
 		ssize_t status;
 
@@ -390,6 +394,9 @@ connection_read(sdb_conn_t *conn)
 		if (status < 0) {
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 				break;
+
+			close(conn->fd);
+			conn->fd = -1;
 			return (int)status;
 		}
 		else if (! status) /* EOF */
@@ -469,6 +476,11 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 	status = sdb_proto_send_msg(conn->fd, code, msg_len, msg);
 	if (status < 0) {
 		char errbuf[1024];
+
+		/* tell other code that there was a problem and, more importantly,
+		 * make sure we don't try to send further logs to the connection */
+		close(conn->fd);
+		conn->fd = -1;
 
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
 				"(code: %u, len: %u) to client: %s", code, msg_len,
