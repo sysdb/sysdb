@@ -1,0 +1,70 @@
+sysdb(1)
+========
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+sysdb - interactive client for the system management and inventory collection
+service
+
+SYNOPSIS
+--------
+*sysdb* ['options']
+
+DESCRIPTION
+-----------
+*sysdb* is a terminal-based, interactive client program for SysDB, a
+multi-backend system management and inventory collection daemon. It connects
+to a running daemon and then accepts commands from the user, send them to the
+server, and display the result.
+
+OPTIONS
+-------
+*sysdb* accepts the following command-line options.
+
+*-H* '<host>'::
+	The SysDB host to connect to. May be specified as the path to a UNIX
+	socket opened by the daemon. Defaults to {localstatedir}/run/sysdbd.sock.
+
+*-U* '<username>'::
+	The username used to authenticate against the server. Defaults to the
+	current user.
+
+*-h*::
+	Display a usage and help summary and exit.
+
+*-V*::
+	Display the version number and copyright information.
+
+EXIT CODES
+----------
+*0*::
+	Success.
+
+*1*::
+	Failure (syntax or usage error).
+
+BUGS
+----
+None known.
+
+SEE ALSO
+--------
+*sysdbd*(1)
+
+AUTHOR
+------
+sysdbd was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012-2014 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+

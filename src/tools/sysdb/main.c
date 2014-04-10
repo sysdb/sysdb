@@ -78,37 +78,6 @@
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
 
-static void
-exit_usage(char *name, int status)
-{
-	printf(
-"Usage: %s <options>\n"
-
-"\nOptions:\n"
-"  -h        display this help and exit\n"
-"  -V        display the version number and copyright\n"
-
-"\nSysDB client "SDB_CLIENT_VERSION_STRING SDB_CLIENT_VERSION_EXTRA", "
-PACKAGE_URL"\n", basename(name));
-	exit(status);
-} /* exit_usage */
-
-static void
-exit_version(void)
-{
-	printf("SysDB version "SDB_CLIENT_VERSION_STRING
-			SDB_CLIENT_VERSION_EXTRA", built "BUILD_DATE"\n"
-			"using libsysdbclient version %s%s\n"
-			"Copyright (C) 2012-2014 "PACKAGE_MAINTAINER"\n"
-
-			"\nThis is free software under the terms of the BSD license, see "
-			"the source for\ncopying conditions. There is NO WARRANTY; not "
-			"even for MERCHANTABILITY or\nFITNESS FOR A PARTICULAR "
-			"PURPOSE.\n", sdb_client_version_string(),
-			sdb_client_version_extra());
-	exit(0);
-} /* exit_version */
-
 static const char *
 get_current_user(void)
 {
@@ -161,6 +130,42 @@ get_homedir(const char *username)
 	}
 	return result->pw_dir;
 } /* get_homedir */
+
+static void
+exit_usage(char *name, int status)
+{
+	printf(
+"Usage: %s <options>\n"
+
+"\nOptions:\n"
+"  -H HOST   the host to connect to\n"
+"            default: "DEFAULT_SOCKET"\n"
+"  -U USER   the username to connect as\n"
+"            default: %s\n"
+"\n"
+"  -h        display this help and exit\n"
+"  -V        display the version number and copyright\n"
+
+"\nSysDB client "SDB_CLIENT_VERSION_STRING SDB_CLIENT_VERSION_EXTRA", "
+PACKAGE_URL"\n", basename(name), get_current_user());
+	exit(status);
+} /* exit_usage */
+
+static void
+exit_version(void)
+{
+	printf("SysDB version "SDB_CLIENT_VERSION_STRING
+			SDB_CLIENT_VERSION_EXTRA", built "BUILD_DATE"\n"
+			"using libsysdbclient version %s%s\n"
+			"Copyright (C) 2012-2014 "PACKAGE_MAINTAINER"\n"
+
+			"\nThis is free software under the terms of the BSD license, see "
+			"the source for\ncopying conditions. There is NO WARRANTY; not "
+			"even for MERCHANTABILITY or\nFITNESS FOR A PARTICULAR "
+			"PURPOSE.\n", sdb_client_version_string(),
+			sdb_client_version_extra());
+	exit(0);
+} /* exit_version */
 
 int
 main(int argc, char **argv)

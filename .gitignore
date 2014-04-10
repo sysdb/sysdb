@@ -29,6 +29,8 @@ libtool
 ltmain.sh
 
 # build output
+doc/*.1
+doc/*.5
 src/frontend/grammar.c
 src/frontend/grammar.h
 src/frontend/scanner.c
@@ -44,8 +46,6 @@ src/sysdbd
 *.la
 *.lo
 *.o
-sysdbd.1
-sysdbd.conf.5
 sysdb.h
 
 # unit testing output
