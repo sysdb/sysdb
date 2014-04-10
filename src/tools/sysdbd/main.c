@@ -262,6 +262,10 @@ main(int argc, char **argv)
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 
+	/* ignore, we see this, for example, if a client disconnects without
+	 * closing the connection cleanly */
+	signal(SIGPIPE, SIG_IGN);
+
 	memset(&backend_thread, 0, sizeof(backend_thread));
 	if (pthread_create(&backend_thread, /* attr = */ NULL,
 				backend_handler, /* arg = */ NULL)) {
