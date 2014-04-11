@@ -27,6 +27,7 @@
 
 #include "core/store.h"
 #include "core/store-private.h"
+#include "frontend/parser.h"
 #include "libsysdb_test.h"
 
 #include <check.h>
@@ -354,20 +355,20 @@ START_TEST(test_parse_cmp)
 		{ "host",      "attr", "=",  "hostname", -1 },
 		{ "host",      "attr", "!=", "hostname", -1 },
 		{ "host",      "name", "&^", "hostname", -1 },
-		{ "service",   "name", "=",  "srvname",  MATCHER_SERVICE },
+		{ "service",   "name", "=",  "srvname",  MATCHER_HOST },
 		{ "service",   "name", "!=", "srvname",  MATCHER_NOT },
-		{ "service",   "name", "=~", "srvname",  MATCHER_SERVICE },
+		{ "service",   "name", "=~", "srvname",  MATCHER_HOST },
 		{ "service",   "name", "!~", "srvname",  MATCHER_NOT },
 		{ "service",   "attr", "=",  "srvname",  -1 },
 		{ "service",   "attr", "!=", "srvname",  -1 },
 		{ "service",   "name", "&^", "srvname",  -1 },
-		{ "attribute", "name", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "name", "=",  "attrname", MATCHER_HOST },
 		{ "attribute", "name", "!=", "attrname", MATCHER_NOT },
-		{ "attribute", "name", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "name", "=~", "attrname", MATCHER_HOST },
 		{ "attribute", "name", "!~", "attrname", MATCHER_NOT },
-		{ "attribute", "attr", "=",  "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "=",  "attrname", MATCHER_HOST },
 		{ "attribute", "attr", "!=", "attrname", MATCHER_NOT },
-		{ "attribute", "attr", "=~", "attrname", MATCHER_ATTR },
+		{ "attribute", "attr", "=~", "attrname", MATCHER_HOST },
 		{ "attribute", "attr", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "&^", "attrname", -1 },
 	};
@@ -404,7 +405,7 @@ END_TEST
 static int
 lookup_cb(sdb_store_base_t *obj, void *user_data)
 {
-	intptr_t *i = user_data;
+	int *i = user_data;
 
 	fail_unless(obj != NULL,
 			"sdb_store_lookup callback received NULL obj; expected: "
@@ -419,14 +420,93 @@ lookup_cb(sdb_store_base_t *obj, void *user_data)
 
 START_TEST(test_lookup)
 {
-	intptr_t i = 0;
-	int check;
+#define PTR_RE "0x[0-9a-f]+"
+	struct {
+		const char *query;
+		int expected;
+		const char *tostring_re;
+	} golden_data[] = {
+		{ "host.name = 'a'",       1,
+			"HOST\\{ NAME\\{ 'a', \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+		{ "host.name =~ 'a|b'",    2,
+			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+		{ "host.name =~ 'host'",   0,
+			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+		{ "host.name =~ '.'",      3,
+			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+		{ "service.name = 's1'",   2,
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
+					"NAME\\{ 's1', \\(nil\\) }, ATTR\\{\\} "
+				"\\}, ATTR\\{\\} \\}" },
+		{ "service.name =~ 's'",   2,
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
+					"NAME\\{ NULL, "PTR_RE" }, ATTR\\{\\} "
+				"\\}, ATTR\\{\\} \\}" },
+		{ "service.name !~ 's'",   1,
+			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
+					"NAME\\{ NULL, "PTR_RE" }, ATTR\\{\\} "
+				"\\}, ATTR\\{\\} \\})" },
+		{ "attribute.name = 'k1'", 1,
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
+				"\\} \\}" },
+		{ "attribute.name = 'x'",  0,
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'x', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
+				"\\} \\}" },
+		{ "attribute.k1 = 'v1'",   1,
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
+				"\\} \\}" },
+		{ "attribute.k1 != 'v1'",  2,
+			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
+				"\\} \\})" },
+		{ "attribute.k1 != 'v2'",  3,
+			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v2', \\(nil\\) \\} "
+				"\\} \\})" },
+		{ "attribute.name != 'x' "
+		  "AND attribute.y !~ 'x'", 3,
+			"\\(AND, \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+					"NAME\\{ 'x', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
+				"\\} \\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+						"NAME\\{ 'y', \\(nil\\) }, VALUE\\{ NULL, "PTR_RE" \\} "
+					"\\} \\}\\)\\)" },
+	};
 
-	check = sdb_store_lookup(NULL, lookup_cb, &i);
+	int check, n;
+	size_t i;
+
+	n = 0;
+	check = sdb_store_lookup(NULL, lookup_cb, &n);
 	fail_unless(check == 0,
 			"sdb_store_lookup() = %d; expected: 0", check);
-	fail_unless(i == 3,
-			"sdb_store_lookup called callback %d times; expected: 3", (int)i);
+	fail_unless(n == 3,
+			"sdb_store_lookup called callback %d times; expected: 3", (int)n);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_matcher_t *m;
+		char buf[4096];
+
+		m = sdb_fe_parse_matcher(golden_data[i].query, -1);
+		fail_unless(m != NULL,
+				"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher>",
+				golden_data[i].query);
+		fail_unless(sdb_regmatches(golden_data[i].tostring_re,
+					sdb_store_matcher_tostring(m, buf, sizeof(buf))) == 0,
+				"sdb_fe_parse_matcher(%s, -1) = %s; expected: %s",
+				golden_data[i].query,
+				sdb_store_matcher_tostring(m, buf, sizeof(buf)),
+				golden_data[i].tostring_re);
+
+		n = 0;
+		sdb_store_lookup(m, lookup_cb, &n);
+		fail_unless(n == golden_data[i].expected,
+				"sdb_store_lookup(matcher{%s}) found %d hosts; expected: %d",
+				golden_data[i].query, n, golden_data[i].expected);
+		sdb_object_deref(SDB_OBJ(m));
+	}
 }
 END_TEST
 

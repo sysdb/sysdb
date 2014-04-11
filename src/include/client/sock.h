@@ -96,7 +96,7 @@ sdb_client_close(sdb_client_t *client);
  * connection.
  *
  * Returns:
- *  - 0 on success
+ *  - the number of bytes send
  *  - a negative value else.
  */
 ssize_t

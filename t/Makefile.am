@@ -10,6 +10,7 @@ check_PROGRAMS = libsysdb_test libsysdb_net_test
 
 libsysdb_test_SOURCES = \
 		libsysdb_test.c libsysdb_test.h \
+		libsysdb_testutils.c libsysdb_testutils.h \
 		core/data_test.c \
 		core/object_test.c \
 		core/store_test.c \
@@ -25,7 +26,8 @@ libsysdb_test_CFLAGS = $(AM_CFLAGS) @CHECK_CFLAGS@
 libsysdb_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 
 libsysdb_net_test_SOURCES = \
-		libsysdb_net_test.c libsysdb_test.h
+		libsysdb_net_test.c libsysdb_test.h \
+		libsysdb_testutils.c libsysdb_testutils.h
 if BUILD_WITH_FOPENCOOKIE
 libsysdb_net_test_SOURCES += utils/unixsock_test.c
 endif

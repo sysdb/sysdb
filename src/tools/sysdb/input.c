@@ -190,7 +190,7 @@ input_readline(void)
 		/* some response / error message from the server pending */
 		/* XXX: clear current line */
 		printf("\n");
-		sdb_command_print_reply(sysdb_input);
+		sdb_command_print_reply(sysdb_input->client);
 		rl_forced_update_display();
 	}
 

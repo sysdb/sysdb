@@ -381,9 +381,14 @@ socket_handle_incoming(sdb_fe_socket_t *sock,
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (FD_ISSET(CONN(obj)->fd, exceptions))
+		if (FD_ISSET(CONN(obj)->fd, exceptions)) {
 			sdb_log(SDB_LOG_INFO, "Exception on fd %d",
 					CONN(obj)->fd);
+			/* close the connection */
+			sdb_llist_iter_remove_current(iter);
+			sdb_object_deref(obj);
+			continue;
+		}
 
 		if (FD_ISSET(CONN(obj)->fd, ready)) {
 			sdb_llist_iter_remove_current(iter);
@@ -529,6 +534,13 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 
 		while (sdb_llist_iter_has_next(iter)) {
 			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+
+			if (CONN(obj)->fd < 0) {
+				sdb_llist_iter_remove_current(iter);
+				sdb_object_deref(obj);
+				continue;
+			}
+
 			FD_SET(CONN(obj)->fd, &ready);
 			FD_SET(CONN(obj)->fd, &exceptions);
 

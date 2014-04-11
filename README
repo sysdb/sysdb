@@ -68,8 +68,14 @@ Testing
   library. It used used to mock I/O related functions. In case this function
   is not available, the respective tests will be disabled automatically.
 
+  For the latest build status, see:
+  <https://travis-ci.org/tokkee/sysdb>
+
   Code coverage testing using Gcov may be enabled when using the
   ‘--enable-gcov’ configure option.
+
+  For the latest coverage report, see:
+  <https://coveralls.io/r/tokkee/sysdb>
 
 Configuring / Compiling / Installing
 ------------------------------------

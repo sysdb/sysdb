@@ -103,6 +103,106 @@ match_name(name_matcher_t *m, const char *name)
 	return 1;
 } /* match_name */
 
+static char *
+name_tostring(name_matcher_t *m, char *buf, size_t buflen)
+{
+	snprintf(buf, buflen, "{ %s%s%s, %p }",
+			m->name ? "'" : "", m->name ? m->name : "NULL", m->name ? "'" : "",
+			m->name_re);
+	return buf;
+} /* name_tostring */
+
+static char *
+logical_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char left[buflen + 1], right[buflen + 1];
+
+	if (! m) {
+		/* this should not happen */
+		snprintf(buf, buflen, "()");
+		return buf;
+	}
+
+	assert((m->type == MATCHER_OR) || (m->type == MATCHER_AND));
+	snprintf(buf, buflen, "(%s, %s, %s)",
+			m->type == MATCHER_OR ? "OR" : "AND",
+			sdb_store_matcher_tostring(OP_M(m)->left, left, sizeof(left)),
+			sdb_store_matcher_tostring(OP_M(m)->right, right, sizeof(right)));
+	return buf;
+} /* logical_tostring */
+
+static char *
+unary_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char op[buflen + 1];
+
+	if (! m) {
+		/* this should not happen */
+		snprintf(buf, buflen, "()");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_NOT);
+	snprintf(buf, buflen, "(NOT, %s)",
+			sdb_store_matcher_tostring(UOP_M(m)->op, op, sizeof(op)));
+	return buf;
+} /* unary_tostring */
+
+static char *
+attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char name[buflen + 1], value[buflen + 1];
+
+	if (! m) {
+		snprintf(buf, buflen, "ATTR{}");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_ATTR);
+	snprintf(buf, buflen, "ATTR{ NAME%s, VALUE%s }",
+			name_tostring(&OBJ_M(m)->name, name, sizeof(name)),
+			name_tostring(&ATTR_M(m)->value, value, sizeof(value)));
+	return buf;
+} /* attr_tostring */
+
+static char *
+service_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char name[buflen + 1], attr[buflen + 1];
+
+	if (! m) {
+		snprintf(buf, buflen, "SERVICE{}");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_SERVICE);
+	snprintf(buf, buflen, "SERVICE{ NAME%s, %s }",
+			name_tostring(&OBJ_M(m)->name, name, sizeof(name)),
+			attr_tostring(SDB_STORE_MATCHER(SERVICE_M(m)->attr),
+				attr, sizeof(attr)));
+	return buf;
+} /* service_tostring */
+
+static char *
+host_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char name[buflen + 1], service[buflen + 1], attr[buflen + 1];
+
+	if (! m) {
+		snprintf(buf, buflen, "HOST{}");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_HOST);
+	snprintf(buf, buflen, "HOST{ NAME%s, %s, %s }",
+			name_tostring(&OBJ_M(m)->name, name, sizeof(name)),
+			service_tostring(SDB_STORE_MATCHER(HOST_M(m)->service),
+				service, sizeof(service)),
+			attr_tostring(SDB_STORE_MATCHER(HOST_M(m)->attr),
+				attr, sizeof(attr)));
+	return buf;
+} /* host_tostring */
+
 /* match attribute specific values;
  * always call this function through match_obj() */
 static int
@@ -216,6 +316,17 @@ static matcher_cb matchers[] = {
 	match_obj,
 	match_obj,
 	match_obj,
+};
+
+typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
+
+static matcher_tostring_cb matchers_tostring[] = {
+	logical_tostring,
+	logical_tostring,
+	unary_tostring,
+	attr_tostring,
+	service_tostring,
+	host_tostring,
 };
 
 static int
@@ -550,7 +661,9 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		/* accept */
 	}
 	else if (typ == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, NULL, matcher, matcher_re);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				/* service = */ NULL,
+				sdb_store_attr_matcher(attr, NULL, matcher, matcher_re));
 	else
 		return NULL;
 
@@ -560,9 +673,13 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else if (typ == SDB_HOST)
 		m = sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
 	else if (typ == SDB_SERVICE)
-		m = sdb_store_service_matcher(matcher, matcher_re, NULL);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				sdb_store_service_matcher(matcher, matcher_re, NULL),
+				/* attr = */ NULL);
 	else if (typ == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL);
+		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
+				/* service = */ NULL,
+				sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL));
 
 	if (m && inv) {
 		sdb_store_matcher_t *tmp;
@@ -606,6 +723,18 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 
 	return matchers[m->type](m, obj);
 } /* sdb_store_matcher_matches */
+
+char *
+sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	if (! m)
+		return NULL;
+
+	if ((m->type < 0)
+			|| (((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers_tostring))))
+		return NULL;
+	return matchers_tostring[m->type](m, buf, buflen);
+} /* sdb_store_matcher_tostring */
 
 int
 sdb_store_lookup(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,

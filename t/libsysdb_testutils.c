@@ -1,6 +1,6 @@
 /*
- * SysDB - t/libsysdb_test.h
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - t/libsysdb_testutils.c
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,89 +25,30 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef T_LIBSYSDB_H
-#define T_LIBSYSDB_H 1
-
-#include "sysdb.h"
-#include "core/object.h"
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
 
 #include "libsysdb_testutils.h"
 
-#include <check.h>
-#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <regex.h>
 
-/*
- * private testing helpers
- */
+int
+sdb_regmatches(const char *regex, const char *string)
+{
+	regex_t reg;
+	int status;
 
-/* static string object:
- * Any such object may is of type sdb_object_t but may never be destroyed. */
-#define SSTRING_OBJ(name) { \
-	/* type = */ { sizeof(sdb_object_t), NULL, NULL }, \
-	/* ref_cnt = */ 1, /* name = */ (name) }
+	status = regcomp(&reg, regex, REG_EXTENDED | REG_NOSUB);
+	if (status)
+		return status;
 
-/*
- * test-related data-types
- */
-
-typedef struct {
-	Suite *(*creator)(void);
-	const char *msg;
-} suite_creator_t;
-
-/*
- * test suites
- */
-
-/* t/core/data_test */
-Suite *
-core_data_suite(void);
-
-/* t/core/object_test */
-Suite *
-core_object_suite(void);
-
-/* t/core/store_test */
-Suite *
-core_store_suite(void);
-
-/* t/core/store_lookup_test */
-Suite *
-core_store_lookup_suite(void);
-
-/* t/core/time_test */
-Suite *
-core_time_suite(void);
-
-/* t/frontend/parser_test */
-Suite *
-fe_parser_suite(void);
-
-/* t/frontend/sock_test */
-Suite *
-fe_sock_suite(void);
-
-/* t/utils/channel_test */
-Suite *
-util_channel_suite(void);
-
-/* t/utils/dbi_test */
-Suite *
-util_dbi_suite(void);
-
-/* t/utils/llist_test */
-Suite *
-util_llist_suite(void);
-
-/* t/utils/strbuf_test */
-Suite *
-util_strbuf_suite(void);
-
-/* t/utils/unixsock_test */
-Suite *
-util_unixsock_suite(void);
-
-#endif /* T_LIBSYSDB_H */
+	status = regexec(&reg, string, /* matches = */ 0, NULL, /* flags = */ 0);
+	regfree(&reg);
+	return status;
+} /* sdb_regmatches */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
