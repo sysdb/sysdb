@@ -140,8 +140,7 @@ connection_destroy(sdb_object_t *obj)
 					"(%zu byte%s left in buffer)", len, len == 1 ? "" : "s");
 	}
 
-	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection on fd=%i",
-			conn->fd);
+	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection %s", obj->name);
 	if (conn->fd >= 0)
 		close(conn->fd);
 	conn->fd = -1;
