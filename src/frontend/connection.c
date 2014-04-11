@@ -185,7 +185,13 @@ sdb_conn_ctx_init(void)
 static void
 sdb_conn_set_ctx(sdb_conn_t *conn)
 {
+	sdb_conn_t *old;
+
 	sdb_conn_ctx_init();
+
+	old = pthread_getspecific(conn_ctx_key);
+	if (old)
+		sdb_object_deref(SDB_OBJ(old));
 	if (conn)
 		sdb_object_ref(SDB_OBJ(conn));
 	pthread_setspecific(conn_ctx_key, conn);
