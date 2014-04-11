@@ -439,6 +439,14 @@ sdb_connection_accept(int fd)
 void
 sdb_connection_close(sdb_conn_t *conn)
 {
+	if (! conn)
+		return;
+
+	/* close the connection even if someone else still references it */
+	if (conn->fd >= 0)
+		close(conn->fd);
+	conn->fd = -1;
+
 	sdb_object_deref(SDB_OBJ(conn));
 } /* sdb_connection_close */
 
