@@ -157,9 +157,9 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
 
 /*
  * sdb_llist_remove:
- * Removes and returns the first matchin element of the list. The ref-count of
- * the item will not be changed, that is, if the element will not be used any
- * further, it should be de-referenced by the caller.
+ * Removes and returns the first matching element of the list. The ref-count
+ * of the item will not be changed, that is, if the element will not be used
+ * any further, it should be de-referenced by the caller.
  *
  * Returns:
  *  - a pointer to the first matching object
@@ -168,6 +168,19 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
 sdb_object_t *
 sdb_llist_remove(sdb_llist_t *list,
 		sdb_llist_lookup_cb lookup, const void *user_data);
+
+/*
+ * sdb_llist_remove_by_name:
+ * Removes and returns the first element whose name matches the specified key.
+ * The ref-count of the item will not be changed, that is, if the element will
+ * not be used any further, it should be de-referenced by the caller.
+ *
+ * Returns:
+ *  - a pointer to the first matching object
+ *  - NULL else
+ */
+sdb_object_t *
+sdb_llist_remove_by_name(sdb_llist_t *list, const char *key);
 
 /*
  * sdb_llist_shift:

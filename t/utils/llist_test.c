@@ -177,12 +177,41 @@ START_TEST(test_llist_get)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_object_t *check = sdb_llist_get(list, i);
 		fail_unless(check == &golden_data[i],
-				"sdb_llist_get() = NULL; expected: %p",
-				&golden_data[i]);
+				"sdb_llist_get() = %p; expected: %p",
+				check, &golden_data[i]);
 		fail_unless(check->ref_cnt == 3,
 				"sdb_llist_get() didn't increment reference count; got: %i; "
 				"expected: 3", check->ref_cnt);
 		sdb_object_deref(check);
+	}
+}
+END_TEST
+
+START_TEST(test_remove_by_name)
+{
+	/* "random" indexes */
+	int indexes[] = { 4, 5, 3, 6, 2, 0, 1 };
+	size_t i;
+
+	populate();
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(indexes); ++i) {
+		sdb_object_t *check;
+
+		fail_unless((size_t)indexes[i] < SDB_STATIC_ARRAY_LEN(golden_data),
+				"INTERNAL ERROR: invalid index %i", indexes[i]);
+
+		check = sdb_llist_remove_by_name(list, golden_data[indexes[i]].name);
+		fail_unless(check == &golden_data[indexes[i]],
+				"sdb_llist_remove_by_name() = %p; expected: %p",
+				check, &golden_data[indexes[i]]);
+		fail_unless(check->ref_cnt == 2,
+				"sdb_llist_remove_by_name() returned unexpected reference "
+				"count; got: %i; expected: 2", check->ref_cnt);
+
+		check = sdb_llist_remove_by_name(list, golden_data[indexes[i]].name);
+		fail_unless(check == NULL,
+				"sdb_llist_remove_by_name() did not remove the element");
 	}
 }
 END_TEST
@@ -336,6 +365,7 @@ util_llist_suite(void)
 	tcase_add_test(tc, test_llist_insert);
 	tcase_add_test(tc, test_validate_insert);
 	tcase_add_test(tc, test_llist_get);
+	tcase_add_test(tc, test_remove_by_name);
 	tcase_add_test(tc, test_llist_search);
 	tcase_add_test(tc, test_llist_shift);
 	tcase_add_test(tc, test_llist_iter);

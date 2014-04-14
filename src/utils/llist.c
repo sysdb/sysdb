@@ -384,6 +384,29 @@ sdb_llist_remove(sdb_llist_t *list,
 } /* sdb_llist_remove */
 
 sdb_object_t *
+sdb_llist_remove_by_name(sdb_llist_t *list, const char *key)
+{
+	sdb_llist_elem_t *elem;
+	sdb_object_t *obj = NULL;
+
+	if (! list)
+		return NULL;
+
+	pthread_rwlock_rdlock(&list->lock);
+
+	for (elem = list->head; elem; elem = elem->next)
+		if ((key == elem->obj->name)
+				|| (! strcasecmp(elem->obj->name, key)))
+			break;
+
+	if (elem)
+		obj = sdb_llist_remove_elem(list, elem);
+	pthread_rwlock_unlock(&list->lock);
+
+	return obj;
+} /* sdb_llist_remove_by_name */
+
+sdb_object_t *
 sdb_llist_shift(sdb_llist_t *list)
 {
 	sdb_object_t *obj;
