@@ -80,7 +80,7 @@ populate(void)
 	}
 } /* populate */
 
-START_TEST(test_llist_clone)
+START_TEST(test_clone)
 {
 	sdb_llist_t *clone;
 	size_t i;
@@ -100,7 +100,7 @@ START_TEST(test_llist_clone)
 }
 END_TEST
 
-START_TEST(test_llist_destroy)
+START_TEST(test_destroy)
 {
 	size_t i;
 	populate();
@@ -115,7 +115,7 @@ START_TEST(test_llist_destroy)
 }
 END_TEST
 
-START_TEST(test_llist_append)
+START_TEST(test_append)
 {
 	size_t i;
 
@@ -138,7 +138,7 @@ START_TEST(test_llist_append)
 }
 END_TEST
 
-START_TEST(test_llist_insert)
+START_TEST(test_insert)
 {
 	size_t i;
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -170,7 +170,7 @@ START_TEST(test_validate_insert)
 }
 END_TEST
 
-START_TEST(test_llist_get)
+START_TEST(test_get)
 {
 	size_t i;
 	populate();
@@ -223,7 +223,7 @@ dummy_lookup(const sdb_object_t __attribute__((unused)) *obj,
 	return 0;
 } /* dummy_lookup */
 
-START_TEST(test_llist_search)
+START_TEST(test_search)
 {
 	size_t i;
 	populate();
@@ -267,7 +267,7 @@ START_TEST(test_llist_search)
 }
 END_TEST
 
-START_TEST(test_llist_shift)
+START_TEST(test_shift)
 {
 	size_t i;
 	populate();
@@ -287,7 +287,7 @@ START_TEST(test_llist_shift)
 }
 END_TEST
 
-START_TEST(test_llist_iter)
+START_TEST(test_iter)
 {
 	sdb_llist_iter_t *iter;
 	size_t i;
@@ -316,7 +316,7 @@ START_TEST(test_llist_iter)
 }
 END_TEST
 
-START_TEST(test_llist_iter_remove)
+START_TEST(test_iter_remove)
 {
 	sdb_llist_iter_t *iter;
 	sdb_object_t *check;
@@ -359,17 +359,17 @@ util_llist_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
-	tcase_add_test(tc, test_llist_clone);
-	tcase_add_test(tc, test_llist_destroy);
-	tcase_add_test(tc, test_llist_append);
-	tcase_add_test(tc, test_llist_insert);
+	tcase_add_test(tc, test_clone);
+	tcase_add_test(tc, test_destroy);
+	tcase_add_test(tc, test_append);
+	tcase_add_test(tc, test_insert);
 	tcase_add_test(tc, test_validate_insert);
-	tcase_add_test(tc, test_llist_get);
+	tcase_add_test(tc, test_get);
 	tcase_add_test(tc, test_remove_by_name);
-	tcase_add_test(tc, test_llist_search);
-	tcase_add_test(tc, test_llist_shift);
-	tcase_add_test(tc, test_llist_iter);
-	tcase_add_test(tc, test_llist_iter_remove);
+	tcase_add_test(tc, test_search);
+	tcase_add_test(tc, test_shift);
+	tcase_add_test(tc, test_iter);
+	tcase_add_test(tc, test_iter_remove);
 	suite_add_tcase(s, tc);
 
 	return s;
