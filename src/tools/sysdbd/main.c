@@ -176,13 +176,51 @@ backend_handler(void __attribute__((unused)) *data)
 	return NULL;
 } /* backend_handler */
 
+static int
+main_loop(void)
+{
+	pthread_t backend_thread;
+	size_t i;
+
+	plugin_main_loop.do_loop = 1;
+	frontend_main_loop.do_loop = 1;
+
+	memset(&backend_thread, 0, sizeof(backend_thread));
+	if (pthread_create(&backend_thread, /* attr = */ NULL,
+				backend_handler, /* arg = */ NULL)) {
+		char buf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to create backend handler thread: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+
+		plugin_main_loop.do_loop = 0;
+		return 1;
+	}
+
+	sdb_fe_socket_t *sock = sdb_fe_sock_create();
+	for (i = 0; i < listen_addresses_num; ++i)
+		if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+			break;
+
+	/* break on error */
+	if (i >= listen_addresses_num)
+		sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+
+	sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
+	plugin_main_loop.do_loop = 0;
+	/* send a signal to interrupt the sleep call
+	 * and make the thread shut down faster */
+	pthread_kill(backend_thread, SIGINT);
+	pthread_join(backend_thread, NULL);
+	sdb_fe_sock_destroy(sock);
+
+	return 0;
+} /* main_loop */
+
 int
 main(int argc, char **argv)
 {
 	char *config_filename = NULL;
 	_Bool do_daemonize = 1;
-
-	pthread_t backend_thread;
 
 	struct sigaction sa_intterm;
 	int status;
@@ -266,39 +304,12 @@ main(int argc, char **argv)
 	 * closing the connection cleanly */
 	signal(SIGPIPE, SIG_IGN);
 
-	memset(&backend_thread, 0, sizeof(backend_thread));
-	if (pthread_create(&backend_thread, /* attr = */ NULL,
-				backend_handler, /* arg = */ NULL)) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "Failed to create backend handler thread: %s",
-				sdb_strerror(errno, buf, sizeof(buf)));
-
-		plugin_main_loop.do_loop = 0;
-	}
-	else {
-		size_t i;
-
-		sdb_fe_socket_t *sock = sdb_fe_sock_create();
-		for (i = 0; i < listen_addresses_num; ++i)
-			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
-				break;
-
-		sdb_connection_enable_logging();
-
-		/* break on error */
-		if (i >= listen_addresses_num)
-			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
-
-		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
-		plugin_main_loop.do_loop = 0;
-		pthread_kill(backend_thread, SIGINT);
-		pthread_join(backend_thread, NULL);
-		sdb_fe_sock_destroy(sock);
-	}
+	sdb_connection_enable_logging();
+	status = main_loop();
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
 			SDB_VERSION_EXTRA" (pid %i)", (int)getpid());
-	return 0;
+	return status;
 } /* main */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
