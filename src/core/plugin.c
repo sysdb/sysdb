@@ -299,6 +299,7 @@ ctx_create(const char *name)
 
 	if (! plugin_ctx_key_initialized)
 		ctx_key_init();
+	sdb_object_ref(SDB_OBJ(ctx));
 	pthread_setspecific(plugin_ctx_key, ctx);
 	return ctx;
 } /* ctx_create */
@@ -320,6 +321,10 @@ ctx_set(ctx_t *new)
 		ctx_key_init();
 
 	old = pthread_getspecific(plugin_ctx_key);
+	if (old)
+		sdb_object_deref(SDB_OBJ(old));
+	if (new)
+		sdb_object_ref(SDB_OBJ(new));
 	pthread_setspecific(plugin_ctx_key, new);
 	return old;
 } /* ctx_set */
