@@ -228,8 +228,8 @@ daemon_configure_plugin(oconfig_item_t *ci)
 	if (oconfig_get_string(ci, &name)) {
 		sdb_log(SDB_LOG_ERR, "config: %s requires a single "
 				"string argument\n"
-				"\tUsage: LoadBackend BACKEND",
-				ci->key);
+				"\tUsage: <%s NAME>...</%s>",
+				ci->key, ci->key, ci->key);
 		return ERR_INVALID_ARG;
 	}
 
