@@ -396,7 +396,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 int
 sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 {
-	char  real_name[name ? strlen(name) + 1 : 1];
+	char  base_name[name ? strlen(name) + 1 : 1];
 	const char *name_ptr;
 	char *tmp;
 
@@ -411,17 +411,17 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	if ((! name) || (! *name))
 		return -1;
 
-	real_name[0] = '\0';
+	base_name[0] = '\0';
 	name_ptr = name;
 
 	while ((tmp = strstr(name_ptr, "::"))) {
-		strncat(real_name, name_ptr, (size_t)(tmp - name_ptr));
-		strcat(real_name, "/");
+		strncat(base_name, name_ptr, (size_t)(tmp - name_ptr));
+		strcat(base_name, "/");
 		name_ptr = tmp + strlen("::");
 	}
-	strcat(real_name, name_ptr);
+	strcat(base_name, name_ptr);
 
-	ctx = CTX(sdb_llist_search_by_name(all_plugins, real_name));
+	ctx = CTX(sdb_llist_search_by_name(all_plugins, base_name));
 	if (ctx) {
 		/* plugin already loaded */
 		++ctx->use_cnt;
@@ -429,7 +429,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	}
 
 	snprintf(filename, sizeof(filename), "%s/%s.so",
-			PKGLIBDIR, real_name);
+			PKGLIBDIR, base_name);
 	filename[sizeof(filename) - 1] = '\0';
 
 	if (access(filename, R_OK)) {
@@ -453,7 +453,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	if (ctx_get())
 		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
 
-	ctx = ctx_create(real_name);
+	ctx = ctx_create(name);
 	if (! ctx) {
 		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
 		return -1;
