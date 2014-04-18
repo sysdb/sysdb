@@ -81,6 +81,7 @@ typedef struct {
 	sdb_plugin_ctx_t public;
 
 	sdb_plugin_info_t info;
+	lt_dlhandle handle;
 
 	/* The usage count differs from the object's ref count
 	 * in that it provides higher level information about how
@@ -88,7 +89,7 @@ typedef struct {
 	size_t use_cnt;
 } ctx_t;
 #define CTX_INIT { SDB_OBJECT_INIT, \
-	SDB_PLUGIN_CTX_INIT, SDB_PLUGIN_INFO_INIT, 0 }
+	SDB_PLUGIN_CTX_INIT, SDB_PLUGIN_INFO_INIT, NULL, 0 }
 
 #define CTX(obj) ((ctx_t *)(obj))
 
@@ -204,6 +205,7 @@ plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
 static void
 plugin_unregister_by_name(const char *plugin_name)
 {
+	sdb_object_t *obj;
 	size_t i;
 
 	struct {
@@ -223,19 +225,23 @@ plugin_unregister_by_name(const char *plugin_name)
 		sdb_llist_t *list = all_lists[i].list;
 
 		while (1) {
-			sdb_object_t *obj = sdb_llist_remove(list,
-					plugin_lookup_by_name, plugin_name);
-			sdb_plugin_cb_t *cb = SDB_PLUGIN_CB(obj);
+			sdb_plugin_cb_t *cb;
 
-			if (! obj)
+			cb = SDB_PLUGIN_CB(sdb_llist_remove(list,
+						plugin_lookup_by_name, plugin_name));
+			if (! cb)
 				break;
 
 			sdb_log(SDB_LOG_INFO, "core: Unregistering "
-					"%s callback '%s' (module %s)", type, obj->name,
+					"%s callback '%s' (module %s)", type, cb->super.name,
 					cb->cb_ctx->info.plugin_name);
-			sdb_object_deref(obj);
+			sdb_object_deref(SDB_OBJ(cb));
 		}
 	}
+
+	sdb_log(SDB_LOG_INFO, "core: Unloading module %s", plugin_name);
+	obj = sdb_llist_remove_by_name(all_plugins, plugin_name);
+	sdb_object_deref(obj);
 } /* plugin_unregister_by_name */
 
 /*
@@ -251,6 +257,7 @@ ctx_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
 
 	ctx->public = plugin_default_ctx;
 	ctx->info = plugin_default_info;
+	ctx->handle = NULL;
 	ctx->use_cnt = 1;
 	return 0;
 } /* ctx_init */
@@ -259,6 +266,16 @@ static void
 ctx_destroy(sdb_object_t *obj)
 {
 	ctx_t *ctx = CTX(obj);
+
+	if (ctx->handle) {
+		const char *err;
+		lt_dlerror();
+		lt_dlclose(ctx->handle);
+		if ((err = lt_dlerror()))
+			sdb_log(SDB_LOG_WARNING, "core: Failed to unload plugin %s: %s",
+					ctx->info.plugin_name, err);
+	}
+
 	plugin_info_clear(&ctx->info);
 } /* ctx_destroy */
 
@@ -461,6 +478,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	ctx->info.plugin_name = strdup(name);
 	ctx->info.filename = strdup(filename);
+	ctx->handle = lh;
 
 	if (plugin_ctx)
 		ctx->public = *plugin_ctx;
