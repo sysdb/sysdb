@@ -81,9 +81,14 @@ typedef struct {
 	sdb_plugin_ctx_t public;
 
 	sdb_plugin_info_t info;
+
+	/* The usage count differs from the object's ref count
+	 * in that it provides higher level information about how
+	 * the plugin is in use. */
+	size_t use_cnt;
 } ctx_t;
 #define CTX_INIT { SDB_OBJECT_INIT, \
-	SDB_PLUGIN_CTX_INIT, SDB_PLUGIN_INFO_INIT }
+	SDB_PLUGIN_CTX_INIT, SDB_PLUGIN_INFO_INIT, 0 }
 
 #define CTX(obj) ((ctx_t *)(obj))
 
@@ -246,6 +251,7 @@ ctx_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
 
 	ctx->public = plugin_default_ctx;
 	ctx->info = plugin_default_info;
+	ctx->use_cnt = 1;
 	return 0;
 } /* ctx_init */
 
@@ -414,6 +420,13 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 		name_ptr = tmp + strlen("::");
 	}
 	strcat(real_name, name_ptr);
+
+	ctx = CTX(sdb_llist_search_by_name(all_plugins, real_name));
+	if (ctx) {
+		/* plugin already loaded */
+		++ctx->use_cnt;
+		return 0;
+	}
 
 	snprintf(filename, sizeof(filename), "%s/%s.so",
 			PKGLIBDIR, real_name);
