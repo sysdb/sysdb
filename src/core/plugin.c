@@ -239,8 +239,10 @@ plugin_unregister_by_name(const char *plugin_name)
 		}
 	}
 
-	sdb_log(SDB_LOG_INFO, "core: Unloading module %s", plugin_name);
 	obj = sdb_llist_remove_by_name(all_plugins, plugin_name);
+	if (obj->ref_cnt <= 1)
+		sdb_log(SDB_LOG_INFO, "core: Unloading module %s", plugin_name);
+	/* else: other callbacks still reference it */
 	sdb_object_deref(obj);
 } /* plugin_unregister_by_name */
 
