@@ -449,7 +449,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	}
 	strcat(base_name, name_ptr);
 
-	ctx = CTX(sdb_llist_search_by_name(all_plugins, base_name));
+	ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 	if (ctx) {
 		/* plugin already loaded */
 		++ctx->use_cnt;
