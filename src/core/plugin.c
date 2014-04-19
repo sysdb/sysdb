@@ -384,6 +384,122 @@ static sdb_type_t sdb_plugin_collector_cb_type = {
 };
 
 static int
+module_init(const char *name, lt_dlhandle lh, sdb_plugin_info_t *info)
+{
+	int (*mod_init)(sdb_plugin_info_t *);
+	int status;
+
+	mod_init = (int (*)(sdb_plugin_info_t *))lt_dlsym(lh, "sdb_module_init");
+	if (! mod_init) {
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
+				"could not find symbol 'sdb_module_init'", name);
+		return -1;
+	}
+
+	status = mod_init(info);
+	if (status) {
+		sdb_log(SDB_LOG_ERR, "core: Failed to initialize "
+				"module '%s'", name);
+		plugin_unregister_by_name(name);
+		return -1;
+	}
+	return 0;
+} /* module_init */
+
+static int
+module_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
+{
+	char  base_name[name ? strlen(name) + 1 : 1];
+	const char *name_ptr;
+	char *tmp;
+
+	char filename[1024];
+	lt_dlhandle lh;
+
+	ctx_t *ctx;
+
+	int status;
+
+	base_name[0] = '\0';
+	name_ptr = name;
+
+	while ((tmp = strstr(name_ptr, "::"))) {
+		strncat(base_name, name_ptr, (size_t)(tmp - name_ptr));
+		strcat(base_name, "/");
+		name_ptr = tmp + strlen("::");
+	}
+	strcat(base_name, name_ptr);
+
+	snprintf(filename, sizeof(filename), "%s/%s.so",
+			PKGLIBDIR, base_name);
+	filename[sizeof(filename) - 1] = '\0';
+
+	if (access(filename, R_OK)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s' (%s): %s",
+				name, filename, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+
+	lt_dlinit();
+	lt_dlerror();
+
+	lh = lt_dlopen(filename);
+	if (! lh) {
+		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': %s"
+				"The most common cause for this problem are missing "
+				"dependencies.\n", name, lt_dlerror());
+		return -1;
+	}
+
+	if (ctx_get())
+		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
+
+	ctx = ctx_create(name);
+	if (! ctx) {
+		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
+		return -1;
+	}
+
+	ctx->info.plugin_name = strdup(name);
+	ctx->info.filename = strdup(filename);
+	ctx->handle = lh;
+
+	if (plugin_ctx)
+		ctx->public = *plugin_ctx;
+
+	if ((status = module_init(name, lh, &ctx->info))) {
+		sdb_object_deref(SDB_OBJ(ctx));
+		return status;
+	}
+
+	/* compare minor version */
+	if ((ctx->info.version < 0)
+			|| ((int)(ctx->info.version / 100) != (int)(SDB_VERSION / 100)))
+		sdb_log(SDB_LOG_WARNING, "core: WARNING: version of "
+				"plugin '%s' (%i.%i.%i) does not match our version "
+				"(%i.%i.%i); this might cause problems",
+				name, SDB_VERSION_DECODE(ctx->info.version),
+				SDB_VERSION_DECODE(SDB_VERSION));
+
+	sdb_llist_append(all_plugins, SDB_OBJ(ctx));
+
+	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
+			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
+			INFO_GET(&ctx->info, name), ctx->info.plugin_version,
+			INFO_GET(&ctx->info, description),
+			INFO_GET(&ctx->info, copyright),
+			INFO_GET(&ctx->info, license));
+
+	/* any registered callbacks took ownership of the context */
+	sdb_object_deref(SDB_OBJ(ctx));
+
+	/* reset */
+	ctx_set(NULL);
+	return 0;
+} /* module_load */
+
+static int
 plugin_add_callback(sdb_llist_t **list, const char *type,
 		const char *name, void *callback, sdb_object_t *user_data)
 {
@@ -424,30 +540,18 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 int
 sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 {
-	char  base_name[name ? strlen(name) + 1 : 1];
-	const char *name_ptr;
-	char *tmp;
-
-	char filename[1024];
 	ctx_t *ctx;
-
-	lt_dlhandle lh;
-
-	int (*mod_init)(sdb_plugin_info_t *);
-	int status;
 
 	if ((! name) || (! *name))
 		return -1;
 
-	base_name[0] = '\0';
-	name_ptr = name;
-
-	while ((tmp = strstr(name_ptr, "::"))) {
-		strncat(base_name, name_ptr, (size_t)(tmp - name_ptr));
-		strcat(base_name, "/");
-		name_ptr = tmp + strlen("::");
+	if (! all_plugins) {
+		if (! (all_plugins = sdb_llist_create())) {
+			sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
+					"internal error while creating linked list", name);
+			return -1;
+		}
 	}
-	strcat(base_name, name_ptr);
 
 	ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 	if (ctx) {
@@ -456,95 +560,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 		return 0;
 	}
 
-	snprintf(filename, sizeof(filename), "%s/%s.so",
-			PKGLIBDIR, base_name);
-	filename[sizeof(filename) - 1] = '\0';
-
-	if (access(filename, R_OK)) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s' (%s): %s",
-				name, filename, sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		return -1;
-	}
-
-	lt_dlinit();
-	lt_dlerror();
-
-	lh = lt_dlopen(filename);
-	if (! lh) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': %s"
-				"The most common cause for this problem are missing "
-				"dependencies.\n", name, lt_dlerror());
-		return -1;
-	}
-
-	if (ctx_get())
-		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
-
-	ctx = ctx_create(name);
-	if (! ctx) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
-		return -1;
-	}
-
-	ctx->info.plugin_name = strdup(name);
-	ctx->info.filename = strdup(filename);
-	ctx->handle = lh;
-
-	if (plugin_ctx)
-		ctx->public = *plugin_ctx;
-
-	mod_init = (int (*)(sdb_plugin_info_t *))lt_dlsym(lh, "sdb_module_init");
-	if (! mod_init) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
-				"could not find symbol 'sdb_module_init'", name);
-		sdb_object_deref(SDB_OBJ(ctx));
-		return -1;
-	}
-
-	status = mod_init(&ctx->info);
-	if (status) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to initialize "
-				"module '%s'", name);
-		plugin_unregister_by_name(ctx->info.plugin_name);
-		sdb_object_deref(SDB_OBJ(ctx));
-		return -1;
-	}
-
-	/* compare minor version */
-	if ((ctx->info.version < 0)
-			|| ((int)(ctx->info.version / 100) != (int)(SDB_VERSION / 100)))
-		sdb_log(SDB_LOG_WARNING, "core: WARNING: version of "
-				"plugin '%s' (%i.%i.%i) does not match our version "
-				"(%i.%i.%i); this might cause problems",
-				name, SDB_VERSION_DECODE(ctx->info.version),
-				SDB_VERSION_DECODE(SDB_VERSION));
-
-	if (! all_plugins) {
-		if (! (all_plugins = sdb_llist_create())) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
-					"internal error while creating linked list", name);
-			plugin_unregister_by_name(ctx->info.plugin_name);
-			sdb_object_deref(SDB_OBJ(ctx));
-			return -1;
-		}
-	}
-
-	sdb_llist_append(all_plugins, SDB_OBJ(ctx));
-
-	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
-			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
-			INFO_GET(&ctx->info, name), ctx->info.plugin_version,
-			INFO_GET(&ctx->info, description),
-			INFO_GET(&ctx->info, copyright),
-			INFO_GET(&ctx->info, license));
-
-	/* any registered callbacks took ownership of the context */
-	sdb_object_deref(SDB_OBJ(ctx));
-
-	/* reset */
-	ctx_set(NULL);
-	return 0;
+	return module_load(name, plugin_ctx);
 } /* sdb_plugin_load */
 
 int
