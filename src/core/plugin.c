@@ -809,10 +809,12 @@ sdb_plugin_init_all(void)
 		if (callback(cb->cb_user_data)) {
 			sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin "
 					"'%s'. Unregistering all callbacks.", obj->name);
+			ctx_set(old_ctx);
 			plugin_unregister_by_name(cb->cb_ctx->info.plugin_name);
 			++ret;
 		}
-		ctx_set(old_ctx);
+		else
+			ctx_set(old_ctx);
 	}
 	sdb_llist_iter_destroy(iter);
 	return ret;
