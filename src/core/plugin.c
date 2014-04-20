@@ -293,22 +293,6 @@ static sdb_type_t ctx_type = {
 };
 
 static ctx_t *
-ctx_create(const char *name)
-{
-	ctx_t *ctx;
-
-	ctx = CTX(sdb_object_create(name, ctx_type));
-	if (! ctx)
-		return NULL;
-
-	if (! plugin_ctx_key_initialized)
-		ctx_key_init();
-	sdb_object_ref(SDB_OBJ(ctx));
-	pthread_setspecific(plugin_ctx_key, ctx);
-	return ctx;
-} /* ctx_create */
-
-static ctx_t *
 ctx_get(void)
 {
 	if (! plugin_ctx_key_initialized)
@@ -332,6 +316,21 @@ ctx_set(ctx_t *new)
 	pthread_setspecific(plugin_ctx_key, new);
 	return old;
 } /* ctx_set */
+
+static ctx_t *
+ctx_create(const char *name)
+{
+	ctx_t *ctx;
+
+	ctx = CTX(sdb_object_create(name, ctx_type));
+	if (! ctx)
+		return NULL;
+
+	if (! plugin_ctx_key_initialized)
+		ctx_key_init();
+	ctx_set(ctx);
+	return ctx;
+} /* ctx_create */
 
 static int
 plugin_cb_init(sdb_object_t *obj, va_list ap)
