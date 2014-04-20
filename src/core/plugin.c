@@ -959,7 +959,7 @@ sdb_plugin_log(int prio, const char *msg)
 	if (! msg)
 		return 0;
 
-	if (! log_list)
+	if (! sdb_llist_len(log_list))
 		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
 
 	iter = sdb_llist_get_iter(log_list);
