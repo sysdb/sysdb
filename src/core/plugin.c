@@ -137,6 +137,18 @@ static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
 
+static struct {
+	const char   *type;
+	sdb_llist_t **list;
+} all_lists[] = {
+	{ "config",    &config_list },
+	{ "init",      &init_list },
+	{ "collector", &collector_list },
+	{ "cname",     &cname_list },
+	{ "shutdown",  &shutdown_list },
+	{ "log",       &log_list },
+};
+
 /*
  * private helper functions
  */
@@ -208,27 +220,18 @@ plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
 	return 1;
 } /* plugin_lookup_by_name */
 
+/* since this function is called from sdb_plugin_reconfigure_finish()
+ * when iterating through all_plugins, we may not do any additional
+ * modifications to all_plugins except for the optional removal */
 static void
 plugin_unregister_by_name(const char *plugin_name)
 {
 	sdb_object_t *obj;
 	size_t i;
 
-	struct {
-		const char  *type;
-		sdb_llist_t *list;
-	} all_lists[] = {
-		{ "config",    config_list },
-		{ "init",      init_list },
-		{ "collector", collector_list },
-		{ "cname",     cname_list },
-		{ "shutdown",  shutdown_list },
-		{ "log",       log_list },
-	};
-
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
-		const char  *type = all_lists[i].type;
-		sdb_llist_t *list = all_lists[i].list;
+		const char  *type =  all_lists[i].type;
+		sdb_llist_t *list = *all_lists[i].list;
 
 		while (1) {
 			sdb_plugin_cb_t *cb;
@@ -248,11 +251,34 @@ plugin_unregister_by_name(const char *plugin_name)
 	}
 
 	obj = sdb_llist_search_by_name(all_plugins, plugin_name);
-	if (obj->ref_cnt <= 1)
+	/* when called from sdb_plugin_reconfigure_finish, the object has already
+	 * been removed from the list */
+	if (obj && (obj->ref_cnt <= 1)) {
 		sdb_llist_remove_by_name(all_plugins, plugin_name);
+		sdb_object_deref(obj);
+	}
 	/* else: other callbacks still reference it */
-	sdb_object_deref(obj);
 } /* plugin_unregister_by_name */
+
+static void
+plugin_unregister_all(void)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
+		const char  *type =  all_lists[i].type;
+		sdb_llist_t *list = *all_lists[i].list;
+
+		size_t len = sdb_llist_len(list);
+
+		if (! len)
+			continue;
+
+		sdb_llist_clear(list);
+		sdb_log(SDB_LOG_INFO, "core: Unregistered %zu %s callback%s",
+				len, type, len == 1 ? "" : "s");
+	}
+} /* plugin_unregister_all */
 
 /*
  * private types
@@ -551,6 +577,8 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 {
 	ctx_t *ctx;
 
+	int status;
+
 	if ((! name) || (! *name))
 		return -1;
 
@@ -565,6 +593,19 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 	if (ctx) {
 		/* plugin already loaded */
+		if (! ctx->use_cnt) {
+			/* reloading plugin */
+			ctx_t *old_ctx = ctx_set(ctx);
+
+			status = module_init(ctx->info.plugin_name, ctx->handle, NULL);
+			if (status)
+				return status;
+
+			sdb_log(SDB_LOG_INFO, "core: Successfully reloaded plugin "
+					"'%s' (%s)", INFO_GET(&ctx->info, name),
+					INFO_GET(&ctx->info, description));
+			ctx_set(old_ctx);
+		}
 		++ctx->use_cnt;
 		return 0;
 	}
@@ -796,6 +837,66 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	ctx_set(old_ctx);
 	return status;
 } /* sdb_plugin_configure */
+
+int
+sdb_plugin_reconfigure_init(void)
+{
+	sdb_llist_iter_t *iter;
+
+	iter = sdb_llist_get_iter(config_list);
+	if (config_list && (! iter))
+		return -1;
+
+	/* deconfigure all plugins */
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_cb_t *plugin;
+		sdb_plugin_config_cb callback;
+		ctx_t *old_ctx;
+
+		plugin = SDB_PLUGIN_CB(sdb_llist_iter_get_next(iter));
+		old_ctx = ctx_set(plugin->cb_ctx);
+		callback = (sdb_plugin_config_cb)plugin->cb_callback;
+		callback(NULL);
+		ctx_set(old_ctx);
+	}
+	sdb_llist_iter_destroy(iter);
+
+	iter = sdb_llist_get_iter(all_plugins);
+	if (all_plugins && (! iter))
+		return -1;
+
+	/* record all plugins as being unused */
+	while (sdb_llist_iter_has_next(iter))
+		CTX(sdb_llist_iter_get_next(iter))->use_cnt = 0;
+	sdb_llist_iter_destroy(iter);
+
+	plugin_unregister_all();
+	return 0;
+} /* sdb_plugin_reconfigure_init */
+
+int
+sdb_plugin_reconfigure_finish(void)
+{
+	sdb_llist_iter_t *iter;
+
+	iter = sdb_llist_get_iter(all_plugins);
+	if (all_plugins && (! iter))
+		return -1;
+
+	while (sdb_llist_iter_has_next(iter)) {
+		ctx_t *ctx = CTX(sdb_llist_iter_get_next(iter));
+		if (ctx->use_cnt)
+			continue;
+
+		sdb_log(SDB_LOG_INFO, "core: Module %s no longer in use",
+				ctx->info.plugin_name);
+		sdb_llist_iter_remove_current(iter);
+		plugin_unregister_by_name(ctx->info.plugin_name);
+		sdb_object_deref(SDB_OBJ(ctx));
+	}
+	sdb_llist_iter_destroy(iter);
+	return 0;
+} /* sdb_plugin_reconfigure_finish */
 
 int
 sdb_plugin_init_all(void)

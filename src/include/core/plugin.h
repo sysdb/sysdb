@@ -243,6 +243,27 @@ int
 sdb_plugin_configure(const char *name, oconfig_item_t *ci);
 
 /*
+ * sdb_plugin_reconfigure_init, sdb_plugin_reconfigure_finish:
+ * Reconfigure all plugins. This happens in multiple steps: first, call
+ * sdb_plugin_reconfigure_init to deconfigure all plugins by calling their
+ * config callbacks with a NULL config tree and unregistering all callbacks.
+ * Then, sdb_plugin_configure and other functions may be used to provide the
+ * new configuration or load new plugins. For all plugins which were already
+ * loaded before, sdb_module_init will be called with a NULL argument when
+ * reloading them.
+ * Finally, sdb_plugin_reconfigure_finish will clean up leftover pieces, like
+ * unloading plugins which are no longer in use.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_plugin_reconfigure_init(void);
+int
+sdb_plugin_reconfigure_finish(void);
+
+/*
  * sdb_plugin_init_all:
  * Initialize all plugins using their registered "init" function.
  *
