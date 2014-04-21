@@ -297,6 +297,8 @@ daemon_parse_config(const char *filename)
 			retval = status;
 		}
 	}
+
+	oconfig_free(ci);
 	return retval;
 } /* daemon_parse_config */
 
