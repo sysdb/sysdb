@@ -84,6 +84,14 @@ int
 sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address);
 
 /*
+ * sdb_fe_sock_clear_listeners:
+ * Shut down all listeners from the socket object and clear the list of
+ * listeners. All open connections will not be affected by this.
+ */
+void
+sdb_fe_sock_clear_listeners(sdb_fe_socket_t *sock);
+
+/*
  * sdb_fe_sock_listen_and_serve:
  * Listen on the specified socket and serve client requests. The loop
  * terminates on error or when the loop condition turns to false. All

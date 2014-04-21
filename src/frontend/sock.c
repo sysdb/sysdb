@@ -275,6 +275,20 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 } /* listener_create */
 
 static void
+socket_clear(sdb_fe_socket_t *sock)
+{
+	size_t i;
+
+	assert(sock);
+	for (i = 0; i < sock->listeners_num; ++i)
+		listener_destroy(sock->listeners + i);
+	if (sock->listeners)
+		free(sock->listeners);
+	sock->listeners = NULL;
+	sock->listeners_num = 0;
+} /* socket_clear */
+
+static void
 socket_close(sdb_fe_socket_t *sock)
 {
 	size_t i;
@@ -423,17 +437,10 @@ sdb_fe_sock_create(void)
 void
 sdb_fe_sock_destroy(sdb_fe_socket_t *sock)
 {
-	size_t i;
-
 	if (! sock)
 		return;
 
-	for (i = 0; i < sock->listeners_num; ++i) {
-		listener_destroy(sock->listeners + i);
-	}
-	if (sock->listeners)
-		free(sock->listeners);
-	sock->listeners = NULL;
+	socket_clear(sock);
 
 	sdb_llist_destroy(sock->open_connections);
 	sock->open_connections = NULL;
@@ -453,6 +460,15 @@ sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address)
 		return -1;
 	return 0;
 } /* sdb_fe_sock_add_listener */
+
+void
+sdb_fe_sock_clear_listeners(sdb_fe_socket_t *sock)
+{
+	if (! sock)
+		return;
+
+	socket_clear(sock);
+} /* sdb_fe_sock_clear_listeners */
 
 int
 sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
