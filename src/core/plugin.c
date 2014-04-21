@@ -196,7 +196,13 @@ plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
 	const sdb_plugin_cb_t *cb = SDB_CONST_PLUGIN_CB(obj);
 	const char *name = id;
 
-	assert(cb && id && cb->cb_ctx);
+	assert(cb && id);
+
+	/* when a plugin was registered from outside a plugin (e.g. the core),
+	 * we don't have a plugin context */
+	if (! cb->cb_ctx)
+		return 1;
+
 	if (!strcasecmp(cb->cb_ctx->info.plugin_name, name))
 		return 0;
 	return 1;
@@ -231,6 +237,8 @@ plugin_unregister_by_name(const char *plugin_name)
 						plugin_lookup_by_name, plugin_name));
 			if (! cb)
 				break;
+
+			assert(cb->cb_ctx);
 
 			sdb_log(SDB_LOG_INFO, "core: Unregistering "
 					"%s callback '%s' (module %s)", type, cb->super.name,
@@ -350,6 +358,8 @@ plugin_cb_init(sdb_object_t *obj, va_list ap)
 				"registered version.", type, obj->name);
 		return -1;
 	}
+
+	/* cb_ctx may be NULL if the plugin was not registered by a plugin */
 
 	SDB_PLUGIN_CB(obj)->cb_callback = callback;
 	SDB_PLUGIN_CB(obj)->cb_ctx      = ctx_get();
