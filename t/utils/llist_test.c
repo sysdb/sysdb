@@ -115,6 +115,25 @@ START_TEST(test_destroy)
 }
 END_TEST
 
+START_TEST(test_clear)
+{
+	size_t i;
+	populate();
+	sdb_llist_clear(list);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		fail_unless(golden_data[i].ref_cnt == 1,
+				"sdb_llist_clear() did not deref element %s",
+				golden_data[i].name);
+	}
+
+	i = sdb_llist_len(list);
+	fail_unless(i == 0,
+			"sdb_llist_clear() left %zu elements in the list; "
+			"expected: 0", i);
+}
+END_TEST
+
 START_TEST(test_append)
 {
 	size_t i;
@@ -361,6 +380,7 @@ util_llist_suite(void)
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_clone);
 	tcase_add_test(tc, test_destroy);
+	tcase_add_test(tc, test_clear);
 	tcase_add_test(tc, test_append);
 	tcase_add_test(tc, test_insert);
 	tcase_add_test(tc, test_validate_insert);

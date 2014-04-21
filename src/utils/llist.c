@@ -69,6 +69,26 @@ struct sdb_llist_iter {
  * private helper functions
  */
 
+static void
+llist_clear(sdb_llist_t *list)
+{
+	sdb_llist_elem_t *elem;
+
+	assert(list);
+	elem = list->head;
+	while (elem) {
+		sdb_llist_elem_t *tmp = elem->next;
+
+		sdb_object_deref(elem->obj);
+		free(elem);
+
+		elem = tmp;
+	}
+
+	list->head = list->tail = NULL;
+	list->length = 0;
+} /* llist_clear */
+
 /* Insert a new element after 'elem'. If 'elem' is NULL, insert at the head of
  * the list. */
 static int
@@ -213,30 +233,26 @@ sdb_llist_clone(sdb_llist_t *list)
 void
 sdb_llist_destroy(sdb_llist_t *list)
 {
-	sdb_llist_elem_t *elem;
-
 	if (! list)
 		return;
 
 	pthread_rwlock_wrlock(&list->lock);
-
-	elem = list->head;
-	while (elem) {
-		sdb_llist_elem_t *tmp = elem->next;
-
-		sdb_object_deref(elem->obj);
-		free(elem);
-
-		elem = tmp;
-	}
-
-	list->head = list->tail = NULL;
-	list->length = 0;
-
+	llist_clear(list);
 	pthread_rwlock_unlock(&list->lock);
 	pthread_rwlock_destroy(&list->lock);
 	free(list);
 } /* sdb_llist_destroy */
+
+void
+sdb_llist_clear(sdb_llist_t *list)
+{
+	if (! list)
+		return;
+
+	pthread_rwlock_wrlock(&list->lock);
+	llist_clear(list);
+	pthread_rwlock_unlock(&list->lock);
+} /* sdb_llist_clear */
 
 int
 sdb_llist_append(sdb_llist_t *list, sdb_object_t *obj)

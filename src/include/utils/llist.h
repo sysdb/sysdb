@@ -57,6 +57,14 @@ void
 sdb_llist_destroy(sdb_llist_t *list);
 
 /*
+ * sdb_llist_clear:
+ * Remove all elements from the list, releasing the included objects
+ * (decrement the ref-count).
+ */
+void
+sdb_llist_clear(sdb_llist_t *list);
+
+/*
  * sdb_llist_clone:
  * Clone an existing list. The objects stored in the list will not be copied
  * but rather their reference count incremented.
