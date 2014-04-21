@@ -347,6 +347,9 @@ sdb_collectd_config(oconfig_item_t *ci)
 {
 	int i;
 
+	if (! ci) /* nothing to do to deconfigure this plugin */
+		return 0;
+
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;
 

@@ -343,6 +343,9 @@ sdb_puppet_stcfg_config(oconfig_item_t *ci)
 {
 	int i;
 
+	if (! ci) /* nothing to do to deconfigure this plugin */
+		return 0;
+
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;
 
@@ -367,7 +370,8 @@ sdb_module_init(sdb_plugin_info_t *info)
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_VERSION, SDB_VERSION);
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
-	if (dbi_initialize(/* driver dir = */ NULL) < 0) {
+	/* don't reinitialize dbi when reinitializing the plugin */
+	if (info && (dbi_initialize(/* driver dir = */ NULL) < 0)) {
 		sdb_log(SDB_LOG_ERR, "puppet::store-configs backend: failed to "
 				"initialize DBI; possibly you don't have any drivers "
 				"installed.");
