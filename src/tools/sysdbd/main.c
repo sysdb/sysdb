@@ -71,6 +71,9 @@
 static sdb_plugin_loop_t plugin_main_loop = SDB_PLUGIN_LOOP_INIT;
 static sdb_fe_loop_t frontend_main_loop = SDB_FE_LOOP_INIT;
 
+static char *config_filename = NULL;
+static int reconfigure = 0;
+
 static char *default_listen_addresses[] = {
 	DEFAULT_SOCKET,
 };
@@ -80,6 +83,15 @@ sigintterm_handler(int __attribute__((unused)) signo)
 {
 	frontend_main_loop.do_loop = 0;
 } /* sigintterm_handler */
+
+static void
+sighup_handler(int __attribute__((unused)) signo)
+{
+	/* (temporarily) terminate the plugin loop ... */
+	frontend_main_loop.do_loop = 0;
+	/* ... and tell the main loop to reconfigure the daemon */
+	reconfigure = 1;
+} /* sighup_handler */
 
 static void
 exit_usage(char *name, int status)
@@ -168,6 +180,47 @@ daemonize(void)
 	return 0;
 } /* daemonize */
 
+static int
+configure(void)
+{
+	int status;
+
+	if ((status = daemon_parse_config(config_filename))) {
+		if (status > 0)
+			sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
+		else
+			sdb_log(SDB_LOG_ERR, "Failed to load configuration file.\n"
+					"\tCheck other error messages for details.");
+		return 1;
+	}
+
+	if (! listen_addresses) {
+		listen_addresses = default_listen_addresses;
+		listen_addresses_num = SDB_STATIC_ARRAY_LEN(default_listen_addresses);
+	}
+	return 0;
+} /* configure */
+
+static int
+do_reconfigure(void)
+{
+	int status;
+
+	sdb_log(SDB_LOG_INFO, "Reconfiguring SysDB daemon");
+
+	if (listen_addresses != default_listen_addresses)
+		daemon_free_listen_addresses();
+	listen_addresses = NULL;
+
+	sdb_plugin_reconfigure_init();
+	if ((status = configure()))
+		return status;
+	sdb_plugin_init_all();
+	sdb_plugin_reconfigure_finish();
+	sdb_connection_enable_logging();
+	return 0;
+} /* do_reconfigure */
+
 static void *
 backend_handler(void __attribute__((unused)) *data)
 {
@@ -180,49 +233,60 @@ static int
 main_loop(void)
 {
 	pthread_t backend_thread;
-	size_t i;
 
-	plugin_main_loop.do_loop = 1;
-	frontend_main_loop.do_loop = 1;
+	while (42) {
+		size_t i;
 
-	memset(&backend_thread, 0, sizeof(backend_thread));
-	if (pthread_create(&backend_thread, /* attr = */ NULL,
-				backend_handler, /* arg = */ NULL)) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "Failed to create backend handler thread: %s",
-				sdb_strerror(errno, buf, sizeof(buf)));
+		plugin_main_loop.do_loop = 1;
+		frontend_main_loop.do_loop = 1;
 
+		memset(&backend_thread, 0, sizeof(backend_thread));
+		if (pthread_create(&backend_thread, /* attr = */ NULL,
+					backend_handler, /* arg = */ NULL)) {
+			char buf[1024];
+			sdb_log(SDB_LOG_ERR, "Failed to create backend handler thread: %s",
+					sdb_strerror(errno, buf, sizeof(buf)));
+
+			plugin_main_loop.do_loop = 0;
+			break;
+		}
+
+		sdb_fe_socket_t *sock = sdb_fe_sock_create();
+		for (i = 0; i < listen_addresses_num; ++i)
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+				break;
+
+		/* break on error */
+		if (i >= listen_addresses_num)
+			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+
+		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
 		plugin_main_loop.do_loop = 0;
-		return 1;
-	}
+		/* send a signal to interrupt the sleep call
+		 * and make the thread shut down faster */
+		pthread_kill(backend_thread, SIGINT);
+		pthread_join(backend_thread, NULL);
+		sdb_fe_sock_destroy(sock);
 
-	sdb_fe_socket_t *sock = sdb_fe_sock_create();
-	for (i = 0; i < listen_addresses_num; ++i)
-		if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+		if (! reconfigure)
 			break;
 
-	/* break on error */
-	if (i >= listen_addresses_num)
-		sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
-
-	sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
-	plugin_main_loop.do_loop = 0;
-	/* send a signal to interrupt the sleep call
-	 * and make the thread shut down faster */
-	pthread_kill(backend_thread, SIGINT);
-	pthread_join(backend_thread, NULL);
-	sdb_fe_sock_destroy(sock);
-
+		reconfigure = 0;
+		if (do_reconfigure()) {
+			sdb_log(SDB_LOG_ERR, "Reconfiguration failed");
+			break;
+		}
+	}
 	return 0;
 } /* main_loop */
 
 int
 main(int argc, char **argv)
 {
-	char *config_filename = NULL;
 	_Bool do_daemonize = 1;
 
 	struct sigaction sa_intterm;
+	struct sigaction sa_hup;
 	int status;
 
 	sdb_error_set_logger(sdb_plugin_log);
@@ -257,20 +321,8 @@ main(int argc, char **argv)
 
 	if (! config_filename)
 		config_filename = CONFIGFILE;
-
-	if ((status = daemon_parse_config(config_filename))) {
-		if (status > 0)
-			sdb_log(SDB_LOG_ERR, "Failed to parse configuration file.");
-		else
-			sdb_log(SDB_LOG_ERR, "Failed to load configuration file.\n"
-					"\tCheck other error messages for details.");
-		exit(1);
-	}
-
-	if (! listen_addresses) {
-		listen_addresses = default_listen_addresses;
-		listen_addresses_num = SDB_STATIC_ARRAY_LEN(default_listen_addresses);
-	}
+	if ((status = configure()))
+		exit(status);
 
 	memset(&sa_intterm, 0, sizeof(sa_intterm));
 	sa_intterm.sa_handler = sigintterm_handler;
@@ -299,6 +351,17 @@ main(int argc, char **argv)
 
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
+
+	memset(&sa_hup, 0, sizeof(sa_hup));
+	sa_hup.sa_handler = sighup_handler;
+	sa_hup.sa_flags = 0;
+
+	if (sigaction(SIGHUP, &sa_hup, /* old action */ NULL)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to install signal handler for "
+				"SIGHUP: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		exit(1);
+	}
 
 	/* ignore, we see this, for example, if a client disconnects without
 	 * closing the connection cleanly */
