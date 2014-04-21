@@ -250,6 +250,22 @@ static token_parser_t token_parser_list[] = {
  * public API
  */
 
+void
+daemon_free_listen_addresses(void)
+{
+	size_t i;
+
+	if (! listen_addresses)
+		return;
+
+	for (i = 0; i < listen_addresses_num; ++i)
+		free(listen_addresses[i]);
+	free(listen_addresses);
+
+	listen_addresses = NULL;
+	listen_addresses_num = 0;
+} /* daemon_free_listen_addresses */
+
 int
 daemon_parse_config(const char *filename)
 {

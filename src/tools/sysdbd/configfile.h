@@ -37,6 +37,9 @@
 extern char **listen_addresses;
 extern size_t listen_addresses_num;
 
+void
+daemon_free_listen_addresses(void);
+
 /*
  * daemon_parse_config:
  * Parse the specified configuration file.
