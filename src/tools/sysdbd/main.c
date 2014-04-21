@@ -232,6 +232,8 @@ backend_handler(void __attribute__((unused)) *data)
 static int
 main_loop(void)
 {
+	sdb_fe_socket_t *sock = sdb_fe_sock_create();
+
 	pthread_t backend_thread;
 
 	while (42) {
@@ -251,7 +253,6 @@ main_loop(void)
 			break;
 		}
 
-		sdb_fe_socket_t *sock = sdb_fe_sock_create();
 		for (i = 0; i < listen_addresses_num; ++i)
 			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
 				break;
@@ -266,17 +267,19 @@ main_loop(void)
 		 * and make the thread shut down faster */
 		pthread_kill(backend_thread, SIGINT);
 		pthread_join(backend_thread, NULL);
-		sdb_fe_sock_destroy(sock);
 
 		if (! reconfigure)
 			break;
 
 		reconfigure = 0;
+		sdb_fe_sock_clear_listeners(sock);
 		if (do_reconfigure()) {
 			sdb_log(SDB_LOG_ERR, "Reconfiguration failed");
 			break;
 		}
 	}
+
+	sdb_fe_sock_destroy(sock);
 	return 0;
 } /* main_loop */
 
