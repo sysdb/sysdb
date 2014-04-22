@@ -299,6 +299,7 @@ daemon_parse_config(const char *filename)
 	}
 
 	oconfig_free(ci);
+	free(ci);
 	return retval;
 } /* daemon_parse_config */
 
