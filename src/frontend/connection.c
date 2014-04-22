@@ -145,6 +145,10 @@ connection_destroy(sdb_object_t *obj)
 		close(conn->fd);
 	conn->fd = -1;
 
+	if (conn->username)
+		free(conn->username);
+	conn->username = NULL;
+
 	sdb_strbuf_destroy(conn->buf);
 	conn->buf = NULL;
 	sdb_strbuf_destroy(conn->errbuf);
