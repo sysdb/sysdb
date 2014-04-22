@@ -274,6 +274,16 @@ int
 sdb_plugin_init_all(void);
 
 /*
+ * sdb_plugin_shutdown_all:
+ * Shutdown all plugins using their registered "shutdown" function.
+ *
+ * Returns:
+ * The number of failed shutdowns.
+ */
+int
+sdb_plugin_shutdown_all(void);
+
+/*
  * sdb_plugin_collector_loop:
  * Loop until loop->do_loop is false, calling the next collector function on
  * each iteration and once its next update interval is passed.

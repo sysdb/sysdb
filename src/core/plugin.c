@@ -934,6 +934,36 @@ sdb_plugin_init_all(void)
 } /* sdb_plugin_init_all */
 
 int
+sdb_plugin_shutdown_all(void)
+{
+	sdb_llist_iter_t *iter;
+	int ret = 0;
+
+	iter = sdb_llist_get_iter(shutdown_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_cb_t *cb;
+		sdb_plugin_shutdown_cb callback;
+		ctx_t *old_ctx;
+
+		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+		assert(obj);
+		cb = SDB_PLUGIN_CB(obj);
+
+		callback = (sdb_plugin_shutdown_cb)cb->cb_callback;
+
+		old_ctx = ctx_set(cb->cb_ctx);
+		if (callback(cb->cb_user_data)) {
+			sdb_log(SDB_LOG_ERR, "core: Failed to shutdown plugin '%s'.",
+					obj->name);
+			++ret;
+		}
+		ctx_set(old_ctx);
+	}
+	sdb_llist_iter_destroy(iter);
+	return ret;
+} /* sdb_plugin_shutdown_all */
+
+int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 {
 	if (! collector_list) {
