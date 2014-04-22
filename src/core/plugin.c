@@ -455,6 +455,8 @@ module_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 
 	int status;
 
+	assert(name);
+
 	base_name[0] = '\0';
 	name_ptr = name;
 

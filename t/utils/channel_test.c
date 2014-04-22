@@ -138,6 +138,8 @@ START_TEST(test_write_read)
 
 	data = 0xffffffff;
 	check = sdb_channel_read(chan, &data);
+	fail_unless(check == 0,
+			"sdb_channel_read() = %d; expected: 0", check);
 	/* result depends on endianess */
 	fail_unless((data == 0xffffff00) || (data == 0x00ffffff),
 			"sdb_channel_read() returned data %x; "
