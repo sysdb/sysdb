@@ -192,6 +192,11 @@ sdb_collectd_init(sdb_object_t *user_data)
 static int
 sdb_collectd_shutdown(__attribute__((unused)) sdb_object_t *user_data)
 {
+	if (! user_data)
+		return -1;
+
+	sdb_unixsock_client_destroy(SDB_OBJ_WRAPPER(user_data)->data);
+	SDB_OBJ_WRAPPER(user_data)->data = NULL;
 	return 0;
 } /* sdb_collectd_shutdown */
 

@@ -139,6 +139,17 @@ sdb_puppet_stcfg_init(sdb_object_t *user_data)
 } /* sdb_puppet_stcfg_init */
 
 static int
+sdb_puppet_stcfg_shutdown(sdb_object_t *user_data)
+{
+	if (! user_data)
+		return -1;
+
+	sdb_dbi_client_destroy(SDB_OBJ_WRAPPER(user_data)->data);
+	SDB_OBJ_WRAPPER(user_data)->data = NULL;
+	return 0;
+} /* sdb_puppet_stcfg_shutdown */
+
+static int
 sdb_puppet_stcfg_collect(sdb_object_t *user_data)
 {
 	sdb_dbi_client_t *client;
@@ -330,6 +341,8 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 	}
 
 	sdb_plugin_register_init(cb_name, sdb_puppet_stcfg_init, user_data);
+	sdb_plugin_register_shutdown(cb_name, sdb_puppet_stcfg_shutdown,
+			user_data);
 	sdb_plugin_register_collector(cb_name, sdb_puppet_stcfg_collect,
 			/* interval */ NULL, user_data);
 
