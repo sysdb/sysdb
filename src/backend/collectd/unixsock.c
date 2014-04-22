@@ -270,6 +270,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 				"%i service%s (%i failed) for host '%s'.",
 				state.svc_updated, state.svc_updated == 1 ? "" : "s",
 				state.svc_failed, state.current_host);
+		free(state.current_host);
 	}
 	return 0;
 } /* sdb_collectd_collect */
