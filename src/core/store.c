@@ -481,6 +481,7 @@ sdb_store_attribute(const char *hostname,
 
 	if (status >= 0) {
 		assert(updated_attr);
+		sdb_data_free_datum(&SDB_ATTR(updated_attr)->value);
 		if (sdb_data_copy(&SDB_ATTR(updated_attr)->value, value)) {
 			sdb_object_deref(SDB_OBJ(updated_attr));
 			status = -1;
