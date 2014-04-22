@@ -375,6 +375,7 @@ main(int argc, char **argv)
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
 			SDB_VERSION_EXTRA" (pid %i)", (int)getpid());
+	sdb_plugin_shutdown_all();
 	return status;
 } /* main */
 
