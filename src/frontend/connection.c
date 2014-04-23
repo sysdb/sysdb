@@ -267,6 +267,10 @@ command_handle(sdb_conn_t *conn)
 		const char *errmsg = "Authentication required";
 		sdb_connection_send(conn, CONNECTION_ERROR,
 				(uint32_t)strlen(errmsg), errmsg);
+
+		/* remove the command from the buffer */
+		if (conn->cmd_len)
+			sdb_strbuf_skip(conn->buf, 0, conn->cmd_len);
 		return -1;
 	}
 
