@@ -264,6 +264,8 @@ START_TEST(test_store_match)
 
 		sdb_object_deref(SDB_OBJ(n));
 	}
+
+	sdb_object_deref(SDB_OBJ(obj));
 }
 END_TEST
 
@@ -332,6 +334,8 @@ START_TEST(test_store_match_op)
 
 	sdb_object_deref(SDB_OBJ(always));
 	sdb_object_deref(SDB_OBJ(never));
+
+	sdb_object_deref(SDB_OBJ(obj));
 }
 END_TEST
 
