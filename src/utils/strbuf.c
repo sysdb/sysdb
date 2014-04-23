@@ -306,7 +306,7 @@ sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n)
 	assert(offset < strbuf->pos);
 
 	start = strbuf->string + offset;
-	memmove(start, start + n, strbuf->pos - n);
+	memmove(start, start + n, len - n);
 	strbuf->pos -= n;
 	strbuf->string[strbuf->pos] = '\0';
 } /* sdb_strbuf_skip */
