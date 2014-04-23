@@ -681,7 +681,14 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 				/* service = */ NULL,
 				sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL));
 
-	if (m && inv) {
+	if (! m)
+		return NULL;
+
+	/* pass ownership to the host matcher */
+	sdb_object_deref(SDB_OBJ(HOST_M(m)->service));
+	sdb_object_deref(SDB_OBJ(HOST_M(m)->attr));
+
+	if (inv) {
 		sdb_store_matcher_t *tmp;
 		tmp = sdb_store_inv_matcher(m);
 		/* pass ownership to the inverse matcher */

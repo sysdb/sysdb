@@ -255,16 +255,21 @@ matcher:
 	matcher AND matcher
 		{
 			$$ = sdb_store_con_matcher($1, $3);
+			sdb_object_deref(SDB_OBJ($1));
+			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
 	matcher OR matcher
 		{
 			$$ = sdb_store_dis_matcher($1, $3);
+			sdb_object_deref(SDB_OBJ($1));
+			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
 	NOT matcher
 		{
 			$$ = sdb_store_inv_matcher($2);
+			sdb_object_deref(SDB_OBJ($2));
 		}
 	|
 	compare_matcher
@@ -315,6 +320,8 @@ compare_matcher:
 	;
 
 %%
+
+/* XXX: on parse errors, allocated objects, strings, etc. need to be freed */
 
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
