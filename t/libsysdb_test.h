@@ -79,6 +79,10 @@ core_store_lookup_suite(void);
 Suite *
 core_time_suite(void);
 
+/* t/frontend/connection_test */
+Suite *
+fe_conn_suite(void);
+
 /* t/frontend/parser_test */
 Suite *
 fe_parser_suite(void);
