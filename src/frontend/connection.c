@@ -375,8 +375,10 @@ command_init(sdb_conn_t *conn)
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
 
 	len = 2 * sizeof(uint32_t);
-	if (conn->cmd == CONNECTION_IDLE)
+	if (conn->cmd == CONNECTION_IDLE) {
 		len += conn->cmd_len;
+		conn->cmd_len = 0;
+	}
 	sdb_strbuf_skip(conn->buf, 0, len);
 	return 0;
 } /* command_init */
