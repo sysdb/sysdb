@@ -271,9 +271,6 @@ command_handle(sdb_conn_t *conn)
 		return -1;
 	}
 
-	/* reset */
-	sdb_strbuf_sprintf(conn->errbuf, "");
-
 	switch (conn->cmd) {
 		case CONNECTION_PING:
 			status = sdb_connection_ping(conn);
@@ -370,6 +367,9 @@ command_init(sdb_conn_t *conn)
 	size_t len;
 
 	assert(conn && (conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len));
+
+	/* reset */
+	sdb_strbuf_sprintf(conn->errbuf, "");
 
 	conn->cmd = connection_get_int32(conn, 0);
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
