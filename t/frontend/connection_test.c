@@ -41,7 +41,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 /*
  * private helper functions
@@ -110,9 +114,91 @@ mock_conn_truncate(sdb_conn_t *conn)
 	ftruncate(conn->fd, 0);
 } /* mock_conn_truncate */
 
+static int
+mock_unixsock_listener(char *sock_path)
+{
+	struct sockaddr_un sa;
+	char *filename;
+	int fd, status;
+
+	filename = tmpnam(sock_path);
+	fail_unless(filename != NULL,
+			"INTERNAL ERROR: tmpnam() = NULL; expected: a string");
+
+	fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	fail_unless(fd >= 0,
+			"INTERNAL ERROR: socket() = %d; expected: >=0", fd);
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	strncpy(sa.sun_path, filename, sizeof(sa.sun_path));
+
+	status = bind(fd, (struct sockaddr *)&sa, sizeof(sa));
+	fail_unless(status == 0,
+			"INTERNAL ERROR: bind() = %d; expected: 0", status);
+	status = listen(fd, 32);
+	fail_unless(status == 0,
+			"INTERNAL ERROR: listen() = %d; expected: 0", status);
+
+	return fd;
+} /* mock_unixsock */
+
+static void *
+mock_client(void *arg)
+{
+	char *socket_path = arg;
+
+	struct sockaddr_un sa;
+	int fd, check;
+
+	fd = socket(AF_UNIX, SOCK_STREAM, /* protocol = */ 0);
+	fail_unless(fd >= 0,
+			"INTERNAL ERROR: socket() = %d; expected: >= 0", fd);
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	strncpy(sa.sun_path, socket_path, sizeof(sa.sun_path));
+
+	check = connect(fd, (struct sockaddr *)&sa, sizeof(sa));
+	fail_unless(check == 0,
+			"INTERNAL ERROR: connect() = %d; expected: 0", check);
+
+	close(fd);
+	return NULL;
+} /* mock_client */
+
 /*
  * tests
  */
+
+START_TEST(test_conn_accept)
+{
+	char socket_path[L_tmpnam];
+	int fd, check;
+
+	sdb_conn_t *conn;
+
+	pthread_t thr;
+
+	conn = sdb_connection_accept(-1);
+	fail_unless(conn == NULL,
+			"sdb_connection_accept(-1) = %p; expected: NULL", conn);
+
+	memset(&socket_path, 0, sizeof(socket_path));
+	fd = mock_unixsock_listener(socket_path);
+	check = pthread_create(&thr, /* attr = */ NULL, mock_client, socket_path);
+	fail_unless(check == 0,
+			"INTERNAL ERROR: pthread_create() = %i; expected: 0", check);
+
+	conn = sdb_connection_accept(fd);
+	fail_unless(conn != NULL,
+			"sdb_connection_accept(%d) = %p; expected: <conn>", fd, conn);
+
+	unlink(socket_path);
+	sdb_connection_close(conn);
+	pthread_join(thr, NULL);
+}
+END_TEST
 
 START_TEST(test_conn_setup)
 {
@@ -188,6 +274,7 @@ fe_conn_suite(void)
 	TCase *tc;
 
 	tc = tcase_create("core");
+	tcase_add_test(tc, test_conn_accept);
 	tcase_add_test(tc, test_conn_setup);
 	suite_add_tcase(s, tc);
 
