@@ -63,7 +63,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %locations
 %error-verbose
 %expect 0
-%name-prefix="sdb_fe_yy"
+%name-prefix "sdb_fe_yy"
 
 %union {
 	char *str;
