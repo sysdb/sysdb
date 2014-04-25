@@ -79,11 +79,11 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token SCANNER_ERROR
 
 %token AND OR NOT WHERE
-
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 
+%token FETCH LIST LOOKUP
+
 %token <str> IDENTIFIER STRING
-%token <node> FETCH LIST LOOKUP
 
 /* Precedence (lowest first): */
 %left OR
