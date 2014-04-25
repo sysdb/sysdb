@@ -1005,13 +1005,21 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 					sdb_log(SDB_LOG_ERR, "core: Failed to sleep "
 							"in collector main loop: %s",
 							sdb_strerror(errno, errbuf, sizeof(errbuf)));
+					sdb_llist_insert_sorted(collector_list, obj,
+							plugin_cmp_next_update);
+					sdb_object_deref(obj);
 					return -1;
 				}
 				errno = 0;
 			}
 
-			if (! loop->do_loop)
+			if (! loop->do_loop) {
+				/* put back; don't worry about errors */
+				sdb_llist_insert_sorted(collector_list, obj,
+						plugin_cmp_next_update);
+				sdb_object_deref(obj);
 				return 0;
+			}
 		}
 
 		old_ctx = ctx_set(SDB_PLUGIN_CCB(obj)->ccb_ctx);
