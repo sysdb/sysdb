@@ -104,6 +104,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %type <m> matcher
 	compare_matcher
 
+%destructor { free($$); } <str>
+%destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m>
+
 %%
 
 statements:
