@@ -146,6 +146,19 @@ static mock_query_t *current_query = NULL;
 
 /* dbi_driver, dbi_conn, dbi_result are void pointers */
 
+#if LIBDBI_VERSION < 900
+typedef void *dbi_inst;
+
+int
+dbi_initialize_r(const char *driverdir, dbi_inst *pInst);
+void
+dbi_shutdown_r(dbi_inst inst);
+dbi_driver
+dbi_driver_open_r(const char *name, dbi_inst inst);
+dbi_driver
+dbi_driver_list_r(dbi_driver curr, dbi_inst inst);
+#endif
+
 int
 dbi_initialize_r(const char __attribute__((unused)) *driverdir,
 		dbi_inst __attribute__((unused)) *pInst)
@@ -173,6 +186,36 @@ dbi_driver_list_r(dbi_driver curr, dbi_inst __attribute__((unused)) inst)
 		return "mockdriver";
 	return NULL;
 } /* dbi_driver_list */
+
+#if LIBDBI_VERSION < 900
+int
+dbi_initialize(const char *driverdir)
+{
+	return dbi_initialize_r(driverdir, NULL);
+} /* dbi_initialize */
+
+/* for some weird reason, gcc and clang complain about a missing prototype for
+ * dbi_shutdown; however, the function is declared in dbi/dbi.h */
+void
+dbi_shutdown(void);
+void
+dbi_shutdown(void)
+{
+	dbi_shutdown_r(NULL);
+} /* dbi_shutdown */
+
+dbi_driver
+dbi_driver_open(const char *name)
+{
+	return dbi_driver_open_r(name, NULL);
+} /* dbi_driver_open */
+
+dbi_driver
+dbi_driver_list(dbi_driver curr)
+{
+	return dbi_driver_list_r(curr, NULL);
+} /* dbi_driver_list */
+#endif
 
 const char *
 dbi_driver_get_name(dbi_driver driver)

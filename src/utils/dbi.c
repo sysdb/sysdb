@@ -42,6 +42,62 @@
 #include <string.h>
 
 /*
+ * pre 0.9 DBI compat layer
+ */
+
+#if LIBDBI_VERSION < 900
+#include <pthread.h>
+
+typedef void *dbi_inst;
+
+static pthread_mutex_t dbi_lock = PTHREAD_MUTEX_INITIALIZER;
+static int dbi_initialized = 0;
+
+static int
+initialize_r(const char *driverdir, dbi_inst __attribute__((unused)) *pInst)
+{
+	int status = 0;
+	pthread_mutex_lock(&dbi_lock);
+	if (! dbi_initialized)
+		status = dbi_initialize(driverdir);
+	dbi_initialized = 1;
+	pthread_mutex_unlock(&dbi_lock);
+	return status;
+} /* initialize_r */
+
+static dbi_driver
+driver_open_r(const char *name, dbi_inst __attribute__((unused)) Inst)
+{
+	dbi_driver driver;
+	pthread_mutex_lock(&dbi_lock);
+	driver = dbi_driver_open(name);
+	pthread_mutex_unlock(&dbi_lock);
+	return driver;
+} /* driver_open_r */
+
+static dbi_driver
+driver_list_r(dbi_driver Current, dbi_inst __attribute__((unused)) Inst)
+{
+	dbi_driver driver;
+	pthread_mutex_lock(&dbi_lock);
+	driver = dbi_driver_list(Current);
+	pthread_mutex_unlock(&dbi_lock);
+	return driver;
+} /* driver_list_r */
+
+static void
+shutdown_r(dbi_inst __attribute__((unused)) Inst)
+{
+	/* do nothing; we don't know if DBI is still in use */
+} /* shutdown_r */
+
+#define dbi_initialize_r initialize_r
+#define dbi_driver_open_r driver_open_r
+#define dbi_driver_list_r driver_list_r
+#define dbi_shutdown_r shutdown_r
+#endif /* LIBDBI_VERSION < 900 */
+
+/*
  * private data types
  */
 
