@@ -1,5 +1,5 @@
 /*
- * SysDB - t/utils/channel_test.c
+ * SysDB - t/unit/utils/channel_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

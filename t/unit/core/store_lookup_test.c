@@ -1,5 +1,5 @@
 /*
- * SysDB - t/core/store_lookup_test.c
+ * SysDB - t/unit/core/store_lookup_test.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

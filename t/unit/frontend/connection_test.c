@@ -1,5 +1,5 @@
 /*
- * SysDB - t/frontend/connection_test.c
+ * SysDB - t/unit/frontend/connection_test.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

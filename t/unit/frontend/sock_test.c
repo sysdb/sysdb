@@ -1,5 +1,5 @@
 /*
- * SysDB - t/frontend/sock_test.c
+ * SysDB - t/unit/frontend/sock_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

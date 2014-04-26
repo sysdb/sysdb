@@ -1,5 +1,5 @@
 /*
- * SysDB - t/core/time_test.c
+ * SysDB - t/unit/core/time_test.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

@@ -1,5 +1,5 @@
 /*
- * SysDB - t/frontend/parser_test.c
+ * SysDB - t/unit/frontend/parser_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

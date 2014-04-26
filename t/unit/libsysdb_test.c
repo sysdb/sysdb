@@ -1,5 +1,5 @@
 /*
- * SysDB - t/libsysdb_test.h
+ * SysDB - t/unit/libsysdb_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,93 +25,58 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef T_LIBSYSDB_H
-#define T_LIBSYSDB_H 1
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
 
-#include "sysdb.h"
-#include "core/object.h"
-
-#include "libsysdb_testutils.h"
+#include "libsysdb_test.h"
 
 #include <check.h>
-#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-/*
- * private testing helpers
- */
+int
+main(void)
+{
+	int failed = 0;
+	size_t i;
 
-/* static string object:
- * Any such object may is of type sdb_object_t but may never be destroyed. */
-#define SSTRING_OBJ(name) { \
-	/* type = */ { sizeof(sdb_object_t), NULL, NULL }, \
-	/* ref_cnt = */ 1, /* name = */ (name) }
+	suite_creator_t creators[] = {
+		{ core_data_suite, NULL },
+		{ core_object_suite, NULL },
+		{ core_store_suite, NULL },
+		{ core_store_lookup_suite, NULL },
+		{ core_time_suite, NULL },
+		{ fe_conn_suite, NULL },
+		{ fe_parser_suite, NULL },
+		{ fe_sock_suite, NULL },
+		{ util_channel_suite, NULL },
+		{ util_dbi_suite, NULL },
+		{ util_llist_suite, NULL },
+		{ util_strbuf_suite, NULL },
+	};
 
-/*
- * test-related data-types
- */
+	putenv("TZ=UTC");
 
-typedef struct {
-	Suite *(*creator)(void);
-	const char *msg;
-} suite_creator_t;
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
+		SRunner *sr;
+		Suite *s;
 
-/*
- * test suites
- */
+		if (creators[i].msg)
+			printf("%s\n", creators[i].msg);
 
-/* t/core/data_test */
-Suite *
-core_data_suite(void);
+		if (!creators[i].creator)
+			continue;
 
-/* t/core/object_test */
-Suite *
-core_object_suite(void);
+		s = creators[i].creator();
+		sr = srunner_create(s);
+		srunner_run_all(sr, CK_NORMAL);
+		failed += srunner_ntests_failed(sr);
+		srunner_free(sr);
+	}
 
-/* t/core/store_test */
-Suite *
-core_store_suite(void);
-
-/* t/core/store_lookup_test */
-Suite *
-core_store_lookup_suite(void);
-
-/* t/core/time_test */
-Suite *
-core_time_suite(void);
-
-/* t/frontend/connection_test */
-Suite *
-fe_conn_suite(void);
-
-/* t/frontend/parser_test */
-Suite *
-fe_parser_suite(void);
-
-/* t/frontend/sock_test */
-Suite *
-fe_sock_suite(void);
-
-/* t/utils/channel_test */
-Suite *
-util_channel_suite(void);
-
-/* t/utils/dbi_test */
-Suite *
-util_dbi_suite(void);
-
-/* t/utils/llist_test */
-Suite *
-util_llist_suite(void);
-
-/* t/utils/strbuf_test */
-Suite *
-util_strbuf_suite(void);
-
-/* t/utils/unixsock_test */
-Suite *
-util_unixsock_suite(void);
-
-#endif /* T_LIBSYSDB_H */
+	return failed;
+} /* main */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

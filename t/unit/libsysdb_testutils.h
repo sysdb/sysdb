@@ -1,5 +1,5 @@
 /*
- * SysDB - t/libsysdb_testutils.h
+ * SysDB - t/unit/libsysdb_testutils.h
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

@@ -1,5 +1,5 @@
 /*
- * SysDB - t/utils/llist_test.c
+ * SysDB - t/unit/utils/llist_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

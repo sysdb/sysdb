@@ -49,8 +49,8 @@ src/sysdbd
 sysdb.h
 
 # unit testing output
-t/libsysdb_test
-t/libsysdb_net_test
-t/*.log
-t/*.trs
+t/unit/libsysdb_test
+t/unit/libsysdb_net_test
+t/unit/*.log
+t/unit/*.trs
 test-driver

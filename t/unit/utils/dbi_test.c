@@ -1,5 +1,5 @@
 /*
- * SysDB - t/utils/dbi_test.c
+ * SysDB - t/unit/utils/dbi_test.c
  * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

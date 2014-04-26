@@ -1,6 +1,6 @@
 /*
- * SysDB - t/libsysdb_net_test.c
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - t/unit/libsysdb_testutils.c
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,55 +25,30 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * testing component involving networking operations
- */
-
 #if HAVE_CONFIG_H
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#include "libsysdb_test.h"
+#include "libsysdb_testutils.h"
 
-#include <check.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <regex.h>
 
 int
-main(void)
+sdb_regmatches(const char *regex, const char *string)
 {
-	int failed = 0;
-	size_t i;
+	regex_t reg;
+	int status;
 
-	suite_creator_t creators[] = {
-#ifdef HAVE_FOPENCOOKIE
-		{ util_unixsock_suite, NULL },
-#else
-		{ NULL, "Skipping util::unixsock; missing fopencookie" },
-#endif /* HAVE_FOPENCOOKIE */
-	};
+	status = regcomp(&reg, regex, REG_EXTENDED | REG_NOSUB);
+	if (status)
+		return status;
 
-	putenv("TZ=UTC");
-
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
-		SRunner *sr;
-		Suite *s;
-
-		if (creators[i].msg)
-			printf("%s\n", creators[i].msg);
-
-		if (!creators[i].creator)
-			continue;
-
-		s = creators[i].creator();
-		sr = srunner_create(s);
-		srunner_run_all(sr, CK_NORMAL);
-		failed += srunner_ntests_failed(sr);
-		srunner_free(sr);
-	}
-
-	return failed;
-} /* main */
+	status = regexec(&reg, string, /* matches = */ 0, NULL, /* flags = */ 0);
+	regfree(&reg);
+	return status;
+} /* sdb_regmatches */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
