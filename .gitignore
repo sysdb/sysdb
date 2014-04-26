@@ -54,3 +54,4 @@ t/unit/libsysdb_net_test
 t/unit/*.log
 t/unit/*.trs
 test-driver
+test-suite.log
