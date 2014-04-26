@@ -146,8 +146,20 @@ static mock_query_t *current_query = NULL;
 
 /* dbi_driver, dbi_conn, dbi_result are void pointers */
 
+int
+dbi_initialize_r(const char __attribute__((unused)) *driverdir,
+		dbi_inst __attribute__((unused)) *pInst)
+{
+	return 0;
+} /* dbi_initialize_r */
+
+void
+dbi_shutdown_r(dbi_inst __attribute__((unused)) inst)
+{
+} /* dbi_shutdown_r */
+
 dbi_driver
-dbi_driver_open(const char *name)
+dbi_driver_open_r(const char *name, dbi_inst __attribute__((unused)) inst)
 {
 	if (strcmp(name, "mockdriver"))
 		return NULL;
@@ -155,7 +167,7 @@ dbi_driver_open(const char *name)
 } /* dbi_driver_open */
 
 dbi_driver
-dbi_driver_list(dbi_driver curr)
+dbi_driver_list_r(dbi_driver curr, dbi_inst __attribute__((unused)) inst)
 {
 	if (!curr)
 		return "mockdriver";

@@ -60,6 +60,7 @@ struct sdb_dbi_client {
 	char *database;
 
 	dbi_conn conn;
+	dbi_inst inst;
 
 	sdb_dbi_options_t *options;
 };
@@ -263,6 +264,11 @@ sdb_dbi_client_create(const char *driver, const char *database)
 	client->conn = NULL;
 	client->options = NULL;
 
+	if (dbi_initialize_r(/* driverdir = */ NULL, &client->inst) < 0) {
+		free(client);
+		return NULL;
+	}
+
 	client->driver = strdup(driver);
 	client->database = strdup(database);
 	if ((! client->driver) || (! client->database)) {
@@ -299,15 +305,15 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 		client->conn = NULL;
 	}
 
-	driver = dbi_driver_open(client->driver);
+	driver = dbi_driver_open_r(client->driver, client->inst);
 	if (! driver) {
 		sdb_error_set("dbi: failed to open DBI driver '%s'; "
 				"possibly it's not installed.\n",
 				client->driver);
 
 		sdb_error_append("dbi: known drivers:\n");
-		for (driver = dbi_driver_list(NULL); driver;
-				driver = dbi_driver_list(driver)) {
+		for (driver = dbi_driver_list_r(NULL, client->inst); driver;
+				driver = dbi_driver_list_r(driver, client->inst)) {
 			sdb_error_append("\t- %s\n", dbi_driver_get_name(driver));
 		}
 		sdb_error_chomp();
@@ -483,6 +489,8 @@ sdb_dbi_client_destroy(sdb_dbi_client_t *client)
 	if (client->conn)
 		dbi_conn_close(client->conn);
 	client->conn = NULL;
+
+	dbi_shutdown_r(client->inst);
 
 	if (client->options)
 		sdb_dbi_options_destroy(client->options);
