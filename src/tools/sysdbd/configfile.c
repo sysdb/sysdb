@@ -65,6 +65,7 @@ enum {
  */
 
 static sdb_time_t default_interval = 0;
+static char *plugin_dir = NULL;
 
 /*
  * private helper functions
@@ -153,6 +154,19 @@ daemon_set_interval(oconfig_item_t *ci)
 } /* daemon_set_interval */
 
 static int
+daemon_set_plugindir(oconfig_item_t *ci)
+{
+	if (oconfig_get_string(ci, &plugin_dir)) {
+		sdb_log(SDB_LOG_ERR, "config: PluginDir requires a single "
+				"string argument\n"
+				"\tUsage: PluginDir DIR");
+		return ERR_INVALID_ARG;
+	}
+	plugin_dir = strdup(plugin_dir);
+	return 0;
+} /* daemon_set_plugindir */
+
+static int
 daemon_load_plugin(oconfig_item_t *ci)
 {
 	char *name;
@@ -176,7 +190,7 @@ daemon_load_plugin(oconfig_item_t *ci)
 	}
 
 	/* returns a negative value on error */
-	return sdb_plugin_load(NULL, name, NULL);
+	return sdb_plugin_load(plugin_dir, name, NULL);
 } /* daemon_load_plugin */
 
 static int
@@ -215,7 +229,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		}
 	}
 
-	return sdb_plugin_load(NULL, plugin_name, &ctx);
+	return sdb_plugin_load(plugin_dir, plugin_name, &ctx);
 } /* daemon_load_backend */
 
 static int
@@ -239,6 +253,7 @@ daemon_configure_plugin(oconfig_item_t *ci)
 static token_parser_t token_parser_list[] = {
 	{ "Listen", daemon_add_listener },
 	{ "Interval", daemon_set_interval },
+	{ "PluginDir", daemon_set_plugindir },
 	{ "LoadPlugin", daemon_load_plugin },
 	{ "LoadBackend", daemon_load_backend },
 	{ "Backend", daemon_configure_plugin },
@@ -300,6 +315,11 @@ daemon_parse_config(const char *filename)
 
 	oconfig_free(ci);
 	free(ci);
+
+	if (plugin_dir) {
+		free(plugin_dir);
+		plugin_dir = NULL;
+	}
 	return retval;
 } /* daemon_parse_config */
 
