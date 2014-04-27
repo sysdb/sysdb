@@ -232,8 +232,9 @@ static int
 main_loop(void)
 {
 	sdb_fe_socket_t *sock = sdb_fe_sock_create();
-
 	pthread_t backend_thread;
+
+	int status = 0;
 
 	while (42) {
 		size_t i;
@@ -252,20 +253,25 @@ main_loop(void)
 			break;
 		}
 
-		for (i = 0; i < listen_addresses_num; ++i)
-			if (sdb_fe_sock_add_listener(sock, listen_addresses[i]))
+		for (i = 0; i < listen_addresses_num; ++i) {
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i])) {
+				status = 1;
 				break;
+			}
+		}
 
 		/* break on error */
-		if (i >= listen_addresses_num) {
-			sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
-					SDB_VERSION_EXTRA " (pid %i) initialized successfully",
-					(int)getpid());
-
-			sdb_connection_enable_logging();
-
-			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+		if (i < listen_addresses_num) {
+			status = 1;
+			break;
 		}
+
+		sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
+				SDB_VERSION_EXTRA " (pid %i) initialized successfully",
+				(int)getpid());
+
+		sdb_connection_enable_logging();
+		sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
 
 		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
 		plugin_main_loop.do_loop = 0;
@@ -281,12 +287,13 @@ main_loop(void)
 		sdb_fe_sock_clear_listeners(sock);
 		if (do_reconfigure()) {
 			sdb_log(SDB_LOG_ERR, "Reconfiguration failed");
+			status = 1;
 			break;
 		}
 	}
 
 	sdb_fe_sock_destroy(sock);
-	return 0;
+	return status;
 } /* main_loop */
 
 int
