@@ -217,7 +217,6 @@ do_reconfigure(void)
 		return status;
 	sdb_plugin_init_all();
 	sdb_plugin_reconfigure_finish();
-	sdb_connection_enable_logging();
 	return 0;
 } /* do_reconfigure */
 
@@ -258,8 +257,15 @@ main_loop(void)
 				break;
 
 		/* break on error */
-		if (i >= listen_addresses_num)
+		if (i >= listen_addresses_num) {
+			sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
+					SDB_VERSION_EXTRA " (pid %i) initialized successfully",
+					(int)getpid());
+
+			sdb_connection_enable_logging();
+
 			sdb_fe_sock_listen_and_serve(sock, &frontend_main_loop);
+		}
 
 		sdb_log(SDB_LOG_INFO, "Waiting for backend thread to terminate");
 		plugin_main_loop.do_loop = 0;
@@ -348,10 +354,6 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
-	sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
-			SDB_VERSION_EXTRA " (pid %i) initialized successfully",
-			(int)getpid());
-
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 
@@ -370,7 +372,6 @@ main(int argc, char **argv)
 	 * closing the connection cleanly */
 	signal(SIGPIPE, SIG_IGN);
 
-	sdb_connection_enable_logging();
 	status = main_loop();
 
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
