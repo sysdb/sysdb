@@ -93,6 +93,7 @@ struct sdb_fe_socket {
 static int
 open_unix_sock(listener_t *listener)
 {
+	const char *addr;
 	struct sockaddr_un sa;
 	int status;
 
@@ -104,12 +105,16 @@ open_unix_sock(listener_t *listener)
 		return -1;
 	}
 
+	if (*listener->address == '/')
+		addr = listener->address;
+	else
+		addr = listener->address + strlen("unix:");
+
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
-	strncpy(sa.sun_path, listener->address + strlen("unix:"),
-			sizeof(sa.sun_path));
+	strncpy(sa.sun_path, addr, sizeof(sa.sun_path));
 
-	if (unlink(listener->address + strlen("unix:")) && (errno != ENOENT)) {
+	if (unlink(addr) && (errno != ENOENT)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_WARNING, "frontend: Failed to remove stale UNIX "
 				"socket %s: %s", listener->address + strlen("unix:"),
@@ -129,15 +134,22 @@ open_unix_sock(listener_t *listener)
 static void
 close_unix_sock(listener_t *listener)
 {
+	const char *addr;
 	assert(listener);
+
 	if (! listener->address)
 		return;
+
+	if (*listener->address == '/')
+		addr = listener->address;
+	else
+		addr = listener->address + strlen("unix:");
 
 	if (listener->sock_fd >= 0)
 		close(listener->sock_fd);
 	listener->sock_fd = -1;
 
-	unlink(listener->address + strlen("unix:"));
+	unlink(addr);
 } /* close_unix_sock */
 
 /*
@@ -147,7 +159,7 @@ close_unix_sock(listener_t *listener)
 /* the enum has to be sorted the same as the implementations array
  * to ensure that the type may be used as index into the array */
 enum {
-	LISTENER_UNIXSOCK = 0,
+	LISTENER_UNIXSOCK = 0, /* this is the default */
 };
 static fe_listener_impl_t listener_impls[] = {
 	{ LISTENER_UNIXSOCK, "unix", open_unix_sock, close_unix_sock },
@@ -199,7 +211,7 @@ get_type(const char *address)
 
 	sep = strchr(address, (int)':');
 	if (! sep)
-		return -1;
+		return listener_impls[0].type;
 
 	assert(sep > address);
 	len = (size_t)(sep - address);
