@@ -64,10 +64,12 @@ typedef struct {
  * sdb_plugin_load:
  * Load (any type of) plugin by loading the shared object file and calling the
  * sdb_module_init function. If specified, 'plugin_ctx' fine-tunes the
- * behavior of the plugin.
+ * behavior of the plugin. If specified, the plugin will be looked up in
+ * 'basedir', else it defaults to the package libdir.
  */
 int
-sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx);
+sdb_plugin_load(const char *basedir, const char *name,
+		const sdb_plugin_ctx_t *plugin_ctx);
 
 /*
  * sdb_plugin_set_info:

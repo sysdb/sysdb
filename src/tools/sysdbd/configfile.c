@@ -176,7 +176,7 @@ daemon_load_plugin(oconfig_item_t *ci)
 	}
 
 	/* returns a negative value on error */
-	return sdb_plugin_load(name, NULL);
+	return sdb_plugin_load(NULL, name, NULL);
 } /* daemon_load_plugin */
 
 static int
@@ -215,7 +215,7 @@ daemon_load_backend(oconfig_item_t *ci)
 		}
 	}
 
-	return sdb_plugin_load(plugin_name, &ctx);
+	return sdb_plugin_load(NULL, plugin_name, &ctx);
 } /* daemon_load_backend */
 
 static int

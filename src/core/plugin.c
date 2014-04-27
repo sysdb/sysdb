@@ -442,7 +442,8 @@ module_init(const char *name, lt_dlhandle lh, sdb_plugin_info_t *info)
 } /* module_init */
 
 static int
-module_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
+module_load(const char *basedir, const char *name,
+		const sdb_plugin_ctx_t *plugin_ctx)
 {
 	char  base_name[name ? strlen(name) + 1 : 1];
 	const char *name_ptr;
@@ -467,8 +468,10 @@ module_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 	}
 	strcat(base_name, name_ptr);
 
-	snprintf(filename, sizeof(filename), "%s/%s.so",
-			PKGLIBDIR, base_name);
+	if (! basedir)
+		basedir = PKGLIBDIR;
+
+	snprintf(filename, sizeof(filename), "%s/%s.so", basedir, base_name);
 	filename[sizeof(filename) - 1] = '\0';
 
 	if (access(filename, R_OK)) {
@@ -575,7 +578,8 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
  */
 
 int
-sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
+sdb_plugin_load(const char *basedir, const char *name,
+		const sdb_plugin_ctx_t *plugin_ctx)
 {
 	ctx_t *ctx;
 
@@ -612,7 +616,7 @@ sdb_plugin_load(const char *name, const sdb_plugin_ctx_t *plugin_ctx)
 		return 0;
 	}
 
-	return module_load(name, plugin_ctx);
+	return module_load(basedir, name, plugin_ctx);
 } /* sdb_plugin_load */
 
 int
