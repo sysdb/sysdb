@@ -41,7 +41,7 @@ if test -d "$srcdir"/.git/; then
 	git checkout HEAD .gitignore .travis.yml t/cibuild.sh
 fi
 
-./configure --enable-gcov --disable-shared CFLAGS="-O0 -g"
+./configure --enable-gcov CFLAGS="-O0 -g"
 make
 
 lcov --base-directory src --directory src --zerocount
