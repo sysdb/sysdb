@@ -47,7 +47,7 @@ unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 # integration tests
 #
 
-TESTS += integration/simple_config.sh
+TESTS += integration/simple_config.sh integration/simple_query.sh
 
 noinst_LTLIBRARIES += integration/mock_plugin.la
 integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
