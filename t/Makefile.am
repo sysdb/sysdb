@@ -7,6 +7,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 TESTS =
 check_PROGRAMS =
+noinst_LTLIBRARIES =
 
 #
 # unit tests
@@ -47,6 +48,12 @@ unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 #
 
 TESTS += integration/simple_config.sh
+
+noinst_LTLIBRARIES += integration/mock_plugin.la
+integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
+# -rpath is a work-around to enforce a shared library
+integration_mock_plugin_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version \
+		-rpath /nonexistent
 
 test: check
 
