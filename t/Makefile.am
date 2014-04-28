@@ -5,8 +5,15 @@ AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-TESTS = unit/libsysdb_test unit/libsysdb_net_test
-check_PROGRAMS = unit/libsysdb_test unit/libsysdb_net_test
+TESTS =
+check_PROGRAMS =
+
+#
+# unit tests
+#
+
+TESTS += unit/libsysdb_test unit/libsysdb_net_test
+check_PROGRAMS += unit/libsysdb_test unit/libsysdb_net_test
 
 unit_libsysdb_test_SOURCES = \
 		unit/libsysdb_test.c unit/libsysdb_test.h \
@@ -34,6 +41,12 @@ unit_libsysdb_net_test_SOURCES += unit/utils/unixsock_test.c
 endif
 unit_libsysdb_net_test_CFLAGS = $(AM_CFLAGS) @CHECK_CFLAGS@ -I$(top_srcdir)/t/unit
 unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
+
+#
+# integration tests
+#
+
+TESTS += integration/simple_config.sh
 
 test: check
 

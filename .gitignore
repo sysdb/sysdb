@@ -48,7 +48,9 @@ src/sysdbd
 *.o
 sysdb.h
 
-# unit testing output
+# integration/unit testing output
+t/integration/*.sh.log
+t/integration/*.sh.trs
 t/unit/libsysdb_test
 t/unit/libsysdb_net_test
 t/unit/*.log
