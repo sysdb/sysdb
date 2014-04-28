@@ -35,8 +35,13 @@ trap "rm -rf '$TESTDIR'" EXIT
 mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
+SYSDBD_CONF="$TESTDIR/sysdbd.conf"
+
 SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
+
+SYSDBD="$TOP_SRCDIR/src/sysdbd"
+SYSDB="$TOP_SRCDIR/src/sysdb"
 
 function wait_for_sysdbd() {
 	local i

@@ -33,20 +33,20 @@ set -e
 
 source "$( dirname "$0" )/test_lib.sh"
 
-cat <<EOF > "$TESTDIR/sysdbd.conf"
+cat <<EOF > "$SYSDBD_CONF"
 Listen "invalid://address"
 EOF
 
-if "$TOP_SRCDIR/src/sysdbd" -D -C "$TESTDIR/sysdbd.conf"; then
+if "$SYSDBD" -D -C "$SYSDBD_CONF"; then
 	echo 'SysDBd accepted invalid listen address; expected: failure' >&2
 	exit 1
 fi
 
-cat <<EOF > "$TESTDIR/sysdbd.conf"
+cat <<EOF > "$SYSDBD_CONF"
 Listen "$SOCKET_FILE"
 EOF
 
-"$TOP_SRCDIR/src/sysdbd" -D -C "$TESTDIR/sysdbd.conf" &
+"$SYSDBD" -D -C "$SYSDBD_CONF" &
 sysdbd_pid=$!
 
 wait_for_sysdbd

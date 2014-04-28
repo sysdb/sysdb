@@ -33,7 +33,7 @@ set -e
 
 source "$( dirname "$0" )/test_lib.sh"
 
-cat <<EOF > "$TESTDIR/sysdbd.conf"
+cat <<EOF > "$SYSDBD_CONF"
 Listen "$SOCKET_FILE"
 PluginDir "$PLUGIN_DIR"
 Interval 2
@@ -43,13 +43,13 @@ LoadBackend mock_plugin
 </Backend>
 EOF
 
-"$TOP_SRCDIR/src/sysdbd" -D -C "$TESTDIR/sysdbd.conf" &
+"$SYSDBD" -D -C "$SYSDBD_CONF" &
 sysdbd_pid=$!
 
 wait_for_sysdbd
 sleep 3
 
-"$TOP_SRCDIR/src/sysdb" -H "$SOCKET_FILE" -c LIST \
+"$SYSDB" -H "$SOCKET_FILE" -c LIST \
 	| grep -F '"host1.example.com"' \
 	| grep -F "host2.example.com" \
 	| grep -F "localhost" \
