@@ -83,6 +83,16 @@ GLOBAL SETTINGS
 		be used for this backend. See the global *Interval* option for more
 		details.
 
+*LoadPlugin* '<name>'::
+	Loads the plugin named '<name>'. Plugins provide additional functionality
+	for sysdbd.
+
+*PluginDir* '<directory>'::
+	Sets the base directory for plugins to '<directory>'. When loading a
+	plugin, it is expected to be found below this directory. This option
+	affects all following *LoadBackend* or *LoadPlugin* statements up to the
+	following *PluginDir* option.
+
 PLUGINS
 -------
 Some plugins support additional configuration options. Each of these are
