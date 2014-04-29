@@ -292,6 +292,10 @@ main_loop(void)
 		}
 	}
 
+	/* clean up in case we exited the loop on error */
+	pthread_kill(backend_thread, SIGINT);
+	pthread_join(backend_thread, NULL);
+
 	sdb_fe_sock_destroy(sock);
 	return status;
 } /* main_loop */
