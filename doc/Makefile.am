@@ -15,6 +15,7 @@ man_MANS = \
 		sysdbd.conf.5
 
 html_DATA = \
+		docbook-xsl.css \
 		sysdb.1.html \
 		sysdbd.1.html \
 		sysdbd.conf.5.html
@@ -30,6 +31,10 @@ sysdbd.conf.5: sysdbd.conf.5.txt ../version
 sysdb.1.html: sysdb.1.txt ../version
 sysdbd.1.html: sysdbd.1.txt ../version
 sysdbd.conf.5.html: sysdbd.conf.5.txt ../version
+
+# This is an ugly hack but fine for now.
+docbook-xsl.css:
+	test -e docbook-xsl.css || rm -f sysdb.1.html && make sysdb.1.html
 
 .1.txt.1:
 	@A2X@ -d manpage -f manpage $(ADOC_ATTRS) $<
