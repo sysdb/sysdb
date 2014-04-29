@@ -12,13 +12,23 @@ CLEANFILES = \
 man_MANS = \
 		sysdb.1 \
 		sysdbd.1 \
-		sysdbd.conf.5
+		sysdbd.conf.5 \
+		sysdbd-cname-dns.5 \
+		sysdbd-collectd-unixsock.5 \
+		sysdbd-mk-livestatus.5 \
+		sysdbd-puppet-store-configs.5 \
+		sysdbd-syslog.5
 
 html_DATA = \
 		docbook-xsl.css \
 		sysdb.1.html \
 		sysdbd.1.html \
-		sysdbd.conf.5.html
+		sysdbd.conf.5.html \
+		sysdbd-cname-dns.5.html \
+		sysdbd-collectd-unixsock.5.html \
+		sysdbd-mk-livestatus.5.html \
+		sysdbd-puppet-store-configs.5.html \
+		sysdbd-syslog.5.html
 
 ADOC_ATTRS = -apackage_version=$(PACKAGE_VERSION) \
 		-abuild_date="$$( date --utc '+%F' )" \
@@ -27,10 +37,20 @@ ADOC_ATTRS = -apackage_version=$(PACKAGE_VERSION) \
 sysdb.1: sysdb.1.txt ../version
 sysdbd.1: sysdbd.1.txt ../version
 sysdbd.conf.5: sysdbd.conf.5.txt ../version
+sysdbd-cname-dns.5: sysdbd-cname-dns.5.txt ../version
+sysdbd-collectd-unixsock.5: sysdbd-collectd-unixsock.5.txt ../version
+sysdbd-mk-livestatus.5: sysdbd-mk-livestatus.5.txt ../version
+sysdbd-puppet-store-configs.5: sysdbd-puppet-store-configs.5.txt ../version
+sysdbd-syslog.5: sysdbd-syslog.5.txt ../version
 
 sysdb.1.html: sysdb.1.txt ../version
 sysdbd.1.html: sysdbd.1.txt ../version
 sysdbd.conf.5.html: sysdbd.conf.5.txt ../version
+sysdbd-cname-dns.5.html: sysdbd-cname-dns.5.txt ../version
+sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt ../version
+sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt ../version
+sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt ../version
+sysdbd-syslog.5.html: sysdbd-syslog.5.txt ../version
 
 # This is an ugly hack but fine for now.
 docbook-xsl.css:

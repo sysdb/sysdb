@@ -97,7 +97,10 @@ PLUGINS
 -------
 Some plugins support additional configuration options. Each of these are
 enclosed in a *Plugin* or *Backend* section. The following plugins are shipped
-with SysDB. See *sysdb*-'<name>'(5) manpages for more details.
+with SysDB. See *sysdbd*-'<name>'(5) manpages for more details.
+
+Backends:
+~~~~~~~~~
 
 *collectd::unixsock*::
 This backend module accesses the system statistics collection daemon
@@ -121,6 +124,12 @@ facter facts information storing the latter as host attributes.
 +
 See also: http://puppetlabs.com/puppet,
 http://puppetlabs.com/puppet/related-projects/facter/
+
+Plugins:
+~~~~~~~~
+
+*cname::dns*::
+Canonicalize hostnames based on a reverse DNS query.
 
 *syslog*::
 This logging module sends log messages of the daemon and plugins to the local
