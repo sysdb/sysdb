@@ -179,8 +179,10 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	buf = sdb_strbuf_create(64);
 	rstatus = 0;
 	status = sdb_client_recv(client, &rstatus, buf);
-	if ((status > 0) && (rstatus == CONNECTION_OK))
+	if ((status > 0) && (rstatus == CONNECTION_OK)) {
+		sdb_strbuf_destroy(buf);
 		return 0;
+	}
 
 	if (status < 0) {
 		char errbuf[1024];
