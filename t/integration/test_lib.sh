@@ -35,13 +35,23 @@ trap "rm -rf '$TESTDIR'" EXIT
 mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
+cp src/.libs/sysdb src/.libs/sysdbd "$TESTDIR"
+cp src/.libs/libsysdb*.so* "$TESTDIR"
+chrpath -r "$TESTDIR" "$TESTDIR/sysdb" > /dev/null
+chrpath -r "$TESTDIR" "$TESTDIR/sysdbd" > /dev/null
+
+MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
+MEMCHECK="$MEMCHECK --trace-children=yes"
+MEMCHECK="$MEMCHECK --track-fds=yes"
+MEMCHECK="$MEMCHECK --leak-check=full"
+
 SYSDBD_CONF="$TESTDIR/sysdbd.conf"
 
 SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
 
-SYSDBD="$TOP_SRCDIR/src/sysdbd"
-SYSDB="$TOP_SRCDIR/src/sysdb"
+SYSDB="$MEMCHECK $TESTDIR/sysdb"
+SYSDBD="$MEMCHECK $TESTDIR/sysdbd"
 
 function wait_for_sysdbd() {
 	local i

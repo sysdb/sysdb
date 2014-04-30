@@ -43,7 +43,7 @@ LoadBackend mock_plugin
 </Backend>
 EOF
 
-"$SYSDBD" -D -C "$SYSDBD_CONF" &
+$SYSDBD -D -C "$SYSDBD_CONF" &
 sysdbd_pid=$!
 
 wait_for_sysdbd
