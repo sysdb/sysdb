@@ -36,7 +36,8 @@
  *
  * Returns:
  *  - 0 on success
- *  - a negative value else
+ *  - a negative value if no reply could be read from the server
+ *  - a positive value if the server returned an error
  */
 int
 sdb_command_print_reply(sdb_client_t *client);

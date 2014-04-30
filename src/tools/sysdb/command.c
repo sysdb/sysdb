@@ -52,16 +52,22 @@ sdb_command_print_reply(sdb_client_t *client)
 	sdb_strbuf_t *recv_buf;
 	const char *result;
 	uint32_t rcode = 0;
+	int status = 0;
 
 	recv_buf = sdb_strbuf_create(1024);
 	if (! recv_buf)
 		return -1;
 
-	if (sdb_client_recv(client, &rcode, recv_buf) < 0)
+	if (sdb_client_recv(client, &rcode, recv_buf) < 0) {
 		rcode = UINT32_MAX;
+		status = -1;
+	}
 
 	if (sdb_client_eof(client))
 		return -1;
+
+	if (rcode == CONNECTION_ERROR)
+		status = 1;
 
 	if (rcode == UINT32_MAX)
 		printf("ERROR: ");
@@ -74,7 +80,7 @@ sdb_command_print_reply(sdb_client_t *client)
 	}
 
 	sdb_strbuf_destroy(recv_buf);
-	return 0;
+	return status;
 } /* sdb_command_print_reply */
 
 char *
@@ -103,7 +109,7 @@ sdb_command_exec(sdb_input_t *input)
 		/* ignore errors; we'll only hide the command from the caller */
 
 		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
-		if (sdb_command_print_reply(input->client))
+		if (sdb_command_print_reply(input->client) < 0)
 			return NULL;
 	}
 

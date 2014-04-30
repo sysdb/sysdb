@@ -184,6 +184,8 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+		int err;
+
 		if (sdb_client_send(client, CONNECTION_QUERY,
 					(uint32_t)strlen(obj->name), obj->name) <= 0) {
 			sdb_log(SDB_LOG_ERR, "Failed to send command '%s' to server",
@@ -191,8 +193,10 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 			status = 1;
 			break;
 		}
-		if (sdb_command_print_reply(client)) {
-			sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
+		err = sdb_command_print_reply(client);
+		if (err) {
+			if (err < 0)
+				sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
 			status = 1;
 			break;
 		}
