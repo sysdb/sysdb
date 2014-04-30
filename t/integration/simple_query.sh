@@ -49,13 +49,36 @@ sysdbd_pid=$!
 wait_for_sysdbd
 sleep 3
 
+output="$( $SYSDB -H "$SOCKET_FILE" -c INVALID )"
+echo "$output" | grep "parse error: syntax error"
+
 output="$( $SYSDB -H "$SOCKET_FILE" -c LIST )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
-	| grep -F "host2.example.com" \
-	| grep -F "localhost" \
-	| grep -F "other.host.name" \
-	| grep -F "some.host.name"
+	| grep -F '"host2.example.com"' \
+	| grep -F '"localhost"' \
+	| grep -F '"other.host.name"' \
+	| grep -F '"some.host.name"'
+
+output="$( $SYSDB -H "$SOCKET_FILE" -c "FETCH 'host1.example.com'" )"
+echo "$output" \
+	| grep -F '"host1.example.com"' \
+	| grep -F '"mock service"' \
+	| grep -E '"other attribute".*"special value"'
+echo "$output" | grep -F 'host2.example.com' && exit 1
+echo "$output" | grep -F 'localhost' && exit 1
+echo "$output" | grep -F 'other.host.name' && exit 1
+echo "$output" | grep -F 'some.host.name' && exit 1
+
+output="$( $SYSDB -H "$SOCKET_FILE" \
+	-c "LOOKUP hosts WHERE attribute.architecture = 'x42'" )"
+echo "$output" \
+	| grep -F '"host1.example.com"' \
+	| grep -F '"host2.example.com"'
+echo "$output" | grep -F 'localhost' && exit 1
+echo "$output" | grep -F 'other.host.name' && exit 1
+echo "$output" | grep -F 'some.host.name' && exit 1
+
 kill $sysdbd_pid
 wait $sysdbd_pid
 
