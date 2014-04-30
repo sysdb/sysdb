@@ -49,7 +49,8 @@ sysdbd_pid=$!
 wait_for_sysdbd
 sleep 3
 
-"$SYSDB" -H "$SOCKET_FILE" -c LIST \
+output="$( $SYSDB -H "$SOCKET_FILE" -c LIST )"
+echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F "host2.example.com" \
 	| grep -F "localhost" \
