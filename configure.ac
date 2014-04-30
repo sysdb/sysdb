@@ -253,7 +253,7 @@ Build dependencies:])
 
 dnl Testing.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
-		[build_testing="yes"], [build_testing="no"])
+		[unit_tests="yes"], [unit_tests="no"])
 
 AC_CHECK_HEADERS(libgen.h)
 
@@ -396,6 +396,14 @@ if test "x$A2X" = "x"; then
 fi
 AC_SUBST([A2X])
 
+integration_tests="yes"
+AC_PATH_PROG([VALGRIND], [valgrind])
+AC_PATH_PROG([CHRPATH], [chrpath])
+if test "x$VALGRIND" = "x" || test "x$CHRPATH" = "x"; then
+	integration_tests="no (missing valgrind and/or chrpath)"
+fi
+AM_CONDITIONAL([INTEGRATION_TESTING], test "x$integration_tests" = "xyes")
+
 dnl Plugin checks.
 puppet_storeconfigs_default=$with_libdbi
 if test "x$puppet_storeconfigs_default" != "xyes"; then
@@ -422,7 +430,7 @@ AC_SDB_PLUGIN([syslog], [yes],
 		[plugin logging to syslog])
 
 AM_CONDITIONAL([BUILD_DOCUMENTATION], test "x$build_documentation" = "xyes")
-AM_CONDITIONAL([BUILD_TESTING], test "x$build_testing" = "xyes")
+AM_CONDITIONAL([UNIT_TESTING], test "x$unit_tests" = "xyes")
 
 AC_CONFIG_FILES([Makefile doc/Makefile src/Makefile
 		src/liboconfig/Makefile t/Makefile])
@@ -447,9 +455,10 @@ AC_MSG_RESULT([    xmlto / xsltproc: . . . . . $have_xmlto / $have_xsltproc])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
-AC_MSG_RESULT([    unit testing: . . . . . . . $build_testing])
+AC_MSG_RESULT([    unit testing: . . . . . . . $unit_tests])
 AC_MSG_RESULT([      stdio mocking:  . . . . . $have_fopencookie])
 AC_MSG_RESULT([    coverage testing: . . . . . $enable_gcov])
+AC_MSG_RESULT([    integration testing:  . . . $integration_tests])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])

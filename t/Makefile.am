@@ -17,8 +17,10 @@ noinst_LTLIBRARIES =
 # unit tests
 #
 
+if UNIT_TESTING
 TESTS += unit/libsysdb_test unit/libsysdb_net_test
 check_PROGRAMS += unit/libsysdb_test unit/libsysdb_net_test
+endif
 
 unit_libsysdb_test_SOURCES = \
 		unit/libsysdb_test.c unit/libsysdb_test.h \
@@ -51,7 +53,9 @@ unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 # integration tests
 #
 
+if INTEGRATION_TESTING
 TESTS += integration/simple_config.sh integration/simple_query.sh
+endif
 
 noinst_LTLIBRARIES += integration/mock_plugin.la
 integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
