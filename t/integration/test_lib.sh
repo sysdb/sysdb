@@ -35,8 +35,9 @@ trap "rm -rf '$TESTDIR'" EXIT
 mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
-cp src/.libs/sysdb src/.libs/sysdbd "$TESTDIR"
-cp src/.libs/libsysdb*.so* "$TESTDIR"
+cp "$TOP_SRCDIR"/src/.libs/sysdb "$TESTDIR"
+cp "$TOP_SRCDIR"/src/.libs/sysdbd "$TESTDIR"
+cp "$TOP_SRCDIR"/src/.libs/libsysdb*.so* "$TESTDIR"
 chrpath -r "$TESTDIR" "$TESTDIR/sysdb" > /dev/null
 chrpath -r "$TESTDIR" "$TESTDIR/sysdbd" > /dev/null
 
