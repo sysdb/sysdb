@@ -1,0 +1,75 @@
+sysdbd-puppet-store-configs(5)
+==============================
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+sysdbd-puppet-store-configs - puppet::store-configs plugin querying Puppet
+
+SYNOPSIS
+--------
+  <LoadBackend "puppet::store-configs">
+      Interval 300
+  </LoadBackend>
+
+  <Backend "puppet::store-configs">
+      <Connection "puppet">
+          DBAdapter "pgsql"
+          DBName "puppet"
+          DBServer "puppet.domain.tld"
+          DBPort "5432"
+          DBUser "puppet"
+          DBPassword "secret1"
+          DBIOption "name" "value"
+      </Connection>
+  </Backend>
+
+DESCRIPTION
+-----------
+*puppet::store-configs* is a backend module which queries the configuration
+management system *Puppet* using its *store configs* database. It connects to
+the store configs database using a DBI client and periodically queries all
+hosts and facter facts. The hosts are then stored using their fully qualified
+domain names whereas facts are stored as host attributes.
+
+CONFIGURATION
+-------------
+*puppet::store-configs* accepts the following configuration options:
+
+*Connection* '<name>'::
+	A connection block specifies a store configs database to connect to. The
+	specified '<name>' is used to identify the connection internally but
+	otherwise has no special meaning.
+	+
+	A connection block accepts the following configuration options:
+
+	*DBAdapter* '<name>';;
+	*DBName* '<database>';;
+	*DBServer* '<hostname>';;
+	*DBPort* '<port>';;
+	*DBUser* '<username>';;
+	*DBPassword* '<password>';;
+	*DBIOption* '<name>' '<value>';;
+		Connection parameters specifying which database to connect to. Each
+		parameter is passed on to DBI when connecting to the database.
+
+SEE ALSO
+--------
+*sysdbd*(1), *sysdbd.conf*(5)
+
+AUTHOR
+------
+sysdbd was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012-2014 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+
