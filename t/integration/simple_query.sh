@@ -70,6 +70,10 @@ echo "$output" | grep -F 'localhost' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
+output="$( $SYSDB -H "$SOCKET_FILE" -c "FETCH 'does.not.exist'" )" \
+	&& exit 1
+echo "$output" | grep -F 'not found'
+
 output="$( $SYSDB -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts WHERE attribute.architecture = 'x42'" )"
 echo "$output" \
