@@ -55,4 +55,6 @@ sleep 3
 	| grep -F "localhost" \
 	| grep -F "other.host.name" \
 	| grep -F "some.host.name"
-kill $!
+kill $sysdbd_pid
+wait $sysdbd_pid
+

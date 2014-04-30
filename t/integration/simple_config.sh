@@ -50,4 +50,6 @@ EOF
 sysdbd_pid=$!
 
 wait_for_sysdbd
-kill $!
+kill $sysdbd_pid
+wait $sysdbd_pid
+
