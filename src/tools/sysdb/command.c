@@ -58,19 +58,19 @@ sdb_command_print_reply(sdb_client_t *client)
 	if (! recv_buf)
 		return -1;
 
-	if (sdb_client_recv(client, &rcode, recv_buf) < 0) {
+	if (sdb_client_recv(client, &rcode, recv_buf) < 0)
 		rcode = UINT32_MAX;
-		status = -1;
-	}
 
 	if (sdb_client_eof(client))
 		return -1;
 
-	if (rcode == CONNECTION_ERROR)
-		status = CONNECTION_ERROR;
-
-	if (rcode == UINT32_MAX)
+	if (rcode == UINT32_MAX) {
 		printf("ERROR: ");
+		status = -1;
+	}
+	else
+		status = (int)rcode;
+
 	result = sdb_strbuf_string(recv_buf);
 	if (result && *result)
 		printf("%s\n", result);

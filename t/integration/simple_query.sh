@@ -49,7 +49,8 @@ sysdbd_pid=$!
 wait_for_sysdbd
 sleep 3
 
-output="$( $SYSDB -H "$SOCKET_FILE" -c INVALID )"
+output="$( $SYSDB -H "$SOCKET_FILE" -c INVALID )" && exit 1
+echo "$output" | grep "Failed to parse query 'INVALID'"
 echo "$output" | grep "parse error: syntax error"
 
 output="$( $SYSDB -H "$SOCKET_FILE" -c LIST )"
