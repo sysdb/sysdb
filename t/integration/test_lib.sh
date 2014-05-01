@@ -49,7 +49,7 @@ SYSDBD_CONF="$TESTDIR/sysdbd.conf"
 SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
 
-SYSDB="$MEMCHECK $TESTDIR/sysdb"
+SYSDB="$MEMCHECK $TESTDIR/sysdb -U mockuser"
 SYSDBD="$MEMCHECK $TESTDIR/sysdbd"
 
 export LD_PRELOAD=$TESTDIR/libsysdbclient.so:$TESTDIR/libsysdb.so
