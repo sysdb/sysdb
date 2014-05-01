@@ -398,9 +398,8 @@ AC_SUBST([A2X])
 
 integration_tests="yes"
 AC_PATH_PROG([VALGRIND], [valgrind])
-AC_PATH_PROG([CHRPATH], [chrpath])
-if test "x$VALGRIND" = "x" || test "x$CHRPATH" = "x"; then
-	integration_tests="no (missing valgrind and/or chrpath)"
+if test "x$VALGRIND" = "x"; then
+	integration_tests="no (missing valgrind)"
 fi
 AM_CONDITIONAL([INTEGRATION_TESTING], test "x$integration_tests" = "xyes")
 

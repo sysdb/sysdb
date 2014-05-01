@@ -68,8 +68,8 @@ Testing
   library. It used used to mock I/O related functions. In case this function
   is not available, the respective tests will be disabled automatically.
 
-  The integration tests require valgrind and chrpath. If any of these are not
-  available, integration tests will be disabled automatically.
+  The integration tests require valgrind. If it is not available, integration
+  tests will be disabled automatically.
 
   For the latest build status, see:
   <https://travis-ci.org/tokkee/sysdb>

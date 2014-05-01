@@ -38,8 +38,6 @@ cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 cp "$TOP_SRCDIR"/src/.libs/sysdb "$TESTDIR"
 cp "$TOP_SRCDIR"/src/.libs/sysdbd "$TESTDIR"
 cp "$TOP_SRCDIR"/src/.libs/libsysdb*.so* "$TESTDIR"
-chrpath -r "$TESTDIR" "$TESTDIR/sysdb" > /dev/null
-chrpath -r "$TESTDIR" "$TESTDIR/sysdbd" > /dev/null
 
 MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
 MEMCHECK="$MEMCHECK --trace-children=yes"
@@ -53,6 +51,8 @@ PLUGIN_DIR="$TESTDIR"
 
 SYSDB="$MEMCHECK $TESTDIR/sysdb"
 SYSDBD="$MEMCHECK $TESTDIR/sysdbd"
+
+export LD_PRELOAD=$TESTDIR/libsysdbclient.so:$TESTDIR/libsysdb.so
 
 function wait_for_sysdbd() {
 	local i
