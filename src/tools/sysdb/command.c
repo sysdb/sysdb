@@ -67,7 +67,7 @@ sdb_command_print_reply(sdb_client_t *client)
 		return -1;
 
 	if (rcode == CONNECTION_ERROR)
-		status = 1;
+		status = CONNECTION_ERROR;
 
 	if (rcode == UINT32_MAX)
 		printf("ERROR: ");
@@ -109,6 +109,12 @@ sdb_command_exec(sdb_input_t *input)
 		/* ignore errors; we'll only hide the command from the caller */
 
 		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
+
+		/* The server will send back *something*, either error/log messages
+		 * and/or the reply to the query. Here, we don't care about what it
+		 * sends back. We'll wait for the first reply and then return to the
+		 * main loop which will handle any subsequent replies, including
+		 * eventually the reply to the query (if it's not the first reply). */
 		if (sdb_command_print_reply(input->client) < 0)
 			return NULL;
 	}

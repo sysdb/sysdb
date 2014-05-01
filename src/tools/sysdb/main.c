@@ -184,7 +184,6 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-		int err;
 
 		if (sdb_client_send(client, CONNECTION_QUERY,
 					(uint32_t)strlen(obj->name), obj->name) <= 0) {
@@ -193,13 +192,23 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 			status = 1;
 			break;
 		}
-		err = sdb_command_print_reply(client);
-		if (err) {
-			if (err < 0)
+
+		/* Wait for server replies. We might get any number of log messages
+		 * but eventually see the reply to the query, which is either OK or
+		 * ERROR. */
+		while (42) {
+			status = sdb_command_print_reply(client);
+			if (status < 0) {
 				sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
-			status = 1;
-			break;
+				break;
+			}
+
+			if ((status == CONNECTION_OK) || (status == CONNECTION_ERROR))
+				break;
 		}
+
+		if (status)
+			break;
 	}
 
 	sdb_llist_iter_destroy(iter);
