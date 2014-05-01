@@ -267,7 +267,8 @@ main_loop(void)
 		}
 
 		sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
-				SDB_VERSION_EXTRA " (pid %i) initialized successfully",
+				SDB_VERSION_EXTRA " (libsysdb %s%s, pid %i) initialized "
+				"successfully", sdb_version_string(), sdb_version_extra(),
 				(int)getpid());
 
 		sdb_connection_enable_logging();
