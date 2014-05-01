@@ -3,11 +3,30 @@ SUFFIXES = .1 .5 .1.html .5.html .1.txt .5.txt
 EXTRA_DIST = \
 		sysdb.1.txt \
 		sysdbd.1.txt \
-		sysdbd.conf.5.txt
+		sysdbd.conf.5.txt \
+		sysdbd-cname-dns.5.txt \
+		sysdbd-collectd-unixsock.5.txt \
+		sysdbd-mk-livestatus.5.txt \
+		sysdbd-puppet-store-configs.5.txt \
+		sysdbd-syslog.5.txt
 CLEANFILES = \
 		sysdb.1 \
 		sysdbd.1 \
-		sysdbd.conf.5
+		sysdbd.conf.5 \
+		sysdbd-cname-dns.5 \
+		sysdbd-collectd-unixsock.5 \
+		sysdbd-mk-livestatus.5 \
+		sysdbd-puppet-store-configs.5 \
+		sysdbd-syslog.5 \
+		docbook-xsl.css \
+		sysdb.1.html \
+		sysdbd.1.html \
+		sysdbd.conf.5.html \
+		sysdbd-cname-dns.5.html \
+		sysdbd-collectd-unixsock.5.html \
+		sysdbd-mk-livestatus.5.html \
+		sysdbd-puppet-store-configs.5.html \
+		sysdbd-syslog.5.html
 
 man_MANS = \
 		sysdb.1 \
