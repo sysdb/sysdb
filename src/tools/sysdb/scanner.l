@@ -44,7 +44,7 @@
 #	undef YY_INPUT
 #endif
 #define YY_INPUT(buf, result, max_size) \
-	sdb_input_readline((buf), &(result), (max_size))
+	sdb_input_readline((buf), (size_t *)&(result), (max_size))
 
 #define APPEND() \
 	do { \

@@ -80,7 +80,7 @@ sdb_input_mainloop(void);
  *  - A negative value in case of an error.
  */
 ssize_t
-sdb_input_readline(char *buf, int *n_chars, size_t max_chars);
+sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars);
 
 /*
  * sdb_input_exec_query:

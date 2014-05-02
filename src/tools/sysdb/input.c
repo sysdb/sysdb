@@ -223,7 +223,7 @@ sdb_input_mainloop(void)
 } /* sdb_input_mainloop */
 
 ssize_t
-sdb_input_readline(char *buf, int *n_chars, size_t max_chars)
+sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars)
 {
 	const char *data;
 	size_t len;
