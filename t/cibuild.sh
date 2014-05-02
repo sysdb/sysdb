@@ -11,4 +11,13 @@ set -ex
 	CFLAGS="-O0 $CICFLAGS" \
 	LDFLAGS="$CILDFLAGS"
 make clean all
-make test
+
+case "$CICFLAGS" in
+	*sanitize=address*)
+		# skip regular tests
+		;;
+	*)
+		make test
+		;;
+esac
+
