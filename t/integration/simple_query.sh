@@ -43,8 +43,7 @@ LoadBackend mock_plugin
 </Backend>
 EOF
 
-run_sysdbd -D -C "$SYSDBD_CONF" &
-sysdbd_pid=$!
+run_sysdbd -D -C "$SYSDBD_CONF"
 
 wait_for_sysdbd
 sleep 3
@@ -117,6 +116,5 @@ output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts WHERE attribute.invalid = 'none'" )"
 echo $output | grep -E '^\[\]$'
 
-kill $sysdbd_pid
-wait $sysdbd_pid
+stop_sysdbd
 

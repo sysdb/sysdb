@@ -30,7 +30,7 @@
 
 TOP_SRCDIR="$( readlink -f "$( dirname "$0" )/../.." )"
 TESTDIR="$( mktemp -d )"
-trap "rm -rf '$TESTDIR'" EXIT
+trap "rm -rf '$TESTDIR'; test -z \$SYSDBD_PID || kill \$SYSDBD_PID" EXIT
 
 mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
@@ -55,7 +55,22 @@ function run_sysdb() {
 }
 
 function run_sysdbd() {
+	LD_PRELOAD=$TESTDIR/libsysdb.so $MEMCHECK "$TESTDIR/sysdbd" "$@" &
+	SYSDBD_PID=$!
+}
+
+function run_sysdbd_foreground() {
 	LD_PRELOAD=$TESTDIR/libsysdb.so $MEMCHECK "$TESTDIR/sysdbd" "$@"
+}
+
+function stop_sysdbd() {
+	if test -z $SYSDBD_PID; then
+		echo "Cannot stop sysdbd; PID unknown" >&2
+		exit 1
+	fi
+	kill $SYSDBD_PID
+	wait $SYSDBD_PID
+	SYSDBD_PID=''
 }
 
 function wait_for_sysdbd() {

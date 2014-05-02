@@ -37,7 +37,7 @@ cat <<EOF > "$SYSDBD_CONF"
 Listen "invalid://address"
 EOF
 
-if run_sysdbd -D -C "$SYSDBD_CONF"; then
+if run_sysdbd_foreground -D -C "$SYSDBD_CONF"; then
 	echo 'SysDBd accepted invalid listen address; expected: failure' >&2
 	exit 1
 fi
@@ -46,10 +46,8 @@ cat <<EOF > "$SYSDBD_CONF"
 Listen "$SOCKET_FILE"
 EOF
 
-run_sysdbd -D -C "$SYSDBD_CONF" &
-sysdbd_pid=$!
+run_sysdbd -D -C "$SYSDBD_CONF"
 
 wait_for_sysdbd
-kill $sysdbd_pid
-wait $sysdbd_pid
+stop_sysdbd
 
