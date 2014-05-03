@@ -41,6 +41,10 @@ if test -d "$srcdir"/.git/; then
 	git checkout HEAD .gitignore .travis.yml t/cibuild.sh
 fi
 
+# rebuild build system to refresh version number, etc.
+rm -f version
+touch configure.ac && make configure
+
 ./configure --enable-gcov CFLAGS="-O0 -g"
 make
 
