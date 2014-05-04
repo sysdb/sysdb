@@ -50,7 +50,8 @@ EXIT CODES
 	Success.
 
 *1*::
-	Failure (syntax or usage error).
+	Failure (syntax or usage error). When using the *-c* option, sysdb exits
+	with status 1 if the specified command failed.
 
 BUGS
 ----
@@ -62,7 +63,7 @@ SEE ALSO
 
 AUTHOR
 ------
-sysdbd was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
 
 COPYRIGHT
 ---------
