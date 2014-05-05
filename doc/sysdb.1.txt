@@ -59,7 +59,7 @@ None known.
 
 SEE ALSO
 --------
-*sysdbd*(1)
+*sysdbd*(1), *sysdbql*(7)
 
 AUTHOR
 ------
