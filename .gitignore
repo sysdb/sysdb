@@ -33,6 +33,8 @@ doc/*.1
 doc/*.1.html
 doc/*.5
 doc/*.5.html
+doc/*.7
+doc/*.7.html
 doc/docbook-xsl.css
 src/frontend/grammar.c
 src/frontend/grammar.h

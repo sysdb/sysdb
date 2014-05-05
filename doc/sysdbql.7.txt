@@ -1,0 +1,193 @@
+sysdbdql(7)
+===========
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+sysdbql - the SysDB query language
+
+SYNOPSIS
+--------
+
+  LIST;
+
+  QUERY hosts WHERE attribute.architecture = 'amd64';
+
+DESCRIPTION
+-----------
+SysDB stores system and inventory information about hardware and software
+systems. This information is stored in a graph-like hierarchy of generic
+objects. The central object type is a host, which generally represents a
+physical or virtual machine or any other type of physical resource. Hosts, in
+turn, may reference a list of services which represent any kind of logical
+resource like a software system. Both, hosts and services, may reference a
+list of attributes which represent further information about the respective
+host or service object. For example, attributes may specify static information
+like a host's architecture or the software version or snapshots of performance
+data like the current memory utilization or much more.
+
+The SysDB query language is a human-readable format for describing a request
+to retrieve data from a SysDB daemon. It is very remotely similar to the
+Standard Query Language (SQL) supported by relational database management
+systems (RDBMS) but specialized for SysDB's use-case.
+
+QUERY COMMANDS
+--------------
+Each command is terminated by a semicolon. The following commands are
+available to retrieve information from SysDB:
+
+*LIST*::
+Retrieve a sorted (by name) list of all hosts currently stored in SysDB. The
+return value is a list of hosts where each host description includes its name,
+the timestamp of the last update of the object in SysDB and an approximation
+of the interval with which the host was updated.
+
+*FETCH* '<hostname>'::
+Retrieve detailed information about the specified host object. The return
+value includes the hostname, a list of services referenced by the host, and a
+list of attributes for the host and each service. If the host does not exist,
+an error is returned.
+
+*LOOKUP* hosts *WHERE* '<search_condition>'::
+Retrieve detailed information about all host objects matching the specified
+search condition. The return value is a list of detailed information for each
+matching host providing the same details as returned by the *FETCH* command.
+See the section "WHERE clause" for more details about how to specify the
+search condition.
+
+WHERE clause
+~~~~~~~~~~~~
+The *WHERE* clause in a query specifies a boolean expression which is used to
+match host objects based on their names, their attributes, or services
+referenced by the host. Each *WHERE* clause may be made up of one or multiple
+subexpressions each matching on one criteria. The following subexpressions
+are supported by SysDB:
+
+'<field>' '<operator>' '<value>'::
+	Match a named field against the specified value. See below for what fields
+	and operators are supported.
+
+*NOT* '<subexpression>'::
+	Invert the boolean result of the specified subexpression.
+
+'<subexpression>' *AND* '<subexpression>'::
+'<subexpression>' *OR* '<subexpression>'::
+	Combine multiple subexpressions using logical AND or logical OR.
+
+The following fields may be queried:
+
+*host.name*::
+	The full name of the host.
+
+*service.name*::
+	The full service name as referenced by the host.
+
+*attribute.name*::
+	The full name of a host attribute.
+
+*attribute.*'<name>'::
+	The value of the named host attribute. If an attribute of the specified
+	does not exist, each comparison is treated as if the value does not match.
+
+The following operators may be used to match field values:
+
+*=*::
+	Evaluates to true if the field value exactly matches the specified value.
+
+*!=*::
+	Evaluates to true if the field value does not match the exact specified
+	value.
+
+*=~*::
+	Evaluates to true if the field value matches the specified regular
+	expression. SysDB uses POSIX extended regular expressions.
+
+*!~*::
+	Evalues to true if the field value does not match the specified regular
+	expression.
+
+RESPONSE FORMAT
+---------------
+The JavaScript Object Notation (JSON) format, as specified in RFC 4627, is
+used in all replies from the server. http://www.ietf.org/rfc/rfc4627.txt
+
+EXAMPLES
+--------
+The following examples illustrate the use of the commands and what their
+replies look like. The replies are pretty-printed to more easily follow them.
+
+  LIST;
+  {"hosts":[{
+      "name": "host1.example.com",
+      "last_update": "2001-02-03 04:05:06 +0700",
+      "update_interval": "5m4s"
+    },{
+      "name": "host2.example.com",
+      "last_update": "2001-02-03 04:05:06 +0700",
+      "update_interval": "5m4s"
+    }]}
+
+  FETCH 'host1.example.com';
+  {
+      "name": "host1.example.com",
+      "last_update": "2001-02-03 04:05:06 +0700",
+      "update_interval": "5m4s",
+      "attributes": [{
+          "name": "architecture",
+          "value": "amd64",
+          "last_update": "2001-02-03 04:05:06 +0700",
+          "update_interval": "5m4s"
+        },{
+          ...
+        }],
+      "services": [{
+          "name": "some service",
+          "last_update": "2001-02-03 04:05:06 +0700",
+          "update_interval": "5m4s"
+        },{
+          ...
+        }]}
+
+  LOOKUP hosts WHERE attribute.architecture = 'amd64';
+  [{
+      "name": "host1.example.com",
+      "last_update": "2001-02-03 04:05:06 +0700",
+      "update_interval": "5m4s",
+      "attributes": [{
+          "name": "architecture",
+          "value": "amd64",
+          "last_update": "2001-02-03 04:05:06 +0700",
+          "update_interval": "5m4s"
+        },{
+          ...
+        }],
+      "services": [{
+          "name": "some service",
+          "last_update": "2001-02-03 04:05:06 +0700",
+          "update_interval": "5m4s"
+        },{
+          ...
+    }]},{
+      ...
+    }]
+
+SEE ALSO
+--------
+*sysdb*(1)
+
+AUTHOR
+------
+SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012-2014 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+
