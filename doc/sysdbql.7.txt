@@ -1,5 +1,5 @@
-sysdbdql(7)
-===========
+sysdbql(7)
+==========
 Sebastian "tokkee" Harl <sh@tokkee.org>
 version {package_version}, {build_date}
 :doctype: manpage
