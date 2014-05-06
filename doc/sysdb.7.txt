@@ -1,0 +1,60 @@
+sysdb(7)
+========
+Sebastian "tokkee" Harl <sh@tokkee.org>
+version {package_version}, {build_date}
+:doctype: manpage
+
+NAME
+----
+sysdb - the System DataBase (SysDB)
+
+SYNOPSIS
+--------
+
+  sysdbd -C /path/to/sysdbd.conf
+
+  sysdb -H /path/to/sysdbd.sock
+
+DESCRIPTION
+-----------
+include::sysdb-description.txt[]
+
+SysDB is made up of several components:
+
+sysdbd
+~~~~~~
+The SysDB daemon acts as the data collection instance and database server. It
+collects system and inventory information from the backends and aggregates
+objects retrieved from different backends based on their attributes. This way,
+it creates a uniform hierarchy of the entire infrastructure.
+
+For details about the SysDB daemon, see its manual page *sysdbd*(1).
+
+sysdb
+~~~~~
+The SysDB client is a terminal-based, interactive shell which may be used to
+query the SysDB daemon. It connects to a running daemon and then accepts
+commands from the user, sends them to the server, and displays the results.
+
+For details about the SysDB client, see its manual page *sysdb*(1). For
+details about how to query the database, see the specification of the SysDB
+query language in *sysdbql*(7).
+
+SEE ALSO
+--------
+*sysdb*(1), *sysdbd*(1), *sysdbql*(7)
+
+AUTHOR
+------
+SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012-2014 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+

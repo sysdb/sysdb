@@ -9,6 +9,7 @@ EXTRA_DIST = \
 		sysdbd-mk-livestatus.5.txt \
 		sysdbd-puppet-store-configs.5.txt \
 		sysdbd-syslog.5.txt \
+		sysdb.7.txt \
 		sysdbql.7.txt
 CLEANFILES = \
 		sysdb.1 \
@@ -19,6 +20,7 @@ CLEANFILES = \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
+		sysdb.7 \
 		sysdbql.7 \
 		docbook-xsl.css \
 		sysdb.1.html \
@@ -29,6 +31,7 @@ CLEANFILES = \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
+		sysdb.7.html \
 		sysdbql.7.html
 
 man_MANS = \
@@ -40,6 +43,7 @@ man_MANS = \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
+		sysdb.7 \
 		sysdbql.7
 
 html_DATA = \
@@ -52,6 +56,7 @@ html_DATA = \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
+		sysdb.7.html \
 		sysdbql.7.html
 
 ADOC_ATTRS = -apackage_version=$(PACKAGE_VERSION) \
@@ -66,7 +71,8 @@ sysdbd-collectd-unixsock.5: sysdbd-collectd-unixsock.5.txt ../version
 sysdbd-mk-livestatus.5: sysdbd-mk-livestatus.5.txt ../version
 sysdbd-puppet-store-configs.5: sysdbd-puppet-store-configs.5.txt ../version
 sysdbd-syslog.5: sysdbd-syslog.5.txt ../version
-sysdbql.7: sysdbql.7.txt ../version
+sysdb.7: sysdb.7.txt sysdb-description.txt ../version
+sysdbql.7: sysdbql.7.txt sysdb-description.txt ../version
 
 sysdb.1.html: sysdb.1.txt ../version
 sysdbd.1.html: sysdbd.1.txt ../version
@@ -76,7 +82,8 @@ sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt ../version
 sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt ../version
 sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt ../version
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt ../version
-sysdbql.7.html: sysdbql.7.txt ../version
+sysdb.7.html: sysdb.7.txt sysdb-description.txt ../version
+sysdbql.7.html: sysdbql.7.txt sysdb-description.txt ../version
 
 # This is an ugly hack but fine for now.
 docbook-xsl.css:

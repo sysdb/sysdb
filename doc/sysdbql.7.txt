@@ -17,16 +17,7 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-SysDB stores system and inventory information about hardware and software
-systems. This information is stored in a graph-like hierarchy of generic
-objects. The central object type is a host, which generally represents a
-physical or virtual machine or any other type of physical resource. Hosts, in
-turn, may reference a list of services which represent any kind of logical
-resource like a software system. Both, hosts and services, may reference a
-list of attributes which represent further information about the respective
-host or service object. For example, attributes may specify static information
-like a host's architecture or the software version or snapshots of performance
-data like the current memory utilization or much more.
+include::sysdb-description.txt[]
 
 The SysDB query language is a human-readable format for describing a request
 to retrieve data from a SysDB daemon. It is very remotely similar to the
