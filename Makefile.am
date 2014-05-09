@@ -6,7 +6,9 @@ SUBDIRS += doc
 endif
 SUBDIRS += t
 
-EXTRA_DIST = autogen.sh version-gen.sh
+EXTRA_DIST = \
+		autogen.sh version-gen.sh \
+		ReleaseNotes
 
 version: FORCE
 	@# As a side-effect, this updates version.
