@@ -1,0 +1,65 @@
+                             SysDB Release Notes
+                            =====================
+
+  The release notes contain noteworthy changes in each System DataBase (SysDB)
+  release, with a summary of the most important changes at the top. A complete
+  and very detailed list of changes can be obtained from the Git logs for each
+  release.
+
+ About SysDB:
+ ~~~~~~~~~~~~
+  “System DataBase” (SysDB) is a multi-backend system management and inventory
+  collection service. It may be used to (continuously) collect information
+  about your systems from various backends (inventory services, monitoring
+  services, etc.) and provides a unique interface to access the information
+  independent of the active backends.
+
+  <https://github.com/tokkee/sysdb>
+
+Version 0.1.0, Release Date: tbd
+--------------------------------
+
+  This is the initial release of SysDB. It provides the following core
+  features:
+
+   * sysdb: A terminal-based, interactive client program. Supports
+     line-editing and history based on libreadline or libedit and uses an
+     asynchronous, event-driven architecture to handle user input and server
+     replies simultaneously.
+   * sysdbd: The database backend service configurable through a configuration
+     file. The daemon supports online reconfiguration.
+   * core: Flexible, multi-threaded core architecture providing a configurable
+     plugin infrastructure for querying external data-sources and extending
+     core functionality. The following plugin types are supported:
+     - data collection
+     - hostname canonicalization
+     - logging
+   * store: Central, in-memory object store managing host and service objects
+     and their attributes. Host names may be canonicalized through respective
+     plugins. Each object is automatically attributed with last update and
+     interval information using nano-seconds resolution. Attributes may have
+     various types (integer, decimal, string, date-time, binary).
+   * frontend: The frontend handling client connections uses a multi-threaded,
+     asynchronous, event-driven architecture capable of handling multiple
+     listen addresses.
+   * query language: The store may be queried using the ‘LIST’, ‘LOOKUP’, and
+     ‘FETCH’ commands returning JSON formatted objects.
+   * documentation: Full documentation for the tools, all plugins, and the
+     query language provided as manpages and HTML pages.
+   * testing: Unit and integration tests exist for most parts except plugins
+     covering 77% of all functions. Valgrind and Clang's address sanitzer are
+     used to detect memory leaks and programming errors.
+
+  The following plugins are shipped with this version of SysDB:
+
+  Backends:
+   * collectd::unixsock: Query collectd through its ‘unixsock’ interface
+   * mk-livestatus: Query arbitrary (monitoring) systems using the Check_MK
+     Livestatus interface.
+   * puppet::store-configs: Query Puppet through its “stored configuration”
+     database.
+
+  Plugins:
+   * cname::dns: Canonicalize hostnames by querying DNS information.
+   * syslog: Send log messages to the system log service.
+
