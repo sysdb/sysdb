@@ -35,9 +35,8 @@ trap "rm -rf '$TESTDIR'; test -z \$SYSDBD_PID || kill \$SYSDBD_PID" EXIT
 mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
-cp "$TOP_SRCDIR"/src/.libs/sysdb "$TESTDIR"
-cp "$TOP_SRCDIR"/src/.libs/sysdbd "$TESTDIR"
-cp "$TOP_SRCDIR"/src/.libs/libsysdb*.so* "$TESTDIR"
+cp "$TOP_SRCDIR"/src/sysdb "$TESTDIR"
+cp "$TOP_SRCDIR"/src/sysdbd "$TESTDIR"
 
 MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
 MEMCHECK="$MEMCHECK --trace-children=yes"
@@ -50,17 +49,16 @@ SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
 
 function run_sysdb() {
-	LD_PRELOAD=$TESTDIR/libsysdbclient.so $MEMCHECK \
-		"$TESTDIR/sysdb" -U mockuser "$@"
+	$MEMCHECK "$TESTDIR/sysdb" -U mockuser "$@"
 }
 
 function run_sysdbd() {
-	LD_PRELOAD=$TESTDIR/libsysdb.so $MEMCHECK "$TESTDIR/sysdbd" "$@" &
+	$MEMCHECK "$TESTDIR/sysdbd" "$@" &
 	SYSDBD_PID=$!
 }
 
 function run_sysdbd_foreground() {
-	LD_PRELOAD=$TESTDIR/libsysdb.so $MEMCHECK "$TESTDIR/sysdbd" "$@"
+	$MEMCHECK "$TESTDIR/sysdbd" "$@"
 }
 
 function stop_sysdbd() {

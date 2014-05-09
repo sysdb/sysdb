@@ -43,8 +43,7 @@ pkgclientinclude_HEADERS = \
 		include/client/sock.h \
 		include/client/sysdb.h
 
-lib_LTLIBRARIES = libsysdbclient.la libsysdb.la
-noinst_LTLIBRARIES =
+noinst_LTLIBRARIES = libsysdbclient.la libsysdb.la
 
 libsysdbclient_la_SOURCES = \
 		client/client.c include/client/sysdb.h \
@@ -117,6 +116,7 @@ endif
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
 		tools/sysdbd/configfile.c tools/sysdbd/configfile.h
 sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+sysdbd_LDFLAGS = -export-dynamic
 sysdbd_LDADD = libsysdb.la liboconfig/liboconfig.la
 sysdbd_DEPENDENCIES = liboconfig/liboconfig.la
 
