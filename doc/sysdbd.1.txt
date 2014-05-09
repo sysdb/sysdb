@@ -43,6 +43,19 @@ OPTIONS
 *-V*::
 	Display the version number and copyright information.
 
+SIGNALS
+-------
+
+*sysdbd* accepts and handles the following signals:
+
+*SIGINT*, *SIGTERM*::
+	These signals initiate a clean shutdown and termination of the daemon.
+
+*SIGHUP*::
+	This signal causes the daemon to re-read the configuration and reconfigure
+	all plugins. Plugins which are no longer in use will be disabled and
+	unloaded. Open client connections are not affected by this.
+
 EXIT CODES
 ----------
 *0*::
