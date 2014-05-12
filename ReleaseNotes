@@ -47,6 +47,15 @@ Version 0.1.0, Release Date: tbd
      listen addresses.
    * query language: The store may be queried using the ‘LIST’, ‘LOOKUP’, and
      ‘FETCH’ commands returning JSON formatted objects.
+   * utils: A rich set of abstract data-types and utility functions for
+     internal use:
+     - generic channels for asynchronous, multi-threaded I/O
+     - DBI wrapper to ease common database access operations
+     - thread-aware error handling and reporting
+     - doubly linked-lists
+     - dynamic sized memory buffers supporting formatted strings and binary
+       data
+     - UNIX socket client implementation
    * documentation: Full documentation for the tools, all plugins, and the
      query language provided as manpages and HTML pages.
    * testing: Unit and integration tests exist for most parts except plugins
