@@ -9,10 +9,13 @@
  About SysDB:
  ~~~~~~~~~~~~
   “System DataBase” (SysDB) is a multi-backend system management and inventory
-  collection service. It may be used to (continuously) collect information
-  about your systems from various backends (inventory services, monitoring
-  services, etc.) and provides a unique interface to access the information
-  independent of the active backends.
+  collection service. It stores system and inventory information about
+  hardware and software systems. This information is (continuously) collected
+  from various configurable backends (inventory services, monitoring services,
+  etc.) and stored in a graph-like hierarchy of generic objects. The store may
+  be queried through a generic interface independent of the active backends.
+  Object names are canonicalized before they are added to the store to ensure
+  a consistent view of your infrastructure.
 
   <https://github.com/tokkee/sysdb>
 

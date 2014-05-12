@@ -15,9 +15,9 @@ SYNOPSIS
 DESCRIPTION
 -----------
 *sysdbd* is a multi-backend system management and inventory collection daemon.
-It may be used to (continuously) collect information from various backends
-(e.g., inventory services, monitoring services, configuration services) and
-provides a uniform combined view of all data.
+It stores system and inventory information about hardware and software
+systems. This information is (continuously) collected from various
+configurable backends.
 
 The main daemon itself is the central instance managing all collected
 information and doing the correlation of objects provided by different

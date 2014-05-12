@@ -2,12 +2,22 @@
        ===============================================================
 
   “System DataBase” (SysDB) is a multi-backend system management and inventory
-  collection service. It may be used to (continuously) collect information
-  about your systems from various backends (inventory services, monitoring
-  services, etc.) and provides a unique interface to access the information
-  independent of the active backends. This is done by storing and mapping the
-  backend objects to generic objects and correlating the attributes to create
-  a single hierarchical view of your infrastructure.
+  collection service. It stores system and inventory information about
+  hardware and software systems. This information is (continuously) collected
+  from various configurable backends (inventory services, monitoring services,
+  etc.) and stored in a graph-like hierarchy of generic objects. The store may
+  be queried through a generic interface independent of the active backends.
+  Object names are canonicalized before they are added to the store to ensure
+  a consistent view of your infrastructure.
+
+  The central object type is a host, which generally represents a physical or
+  virtual machine or any other type of physical resource. Hosts, in turn, may
+  reference a list of services which represent any kind of logical resource
+  like a software system. Both, hosts and services, may reference a list of
+  attributes which represent further information about the respective host or
+  service object. For example, attributes may specify static information like
+  a host's architecture or the software version or reference performance data
+  like the current memory utilization or much more.
 
   SysDB is free and open source software, licensed under the 2-clause BSD
   license. See COPYING for details.

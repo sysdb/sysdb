@@ -1,11 +1,18 @@
-SysDB stores system and inventory information about hardware and software
-systems. This information is stored in a graph-like hierarchy of generic
-objects. The central object type is a host, which generally represents a
-physical or virtual machine or any other type of physical resource. Hosts, in
-turn, may reference a list of services which represent any kind of logical
-resource like a software system. Both, hosts and services, may reference a
-list of attributes which represent further information about the respective
-host or service object. For example, attributes may specify static information
-like a host's architecture or the software version or snapshots of performance
-data like the current memory utilization or much more.
+“System DataBase” (SysDB) is a multi-backend system management and inventory
+collection service. It stores system and inventory information about hardware
+and software systems. This information is (continuously) collected from
+various configurable backends (inventory services, monitoring services, etc.)
+and stored in a graph-like hierarchy of generic objects. The store may be
+queried through a generic interface independent of the active backends. Object
+names are canonicalized before they are added to the store to ensure a
+consistent view of your infrastructure.
+
+The central object type is a host, which generally represents a physical or
+virtual machine or any other type of physical resource. Hosts, in turn, may
+reference a list of services which represent any kind of logical resource like
+a software system. Both, hosts and services, may reference a list of
+attributes which represent further information about the respective host or
+service object. For example, attributes may specify static information like a
+host's architecture or the software version or reference performance data like
+the current memory utilization or much more.
 
