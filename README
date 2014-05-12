@@ -20,7 +20,27 @@
   like the current memory utilization or much more.
 
   SysDB is free and open source software, licensed under the 2-clause BSD
-  license. See COPYING for details.
+  license. See COPYING for details. Changes between all SysDB releases can be
+  found in the file ReleaseNotes.
+
+Configure and install SysDB
+---------------------------
+
+  To configure, build and install SysDB with the default settings, run
+  ‘./configure && make && make install’. For detailed, generic instructions
+  see INSTALL. For a complete list of configure options and their description,
+  run ‘./configure --help’.
+
+  Various third-party packages are required for a full installation of SysDB.
+  See the section ‘Prerequisites’ below for details. A summary of
+  user-supplied and auto-detected build settings is displayed at the end of
+  each ‘configure’ run. Consult this first for trouble-shooting.
+
+  By default, SysDB will be installed into ‘/opt/sysdb’. You can adjust this
+  setting by specifying the ‘--prefix’ configure option - see INSTALL for
+  details. If you pass DESTDIR=<path> to ‘make install’, <path> will be
+  prefixed to all installation directories. This might be useful when creating
+  packages for SysDB.
 
 Prerequisites
 -------------
@@ -89,20 +109,6 @@ Testing
 
   For the latest coverage report, see:
   <https://coveralls.io/r/tokkee/sysdb>
-
-Configuring / Compiling / Installing
-------------------------------------
-
-  To configure, build and install SysDB with the default settings, run
-  ‘./configure && make && make install’. For detailed, generic instructions
-  see INSTALL. For a complete list of configure options and their description,
-  run ‘./configure --help’.
-
-  By default, SysDB will be installed into ‘/opt/sysdb’. You can adjust this
-  setting by specifying the ‘--prefix’ configure option - see INSTALL for
-  details. If you pass DESTDIR=<path> to ‘make install’, <path> will be
-  prefixed to all installation directories. This might be useful when creating
-  packages for SysDB.
 
 Author
 ------
