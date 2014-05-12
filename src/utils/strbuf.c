@@ -36,6 +36,14 @@
 
 #include <unistd.h>
 
+/* free memory if most of the buffer is unused */
+#define CHECK_SHRINK(strbuf) \
+	do { \
+		if ((strbuf)->pos < (strbuf)->size / 3) \
+			/* don't free all memory to avoid churn */ \
+			strbuf_resize((strbuf), 2 * (strbuf)->pos); \
+	} while (0)
+
 /*
  * private data structures
  */
@@ -55,14 +63,17 @@ strbuf_resize(sdb_strbuf_t *strbuf, size_t new_size)
 {
 	char *tmp;
 
-	if (new_size <= strbuf->size)
-		return 0;
+	if (new_size <= strbuf->pos)
+		return -1;
 
 	tmp = realloc(strbuf->string, new_size);
 	if (! tmp)
 		return -1;
 
-	strbuf->string = tmp;
+	if (new_size)
+		strbuf->string = tmp;
+	else
+		strbuf->string = NULL;
 	strbuf->size = new_size;
 	return 0;
 } /* strbuf_resize */
@@ -144,7 +155,7 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 
 	/* 'status' does not include nul-byte */
 	if ((size_t)status >= strbuf->size - strbuf->pos - 1) {
-		if (strbuf_resize(strbuf, strbuf->size + (size_t)status)) {
+		if (strbuf_resize(strbuf, strbuf->size + (size_t)status + 1)) {
 			va_end(aq);
 			return -1;
 		}
@@ -157,6 +168,11 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 		strbuf->pos += (size_t)status;
 
 	va_end(aq);
+
+	/* even though this function always appends to the existing buffer, the
+	 * size might have previously been reset */
+	CHECK_SHRINK(strbuf);
+
 	return (ssize_t)status;
 } /* sdb_strbuf_vappend */
 
@@ -227,6 +243,10 @@ sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n)
 	strbuf->pos += n;
 	strbuf->string[strbuf->pos] = '\0';
 
+	/* even though this function always appends to the existing buffer, the
+	 * size might have previously been reset */
+	CHECK_SHRINK(strbuf);
+
 	return (ssize_t)n;
 } /* sdb_strbuf_memappend */
 
@@ -252,8 +272,9 @@ sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n)
 	if (! strbuf)
 		return -1;
 
-	if (strbuf_resize(strbuf, strbuf->pos + n + 1))
-		return -1;
+	if (strbuf->pos + n + 1 >= strbuf->size)
+		if (strbuf_resize(strbuf, strbuf->pos + n + 1))
+			return -1;
 
 	ret = read(fd, strbuf->string + strbuf->pos, n);
 	if (ret > 0)
@@ -309,6 +330,8 @@ sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n)
 	memmove(start, start + n, len - n);
 	strbuf->pos -= n;
 	strbuf->string[strbuf->pos] = '\0';
+
+	/* don't resize now but wait for the next write to avoid churn */
 } /* sdb_strbuf_skip */
 
 void
@@ -319,6 +342,8 @@ sdb_strbuf_clear(sdb_strbuf_t *strbuf)
 
 	strbuf->string[0] = '\0';
 	strbuf->pos = 0;
+
+	/* don't resize now but wait for the next write to avoid churn */
 } /* sdb_strbuf_clear */
 
 const char *
