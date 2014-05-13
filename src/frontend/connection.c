@@ -376,6 +376,10 @@ command_init(sdb_conn_t *conn)
 
 	len = 2 * sizeof(uint32_t);
 	if (conn->cmd == CONNECTION_IDLE) {
+		const char *errmsg = "Invalid command 0";
+		sdb_strbuf_sprintf(conn->errbuf, errmsg);
+		sdb_connection_send(conn, CONNECTION_ERROR,
+				(uint32_t)strlen(errmsg), errmsg);
 		len += conn->cmd_len;
 		conn->cmd_len = 0;
 	}

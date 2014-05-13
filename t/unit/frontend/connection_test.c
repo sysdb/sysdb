@@ -210,13 +210,13 @@ START_TEST(test_conn_setup)
 		const char *err;
 	} golden_data[] = {
 		{ UINT32_MAX,         NULL,       NULL },
-		{ CONNECTION_IDLE,    "fakedata", NULL },
+		{ CONNECTION_IDLE,    "fakedata", "Invalid command 0" },
 		{ CONNECTION_PING,    NULL,       "Authentication required" },
 		{ CONNECTION_STARTUP, "fakeuser", NULL },
 		{ CONNECTION_PING,    NULL,       NULL },
-		{ CONNECTION_IDLE,    NULL,       NULL },
+		{ CONNECTION_IDLE,    NULL,       "Invalid command 0" },
 		{ CONNECTION_PING,    "fakedata", NULL },
-		{ CONNECTION_IDLE,    NULL,       NULL },
+		{ CONNECTION_IDLE,    NULL,       "Invalid command 0" },
 	};
 
 	size_t i;
