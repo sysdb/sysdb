@@ -434,6 +434,11 @@ connection_read(sdb_conn_t *conn)
 		}
 
 		n += status;
+
+		/* give the main loop a chance to execute commands (and free up buffer
+		 * space) on large amounts of incoming traffic */
+		if (n > 1024 * 1024)
+			break;
 	}
 
 	return n;
