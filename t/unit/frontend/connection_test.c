@@ -169,7 +169,7 @@ mock_client(void *arg)
 } /* mock_client */
 
 static void
-connection_setup(sdb_conn_t *conn)
+connection_startup(sdb_conn_t *conn)
 {
 	ssize_t check, expected;
 
@@ -191,7 +191,7 @@ connection_setup(sdb_conn_t *conn)
 			"buffer; expected: 0", sdb_strbuf_len(conn->errbuf));
 
 	mock_conn_truncate(conn);
-} /* connection_setup */
+} /* connection_startup */
 
 /*
  * tests
@@ -238,7 +238,7 @@ START_TEST(test_conn_setup)
 	} golden_data[] = {
 		/* code == UINT32_MAX => no data will be sent */
 		{ UINT32_MAX,         NULL,       NULL },
-		{ CONNECTION_IDLE,    "fakedata", "Invalid command 0" },
+		{ CONNECTION_IDLE,    "fakedata", "Authentication required" },
 		{ CONNECTION_PING,    NULL,       "Authentication required" },
 		{ CONNECTION_STARTUP, "fakeuser", NULL },
 		{ CONNECTION_PING,    NULL,       NULL },
@@ -308,29 +308,39 @@ START_TEST(test_conn_io)
 		const char *err;
 	} golden_data[] = {
 		/* code == UINT32_MAX => this is a follow-up package */
-		{ CONNECTION_PING, 20, "9876543210", 10, NULL },
-		{ UINT32_MAX,      -1, "9876543210",  0, NULL },
-		{ CONNECTION_IDLE, 20, "9876543210",  0, "Invalid command 0" },
-		{ UINT32_MAX,      -1, "9876543210",  0, "Invalid command 0" },
-		{ CONNECTION_IDLE, 20, "9876543210",  0, "Invalid command 0" },
-		{ UINT32_MAX,      -1, "9876543210",  0, "Invalid command 0" },
-		{ CONNECTION_PING, 10, "9876543210",  0, NULL },
-		{ CONNECTION_PING, 20, "9876543210", 10, NULL },
-		{ UINT32_MAX,      -1, "9876543210",  0, NULL },
+		{ CONNECTION_PING,    20, "9876543210",  0, "Authentication required" },
+		{ UINT32_MAX,         -1, "9876543210",  0, "Authentication required" },
+		{ CONNECTION_PING,    10, "9876543210",  0, "Authentication required" },
+		{ CONNECTION_IDLE,    10, "9876543210",  0, "Authentication required" },
+		{ CONNECTION_IDLE,    20, "9876543210",  0, "Authentication required" },
+		{ UINT32_MAX,         -1, "9876543210",  0, "Authentication required" },
+		{ CONNECTION_STARTUP, -1, NULL,          0, NULL },
+		{ CONNECTION_PING,    20, "9876543210", 10, NULL },
+		{ UINT32_MAX,         -1, "9876543210",  0, NULL },
+		{ CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
+		{ UINT32_MAX,         -1, "9876543210",  0, "Invalid command 0" },
+		{ CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
+		{ UINT32_MAX,         -1, "9876543210",  0, "Invalid command 0" },
+		{ CONNECTION_PING,    10, "9876543210",  0, NULL },
+		{ CONNECTION_PING,    20, "9876543210", 10, NULL },
+		{ UINT32_MAX,         -1, "9876543210",  0, NULL },
 	};
 
 	size_t i;
 
-	connection_setup(conn);
-
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		size_t msg_len = strlen(golden_data[i].msg);
+		size_t msg_len = golden_data[i].msg ? strlen(golden_data[i].msg) : 0;
 		char buffer[2 * sizeof(uint32_t) + msg_len];
 		size_t offset = 0;
 
 		ssize_t check;
 
 		mock_conn_truncate(conn);
+
+		if (golden_data[i].code == CONNECTION_STARTUP) {
+			connection_startup(conn);
+			continue;
+		}
 
 		if (golden_data[i].code != UINT32_MAX) {
 			uint32_t tmp;
