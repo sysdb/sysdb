@@ -61,6 +61,8 @@ mock_conn_destroy(sdb_conn_t *conn)
 	sdb_strbuf_destroy(conn->errbuf);
 	if (conn->fd >= 0)
 		close(conn->fd);
+	if (conn->username)
+		free(conn->username);
 	free(conn);
 } /* mock_conn_destroy */
 
