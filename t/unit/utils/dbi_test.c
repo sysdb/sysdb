@@ -176,7 +176,7 @@ dbi_driver_open_r(const char *name, dbi_inst __attribute__((unused)) inst)
 {
 	if (strcmp(name, "mockdriver"))
 		return NULL;
-	return (dbi_driver)strdup(name);
+	return (dbi_driver)"mockdriver";
 } /* dbi_driver_open */
 
 dbi_driver
