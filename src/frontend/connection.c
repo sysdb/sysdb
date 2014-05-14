@@ -358,7 +358,7 @@ command_handle(sdb_conn_t *conn)
 static int
 command_init(sdb_conn_t *conn)
 {
-	size_t len;
+	const char *errmsg = NULL;
 
 	assert(conn && (conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len));
 
@@ -371,27 +371,23 @@ command_init(sdb_conn_t *conn)
 	conn->cmd = connection_get_int32(conn, 0);
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
 
-	if ((! conn->username) && (conn->cmd != CONNECTION_STARTUP)) {
-		const char *errmsg = "Authentication required";
+	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
+
+	if ((! conn->username) && (conn->cmd != CONNECTION_STARTUP))
+		errmsg = "Authentication required";
+	else if (conn->cmd == CONNECTION_IDLE)
+		errmsg = "Invalid command 0";
+
+	if (errmsg) {
+		size_t len = sdb_strbuf_len(conn->buf);
+
 		sdb_strbuf_sprintf(conn->errbuf, errmsg);
 		sdb_connection_send(conn, CONNECTION_ERROR,
 				(uint32_t)strlen(errmsg), errmsg);
 		conn->skip_len += conn->cmd_len;
 		conn->cmd = CONNECTION_IDLE;
 		conn->cmd_len = 0;
-	}
-	else if (conn->cmd == CONNECTION_IDLE) {
-		const char *errmsg = "Invalid command 0";
-		sdb_strbuf_sprintf(conn->errbuf, errmsg);
-		sdb_connection_send(conn, CONNECTION_ERROR,
-				(uint32_t)strlen(errmsg), errmsg);
-		conn->skip_len += conn->cmd_len;
-		conn->cmd_len = 0;
-	}
-	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
-	if (conn->skip_len) {
-		len = sdb_strbuf_len(conn->buf);
 		if (len > conn->skip_len)
 			len = conn->skip_len;
 		sdb_strbuf_skip(conn->buf, 0, len);
