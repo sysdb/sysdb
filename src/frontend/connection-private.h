@@ -64,6 +64,10 @@ struct sdb_conn {
 	uint32_t cmd;
 	uint32_t cmd_len;
 
+	/* amount of data to skip, e.g., after receiving invalid commands; if this
+	 * is non-zero, the 'skip_len' first bytes of 'buf' are invalid */
+	size_t skip_len;
+
 	sdb_strbuf_t *errbuf;
 
 	/* user information */

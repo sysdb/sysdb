@@ -117,6 +117,7 @@ connection_init(sdb_object_t *obj, va_list ap)
 
 	conn->cmd = CONNECTION_IDLE;
 	conn->cmd_len = 0;
+	conn->skip_len = 0;
 
 	/* update the object name */
 	snprintf(obj->name + strlen(CONN_FD_PREFIX),
@@ -259,6 +260,7 @@ command_handle(sdb_conn_t *conn)
 	int status = -1;
 
 	assert(conn && (conn->cmd != CONNECTION_IDLE));
+	assert(! conn->skip_len);
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
 			conn->cmd, conn->cmd_len);
@@ -368,22 +370,33 @@ command_init(sdb_conn_t *conn)
 
 	assert(conn && (conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len));
 
+	if (conn->skip_len)
+		return -1;
+
 	/* reset */
 	sdb_strbuf_sprintf(conn->errbuf, "");
 
 	conn->cmd = connection_get_int32(conn, 0);
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
 
-	len = 2 * sizeof(uint32_t);
 	if (conn->cmd == CONNECTION_IDLE) {
 		const char *errmsg = "Invalid command 0";
 		sdb_strbuf_sprintf(conn->errbuf, errmsg);
 		sdb_connection_send(conn, CONNECTION_ERROR,
 				(uint32_t)strlen(errmsg), errmsg);
-		len += conn->cmd_len;
+		conn->skip_len += conn->cmd_len;
 		conn->cmd_len = 0;
 	}
-	sdb_strbuf_skip(conn->buf, 0, len);
+	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
+
+	if (conn->skip_len) {
+		len = sdb_strbuf_len(conn->buf);
+		if (len > conn->skip_len)
+			len = conn->skip_len;
+		sdb_strbuf_skip(conn->buf, 0, len);
+		conn->skip_len -= len;
+		/* connection_read will handle anything else */
+	}
 	return 0;
 } /* command_init */
 
@@ -411,6 +424,13 @@ connection_read(sdb_conn_t *conn)
 		}
 		else if (! status) /* EOF */
 			break;
+
+		if (conn->skip_len) {
+			size_t len = (size_t)status < conn->skip_len
+				? (size_t)status : conn->skip_len;
+			sdb_strbuf_skip(conn->buf, 0, len);
+			conn->skip_len -= len;
+		}
 
 		n += status;
 	}
