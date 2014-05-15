@@ -109,7 +109,7 @@ START_TEST(test_empty)
 }
 END_TEST
 
-START_TEST(test_sdb_strbuf_create)
+START_TEST(test_create)
 {
 	sdb_strbuf_t *s;
 	size_t len;
@@ -135,7 +135,7 @@ START_TEST(test_sdb_strbuf_create)
 }
 END_TEST
 
-START_TEST(test_sdb_strbuf_append)
+START_TEST(test_append)
 {
 	ssize_t n, expected;
 	size_t len;
@@ -183,7 +183,7 @@ START_TEST(test_sdb_strbuf_append)
 }
 END_TEST
 
-START_TEST(test_sdb_strbuf_sprintf)
+START_TEST(test_sprintf)
 {
 	ssize_t n, expected;
 	size_t len;
@@ -261,6 +261,7 @@ START_TEST(test_incremental)
 }
 END_TEST
 
+/* used by test_memcpy and test_memappend */
 static struct {
 	const char *input;
 	size_t size;
@@ -271,7 +272,7 @@ static struct {
 	{ "", 0 },
 };
 
-START_TEST(test_sdb_strbuf_memcpy)
+START_TEST(test_memcpy)
 {
 	size_t i;
 
@@ -304,7 +305,7 @@ START_TEST(test_sdb_strbuf_memcpy)
 }
 END_TEST
 
-START_TEST(test_sdb_strbuf_memappend)
+START_TEST(test_memappend)
 {
 	size_t i;
 
@@ -350,98 +351,97 @@ START_TEST(test_sdb_strbuf_memappend)
 }
 END_TEST
 
-static struct {
-	const char *input;
-	ssize_t expected;
-	const char *expected_string;
-} chomp_golden_data[] = {
-	{ NULL, 0, "" },
-	{ "\n", 1, "" },
-	{ "\n\n", 2, "" },
-	{ "12345\n\n\n", 3, "12345" },
-	{ "abcd", 0, "abcd" },
-};
-
-START_TEST(test_sdb_strbuf_chomp)
+START_TEST(test_chomp)
 {
+	struct {
+		const char *input;
+		ssize_t expected;
+		const char *expected_string;
+	} golden_data[] = {
+		{ NULL, 0, "" },
+		{ "\n", 1, "" },
+		{ "\n\n", 2, "" },
+		{ "12345\n\n\n", 3, "12345" },
+		{ "abcd", 0, "abcd" },
+	};
+
 	size_t i;
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(chomp_golden_data); ++i) {
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		ssize_t n;
 		const char *check;
 
-		if (chomp_golden_data[i].input)
-			sdb_strbuf_sprintf(buf, chomp_golden_data[i].input);
+		if (golden_data[i].input)
+			sdb_strbuf_sprintf(buf, golden_data[i].input);
 
 		/* empty buffer */
 		n = sdb_strbuf_chomp(buf);
-		fail_unless(n == chomp_golden_data[i].expected,
+		fail_unless(n == golden_data[i].expected,
 				"sdb_strbuf_chomp() = %zi; expected: %zi", n,
-				chomp_golden_data[i].expected);
+				golden_data[i].expected);
 
 		check = sdb_strbuf_string(buf);
-		fail_unless(!strcmp(check, chomp_golden_data[i].expected_string),
+		fail_unless(!strcmp(check, golden_data[i].expected_string),
 				"sdb_strbuf_chomp() did not correctly remove newlines; "
 				"got string '%s'; expected: '%s'", check,
-				chomp_golden_data[i].expected_string);
+				golden_data[i].expected_string);
 	}
 }
 END_TEST
 
-/* input is "1234567890" */
-static struct {
-	size_t offset;
-	size_t n;
-	const char *expected;
-	size_t expected_len;
-} skip_golden_data[] = {
-	{ 0, 0, "1234567890", 10 },
-	{ 0, 1, "234567890", 9 },
-	{ 0, 2, "34567890", 8 },
-	{ 0, 9, "0", 1 },
-	{ 0, 10, "", 0 },
-	{ 0, 11, "", 0 },
-	{ 0, 100, "", 0 },
-	{ 1, 0, "1234567890", 10 },
-	{ 1, 1, "134567890", 9 },
-	{ 1, 2, "14567890", 8 },
-	{ 2, 0, "1234567890", 10 },
-	{ 2, 1, "124567890", 9 },
-	{ 2, 2, "12567890", 8 },
-	{ 2, 3, "1267890", 7 },
-	{ 2, 4, "127890", 6 },
-	{ 2, 5, "12890", 5 },
-	{ 2, 6, "1290", 4 },
-	{ 2, 7, "120", 3 },
-	{ 2, 8, "12", 2 },
-	{ 2, 9, "12", 2 },
-	{ 2, 10, "12", 2 },
-	{ 8, 1, "123456780", 9 },
-	{ 8, 2, "12345678", 8 },
-	{ 8, 3, "12345678", 8 },
-	{ 9, 1, "123456789", 9 },
-	{ 9, 2, "123456789", 9 },
-	{ 10, 1, "1234567890", 10 },
-	{ 10, 2, "1234567890", 10 },
-};
-
-START_TEST(test_sdb_strbuf_skip)
+START_TEST(test_skip)
 {
 	const char *input = "1234567890";
+	struct {
+		size_t offset;
+		size_t n;
+		const char *expected;
+		size_t expected_len;
+	} golden_data[] = {
+		{ 0, 0, "1234567890", 10 },
+		{ 0, 1, "234567890", 9 },
+		{ 0, 2, "34567890", 8 },
+		{ 0, 9, "0", 1 },
+		{ 0, 10, "", 0 },
+		{ 0, 11, "", 0 },
+		{ 0, 100, "", 0 },
+		{ 1, 0, "1234567890", 10 },
+		{ 1, 1, "134567890", 9 },
+		{ 1, 2, "14567890", 8 },
+		{ 2, 0, "1234567890", 10 },
+		{ 2, 1, "124567890", 9 },
+		{ 2, 2, "12567890", 8 },
+		{ 2, 3, "1267890", 7 },
+		{ 2, 4, "127890", 6 },
+		{ 2, 5, "12890", 5 },
+		{ 2, 6, "1290", 4 },
+		{ 2, 7, "120", 3 },
+		{ 2, 8, "12", 2 },
+		{ 2, 9, "12", 2 },
+		{ 2, 10, "12", 2 },
+		{ 8, 1, "123456780", 9 },
+		{ 8, 2, "12345678", 8 },
+		{ 8, 3, "12345678", 8 },
+		{ 9, 1, "123456789", 9 },
+		{ 9, 2, "123456789", 9 },
+		{ 10, 1, "1234567890", 10 },
+		{ 10, 2, "1234567890", 10 },
+	};
+
 	size_t i;
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(skip_golden_data); ++i) {
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		const char *check;
 		size_t n;
 
 		sdb_strbuf_sprintf(buf, input);
-		sdb_strbuf_skip(buf, skip_golden_data[i].offset,
-				skip_golden_data[i].n);
+		sdb_strbuf_skip(buf, golden_data[i].offset,
+				golden_data[i].n);
 
 		n = sdb_strbuf_len(buf);
-		fail_unless(n == skip_golden_data[i].expected_len,
+		fail_unless(n == golden_data[i].expected_len,
 				"sdb_strbuf_len() = %zu (after skip); expected: %zu",
-				n, skip_golden_data[i].expected_len);
+				n, golden_data[i].expected_len);
 
 		check = sdb_strbuf_string(buf);
 		fail_unless(!!check,
@@ -450,15 +450,15 @@ START_TEST(test_sdb_strbuf_skip)
 		fail_unless(check[n] == '\0',
 				"sdb_strbuf_skip() did not nil-terminate the string");
 
-		fail_unless(! strcmp(skip_golden_data[i].expected, check),
+		fail_unless(! strcmp(golden_data[i].expected, check),
 				"sdb_strbuf_skip('%s', %zu) did not skip correctly; "
 				"got string '%s'; expected: '%s'", input,
-				skip_golden_data[i].n, check, skip_golden_data[i].expected);
+				golden_data[i].n, check, golden_data[i].expected);
 	}
 }
 END_TEST
 
-START_TEST(test_sdb_strbuf_clear)
+START_TEST(test_clear)
 {
 	const char *data;
 	size_t len;
@@ -479,54 +479,54 @@ START_TEST(test_sdb_strbuf_clear)
 }
 END_TEST
 
-static struct {
-	const char *input;
-	const char *expected;
-} string_golden_data[] = {
-	{ NULL, "" },
-	{ "a", "a" },
-	{ "abcdef", "abcdef" },
-};
-
-START_TEST(test_sdb_strbuf_string)
+START_TEST(test_string)
 {
+	struct {
+		const char *input;
+		const char *expected;
+	} golden_data[] = {
+		{ NULL, "" },
+		{ "a", "a" },
+		{ "abcdef", "abcdef" },
+	};
+
 	size_t i;
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(string_golden_data); ++i) {
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		const char *check;
 
-		if (string_golden_data[i].input)
-			sdb_strbuf_sprintf(buf, string_golden_data[i].input);
+		if (golden_data[i].input)
+			sdb_strbuf_sprintf(buf, golden_data[i].input);
 		check = sdb_strbuf_string(buf);
-		fail_unless(!strcmp(check, string_golden_data[i].expected),
+		fail_unless(!strcmp(check, golden_data[i].expected),
 				"sdb_strbuf_string() = '%s'; expected: '%s'",
-				check, string_golden_data[i].expected);
+				check, golden_data[i].expected);
 	}
 }
 END_TEST
 
-static struct {
-	const char *input;
-	size_t expected;
-} len_golden_data[] = {
-	{ NULL, 0 },
-	{ "a", 1 },
-	{ "12345", 5 },
-};
-
-START_TEST(test_sdb_strbuf_len)
+START_TEST(test_len)
 {
+	struct {
+		const char *input;
+		size_t expected;
+	} golden_data[] = {
+		{ NULL, 0 },
+		{ "a", 1 },
+		{ "12345", 5 },
+	};
+
 	size_t i;
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(len_golden_data); ++i) {
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		size_t check;
 
-		if (len_golden_data[i].input)
-			sdb_strbuf_sprintf(buf, len_golden_data[i].input);
+		if (golden_data[i].input)
+			sdb_strbuf_sprintf(buf, golden_data[i].input);
 		check = sdb_strbuf_len(buf);
-		fail_unless(check == len_golden_data[i].expected,
+		fail_unless(check == golden_data[i].expected,
 				"sdb_strbuf_len() = %zu; expected: %zu",
-				check, len_golden_data[i].expected);
+				check, golden_data[i].expected);
 	}
 }
 END_TEST
@@ -544,17 +544,17 @@ util_strbuf_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
-	tcase_add_test(tc, test_sdb_strbuf_create);
-	tcase_add_test(tc, test_sdb_strbuf_append);
-	tcase_add_test(tc, test_sdb_strbuf_sprintf);
+	tcase_add_test(tc, test_create);
+	tcase_add_test(tc, test_append);
+	tcase_add_test(tc, test_sprintf);
 	tcase_add_test(tc, test_incremental);
-	tcase_add_test(tc, test_sdb_strbuf_memcpy);
-	tcase_add_test(tc, test_sdb_strbuf_memappend);
-	tcase_add_test(tc, test_sdb_strbuf_chomp);
-	tcase_add_test(tc, test_sdb_strbuf_skip);
-	tcase_add_test(tc, test_sdb_strbuf_clear);
-	tcase_add_test(tc, test_sdb_strbuf_string);
-	tcase_add_test(tc, test_sdb_strbuf_len);
+	tcase_add_test(tc, test_memcpy);
+	tcase_add_test(tc, test_memappend);
+	tcase_add_test(tc, test_chomp);
+	tcase_add_test(tc, test_skip);
+	tcase_add_test(tc, test_clear);
+	tcase_add_test(tc, test_string);
+	tcase_add_test(tc, test_len);
 	suite_add_tcase(s, tc);
 
 	return s;
