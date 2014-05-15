@@ -137,59 +137,98 @@ END_TEST
 
 START_TEST(test_append)
 {
-	ssize_t n, expected;
-	size_t len;
+	ssize_t n;
+	size_t len, total = 0;
 	const char *test;
 
-	n = sdb_strbuf_append(buf, "1234567890");
+	struct {
+		const char *input;
+		const char *result;
+	} golden_data[] = {
+		{ "1234567890", "1234567890" },
+		{ "ABCDE",      "1234567890ABCDE" },
+		{ "",           "1234567890ABCDE" },
+		{ "-",          "1234567890ABCDE-" },
+		/* when adding anything to this array, the last check has to be
+		 * updated accordingly */
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		n = sdb_strbuf_append(buf, golden_data[i].input);
+		fail_unless((size_t)n == strlen(golden_data[i].input),
+				"sdb_strbuf_append() appended %zi bytes; expected: %zu",
+				n, strlen(golden_data[i].input));
+		total += n;
+		len = sdb_strbuf_len(buf);
+		fail_unless(len == total,
+				"sdb_strbuf_append() left behind buffer with len = %zu; "
+				"expected: %zu", len, total);
+
+		test = sdb_strbuf_string(buf);
+		fail_unless(test[len] == '\0',
+				"sdb_strbuf_append() did not nil-terminate the string");
+
+		test = sdb_strbuf_string(buf);
+		fail_unless(!strcmp(test, golden_data[i].result),
+				"sdb_strbuf_append() did not correctly concatenate "
+				"the input; got: %s; expected: %s",
+				test, golden_data[i].result);
+	}
+
+	n = sdb_strbuf_append(buf, "%zu; %5.4f", 42, 4.2);
 	fail_unless(n == 10,
 			"sdb_strbuf_append() appended %zi bytes; expected: 10", n);
+	total += n;
 	len = sdb_strbuf_len(buf);
-	fail_unless(len == 10,
+	fail_unless(len == total,
 			"sdb_strbuf_append() left behind buffer with len = %zu; "
-			"expected: 10", len);
-
-	n = sdb_strbuf_append(buf, "ABCDE");
-	fail_unless(n == 5,
-			"sdb_strbuf_append() appended %zi bytes; expected: 5", n);
-	len = sdb_strbuf_len(buf);
-	fail_unless(len == 15,
-			"sdb_strbuf_append() left behind buffer with len = %zu; "
-			"expected: 15", len);
+			"expected: %zu", len, total);
 
 	test = sdb_strbuf_string(buf);
 	fail_unless(test[len] == '\0',
 			"sdb_strbuf_append() did not nil-terminate the string");
-	fail_unless(!strcmp(test, "1234567890ABCDE"),
-			"sdb_strbuf_append() did not correctly concatenate two string; "
-			"got: %s; expected: 1234567890ABCDE", test);
-
-	n = sdb_strbuf_append(buf, "%zu; %5.4f", len, (double)len / 10.0);
-	expected = /* len */ 2 + /* "; " */ 2 + /* decimal len/10 */ 6;
-	fail_unless(n == expected,
-			"sdb_strbuf_append() appended %zi bytes; expected: %zi",
-			n, expected);
-	len = sdb_strbuf_len(buf);
-	fail_unless(len == 15 + (size_t)expected,
-			"sdb_strbuf_append() left behind buffer with len = %zu; "
-			"expected: %zu", len, 15 + (size_t)expected);
-
-	test = sdb_strbuf_string(buf);
-	fail_unless(test[len] == '\0',
-			"sdb_strbuf_append() did not nil-terminate the string");
-	fail_unless(!strcmp(test, "1234567890ABCDE15; 1.5000"),
-			"sdb_strbuf_append() did not correctly concatenate two string; "
-			"got: %s; expected: 1234567890ABCDE15; 1.5000", test);
+	fail_unless(!strcmp(test, "1234567890ABCDE-42; 4.2000"),
+			"sdb_strbuf_append() did not correctly concatenate the input; "
+			"got: %s; expected: 1234567890ABCDE-42; 4.2000", test);
 }
 END_TEST
 
 START_TEST(test_sprintf)
 {
-	ssize_t n, expected;
+	ssize_t n;
 	size_t len;
 	const char *test;
 
-	n = sdb_strbuf_sprintf(buf, "1234567890");
+	const char *golden_data[] = {
+		"1234567890",
+		"ABCDE",
+		"",
+		"-",
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		n = sdb_strbuf_sprintf(buf, golden_data[i]);
+		fail_unless((size_t)n == strlen(golden_data[i]),
+				"sdb_strbuf_sprintf() wrote %zi bytes; expected: %zu",
+				n, strlen(golden_data[i]));
+		len = sdb_strbuf_len(buf);
+		fail_unless(len == (size_t)n,
+				"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
+				"expected: %zi", len, n);
+
+		test = sdb_strbuf_string(buf);
+		fail_unless(test[len] == '\0',
+				"sdb_strbuf_sprintf() did not nil-terminate the string");
+		fail_unless(!strcmp(test, golden_data[i]),
+				"sdb_strbuf_sprintf() did not format string correctly; "
+				"got: %s; expected: %s", test, golden_data[i]);
+	}
+
+	n = sdb_strbuf_sprintf(buf, "%zu; %5.4f", 42, 4.2);
 	fail_unless(n == 10,
 			"sdb_strbuf_sprintf() wrote %zi bytes; expected: 10", n);
 	len = sdb_strbuf_len(buf);
@@ -197,42 +236,19 @@ START_TEST(test_sprintf)
 			"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
 			"expected: 10", len);
 
-	n = sdb_strbuf_sprintf(buf, "ABCDE");
-	fail_unless(n == 5,
-			"sdb_strbuf_sprintf() wrote %zi bytes; expected: 5", n);
-	len = sdb_strbuf_len(buf);
-	fail_unless(len == 5,
-			"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
-			"expected: 5", len);
-
 	test = sdb_strbuf_string(buf);
 	fail_unless(test[len] == '\0',
 			"sdb_strbuf_sprintf() did not nil-terminate the string");
-	fail_unless(!strcmp(test, "ABCDE"),
+	fail_unless(!strcmp(test, "42; 4.2000"),
 			"sdb_strbuf_sprintf() did not format string correctly; "
-			"got: %s; expected: ABCDE", test);
-
-	n = sdb_strbuf_sprintf(buf, "%zu; %5.4f", len, (double)len / 10.0);
-	expected = /* len */ 1 + /* "; " */ 2 + /* decimal len/10 */ 6;
-	fail_unless(n == expected,
-			"sdb_strbuf_sprintf() wrote %zi bytes; expected: %zi",
-			n, expected);
-	len = sdb_strbuf_len(buf);
-	fail_unless(len == (size_t)expected,
-			"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
-			"expected: %zu", len, (size_t)expected);
-
-	test = sdb_strbuf_string(buf);
-	fail_unless(test[len] == '\0',
-			"sdb_strbuf_sprintf() did not nil-terminate the string");
-	fail_unless(!strcmp(test, "5; 0.5000"),
-			"sdb_strbuf_sprintf() did not format string correctly; "
-			"got: %s; expected: 5; 0.5000", test);
+			"got: %s; expected: 42; 4.2000", test);
 }
 END_TEST
 
 START_TEST(test_incremental)
 {
+	const char *data;
+
 	ssize_t n;
 	size_t i;
 
@@ -258,6 +274,16 @@ START_TEST(test_incremental)
 
 	n = (ssize_t)sdb_strbuf_len(buf);
 	fail_unless(n == 2048, "sdb_strbuf_len() = %zi; expectd: 2048", n);
+
+	data = sdb_strbuf_string(buf);
+	for (i = 0; i < 2048; ++i)
+		fail_unless(data[i] == '.',
+				"After sdb_strbuf_append(), found character %x "
+				"at position %zi; expected %x (.)",
+				(int)data[i], i, '.');
+	fail_unless(data[i] == '\0',
+			"After sdb_strbuf_append(), found character %x at end of string; "
+			"expected '\\0'", (int)data[i]);
 }
 END_TEST
 
