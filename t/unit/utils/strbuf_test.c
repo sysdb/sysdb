@@ -60,6 +60,8 @@ START_TEST(test_null)
 	sdb_strbuf_t *b = NULL;
 	va_list ap;
 
+	size_t check;
+
 	/* check that methods don't crash */
 	sdb_strbuf_destroy(b);
 	sdb_strbuf_skip(b, 0, 0);
@@ -84,6 +86,14 @@ START_TEST(test_null)
 			"sdb_strbuf_read(NULL) didn't report failure");
 	fail_unless(sdb_strbuf_chomp(b) < 0,
 			"sdb_strbuf_chomp(NULL) didn't report failure");
+
+	/* check that methods return no used space */
+	check = sdb_strbuf_len(b);
+	fail_unless(check == 0,
+			"sdb_strbuf_len(NULL) = %zi; expected: 0", check);
+	check = sdb_strbuf_cap(b);
+	fail_unless(check == 0,
+			"sdb_strbuf_cap(NULL) = %zi; expected: 0", check);
 }
 END_TEST
 
@@ -91,7 +101,7 @@ START_TEST(test_empty)
 {
 	sdb_strbuf_t *b = sdb_strbuf_create(0);
 	const char *data;
-	size_t len;
+	size_t check;
 
 	/* check that methods don't crash */
 	sdb_strbuf_skip(b, 1, 1);
@@ -101,9 +111,12 @@ START_TEST(test_empty)
 	data = sdb_strbuf_string(b);
 	fail_unless(data && (*data == '\0'),
 			"sdb_strbuf_string(<empty>) = '%s'; expected: ''", data);
-	len = sdb_strbuf_len(b);
-	fail_unless(len == 0,
-			"sdb_strbuf_len(<empty>) = %zu; expected: 0", len);
+	check = sdb_strbuf_len(b);
+	fail_unless(check == 0,
+			"sdb_strbuf_len(<empty>) = %zu; expected: 0", check);
+	check = sdb_strbuf_cap(b);
+	fail_unless(check == 0,
+			"sdb_strbuf_cap(<empty>) = %zu; expected: 0", check);
 
 	sdb_strbuf_destroy(b);
 }
@@ -112,25 +125,33 @@ END_TEST
 START_TEST(test_create)
 {
 	sdb_strbuf_t *s;
-	size_t len;
+	size_t check;
 
 	s = sdb_strbuf_create(0);
 	fail_unless(s != NULL,
 			"sdb_strbuf_create() = NULL; expected strbuf object");
-	len = sdb_strbuf_len(s);
-	fail_unless(len == 0,
+	check = sdb_strbuf_len(s);
+	fail_unless(check == 0,
 			"sdb_strbuf_create() created buffer with len = %zu; "
-			"expected: 0", len);
+			"expected: 0", check);
+	check = sdb_strbuf_cap(s);
+	fail_unless(check == 0,
+			"sdb_strbuf_create() created buffer with cap = %zu; "
+			"expected: 0", check);
 	sdb_strbuf_destroy(s);
 
 	s = sdb_strbuf_create(128);
 	fail_unless(s != NULL,
 			"sdb_strbuf_create() = NULL; expected strbuf object");
-	len = sdb_strbuf_len(s);
+	check = sdb_strbuf_len(s);
 	/* len still has to be 0 -- there's no content */
-	fail_unless(len == 0,
+	fail_unless(check == 0,
 			"sdb_strbuf_create() created buffer with len = %zu; "
-			"expected: 0", len);
+			"expected: 0", check);
+	check = sdb_strbuf_cap(s);
+	fail_unless(check == 128,
+			"sdb_strbuf_create() created buffer with cap = %zu; "
+			"expected: 128", check);
 	sdb_strbuf_destroy(s);
 }
 END_TEST
@@ -198,7 +219,7 @@ END_TEST
 START_TEST(test_sprintf)
 {
 	ssize_t n;
-	size_t len;
+	size_t check;
 	const char *test;
 
 	const char *golden_data[] = {
@@ -206,6 +227,8 @@ START_TEST(test_sprintf)
 		"ABCDE",
 		"",
 		"-",
+		"123456789012345678901234567890",
+		"--",
 	};
 
 	size_t i;
@@ -215,29 +238,36 @@ START_TEST(test_sprintf)
 		fail_unless((size_t)n == strlen(golden_data[i]),
 				"sdb_strbuf_sprintf() wrote %zi bytes; expected: %zu",
 				n, strlen(golden_data[i]));
-		len = sdb_strbuf_len(buf);
-		fail_unless(len == (size_t)n,
+		check = sdb_strbuf_len(buf);
+		fail_unless(check == (size_t)n,
 				"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
-				"expected: %zi", len, n);
+				"expected: %zi", check, n);
 
 		test = sdb_strbuf_string(buf);
-		fail_unless(test[len] == '\0',
+		fail_unless(test[check] == '\0',
 				"sdb_strbuf_sprintf() did not nil-terminate the string");
 		fail_unless(!strcmp(test, golden_data[i]),
 				"sdb_strbuf_sprintf() did not format string correctly; "
 				"got: %s; expected: %s", test, golden_data[i]);
+
+		check = sdb_strbuf_cap(buf);
+		if (n) /* 3 times the current len is the threshold for shrinking */
+			fail_unless(((size_t)n < check) && (check < (size_t)n * 3),
+					"sdb_strbuf_sprintf() did not resize the buffer "
+					"correctly (got size %zu; expected %zi < <size> < %d)",
+					check, n, n / 3);
 	}
 
 	n = sdb_strbuf_sprintf(buf, "%zu; %5.4f", 42, 4.2);
 	fail_unless(n == 10,
 			"sdb_strbuf_sprintf() wrote %zi bytes; expected: 10", n);
-	len = sdb_strbuf_len(buf);
-	fail_unless(len == 10,
+	check = sdb_strbuf_len(buf);
+	fail_unless(check == 10,
 			"sdb_strbuf_sprintf() left behind buffer with len = %zu; "
-			"expected: 10", len);
+			"expected: 10", check);
 
 	test = sdb_strbuf_string(buf);
-	fail_unless(test[len] == '\0',
+	fail_unless(test[check] == '\0',
 			"sdb_strbuf_sprintf() did not nil-terminate the string");
 	fail_unless(!strcmp(test, "42; 4.2000"),
 			"sdb_strbuf_sprintf() did not format string correctly; "
@@ -250,7 +280,7 @@ START_TEST(test_incremental)
 	const char *data;
 
 	ssize_t n;
-	size_t i;
+	size_t i, check;
 
 	sdb_strbuf_destroy(buf);
 	buf = sdb_strbuf_create(1024);
@@ -261,12 +291,22 @@ START_TEST(test_incremental)
 		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
 	}
 
+	check = sdb_strbuf_cap(buf);
+	fail_unless(check == 1024,
+			"sdb_strbuf_append() resizes the buffer too early "
+			"(got size %zu; expected: 1024)", check);
+
 	/* write another byte; this has to trigger a resize */
 	n = sdb_strbuf_append(buf, ".");
 	fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
 
+	check = sdb_strbuf_cap(buf);
+	/* the exact size doesn't matter but is an implementation detail */
+	fail_unless(check > 1024,
+			"sdb_strbuf_append() did not resize the buffer");
+
 	/* write more bytes; this should trigger at least one more resize but
-	 * that's an implementation detail */
+	 * that's an implementation detail as well */
 	for (i = 0; i < 1024; ++i) {
 		n = sdb_strbuf_append(buf, ".");
 		fail_unless(n == 1, "sdb_strbuf_append() = %zi; expected: 1", n);
@@ -327,6 +367,12 @@ START_TEST(test_memcpy)
 		fail_unless(!memcmp(check, mem_golden_data[i].input,
 					mem_golden_data[i].size),
 				"sdb_strbuf_memcpy() did not set the buffer correctly");
+
+		n = (ssize_t)sdb_strbuf_cap(buf);
+		fail_unless((size_t)n > mem_golden_data[i].size,
+				"sdb_strbuf_memcpy() did not resize the buffer correctly "
+				"(got size %zi; expected: > %zu)", n,
+				mem_golden_data[i].size);
 	}
 }
 END_TEST
@@ -373,6 +419,11 @@ START_TEST(test_memappend)
 
 		fail_unless(check[total] == '\0',
 				"sdb_strbuf_memappend() did not nil-terminate the data");
+
+		n = (ssize_t)sdb_strbuf_cap(buf);
+		fail_unless((size_t)n > total,
+				"sdb_strbuf_memappend() did not resize the buffer correctly "
+				"(got size %zi; expected: > %zu)", n, total);
 	}
 }
 END_TEST
