@@ -166,6 +166,15 @@ sdb_strbuf_string(sdb_strbuf_t *strbuf);
 size_t
 sdb_strbuf_len(sdb_strbuf_t *strbuf);
 
+/*
+ * sdb_strbuf_cap:
+ * Returns the current capacity of the string buffer. It describes the max
+ * length of the buffer's content (including terminating nul byte) that may be
+ * stored in the buffer without resizing it.
+ */
+size_t
+sdb_strbuf_cap(sdb_strbuf_t *strbuf);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

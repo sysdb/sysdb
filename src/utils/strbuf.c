@@ -364,5 +364,13 @@ sdb_strbuf_len(sdb_strbuf_t *strbuf)
 	return strbuf->pos;
 } /* sdb_strbuf_string */
 
+size_t
+sdb_strbuf_cap(sdb_strbuf_t *strbuf)
+{
+	if (! strbuf)
+		return 0;
+	return strbuf->size;
+} /* sdb_strbuf_cap */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
