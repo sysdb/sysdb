@@ -154,8 +154,8 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 	}
 
 	/* 'status' does not include nul-byte */
-	if ((size_t)status >= strbuf->size - strbuf->pos - 1) {
-		if (strbuf_resize(strbuf, strbuf->size + (size_t)status + 1)) {
+	if ((size_t)status >= strbuf->size - strbuf->pos) {
+		if (strbuf_resize(strbuf, strbuf->pos + (size_t)status + 1)) {
 			va_end(aq);
 			return -1;
 		}
