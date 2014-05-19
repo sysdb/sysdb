@@ -9,6 +9,7 @@ set -e
 MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
 MEMCHECK="$MEMCHECK --trace-children=yes"
 MEMCHECK="$MEMCHECK --leak-check=full"
+MEMCHECK="$MEMCHECK --suppressions=$( dirname "$0" )/valgrind.suppress"
 
 case "$1" in
 	*unit/*)
