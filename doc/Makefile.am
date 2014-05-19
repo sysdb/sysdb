@@ -62,6 +62,7 @@ html_DATA = \
 ADOC_ATTRS = -apackage_version=$(PACKAGE_VERSION) \
 		-abuild_date="$$( date --utc '+%F' )" \
 		-alocalstatedir=$(localstatedir)
+HTML_ATTRS = --stylesheet=$(srcdir)/sysdb-man.css
 
 sysdb.1: sysdb.1.txt ../version
 sysdbd.1: sysdbd.1.txt ../version
@@ -92,15 +93,15 @@ docbook-xsl.css:
 .1.txt.1:
 	@A2X@ -d manpage -f manpage $(ADOC_ATTRS) $<
 .1.txt.1.html:
-	@A2X@ -d manpage -f xhtml $(ADOC_ATTRS) $<
+	@A2X@ -d manpage -f xhtml $(HTML_ATTRS) $(ADOC_ATTRS) $<
 
 .5.txt.5:
 	@A2X@ -d manpage -f manpage $(ADOC_ATTRS) $<
 .5.txt.5.html:
-	@A2X@ -d manpage -f xhtml $(ADOC_ATTRS) $<
+	@A2X@ -d manpage -f xhtml $(HTML_ATTRS) $(ADOC_ATTRS) $<
 
 .7.txt.7:
 	@A2X@ -d manpage -f manpage $(ADOC_ATTRS) $<
 .7.txt.7.html:
-	@A2X@ -d manpage -f xhtml $(ADOC_ATTRS) $<
+	@A2X@ -d manpage -f xhtml $(HTML_ATTRS) $(ADOC_ATTRS) $<
 
