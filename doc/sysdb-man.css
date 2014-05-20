@@ -5,25 +5,27 @@
 body {
 	margin: 1em 5% 1em 5%;
 	line-height: 1.2;
-}
-
-h1, h2, h3, h4, h5, h6 {
-	color: #527bbd;
 	font-family: sans-serif;
 }
 
+h1, h2, h3, h4, h5, h6 {
+	color: #00337c;
+	font-family: sans-serif;
+	font-weight: bold;
+}
+
 body h1 {
-	border-bottom: 2px solid silver;
+	border-bottom: 2px solid #cdcdcd;
 }
 
 body h2 {
-	border-bottom: 2px solid silver;
+	border-bottom: 2px solid #cdcdcd;
 }
 
 body pre {
 	margin: 0.5em 10% 0.5em 1em;
 	line-height: 1.0;
-	color: navy;
+	color: #00337c;
 }
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
