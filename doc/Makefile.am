@@ -22,7 +22,6 @@ CLEANFILES = \
 		sysdbd-syslog.5 \
 		sysdb.7 \
 		sysdbql.7 \
-		docbook-xsl.css \
 		sysdb.1.html \
 		sysdbd.1.html \
 		sysdbd.conf.5.html \
@@ -47,7 +46,6 @@ man_MANS = \
 		sysdbql.7
 
 html_DATA = \
-		docbook-xsl.css \
 		sysdb.1.html \
 		sysdbd.1.html \
 		sysdbd.conf.5.html \
@@ -85,10 +83,6 @@ sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt ../version
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt ../version
 sysdb.7.html: sysdb.7.txt sysdb-description.txt ../version
 sysdbql.7.html: sysdbql.7.txt sysdb-description.txt ../version
-
-# This is an ugly hack but fine for now.
-docbook-xsl.css:
-	test -e docbook-xsl.css || rm -f sysdb.1.html && make sysdb.1.html
 
 .1.txt.1:
 	@A2X@ -d manpage -f manpage $(ADOC_ATTRS) $<
