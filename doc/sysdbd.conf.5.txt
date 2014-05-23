@@ -1,7 +1,5 @@
 sysdbd.conf(5)
 ==============
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -137,7 +135,7 @@ system's syslog service.
 
 SEE ALSO
 --------
-*sysdbd*(1)
+manpage:sysdbd[1], manpage:sysdb[7]
 
 AUTHOR
 ------

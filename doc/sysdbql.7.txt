@@ -1,7 +1,5 @@
 sysdbql(7)
 ==========
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -166,7 +164,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
 
 SEE ALSO
 --------
-*sysdb*(1)
+manpage:sysdb[1]
 
 AUTHOR
 ------

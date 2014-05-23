@@ -66,11 +66,10 @@ Prerequisites
 
     <http://pubs.opengroup.org/onlinepubs/9699919799/>
 
-  * asciidoc, xsltproc, xmlto:
+  * asciidoc, xmlto:
     The AsciiDoc text document format is used to write the manpages.
 
     <http://www.methods.co.nz/asciidoc/>
-    <http://xmlsoft.org/XSLT/>
     <https://fedorahosted.org/xmlto/>
 
   * libedit or libreadline:

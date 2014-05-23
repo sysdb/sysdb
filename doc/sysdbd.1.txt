@@ -1,7 +1,5 @@
 sysdbd(1)
 =========
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -70,7 +68,7 @@ None known.
 
 SEE ALSO
 --------
-*sysdbd.conf*(5)
+manpage:sysdbd.conf[5]
 
 AUTHOR
 ------

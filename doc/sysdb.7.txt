@@ -1,7 +1,5 @@
 sysdb(7)
 ========
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -28,7 +26,7 @@ collects system and inventory information from the backends and aggregates
 objects retrieved from different backends based on their attributes. This way,
 it creates a uniform hierarchy of the entire infrastructure.
 
-For details about the SysDB daemon, see its manual page *sysdbd*(1).
+For details about the SysDB daemon, see its manual page manpage:sysdbd[1].
 
 sysdb
 ~~~~~
@@ -36,13 +34,13 @@ The SysDB client is a terminal-based, interactive shell which may be used to
 query the SysDB daemon. It connects to a running daemon and then accepts
 commands from the user, sends them to the server, and displays the results.
 
-For details about the SysDB client, see its manual page *sysdb*(1). For
+For details about the SysDB client, see its manual page manpage:sysdb[1]. For
 details about how to query the database, see the specification of the SysDB
-query language in *sysdbql*(7).
+query language in manpage:sysdbql[7].
 
 SEE ALSO
 --------
-*sysdb*(1), *sysdbd*(1), *sysdbql*(7)
+manpage:sysdb[1], manpage:sysdbd[1], manpage:sysdbql[7]
 
 AUTHOR
 ------

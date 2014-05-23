@@ -380,21 +380,15 @@ if test "x$XMLTO" = "x"; then
 	have_xmlto="no"
 	build_documentation="no (missing xmlto)"
 fi
+AC_SUBST([XMLTO])
 
-have_xsltproc="yes"
-AC_PATH_PROG([XSLTPROC], [xsltproc])
-if test "x$XSLTPROC" = "x"; then
-       have_xsltproc="no"
-       build_documentation="no (missing xsltproc)"
+have_asciidoc="yes"
+AC_PATH_PROG([ASCIIDOC], [asciidoc])
+if test "x$ASCIIDOC" = "x"; then
+       have_asciidoc="no"
+       build_documentation="no (missing asciidoc)"
 fi
-
-have_a2x="yes"
-AC_PATH_PROG([A2X], [a2x])
-if test "x$A2X" = "x"; then
-       have_a2x="no"
-       build_documentation="no (missing a2x)"
-fi
-AC_SUBST([A2X])
+AC_SUBST([ASCIIDOC])
 
 integration_tests="yes"
 AC_PATH_PROG([VALGRIND], [valgrind])
@@ -449,8 +443,8 @@ AC_MSG_RESULT([  package version: $PACKAGE_VERSION])
 AC_MSG_RESULT([  build date: $BUILD_DATE])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Tools:])
-AC_MSG_RESULT([    AsciiDoc (a2x): . . . . . . $have_a2x])
-AC_MSG_RESULT([    xmlto / xsltproc: . . . . . $have_xmlto / $have_xsltproc])
+AC_MSG_RESULT([    AsciiDoc: . . . . . . . . . $have_asciidoc])
+AC_MSG_RESULT([    xmlto:  . . . . . . . . . . $have_xmlto])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])

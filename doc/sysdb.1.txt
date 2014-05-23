@@ -1,7 +1,5 @@
 sysdb(1)
 ========
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -59,7 +57,7 @@ None known.
 
 SEE ALSO
 --------
-*sysdbd*(1), *sysdbql*(7)
+manpage:sysdbd[1], manpage:sysdbql[7]
 
 AUTHOR
 ------

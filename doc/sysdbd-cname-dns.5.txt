@@ -1,7 +1,5 @@
 sysdbd-cname-dns(5)
 ===================
-Sebastian "tokkee" Harl <sh@tokkee.org>
-version {package_version}, {build_date}
 :doctype: manpage
 
 NAME
@@ -26,7 +24,7 @@ CONFIGURATION
 
 SEE ALSO
 --------
-*sysdbd*(1), *sysdbd.conf*(5)
+manpage:sysdbd[1], manpage:sysdbd.conf[5]
 
 AUTHOR
 ------
