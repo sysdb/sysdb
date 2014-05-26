@@ -390,6 +390,8 @@ if test "x$ASCIIDOC" = "x"; then
 fi
 AC_SUBST([ASCIIDOC])
 
+AC_ARG_VAR([ADOCFLAGS], [AsciiDoc flags])
+
 integration_tests="yes"
 AC_PATH_PROG([VALGRIND], [valgrind])
 if test "x$VALGRIND" = "x"; then
