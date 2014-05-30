@@ -137,6 +137,17 @@ SEE ALSO
 --------
 manpage:sysdbd[1], manpage:sysdb[7]
 
+Backend documentation:
+~~~~~~~~~~~~~~~~~~~~~~
+
+manpage:sysdbd-collectd-unixsock[5], manpage:sysdbd-mk-livestatus[5],
+manpage:sysdbd-puppet-store-configs[5]
+
+Plugin documentation:
+~~~~~~~~~~~~~~~~~~~~~
+
+manpage:sysdbd-cname-dns[5], manpage:sysdbd-syslog[5]
+
 AUTHOR
 ------
 SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
