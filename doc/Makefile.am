@@ -114,6 +114,9 @@ sysdbd-syslog.5.html: sysdbd-syslog.5.txt $(MAN_DEPS)
 sysdb.7.html: sysdb.7.txt sysdb-description.txt $(MAN_DEPS)
 sysdbql.7.html: sysdbql.7.txt sysdb-description.txt $(MAN_DEPS)
 
+html-local: $(html_DATA)
+install-html-local: install-htmlDATA
+
 .1.txt.1.xml:
 	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage $<
 .5.txt.5.xml:
