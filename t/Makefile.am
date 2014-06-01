@@ -2,7 +2,8 @@ EXTRA_DIST = \
 		coverage.sh \
 		integration/simple_config.sh \
 		integration/simple_query.sh \
-		integration/test_lib.sh
+		integration/test_lib.sh \
+		valgrind.suppress
 
 # coverage related flags are only set when gcov is enabled
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
