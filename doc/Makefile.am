@@ -76,8 +76,6 @@ ADOC_FLAGS = \
 		-apackage_version=$(PACKAGE_VERSION) \
 		-alocalstatedir=$(localstatedir) \
 		$(ADOCFLAGS)
-# XXX: Make asciidoc use this stylesheet
-HTML_ATTRS = --stylesheet=$(srcdir)/sysdb-man.css
 
 MAN_DEPS = asciidoc.conf ../version
 
