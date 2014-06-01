@@ -130,9 +130,9 @@ install-html-local: install-htmlDATA
 	@XMLTO@ man $<
 
 .1.txt.1.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b xhtml11 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
 .5.txt.5.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b xhtml11 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
 .7.txt.7.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b xhtml11 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
 
