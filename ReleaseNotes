@@ -17,7 +17,7 @@
   Object names are canonicalized before they are added to the store to ensure
   a consistent view of your infrastructure.
 
-  <https://github.com/tokkee/sysdb>
+  <http://sysdb.io/>
 
 Version 0.1.0, Release Date: 2014-06-01
 ---------------------------------------

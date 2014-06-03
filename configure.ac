@@ -27,10 +27,10 @@ dnl OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 dnl ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 AC_INIT([System DataBase],[m4_esyscmd(./version-gen.sh)],
-		[sh@tokkee.org],
+		[sysdb@sysdb.io],
 		[sysdb],
-		[http://git.tokkee.org/?p=sysdb.git])
-PACKAGE_MAINTAINER="Sebastian 'tokkee' Harl <sh@tokkee.org>"
+		[http://sysdb.io/])
+PACKAGE_MAINTAINER="Sebastian 'tokkee' Harl <tokkee@sysdb.io>"
 AC_DEFINE_UNQUOTED([PACKAGE_MAINTAINER], ["$PACKAGE_MAINTAINER"],
 		[Define to the name of the maintainer of this package.])
 AC_CONFIG_SRCDIR([src/sysdb.c])
