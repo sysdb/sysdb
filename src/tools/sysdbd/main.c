@@ -292,6 +292,8 @@ main_loop(void)
 	}
 
 	/* clean up in case we exited the loop on error */
+	plugin_main_loop.do_loop = 0;
+	frontend_main_loop.do_loop = 0;
 	pthread_kill(backend_thread, SIGINT);
 	pthread_join(backend_thread, NULL);
 
