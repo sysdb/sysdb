@@ -236,7 +236,7 @@ main_loop(void)
 
 	int status = 0;
 
-	while (42) {
+	while (status == 0) {
 		size_t i;
 
 		plugin_main_loop.do_loop = 1;
@@ -261,10 +261,8 @@ main_loop(void)
 		}
 
 		/* break on error */
-		if (i < listen_addresses_num) {
-			status = 1;
+		if (status)
 			break;
-		}
 
 		sdb_log(SDB_LOG_INFO, "SysDB daemon "SDB_VERSION_STRING
 				SDB_VERSION_EXTRA " (libsysdb %s%s, pid %i) initialized "
@@ -294,6 +292,8 @@ main_loop(void)
 	}
 
 	/* clean up in case we exited the loop on error */
+	plugin_main_loop.do_loop = 0;
+	frontend_main_loop.do_loop = 0;
 	pthread_kill(backend_thread, SIGINT);
 	pthread_join(backend_thread, NULL);
 

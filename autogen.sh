@@ -1,7 +1,11 @@
 #! /bin/sh
 
-libtoolize=libtoolize
+if ! which yacc > /dev/null 2>&1 || ! which lex > /dev/null 2>&1; then
+	echo "yacc and lex are required to build SysDB" >&2
+	exit 1
+fi
 
+libtoolize=libtoolize
 if which glibtoolize > /dev/null 2>&1; then
 	libtoolize=glibtoolize
 fi
