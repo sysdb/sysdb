@@ -34,7 +34,7 @@
 #include <stddef.h>
 
 /* translate libdbi types to SysDB types */
-#define DBI_TYPE_TO_SC(dt) \
+#define DBI_TYPE_TO_SDB(dt) \
 	(((dt) == DBI_TYPE_INTEGER) \
 		? SDB_TYPE_INTEGER \
 		: ((dt) == DBI_TYPE_DECIMAL) \

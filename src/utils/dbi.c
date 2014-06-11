@@ -194,7 +194,7 @@ sdb_dbi_get_data(sdb_dbi_client_t *client, dbi_result res,
 					sdb_dbi_strerror(client->conn));
 			return -1;
 		}
-		types[i] = DBI_TYPE_TO_SC(types[i]);
+		types[i] = DBI_TYPE_TO_SDB(types[i]);
 	}
 
 	num_rows = dbi_result_get_numrows(res);
@@ -497,7 +497,7 @@ sdb_dbi_exec_query(sdb_dbi_client_t *client, const char *query,
 
 			unsigned int type = va_arg(types, unsigned int);
 
-			field_type = DBI_TYPE_TO_SC(field_type);
+			field_type = DBI_TYPE_TO_SDB(field_type);
 
 			/* column count starts at 1 */
 			if ((unsigned int)field_type != type) {

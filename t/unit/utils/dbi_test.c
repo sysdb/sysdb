@@ -527,7 +527,7 @@ query_callback(sdb_dbi_client_t *c,
 			user_data, TEST_MAGIC);
 
 	for (i = 0; i < n; ++i) {
-		int expected_type = DBI_TYPE_TO_SC(current_query->field_types[i]);
+		int expected_type = DBI_TYPE_TO_SDB(current_query->field_types[i]);
 		mock_data_t expected_data;
 
 		fail_unless((int)data[i].type == expected_type,
