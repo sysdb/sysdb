@@ -1,6 +1,6 @@
 /*
  * SysDB - src/include/core/data.h
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2012-2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -99,6 +99,19 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src);
  */
 void
 sdb_data_free_datum(sdb_data_t *datum);
+
+/*
+ * sdb_data_cmp:
+ * Compare two data points. A NULL datum is considered less than any non-NULL
+ * datum. On data-type mismatch, the function always returns a negative value.
+ *
+ * Returns:
+ *  - a value less than zero if d1 compares less than d2
+ *  - zero if d1 compares equal to d2
+ *  - a value greater than zero if d1 compares greater than d2
+ */
+int
+sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2);
 
 /*
  * sdb_data_strlen:

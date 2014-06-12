@@ -90,6 +90,62 @@ sdb_data_free_datum(sdb_data_t *datum)
 	}
 } /* sdb_data_free_datum */
 
+int
+sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2)
+{
+#define CMP_NULL(a, b) \
+	do { \
+		if (!(a) && !(b)) return 0; \
+		if (!(a)) return -1; \
+		if (!(b)) return 1; \
+	} while (0)
+
+	CMP_NULL(d1, d2);
+
+	if (d1->type != d2->type)
+		return -1;
+
+#define CMP(a, b) ((a) < (b) ? -1 : (a) > (b) ? 1 : 0)
+	switch (d1->type) {
+		case SDB_TYPE_INTEGER:
+			return CMP(d1->data.integer, d2->data.integer);
+		case SDB_TYPE_DECIMAL:
+			return CMP(d1->data.decimal, d2->data.decimal);
+		case SDB_TYPE_STRING:
+			CMP_NULL(d1->data.string, d2->data.string);
+			return strcasecmp(d1->data.string, d2->data.string);
+		case SDB_TYPE_DATETIME:
+			return CMP(d1->data.datetime, d2->data.datetime);
+		case SDB_TYPE_BINARY:
+		{
+			int diff;
+
+			CMP_NULL(d1->data.binary.datum, d2->data.binary.datum);
+
+			/* on a common prefix, the shorter datum sorts less */
+			if (d1->data.binary.length < d2->data.binary.length) {
+				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+						d1->data.binary.length);
+				diff = diff ? diff : -1;
+			}
+			else if (d1->data.binary.length > d2->data.binary.length) {
+				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+						d2->data.binary.length);
+				diff = diff ? diff : 1;
+			}
+			else
+				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+						d1->data.binary.length);
+
+			return diff;
+		}
+		default:
+			return -1;
+	}
+#undef CMP
+#undef CMP_NULL
+} /* sdb_data_cmp */
+
 size_t
 sdb_data_strlen(sdb_data_t *datum)
 {
