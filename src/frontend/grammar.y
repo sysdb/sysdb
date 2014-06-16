@@ -66,6 +66,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %name-prefix "sdb_fe_yy"
 
 %union {
+	const char *sstr; /* static string */
 	char *str;
 
 	sdb_llist_t     *list;
@@ -103,6 +104,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %type <m> matcher
 	compare_matcher
+
+%type <sstr> op
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m>
@@ -287,39 +290,23 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
-	IDENTIFIER '.' IDENTIFIER CMP_EQUAL STRING
+	IDENTIFIER '.' IDENTIFIER op STRING
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, "=", $5);
-			/* TODO: simplify memory management in the parser */
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, $5);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 			free($5); $5 = NULL;
 		}
+	;
+
+op:
+	CMP_EQUAL { $$ = "="; }
 	|
-	IDENTIFIER '.' IDENTIFIER CMP_NEQUAL STRING
-		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, "!=", $5);
-			/* TODO: simplify memory management in the parser */
-			free($1); $1 = NULL;
-			free($3); $3 = NULL;
-			free($5); $5 = NULL;
-		}
+	CMP_NEQUAL { $$ = "!="; }
 	|
-	IDENTIFIER '.' IDENTIFIER CMP_REGEX STRING
-		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, "=~", $5);
-			free($1); $1 = NULL;
-			free($3); $3 = NULL;
-			free($5); $5 = NULL;
-		}
+	CMP_REGEX { $$ = "=~"; }
 	|
-	IDENTIFIER '.' IDENTIFIER CMP_NREGEX STRING
-		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, "!~", $5);
-			free($1); $1 = NULL;
-			free($3); $3 = NULL;
-			free($5); $5 = NULL;
-		}
+	CMP_NREGEX { $$ = "!~"; }
 	;
 
 %%
