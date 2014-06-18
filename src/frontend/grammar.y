@@ -311,8 +311,6 @@ op:
 
 %%
 
-/* XXX: on parse errors, allocated objects, strings, etc. need to be freed */
-
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
