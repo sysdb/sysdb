@@ -91,63 +91,58 @@ START_TEST(test_store_match)
 		const char *hostname_re;
 
 		const char *attr_name;
-		const char *attr_name_re;
 		const char *attr_value;
-		const char *attr_value_re;
+		_Bool re;
 
 		int expected;
 	} golden_data[] = {
 		{
 			/* host */ NULL, NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 1
+			/* attr */ NULL, NULL, 0, 1
+		},
+		{
+			/* host */ NULL, NULL,
+			/* attr */ NULL, NULL, 1, 1
 		},
 		{
 			/* host */ "a", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 1
+			/* attr */ NULL, NULL, 0, 1
 		},
 		{
 			/* host */ "b", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, 0, 0
 		},
 		{
 			/* host */ NULL, "^a$",
-			/* attr */ NULL, NULL, NULL, NULL, 1
+			/* attr */ NULL, NULL, 0, 1
 		},
 		{
 			/* host */ NULL, "^b$",
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, 0, 0
 		},
 		{
 			/* host */ "a", "^a$",
-			/* attr */ NULL, NULL, NULL, NULL, 1
+			/* attr */ NULL, NULL, 0, 1
 		},
 		{
 			/* host */ "a", "^b$",
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, 0, 0
 		},
 		{
 			/* host */ "b", "^a$",
-			/* attr */ NULL, NULL, NULL, NULL, 0
+			/* attr */ NULL, NULL, 0, 0
 		},
 		{
 			/* host */ "a", "^a$",
-			/* attr */ "k1", NULL, NULL, NULL, 1
+			/* attr */ "k1", NULL, 0, 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* attr */ NULL, "^k", NULL, NULL, 1
+			/* attr */ NULL, "v1", 0, 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* attr */ NULL, NULL, "v1", NULL, 1
-		},
-		{
-			/* host */ "a", "^a$",
-			/* attr */ NULL, NULL, NULL, "^v1$", 1
-		},
-		{
-			/* host */ "a", "^a$",
-			/* attr */ "k1", "1", "v1", "1", 1
+			/* attr */ NULL, "^v1$", 1, 1
 		},
 	};
 
@@ -159,11 +154,11 @@ START_TEST(test_store_match)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *h, *a, *n;
+		char buf[1024];
 		int status;
 
 		a = sdb_store_attr_matcher(golden_data[i].attr_name,
-				golden_data[i].attr_name_re, golden_data[i].attr_value,
-				golden_data[i].attr_value_re);
+				golden_data[i].attr_value, golden_data[i].re);
 		fail_unless(a != NULL,
 				"sdb_store_attr_matcher() = NULL; expected: <matcher>");
 
@@ -176,11 +171,8 @@ START_TEST(test_store_match)
 
 		status = sdb_store_matcher_matches(h, obj);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_matcher_matches({{%s, %s},"
-				"{%s, %s, %s, %s}}, <host a>) = %d; expected: %d",
-				golden_data[i].hostname, golden_data[i].hostname_re,
-				golden_data[i].attr_name, golden_data[i].attr_name_re,
-				golden_data[i].attr_value, golden_data[i].attr_value_re,
+				"sdb_store_matcher_matches({%s, <host a>) = %d; expected: %d",
+				sdb_store_matcher_tostring(h, buf, sizeof(buf)),
 				status, golden_data[i].expected);
 
 		n = sdb_store_inv_matcher(h);
@@ -191,11 +183,8 @@ START_TEST(test_store_match)
 		/* now match the inverted set of objects */
 		status = sdb_store_matcher_matches(n, obj);
 		fail_unless(status == !golden_data[i].expected,
-				"sdb_store_matcher_matches(NOT{{%s, %s},"
-				"{%s, %s, %s, %s}}, <host a>) = %d; expected: %d",
-				golden_data[i].hostname, golden_data[i].hostname_re,
-				golden_data[i].attr_name, golden_data[i].attr_name_re,
-				golden_data[i].attr_value, golden_data[i].attr_value_re,
+				"sdb_store_matcher_matches({%s, <host a>) = %d; expected: %d",
+				sdb_store_matcher_tostring(n, buf, sizeof(buf)),
 				status, !golden_data[i].expected);
 
 		sdb_object_deref(SDB_OBJ(n));
@@ -280,7 +269,7 @@ START_TEST(test_store_match_name)
 		fail_unless(status == !golden_data[i].expected,
 				"sdb_store_matcher_matches(%s, <host a>) = %d; expected: %d",
 				sdb_store_matcher_tostring(n, buf, sizeof(buf)),
-				status, golden_data[i].expected);
+				status, !golden_data[i].expected);
 
 		sdb_object_deref(SDB_OBJ(n));
 	}
@@ -390,9 +379,9 @@ START_TEST(test_parse_cmp)
 		{ "attribute", "name", "!=", "attrname", MATCHER_NOT },
 		{ "attribute", "name", "=~", "attrname", MATCHER_NAME },
 		{ "attribute", "name", "!~", "attrname", MATCHER_NOT },
-		{ "attribute", "attr", "=",  "attrname", MATCHER_HOST },
+		{ "attribute", "attr", "=",  "attrname", MATCHER_ATTR },
 		{ "attribute", "attr", "!=", "attrname", MATCHER_NOT },
-		{ "attribute", "attr", "=~", "attrname", MATCHER_HOST },
+		{ "attribute", "attr", "=~", "attrname", MATCHER_ATTR },
 		{ "attribute", "attr", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "&^", "attrname", -1 },
 	};
@@ -469,23 +458,16 @@ START_TEST(test_lookup)
 		{ "attribute.name = 'x'",  0,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
 		{ "attribute.k1 = 'v1'",   1,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
-					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
-				"\\} \\}" },
+			"ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}" },
 		{ "attribute.k1 != 'v1'",  2,
-			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
-					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
-				"\\} \\})" },
+			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}\\)" },
 		{ "attribute.k1 != 'v2'",  3,
-			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
-					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v2', \\(nil\\) \\} "
-				"\\} \\})" },
+			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v2', \\(nil\\) \\} \\}\\)" },
 		{ "attribute.name != 'x' "
 		  "AND attribute.y !~ 'x'", 3,
-			"\\(AND, \\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} "
-				"\\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
-						"NAME\\{ 'y', \\(nil\\) }, VALUE\\{ NULL, "PTR_RE" \\} "
-					"\\} \\}\\)\\)" },
+			"\\(AND, "
+				"\\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} \\}\\), "
+				"\\(NOT, ATTR\\[y\\]\\{ VALUE\\{ NULL, "PTR_RE" \\} \\}\\)\\)" },
 	};
 
 	int check, n;

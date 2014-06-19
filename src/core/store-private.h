@@ -138,7 +138,8 @@ typedef struct {
 
 /* match attributes */
 typedef struct {
-	obj_matcher_t super;
+	sdb_store_matcher_t super;
+	char *name;
 	/* XXX: this needs to be more flexible;
 	 *      add support for type-specific operators */
 	name_matcher_t value;

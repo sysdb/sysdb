@@ -160,20 +160,19 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
  * sdb_store_name_matcher:
  * Creates a matcher matching by the specified object type's name. If 're' is
  * true, the specified name is treated as a POSIX extended regular expression.
- * Else, the exact name has to match.
+ * Else, the exact name has to match (case-insensitive).
  */
 sdb_store_matcher_t *
 sdb_store_name_matcher(int type, const char *name, _Bool re);
 
 /*
  * sdb_store_attr_matcher:
- * Creates a matcher matching attributes based on their name or value. Either
- * a complete name (which will have to match completely but case-independent)
- * or an extended POSIX regular expression may be specified.
+ * Creates a matcher matching attributes based on their value. If 're' is
+ * true, the specified name is treated as a POSIX extended regular expression.
+ * Else, the exact name has to match (case-insensitive).
  */
 sdb_store_matcher_t *
-sdb_store_attr_matcher(const char *attr_name, const char *attr_name_re,
-		const char *attr_value, const char *attr_value_re);
+sdb_store_attr_matcher(const char *name, const char *value, _Bool re);
 
 /*
  * sdb_store_host_matcher:
