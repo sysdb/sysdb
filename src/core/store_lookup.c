@@ -700,8 +700,9 @@ sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		const char *op, const char *value)
 {
-	int typ = -1;
-	int inv = 0;
+	int type = -1;
+	_Bool inv = 0;
+	_Bool re = 0;
 
 	sdb_store_matcher_t *m = NULL;
 
@@ -709,11 +710,11 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	const char *matcher_re = NULL;
 
 	if (! strcasecmp(obj_type, "host"))
-		typ = SDB_HOST;
+		type = SDB_HOST;
 	else if (! strcasecmp(obj_type, "service"))
-		typ = SDB_SERVICE;
+		type = SDB_SERVICE;
 	else if (! strcasecmp(obj_type, "attribute"))
-		typ = SDB_ATTRIBUTE;
+		type = SDB_ATTRIBUTE;
 
 	/* TODO: support other operators */
 	if (! strcasecmp(op, "=")) {
@@ -725,44 +726,30 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	}
 	else if (! strcasecmp(op, "=~")) {
 		matcher_re = value;
+		re = 1;
 	}
 	else if (! strcasecmp(op, "!~")) {
 		matcher_re = value;
 		inv = 1;
+		re = 1;
 	}
 	else
 		return NULL;
 
-	if (! strcasecmp(attr, "name")) {
-		/* accept */
-	}
-	else if (typ == SDB_ATTRIBUTE)
+	if (! strcasecmp(attr, "name"))
+		m = sdb_store_name_matcher(type, value, re);
+	else if (type == SDB_ATTRIBUTE) {
 		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
 				/* service = */ NULL,
 				sdb_store_attr_matcher(attr, NULL, matcher, matcher_re));
-	else
-		return NULL;
 
-	if (m) {
-		/* accept the attribute value matcher */
+		/* pass ownership to the host matcher */
+		if (m)
+			sdb_object_deref(SDB_OBJ(HOST_M(m)->attr));
 	}
-	else if (typ == SDB_HOST)
-		m = sdb_store_host_matcher(matcher, matcher_re, NULL, NULL);
-	else if (typ == SDB_SERVICE)
-		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
-				sdb_store_service_matcher(matcher, matcher_re, NULL),
-				/* attr = */ NULL);
-	else if (typ == SDB_ATTRIBUTE)
-		m = sdb_store_host_matcher(/* name = */ NULL, NULL,
-				/* service = */ NULL,
-				sdb_store_attr_matcher(matcher, matcher_re, NULL, NULL));
 
 	if (! m)
 		return NULL;
-
-	/* pass ownership to the host matcher */
-	sdb_object_deref(SDB_OBJ(HOST_M(m)->service));
-	sdb_object_deref(SDB_OBJ(HOST_M(m)->attr));
 
 	if (inv) {
 		sdb_store_matcher_t *tmp;

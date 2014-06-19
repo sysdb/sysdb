@@ -141,21 +141,21 @@ START_TEST(test_parse_matcher)
 		{ "",                               -1, -1 },
 
 		/* valid expressions */
-		{ "host.name = 'localhost'",        -1,  MATCHER_HOST },
+		{ "host.name = 'localhost'",        -1,  MATCHER_NAME },
 		{ "host.name != 'localhost'",       -1,  MATCHER_NOT },
-		{ "host.name =~ 'host'",            -1,  MATCHER_HOST },
+		{ "host.name =~ 'host'",            -1,  MATCHER_NAME },
 		{ "host.name !~ 'host'",            -1,  MATCHER_NOT },
-		{ "host.name = 'localhost' -- foo", -1,  MATCHER_HOST },
-		{ "host.name = 'host' <garbage>",   18,  MATCHER_HOST },
+		{ "host.name = 'localhost' -- foo", -1,  MATCHER_NAME },
+		{ "host.name = 'host' <garbage>",   18,  MATCHER_NAME },
 		/* match hosts by service */
-		{ "service.name = 'name'",          -1,  MATCHER_HOST },
+		{ "service.name = 'name'",          -1,  MATCHER_NAME },
 		{ "service.name != 'name'",         -1,  MATCHER_NOT },
-		{ "service.name =~ 'pattern'",      -1,  MATCHER_HOST },
+		{ "service.name =~ 'pattern'",      -1,  MATCHER_NAME },
 		{ "service.name !~ 'pattern'",      -1,  MATCHER_NOT },
 		/* match hosts by attribute */
-		{ "attribute.name = 'name'",        -1,  MATCHER_HOST },
+		{ "attribute.name = 'name'",        -1,  MATCHER_NAME },
 		{ "attribute.name != 'name'",       -1,  MATCHER_NOT },
-		{ "attribute.name =~ 'pattern'",    -1,  MATCHER_HOST },
+		{ "attribute.name =~ 'pattern'",    -1,  MATCHER_NAME },
 		{ "attribute.name !~ 'pattern'",    -1,  MATCHER_NOT },
 		/* composite expressions */
 		{ "host.name =~ 'pattern' AND "

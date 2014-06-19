@@ -436,23 +436,23 @@ START_TEST(test_parse_cmp)
 		const char *value;
 		int expected;
 	} golden_data[] = {
-		{ "host",      "name", "=",  "hostname", MATCHER_HOST },
+		{ "host",      "name", "=",  "hostname", MATCHER_NAME },
 		{ "host",      "name", "!=", "hostname", MATCHER_NOT },
-		{ "host",      "name", "=~", "hostname", MATCHER_HOST },
+		{ "host",      "name", "=~", "hostname", MATCHER_NAME },
 		{ "host",      "name", "!~", "hostname", MATCHER_NOT },
 		{ "host",      "attr", "=",  "hostname", -1 },
 		{ "host",      "attr", "!=", "hostname", -1 },
 		{ "host",      "name", "&^", "hostname", -1 },
-		{ "service",   "name", "=",  "srvname",  MATCHER_HOST },
+		{ "service",   "name", "=",  "srvname",  MATCHER_NAME },
 		{ "service",   "name", "!=", "srvname",  MATCHER_NOT },
-		{ "service",   "name", "=~", "srvname",  MATCHER_HOST },
+		{ "service",   "name", "=~", "srvname",  MATCHER_NAME },
 		{ "service",   "name", "!~", "srvname",  MATCHER_NOT },
 		{ "service",   "attr", "=",  "srvname",  -1 },
 		{ "service",   "attr", "!=", "srvname",  -1 },
 		{ "service",   "name", "&^", "srvname",  -1 },
-		{ "attribute", "name", "=",  "attrname", MATCHER_HOST },
+		{ "attribute", "name", "=",  "attrname", MATCHER_NAME },
 		{ "attribute", "name", "!=", "attrname", MATCHER_NOT },
-		{ "attribute", "name", "=~", "attrname", MATCHER_HOST },
+		{ "attribute", "name", "=~", "attrname", MATCHER_NAME },
 		{ "attribute", "name", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "=",  "attrname", MATCHER_HOST },
 		{ "attribute", "attr", "!=", "attrname", MATCHER_NOT },
@@ -515,50 +515,39 @@ START_TEST(test_lookup)
 		const char *tostring_re;
 	} golden_data[] = {
 		{ "host.name = 'a'",       1,
-			"HOST\\{ NAME\\{ 'a', \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
 		{ "host.name =~ 'a|b'",    2,
-			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
 		{ "host.name =~ 'host'",   0,
-			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
 		{ "host.name =~ '.'",      3,
-			"HOST\\{ NAME\\{ NULL, "PTR_RE" \\}, SERVICE\\{\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
 		{ "service.name = 's1'",   2,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
-					"NAME\\{ 's1', \\(nil\\) }, ATTR\\{\\} "
-				"\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
 		{ "service.name =~ 's'",   2,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
-					"NAME\\{ NULL, "PTR_RE" }, ATTR\\{\\} "
-				"\\}, ATTR\\{\\} \\}" },
+			"OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
 		{ "service.name !~ 's'",   1,
-			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{ "
-					"NAME\\{ NULL, "PTR_RE" }, ATTR\\{\\} "
-				"\\}, ATTR\\{\\} \\})" },
+			"\\(NOT, OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
 		{ "attribute.name = 'k1'", 1,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
-					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
-				"\\} \\}" },
+			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute.name = 'x'",  0,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
-					"NAME\\{ 'x', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
-				"\\} \\}" },
+			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
 		{ "attribute.k1 = 'v1'",   1,
 			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
 				"\\} \\}" },
 		{ "attribute.k1 != 'v1'",  2,
-			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
 				"\\} \\})" },
 		{ "attribute.k1 != 'v2'",  3,
-			"(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v2', \\(nil\\) \\} "
 				"\\} \\})" },
 		{ "attribute.name != 'x' "
 		  "AND attribute.y !~ 'x'", 3,
-			"\\(AND, \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
-					"NAME\\{ 'x', \\(nil\\) }, VALUE\\{ NULL, \\(nil\\) \\} "
-				"\\} \\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"\\(AND, \\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} "
+				"\\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
 						"NAME\\{ 'y', \\(nil\\) }, VALUE\\{ NULL, "PTR_RE" \\} "
 					"\\} \\}\\)\\)" },
 	};
