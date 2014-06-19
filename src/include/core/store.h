@@ -42,6 +42,20 @@ extern "C" {
 #endif
 
 /*
+ * Store object types.
+ */
+enum {
+	SDB_HOST = 1,
+	SDB_SERVICE,
+	SDB_ATTRIBUTE,
+};
+#define SDB_STORE_TYPE_TO_NAME(t) \
+	(((t) == SDB_HOST) ? "host" \
+		: ((t) == SDB_SERVICE) ? "service" \
+		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
+
+
+/*
  * sdb_store_base_t represents the super-class of any object stored in the
  * database. It inherits from sdb_object_t and may safely be cast to a generic
  * object to access its name.
@@ -128,9 +142,10 @@ sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
 /*
- * Store matchers may be used to lookup objects from the host based on their
- * various attributes. Each type of matcher evaluates attributes of the
- * respective object type.
+ * Store matchers may be used to lookup hosts from the store based on their
+ * various attributes. Service and attribute matchers are applied to a host's
+ * services and attributes and evaluate to true if *any* service or attribute
+ * matches.
  *
  * For each matcher object, *all* specified attributes have to match.
  *
@@ -140,6 +155,15 @@ sdb_store_service(const char *hostname, const char *name,
 struct sdb_store_matcher;
 typedef struct sdb_store_matcher sdb_store_matcher_t;
 #define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
+
+/*
+ * sdb_store_name_matcher:
+ * Creates a matcher matching by the specified object type's name. If 're' is
+ * true, the specified name is treated as a POSIX extended regular expression.
+ * Else, the exact name has to match.
+ */
+sdb_store_matcher_t *
+sdb_store_name_matcher(int type, const char *name, _Bool re);
 
 /*
  * sdb_store_attr_matcher:

@@ -72,16 +72,6 @@ typedef struct {
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
 #define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
-enum {
-	SDB_HOST = 1,
-	SDB_SERVICE,
-	SDB_ATTRIBUTE,
-};
-#define TYPE_TO_NAME(t) \
-	(((t) == SDB_HOST) ? "host" \
-		: ((t) == SDB_SERVICE) ? "service" \
-		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
-
 /* shortcuts for accessing the sdb_store_obj_t attributes
  * of inheriting objects */
 #define _last_update super.last_update
@@ -91,11 +81,13 @@ enum {
  * matchers
  */
 
-/* when adding to this, also update 'matchers' in store_lookup.c */
+/* when adding to this, also update 'matchers' and 'matchers_tostring'
+ * in store_lookup.c */
 enum {
 	MATCHER_OR,
 	MATCHER_AND,
 	MATCHER_NOT,
+	MATCHER_NAME,
 	MATCHER_ATTR,
 	MATCHER_SERVICE,
 	MATCHER_HOST,
@@ -134,9 +126,11 @@ typedef struct {
 } uop_matcher_t;
 #define UOP_M(m) ((uop_matcher_t *)(m))
 
-/* match any type of object by it's base information */
+/* match any type of object by it's name */
 typedef struct {
 	sdb_store_matcher_t super;
+
+	int obj_type;
 
 	/* match by the name of the object */
 	name_matcher_t name;

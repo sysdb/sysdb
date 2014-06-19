@@ -259,8 +259,8 @@ store_obj(int parent_type, const char *parent_name,
 		parent = store_lookup(parent_type, parent_name);
 		if (! parent) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
-					"parent %s '%s' not found", TYPE_TO_NAME(type), name,
-					TYPE_TO_NAME(parent_type), parent_name);
+					"parent %s '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
+					name, SDB_STORE_TYPE_TO_NAME(parent_type), parent_name);
 			free(parent_cname);
 			free(cname);
 			return -1;
@@ -287,7 +287,8 @@ store_obj(int parent_type, const char *parent_name,
 		if (old->last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")",
-					TYPE_TO_NAME(type), name, last_update, old->last_update);
+					SDB_STORE_TYPE_TO_NAME(type), name,
+					last_update, old->last_update);
 			/* don't report an error; the object may be updated by multiple
 			 * backends */
 			status = 1;
@@ -321,7 +322,7 @@ store_obj(int parent_type, const char *parent_name,
 		if (! new) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
-					TYPE_TO_NAME(type), name,
+					SDB_STORE_TYPE_TO_NAME(type), name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			free(parent_cname);
 			free(cname);
@@ -365,10 +366,10 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 	if (! iter) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "store: Failed to retrieve %ss: %s\n",
-				TYPE_TO_NAME(type),
+				SDB_STORE_TYPE_TO_NAME(type),
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		sdb_strbuf_append(buf, "{\"error\": \"failed to retrieve %ss: %s\"}",
-				TYPE_TO_NAME(type), errbuf);
+				SDB_STORE_TYPE_TO_NAME(type), errbuf);
 	}
 
 	/* has_next returns false if the iterator is NULL */

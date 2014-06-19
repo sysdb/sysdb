@@ -269,6 +269,90 @@ START_TEST(test_store_match)
 }
 END_TEST
 
+START_TEST(test_store_match_name)
+{
+	sdb_store_base_t *obj;
+
+	struct {
+		int type;
+		const char *name;
+		_Bool re;
+
+		int expected;
+	} golden_data[] = {
+		{ SDB_HOST,      NULL,   0, 1 },
+		{ SDB_HOST,      NULL,   1, 1 },
+		{ SDB_HOST,      "a",    0, 1 },
+		{ SDB_HOST,      "a",    1, 1 },
+		{ SDB_HOST,      "b",    0, 0 },
+		{ SDB_HOST,      "b",    1, 0 },
+		{ SDB_HOST,      "^a$",  1, 1 },
+		{ SDB_HOST,      "^b$",  1, 0 },
+		{ SDB_HOST,      "^a$",  0, 0 },
+		{ SDB_HOST,      "^b$",  0, 0 },
+		{ SDB_SERVICE,   NULL,   0, 1 },
+		{ SDB_SERVICE,   NULL,   1, 1 },
+		{ SDB_SERVICE,   "s1",   0, 1 },
+		{ SDB_SERVICE,   "s2",   0, 1 },
+		{ SDB_SERVICE,   "s3",   0, 0 },
+		{ SDB_SERVICE,   "s4",   0, 0 },
+		{ SDB_SERVICE,   "^s1$", 1, 1 },
+		{ SDB_SERVICE,   "^s1$", 0, 0 },
+		{ SDB_SERVICE,   "x1",   0, 0 },
+		{ SDB_SERVICE,   "x1",   1, 0 },
+		{ SDB_SERVICE,   "x",    1, 0 },
+		{ SDB_ATTRIBUTE, NULL,   0, 1 },
+		{ SDB_ATTRIBUTE, NULL,   1, 1 },
+		{ SDB_ATTRIBUTE, "k1",   0, 1 },
+		{ SDB_ATTRIBUTE, "k2",   0, 0 },
+		{ SDB_ATTRIBUTE, "k3",   0, 0 },
+		{ SDB_ATTRIBUTE, "k",    1, 1 },
+		{ SDB_ATTRIBUTE, "1",    1, 1 },
+		{ SDB_ATTRIBUTE, "2",    1, 0 },
+	};
+
+	size_t i;
+
+	obj = sdb_store_get_host("a");
+	fail_unless(obj != NULL,
+			"sdb_store_get_host(a) = NULL; expected: <host>");
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_matcher_t *m, *n;
+		char buf[1024];
+		int status;
+
+		m = sdb_store_name_matcher(golden_data[i].type,
+				golden_data[i].name, golden_data[i].re);
+		fail_unless(m != NULL,
+				"sdb_store_service_matcher(%d, %s, %d) = NULL; expected: <matcher>",
+				golden_data[i].type, golden_data[i].name, golden_data[i].re);
+
+		status = sdb_store_matcher_matches(m, obj);
+		fail_unless(status == golden_data[i].expected,
+				"sdb_store_matcher_matches(%s, <host a>) = %d; expected: %d",
+				sdb_store_matcher_tostring(m, buf, sizeof(buf)),
+				status, golden_data[i].expected);
+
+		n = sdb_store_inv_matcher(m);
+		fail_unless(n != NULL,
+				"sdb_store_inv_matcher() = NULL; expected: <matcher>");
+		sdb_object_deref(SDB_OBJ(m));
+
+		/* now match the inverted set of objects */
+		status = sdb_store_matcher_matches(n, obj);
+		fail_unless(status == !golden_data[i].expected,
+				"sdb_store_matcher_matches(%s, <host a>) = %d; expected: %d",
+				sdb_store_matcher_tostring(n, buf, sizeof(buf)),
+				status, golden_data[i].expected);
+
+		sdb_object_deref(SDB_OBJ(n));
+	}
+
+	sdb_object_deref(SDB_OBJ(obj));
+}
+END_TEST
+
 START_TEST(test_store_match_op)
 {
 	sdb_store_base_t *obj;
@@ -523,6 +607,7 @@ core_store_lookup_suite(void)
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match);
+	tcase_add_test(tc, test_store_match_name);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
 	tcase_add_test(tc, test_lookup);
