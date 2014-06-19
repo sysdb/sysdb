@@ -5,9 +5,11 @@ SUFFIXES = \
 		.1.xml .5.xml .7.xml
 
 EXTRA_DIST = \
+		asciidoc.conf \
 		sysdb.1.txt \
 		sysdbd.1.txt \
 		sysdbd.conf.5.txt \
+		sysdb-description.txt \
 		sysdbd-cname-dns.5.txt \
 		sysdbd-collectd-unixsock.5.txt \
 		sysdbd-mk-livestatus.5.txt \
