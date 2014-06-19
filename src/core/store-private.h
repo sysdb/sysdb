@@ -95,7 +95,7 @@ enum {
 typedef struct {
 	char    *name;
 	regex_t *name_re;
-} name_matcher_t;
+} string_matcher_t;
 
 /* matcher base type */
 struct sdb_store_matcher {
@@ -129,11 +129,9 @@ typedef struct {
 	sdb_store_matcher_t super;
 
 	int obj_type;
-
-	/* match by the name of the object */
-	name_matcher_t name;
-} obj_matcher_t;
-#define OBJ_M(m) ((obj_matcher_t *)(m))
+	string_matcher_t name;
+} name_matcher_t;
+#define NAME_M(m) ((name_matcher_t *)(m))
 
 /* match attributes */
 typedef struct {
@@ -141,7 +139,7 @@ typedef struct {
 	char *name;
 	/* XXX: this needs to be more flexible;
 	 *      add support for type-specific operators */
-	name_matcher_t value;
+	string_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
 
