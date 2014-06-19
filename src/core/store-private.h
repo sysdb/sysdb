@@ -89,7 +89,6 @@ enum {
 	MATCHER_NOT,
 	MATCHER_NAME,
 	MATCHER_ATTR,
-	MATCHER_SERVICE,
 	MATCHER_HOST,
 };
 
@@ -146,19 +145,9 @@ typedef struct {
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
 
-/* match services */
-typedef struct {
-	obj_matcher_t super;
-	/* match by attributes assigned to the service */
-	attr_matcher_t *attr;
-} service_matcher_t;
-#define SERVICE_M(m) ((service_matcher_t *)(m))
-
 /* match hosts */
 typedef struct {
 	obj_matcher_t super;
-	/* match by services assigned to the host */
-	service_matcher_t *service;
 	/* match by attributes assigned to the host */
 	attr_matcher_t *attr;
 } host_matcher_t;

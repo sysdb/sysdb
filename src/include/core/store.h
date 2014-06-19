@@ -176,21 +176,11 @@ sdb_store_attr_matcher(const char *attr_name, const char *attr_name_re,
 		const char *attr_value, const char *attr_value_re);
 
 /*
- * sdb_store_service_matcher:
- * Creates a matcher matching services based on their name or attributes.
- */
-sdb_store_matcher_t *
-sdb_store_service_matcher(const char *service_name, const char *service_name_re,
-		sdb_store_matcher_t *attr_matcher);
-
-/*
  * sdb_store_host_matcher:
- * Creates a matcher matching hosts based on their name, services assigned to
- * the host, or its attributes.
+ * Creates a matcher matching hosts based on their name or its attributes.
  */
 sdb_store_matcher_t *
 sdb_store_host_matcher(const char *host_name, const char *host_name_re,
-		sdb_store_matcher_t *service_matcher,
 		sdb_store_matcher_t *attr_matcher);
 
 /*

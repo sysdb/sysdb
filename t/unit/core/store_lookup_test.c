@@ -90,9 +90,6 @@ START_TEST(test_store_match)
 		const char *hostname;
 		const char *hostname_re;
 
-		const char *service_name;
-		const char *service_name_re;
-
 		const char *attr_name;
 		const char *attr_name_re;
 		const char *attr_value;
@@ -102,107 +99,54 @@ START_TEST(test_store_match)
 	} golden_data[] = {
 		{
 			/* host */ NULL, NULL,
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", NULL,
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "b", NULL,
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ NULL, "^a$",
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ NULL, "^b$",
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^b$",
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "b", "^a$",
-			/* svc  */ NULL, NULL,
 			/* attr */ NULL, NULL, NULL, NULL, 0
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ "s1", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 1
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ NULL, "^s1$",
-			/* attr */ NULL, NULL, NULL, NULL, 1
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
-			/* attr */ NULL, NULL, NULL, NULL, 1
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "x1", NULL,
-			/* attr */ NULL, NULL, NULL, NULL, 0
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ NULL, "x",
-			/* attr */ NULL, NULL, NULL, NULL, 0
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "x1", "x",
-			/* attr */ NULL, NULL, NULL, NULL, 0
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "s1", "x",
-			/* attr */ NULL, NULL, NULL, NULL, 0
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "x1", "s",
-			/* attr */ NULL, NULL, NULL, NULL, 0
-		},
-		{
-			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
 			/* attr */ "k1", NULL, NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
 			/* attr */ NULL, "^k", NULL, NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
 			/* attr */ NULL, NULL, "v1", NULL, 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
 			/* attr */ NULL, NULL, NULL, "^v1$", 1
 		},
 		{
 			/* host */ "a", "^a$",
-			/* svc  */ "s1", "^s1$",
 			/* attr */ "k1", "1", "v1", "1", 1
 		},
 	};
@@ -214,13 +158,8 @@ START_TEST(test_store_match)
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_matcher_t *h, *s, *a, *n;
+		sdb_store_matcher_t *h, *a, *n;
 		int status;
-
-		s = sdb_store_service_matcher(golden_data[i].service_name,
-				golden_data[i].service_name_re, NULL);
-		fail_unless(s != NULL,
-				"sdb_store_service_matcher() = NULL; expected: <matcher>");
 
 		a = sdb_store_attr_matcher(golden_data[i].attr_name,
 				golden_data[i].attr_name_re, golden_data[i].attr_value,
@@ -229,19 +168,17 @@ START_TEST(test_store_match)
 				"sdb_store_attr_matcher() = NULL; expected: <matcher>");
 
 		h = sdb_store_host_matcher(golden_data[i].hostname,
-				golden_data[i].hostname_re, s, a);
+				golden_data[i].hostname_re, a);
 		fail_unless(h != NULL,
 				"sdb_store_host_matcher() = NULL: expected: <matcher>");
 		/* pass ownership to the host matcher */
-		sdb_object_deref(SDB_OBJ(s));
 		sdb_object_deref(SDB_OBJ(a));
 
 		status = sdb_store_matcher_matches(h, obj);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_matcher_matches({{%s, %s},{%s, %s},"
+				"sdb_store_matcher_matches({{%s, %s},"
 				"{%s, %s, %s, %s}}, <host a>) = %d; expected: %d",
 				golden_data[i].hostname, golden_data[i].hostname_re,
-				golden_data[i].service_name, golden_data[i].service_name_re,
 				golden_data[i].attr_name, golden_data[i].attr_name_re,
 				golden_data[i].attr_value, golden_data[i].attr_value_re,
 				status, golden_data[i].expected);
@@ -254,10 +191,9 @@ START_TEST(test_store_match)
 		/* now match the inverted set of objects */
 		status = sdb_store_matcher_matches(n, obj);
 		fail_unless(status == !golden_data[i].expected,
-				"sdb_store_matcher_matches(NOT{{%s, %s},{%s, %s},"
+				"sdb_store_matcher_matches(NOT{{%s, %s},"
 				"{%s, %s, %s, %s}}, <host a>) = %d; expected: %d",
 				golden_data[i].hostname, golden_data[i].hostname_re,
-				golden_data[i].service_name, golden_data[i].service_name_re,
 				golden_data[i].attr_name, golden_data[i].attr_name_re,
 				golden_data[i].attr_value, golden_data[i].attr_value_re,
 				status, !golden_data[i].expected);
@@ -357,8 +293,8 @@ START_TEST(test_store_match_op)
 {
 	sdb_store_base_t *obj;
 
-	sdb_store_matcher_t *always = sdb_store_host_matcher(NULL, NULL, NULL, NULL);
-	sdb_store_matcher_t *never = sdb_store_host_matcher("a", "b", NULL, NULL);
+	sdb_store_matcher_t *always = sdb_store_host_matcher(NULL, NULL, NULL);
+	sdb_store_matcher_t *never = sdb_store_host_matcher("a", "b", NULL);
 
 	struct {
 		const char *op;
@@ -533,21 +469,21 @@ START_TEST(test_lookup)
 		{ "attribute.name = 'x'",  0,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
 		{ "attribute.k1 = 'v1'",   1,
-			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
 				"\\} \\}" },
 		{ "attribute.k1 != 'v1'",  2,
-			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v1', \\(nil\\) \\} "
 				"\\} \\})" },
 		{ "attribute.k1 != 'v2'",  3,
-			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+			"\\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
 					"NAME\\{ 'k1', \\(nil\\) }, VALUE\\{ 'v2', \\(nil\\) \\} "
 				"\\} \\})" },
 		{ "attribute.name != 'x' "
 		  "AND attribute.y !~ 'x'", 3,
 			"\\(AND, \\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} "
-				"\\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, SERVICE\\{\\}, ATTR\\{ "
+				"\\}\\), \\(NOT, HOST\\{ NAME\\{ NULL, \\(nil\\) \\}, ATTR\\{ "
 						"NAME\\{ 'y', \\(nil\\) }, VALUE\\{ NULL, "PTR_RE" \\} "
 					"\\} \\}\\)\\)" },
 	};
