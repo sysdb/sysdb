@@ -89,7 +89,6 @@ enum {
 	MATCHER_NOT,
 	MATCHER_NAME,
 	MATCHER_ATTR,
-	MATCHER_HOST,
 };
 
 /* match the name of something */
@@ -145,14 +144,6 @@ typedef struct {
 	name_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
-
-/* match hosts */
-typedef struct {
-	obj_matcher_t super;
-	/* match by attributes assigned to the host */
-	attr_matcher_t *attr;
-} host_matcher_t;
-#define HOST_M(m) ((host_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -175,14 +175,6 @@ sdb_store_matcher_t *
 sdb_store_attr_matcher(const char *name, const char *value, _Bool re);
 
 /*
- * sdb_store_host_matcher:
- * Creates a matcher matching hosts based on their name or its attributes.
- */
-sdb_store_matcher_t *
-sdb_store_host_matcher(const char *host_name, const char *host_name_re,
-		sdb_store_matcher_t *attr_matcher);
-
-/*
  * sdb_store_matcher_parse_cmp:
  * Parse a simple compare expression (<obj_type>.<attr> <op> <value>).
  *

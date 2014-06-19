@@ -173,24 +173,6 @@ attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 	return buf;
 } /* attr_tostring */
 
-static char *
-host_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char name[buflen + 1], attr[buflen + 1];
-
-	if (! m) {
-		snprintf(buf, buflen, "HOST{}");
-		return buf;
-	}
-
-	assert(m->type == MATCHER_HOST);
-	snprintf(buf, buflen, "HOST{ NAME%s, %s }",
-			obj_name_tostring(&OBJ_M(m)->name, name, sizeof(name)),
-			attr_tostring(SDB_STORE_MATCHER(HOST_M(m)->attr),
-				attr, sizeof(attr)));
-	return buf;
-} /* host_tostring */
-
 static int
 match_name(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
@@ -257,29 +239,6 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	return status;
 } /* match_attr */
 
-/* match host specific values;
- * always call this function through match_obj() */
-static int
-match_host(sdb_store_matcher_t *m, sdb_store_base_t *obj)
-{
-	int status;
-
-	assert(m && obj);
-	assert(m->type == MATCHER_HOST);
-
-	if (obj->type != SDB_HOST)
-		return 0;
-
-	status = match_obj_name(&OBJ_M(m)->name, obj->super.name);
-	if (! status)
-		return status;
-
-	if (! HOST_M(m)->attr)
-		return 1;
-
-	return match_attr(M(HOST_M(m)->attr), obj);
-} /* match_host */
-
 /* generic matchers */
 
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
@@ -292,7 +251,6 @@ static matcher_cb matchers[] = {
 	match_unary,
 	match_name,
 	match_attr,
-	match_host,
 };
 
 typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
@@ -303,7 +261,6 @@ static matcher_tostring_cb matchers_tostring[] = {
 	unary_tostring,
 	name_tostring,
 	attr_tostring,
-	host_tostring,
 };
 
 static int
@@ -412,31 +369,6 @@ attr_matcher_destroy(sdb_object_t *obj)
 } /* attr_matcher_destroy */
 
 static int
-host_matcher_init(sdb_object_t *obj, va_list ap)
-{
-	attr_matcher_t *attr;
-	int status;
-
-	status = obj_matcher_init(obj, ap);
-	if (status)
-		return status;
-
-	attr = va_arg(ap, attr_matcher_t *);
-	sdb_object_ref(SDB_OBJ(attr));
-	HOST_M(obj)->attr = attr;
-
-	M(obj)->type = MATCHER_HOST;
-	return 0;
-} /* host_matcher_init */
-
-static void
-host_matcher_destroy(sdb_object_t *obj)
-{
-	obj_matcher_destroy(obj);
-	sdb_object_deref(SDB_OBJ(HOST_M(obj)->attr));
-} /* host_matcher_destroy */
-
-static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
@@ -496,12 +428,6 @@ static sdb_type_t attr_type = {
 	/* destroy = */ attr_matcher_destroy,
 };
 
-static sdb_type_t host_type = {
-	/* size = */ sizeof(host_matcher_t),
-	/* init = */ host_matcher_init,
-	/* destroy = */ host_matcher_destroy,
-};
-
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
@@ -546,14 +472,6 @@ sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
 	return M(sdb_object_create("attr-matcher", attr_type,
 				name, value, NULL));
 } /* sdb_store_attr_matcher */
-
-sdb_store_matcher_t *
-sdb_store_host_matcher(const char *host_name, const char *host_name_re,
-		sdb_store_matcher_t *attr_matcher)
-{
-	return M(sdb_object_create("host-matcher", host_type,
-				host_name, host_name_re, attr_matcher));
-} /* sdb_store_host_matcher */
 
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
