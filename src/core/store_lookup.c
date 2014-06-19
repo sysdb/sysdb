@@ -243,6 +243,9 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 		sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(iter));
 		char buf[sdb_data_strlen(&attr->value) + 1];
 
+		if (ATTR_M(m)->name && strcasecmp(ATTR_M(m)->name, SDB_OBJ(attr)->name))
+			continue;
+
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
 			return 0;
 		if (match_obj_name(&ATTR_M(m)->value, buf)) {
