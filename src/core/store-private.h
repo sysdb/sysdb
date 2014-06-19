@@ -105,7 +105,7 @@ struct sdb_store_matcher {
 };
 #define M(m) ((sdb_store_matcher_t *)(m))
 
-/* logical infix operator matcher */
+/* infix operator matcher */
 typedef struct {
 	sdb_store_matcher_t super;
 
@@ -115,7 +115,7 @@ typedef struct {
 } op_matcher_t;
 #define OP_M(m) ((op_matcher_t *)(m))
 
-/* logical unary operator matcher */
+/* unary operator matcher */
 typedef struct {
 	sdb_store_matcher_t super;
 

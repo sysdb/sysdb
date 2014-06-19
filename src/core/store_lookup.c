@@ -76,13 +76,6 @@ lookup_iter(sdb_store_base_t *obj, void *user_data)
  */
 
 static int
-match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj);
-static int
-match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj);
-
-/* specific matchers */
-
-static int
 match_string(string_matcher_t *m, const char *name)
 {
 	assert(m);
@@ -101,77 +94,34 @@ match_string(string_matcher_t *m, const char *name)
 	return 1;
 } /* match_string */
 
-static char *
-string_tostring(string_matcher_t *m, char *buf, size_t buflen)
+static int
+match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
-	snprintf(buf, buflen, "{ %s%s%s, %p }",
-			m->name ? "'" : "", m->name ? m->name : "NULL", m->name ? "'" : "",
-			m->name_re);
-	return buf;
-} /* string_tostring */
+	int status;
 
-static char *
-logical_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+	assert(m && obj);
+	assert(OP_M(m)->left && OP_M(m)->right);
+
+	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
+	/* lazy evaluation */
+	if ((! status) && (m->type == MATCHER_AND))
+		return status;
+	else if (status && (m->type == MATCHER_OR))
+		return status;
+
+	return sdb_store_matcher_matches(OP_M(m)->right, obj);
+} /* match_logical */
+
+static int
+match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
-	char left[buflen + 1], right[buflen + 1];
-
-	if (! m) {
-		/* this should not happen */
-		snprintf(buf, buflen, "()");
-		return buf;
-	}
-
-	assert((m->type == MATCHER_OR) || (m->type == MATCHER_AND));
-	snprintf(buf, buflen, "(%s, %s, %s)",
-			m->type == MATCHER_OR ? "OR" : "AND",
-			sdb_store_matcher_tostring(OP_M(m)->left, left, sizeof(left)),
-			sdb_store_matcher_tostring(OP_M(m)->right, right, sizeof(right)));
-	return buf;
-} /* logical_tostring */
-
-static char *
-unary_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char op[buflen + 1];
-
-	if (! m) {
-		/* this should not happen */
-		snprintf(buf, buflen, "()");
-		return buf;
-	}
+	assert(m && obj);
+	assert(UOP_M(m)->op);
 
 	assert(m->type == MATCHER_NOT);
-	snprintf(buf, buflen, "(NOT, %s)",
-			sdb_store_matcher_tostring(UOP_M(m)->op, op, sizeof(op)));
-	return buf;
-} /* unary_tostring */
 
-static char *
-name_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char name[buflen + 1];
-	assert(m->type == MATCHER_NAME);
-	snprintf(buf, buflen, "OBJ[%s]{ NAME%s }",
-			SDB_STORE_TYPE_TO_NAME(NAME_M(m)->obj_type),
-			string_tostring(&NAME_M(m)->name, name, sizeof(name)));
-	return buf;
-} /* name_tostring */
-
-static char *
-attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char value[buflen + 1];
-
-	if (! m) {
-		snprintf(buf, buflen, "ATTR{}");
-		return buf;
-	}
-
-	assert(m->type == MATCHER_ATTR);
-	snprintf(buf, buflen, "ATTR[%s]{ VALUE%s }", ATTR_M(m)->name,
-			string_tostring(&ATTR_M(m)->value, value, sizeof(value)));
-	return buf;
-} /* attr_tostring */
+	return !sdb_store_matcher_matches(UOP_M(m)->op, obj);
+} /* match_unary */
 
 static int
 match_name(sdb_store_matcher_t *m, sdb_store_base_t *obj)
@@ -239,8 +189,6 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	return status;
 } /* match_attr */
 
-/* generic matchers */
-
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
 
 /* this array needs to be indexable by the matcher types;
@@ -252,43 +200,6 @@ static matcher_cb matchers[] = {
 	match_name,
 	match_attr,
 };
-
-typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
-
-static matcher_tostring_cb matchers_tostring[] = {
-	logical_tostring,
-	logical_tostring,
-	unary_tostring,
-	name_tostring,
-	attr_tostring,
-};
-
-static int
-match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
-{
-	int status;
-
-	assert(m && obj);
-	assert(OP_M(m)->left && OP_M(m)->right);
-
-	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
-	/* lazy evaluation */
-	if ((! status) && (m->type == MATCHER_AND))
-		return status;
-	else if (status && (m->type == MATCHER_OR))
-		return status;
-
-	return sdb_store_matcher_matches(OP_M(m)->right, obj);
-} /* match_logical */
-
-static int
-match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj)
-{
-	assert(m && obj);
-	assert(UOP_M(m)->op);
-
-	return !sdb_store_matcher_matches(UOP_M(m)->op, obj);
-} /* match_unary */
 
 /*
  * private matcher types
@@ -327,6 +238,15 @@ string_matcher_destroy(string_matcher_t *m)
 	}
 } /* string_matcher_destroy */
 
+static char *
+string_tostring(string_matcher_t *m, char *buf, size_t buflen)
+{
+	snprintf(buf, buflen, "{ %s%s%s, %p }",
+			m->name ? "'" : "", m->name ? m->name : "NULL", m->name ? "'" : "",
+			m->name_re);
+	return buf;
+} /* string_tostring */
+
 /* initializes a name matcher */
 static int
 name_matcher_init(sdb_object_t *obj, va_list ap)
@@ -342,6 +262,17 @@ name_matcher_destroy(sdb_object_t *obj)
 	name_matcher_t *m = NAME_M(obj);
 	string_matcher_destroy(&m->name);
 } /* name_matcher_destroy */
+
+static char *
+name_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char name[buflen + 1];
+	assert(m->type == MATCHER_NAME);
+	snprintf(buf, buflen, "OBJ[%s]{ NAME%s }",
+			SDB_STORE_TYPE_TO_NAME(NAME_M(m)->obj_type),
+			string_tostring(&NAME_M(m)->name, name, sizeof(name)));
+	return buf;
+} /* name_tostring */
 
 static int
 attr_matcher_init(sdb_object_t *obj, va_list ap)
@@ -367,6 +298,22 @@ attr_matcher_destroy(sdb_object_t *obj)
 	attr->name = NULL;
 	string_matcher_destroy(&attr->value);
 } /* attr_matcher_destroy */
+
+static char *
+attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char value[buflen + 1];
+
+	if (! m) {
+		snprintf(buf, buflen, "ATTR{}");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_ATTR);
+	snprintf(buf, buflen, "ATTR[%s]{ VALUE%s }", ATTR_M(m)->name,
+			string_tostring(&ATTR_M(m)->value, value, sizeof(value)));
+	return buf;
+} /* attr_tostring */
 
 static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
@@ -394,6 +341,25 @@ op_matcher_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(OP_M(obj)->right));
 } /* op_matcher_destroy */
 
+static char *
+op_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char left[buflen + 1], right[buflen + 1];
+
+	if (! m) {
+		/* this should not happen */
+		snprintf(buf, buflen, "()");
+		return buf;
+	}
+
+	assert((m->type == MATCHER_OR) || (m->type == MATCHER_AND));
+	snprintf(buf, buflen, "(%s, %s, %s)",
+			m->type == MATCHER_OR ? "OR" : "AND",
+			sdb_store_matcher_tostring(OP_M(m)->left, left, sizeof(left)),
+			sdb_store_matcher_tostring(OP_M(m)->right, right, sizeof(right)));
+	return buf;
+} /* op_tostring */
+
 static int
 uop_matcher_init(sdb_object_t *obj, va_list ap)
 {
@@ -415,6 +381,23 @@ uop_matcher_destroy(sdb_object_t *obj)
 	if (UOP_M(obj)->op)
 		sdb_object_deref(SDB_OBJ(UOP_M(obj)->op));
 } /* uop_matcher_destroy */
+
+static char *
+uop_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	char op[buflen + 1];
+
+	if (! m) {
+		/* this should not happen */
+		snprintf(buf, buflen, "()");
+		return buf;
+	}
+
+	assert(m->type == MATCHER_NOT);
+	snprintf(buf, buflen, "(NOT, %s)",
+			sdb_store_matcher_tostring(UOP_M(m)->op, op, sizeof(op)));
+	return buf;
+} /* uop_tostring */
 
 static sdb_type_t name_type = {
 	/* size = */ sizeof(name_matcher_t),
@@ -438,6 +421,18 @@ static sdb_type_t uop_type = {
 	/* size = */ sizeof(uop_matcher_t),
 	/* init = */ uop_matcher_init,
 	/* destroy = */ uop_matcher_destroy,
+};
+
+typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
+
+/* this array needs to be indexable by the matcher types;
+ * -> update the enum in store-private.h when updating this */
+static matcher_tostring_cb matchers_tostring[] = {
+	op_tostring,
+	op_tostring,
+	uop_tostring,
+	name_tostring,
+	attr_tostring,
 };
 
 /*
