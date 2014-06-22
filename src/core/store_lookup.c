@@ -78,8 +78,6 @@ lookup_iter(sdb_store_base_t *obj, void *user_data)
 static int
 match_string(string_matcher_t *m, const char *name)
 {
-	assert(m);
-
 	if ((! m->name) && (! m->name_re))
 		return 1;
 
@@ -99,7 +97,7 @@ match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
 	int status;
 
-	assert(m && obj);
+	assert((m->type == MATCHER_AND) || (m->type == MATCHER_OR));
 	assert(OP_M(m)->left && OP_M(m)->right);
 
 	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
@@ -115,10 +113,8 @@ match_logical(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 static int
 match_unary(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
-	assert(m && obj);
-	assert(UOP_M(m)->op);
-
 	assert(m->type == MATCHER_NOT);
+	assert(UOP_M(m)->op);
 
 	return !sdb_store_matcher_matches(UOP_M(m)->op, obj);
 } /* match_unary */
@@ -129,11 +125,7 @@ match_name(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	sdb_llist_iter_t *iter = NULL;
 	int status = 0;
 
-	assert(m && obj);
 	assert(m->type == MATCHER_NAME);
-
-	if (obj->type != SDB_HOST)
-		return 0;
 
 	switch (NAME_M(m)->obj_type) {
 		case SDB_HOST:
@@ -164,11 +156,7 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	sdb_llist_iter_t *iter = NULL;
 	int status = 0;
 
-	assert(m && obj);
 	assert(m->type == MATCHER_ATTR);
-
-	if (obj->type != SDB_HOST)
-		return 0;
 
 	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -543,6 +531,9 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m)
 int
 sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
+	if (obj->type != SDB_HOST)
+		return 0;
+
 	/* "NULL" always matches */
 	if ((! m) || (! obj))
 		return 1;
