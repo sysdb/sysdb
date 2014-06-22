@@ -120,7 +120,7 @@ sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2);
  * account.
  */
 size_t
-sdb_data_strlen(sdb_data_t *datum);
+sdb_data_strlen(const sdb_data_t *datum);
 
 enum {
 	SDB_UNQUOTED = 0,
@@ -143,7 +143,7 @@ enum {
  *  - a negative value else
  */
 int
-sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen, int quoted);
+sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
 
 #ifdef __cplusplus
 } /* extern "C" */

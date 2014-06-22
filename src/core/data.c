@@ -147,7 +147,7 @@ sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2)
 } /* sdb_data_cmp */
 
 size_t
-sdb_data_strlen(sdb_data_t *datum)
+sdb_data_strlen(const sdb_data_t *datum)
 {
 	if (! datum)
 		return 0;
@@ -175,7 +175,7 @@ sdb_data_strlen(sdb_data_t *datum)
 } /* sdb_data_strlen */
 
 int
-sdb_data_format(sdb_data_t *datum, char *buf, size_t buflen, int quoted)
+sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 {
 	char tmp[sdb_data_strlen(datum) + 1];
 	char *data = NULL;
