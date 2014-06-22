@@ -71,6 +71,27 @@ lookup_iter(sdb_store_base_t *obj, void *user_data)
 	return 0;
 } /* lookup_iter */
 
+static sdb_store_base_t *
+attr_get(sdb_store_base_t *host, const char *name)
+{
+	sdb_llist_iter_t *iter = NULL;
+	sdb_store_base_t *attr = NULL;
+
+	assert(host->type == SDB_HOST);
+
+	iter = sdb_llist_get_iter(SDB_STORE_OBJ(host)->attributes);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_attribute_t *a = SDB_ATTR(sdb_llist_iter_get_next(iter));
+
+		if (strcasecmp(name, SDB_OBJ(a)->name))
+			continue;
+		attr = STORE_BASE(a);
+		break;
+	}
+	sdb_llist_iter_destroy(iter);
+	return attr;
+} /* attr_get */
+
 /*
  * matcher implementations
  */
@@ -153,29 +174,20 @@ match_name(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 static int
 match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 {
-	sdb_llist_iter_t *iter = NULL;
-	int status = 0;
+	sdb_attribute_t *attr;
 
 	assert(m->type == MATCHER_ATTR);
 	assert(ATTR_M(m)->name);
 
-	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(iter));
+	attr = SDB_ATTR(attr_get(obj, ATTR_M(m)->name));
+	if (attr) {
 		char buf[sdb_data_strlen(&attr->value) + 1];
-
-		if (strcasecmp(ATTR_M(m)->name, SDB_OBJ(attr)->name))
-			continue;
-
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
 			return 0;
-		if (match_string(&ATTR_M(m)->value, buf)) {
-			status = 1;
-			break;
-		}
+		if (match_string(&ATTR_M(m)->value, buf))
+			return 1;
 	}
-	sdb_llist_iter_destroy(iter);
-	return status;
+	return 0;
 } /* match_attr */
 
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
