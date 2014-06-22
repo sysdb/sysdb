@@ -147,8 +147,6 @@ sdb_store_service(const char *hostname, const char *name,
  * services and attributes and evaluate to true if *any* service or attribute
  * matches.
  *
- * For each matcher object, *all* specified attributes have to match.
- *
  * A store matcher object inherits from sdb_object_t and, thus, may safely be
  * cast to a generic object.
  */
