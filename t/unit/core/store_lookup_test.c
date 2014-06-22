@@ -203,6 +203,11 @@ START_TEST(test_store_match_attr)
 	fail_unless(obj != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
+	fail_unless(sdb_store_attr_matcher(NULL, "re", 0) == NULL,
+			"sdb_store_attr_matcher(NULL, \"re\", 0) = <m>; expected: NULL");
+	fail_unless(sdb_store_attr_matcher(NULL, "re", 1) == NULL,
+			"sdb_store_attr_matcher(NULL, \"re\", 1) = <m>; expected: NULL");
+
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *m, *n;
 		char buf[1024];
