@@ -157,13 +157,14 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	int status = 0;
 
 	assert(m->type == MATCHER_ATTR);
+	assert(ATTR_M(m)->name);
 
 	iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_attribute_t *attr = SDB_ATTR(sdb_llist_iter_get_next(iter));
 		char buf[sdb_data_strlen(&attr->value) + 1];
 
-		if (ATTR_M(m)->name && strcasecmp(ATTR_M(m)->name, SDB_OBJ(attr)->name))
+		if (strcasecmp(ATTR_M(m)->name, SDB_OBJ(attr)->name))
 			continue;
 
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
@@ -449,6 +450,9 @@ sdb_store_name_matcher(int type, const char *name, _Bool re)
 sdb_store_matcher_t *
 sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
 {
+	if (! name)
+		return NULL;
+
 	if (re)
 		return M(sdb_object_create("attr-matcher", attr_type,
 					name, NULL, value));

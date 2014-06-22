@@ -177,8 +177,6 @@ START_TEST(test_store_match_attr)
 
 		int expected;
 	} golden_data[] = {
-		{ NULL, NULL,   0, 1 },
-		{ NULL, NULL,   1, 1 },
 		{ "k1", NULL,   0, 1 },
 		{ "k",  NULL,   1, 0 },
 		{ "1",  NULL,   1, 0 },
@@ -188,10 +186,9 @@ START_TEST(test_store_match_attr)
 		{ "k3", NULL,   1, 0 },
 		{ "k1", "v1",   0, 1 },
 		{ "k1", "v1",   1, 1 },
+		{ "k1", "^v1$", 1, 1 },
 		{ "k1", "v",    1, 1 },
 		{ "k1", "1",    1, 1 },
-		{ NULL, "v1",   0, 1 },
-		{ NULL, "^v1$", 1, 1 },
 		{ "k1", "v2",   0, 0 },
 		{ "k1", "v2",   1, 0 },
 		{ "k",  "v1",   0, 0 },
