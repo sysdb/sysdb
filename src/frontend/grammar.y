@@ -83,16 +83,20 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token AND OR NOT WHERE
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
+%token CMP_LT CMP_LE CMP_GE CMP_GT
 
 %token FETCH LIST LOOKUP
 
 %token <str> IDENTIFIER STRING
 
+%token <data> INTEGER FLOAT
+
 /* Precedence (lowest first): */
 %left OR
 %left AND
-%left NOT
+%right NOT
 %left CMP_EQUAL CMP_NEQUAL
+%left CMP_LT CMP_LE CMP_GE CMP_GT
 %left CMP_REGEX CMP_NREGEX
 %left '(' ')'
 %left '.'
@@ -311,10 +315,22 @@ op:
 	CMP_REGEX { $$ = "=~"; }
 	|
 	CMP_NREGEX { $$ = "!~"; }
+	|
+	CMP_LT { $$ = "<"; }
+	|
+	CMP_LE { $$ = "<="; }
+	|
+	CMP_GE { $$ = ">="; }
+	|
+	CMP_GT { $$ = ">"; }
 	;
 
 data:
 	STRING { $$.type = SDB_TYPE_STRING; $$.data.string = $1; }
+	|
+	INTEGER { $$ = $1; }
+	|
+	FLOAT { $$ = $1; }
 	;
 
 %%

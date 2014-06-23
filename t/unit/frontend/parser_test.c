@@ -77,6 +77,53 @@ START_TEST(test_parse)
 		  "service.name =~ 'p' OR "
 		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
 
+		/* numeric constants */
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "1234",                -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo != "
+		  "+234",                -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo < "
+		  "-234",                -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo > "
+		  "12.4",                -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo <= "
+		  "12.",                 -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo >= "
+		  ".4",                  -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "+12e3",               -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "+12e-3",              -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
+
+		/* invalid numeric constants */
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "+-12e+3",             -1, -1, 0 },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "-12e-+3",             -1, -1, 0 },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "e+3",                 -1, -1, 0 },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "3e",                  -1, -1, 0 },
+		/* following SQL standard, we don't support hex numbers */
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo = "
+		  "0x12",                -1, -1, 0 },
+
 		/* comments */
 		{ "/* some comment */",  -1,  0, 0 },
 		{ "-- another comment",  -1,  0, 0 },

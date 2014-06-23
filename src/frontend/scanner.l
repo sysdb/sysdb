@@ -31,6 +31,7 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "core/data.h"
 #include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "frontend/grammar.h"
@@ -39,6 +40,7 @@
 #include <errno.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 #define YY_EXTRA_TYPE sdb_fe_yyextra_t *
 
@@ -76,6 +78,16 @@ csc_end		\*\/
 identifier	([A-Za-z_][A-Za-z_0-9$]*)
 /* TODO: fully support SQL strings */
 string		('[^']*')
+
+dec			([\+\-]?[0-9]+)
+exp			([\+\-]?[0-9]+[Ee]\+?[0-9]+)
+integer		({dec}|{exp})
+float1		([\+\-]?[0-9]+\.[0-9]*([Ee][\+\-]?[0-9]+)?)
+float2		([\+\-]?[0-9]*\.[0-9]+([Ee][\+\-]?[0-9]+)?)
+float3		([\+\-]?[0-9]+[Ee]\-[0-9]+)
+float4		([\+\-]?[Ii][Nn][Ff]([Ii][Nn][Ii][Tt][Yy])?)
+float5		([Nn][Aa][Nn])
+float		({float1}|{float2}|{float3}|{float4}|{float5})
 
 %%
 
@@ -115,11 +127,25 @@ string		('[^']*')
 		yylval->str = strdup(yytext + 1);
 		return STRING;
 	}
+{integer} {
+		yylval->data.data.integer = (int64_t)strtoll(yytext, NULL, 10);
+		yylval->data.type = SDB_TYPE_INTEGER;
+		return INTEGER;
+	}
+{float} {
+		yylval->data.data.decimal = strtod(yytext, NULL);
+		yylval->data.type = SDB_TYPE_DECIMAL;
+		return FLOAT;
+	}
 
 =	{ return CMP_EQUAL; }
 !=	{ return CMP_NEQUAL; }
 =~	{ return CMP_REGEX; }
 !~	{ return CMP_NREGEX; }
+\<	{ return CMP_LT; }
+\<=	{ return CMP_LE; }
+\>=	{ return CMP_GE; }
+\>	{ return CMP_GT; }
 
 .	{ /* XXX: */ return yytext[0]; }
 

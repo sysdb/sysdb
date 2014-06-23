@@ -673,6 +673,7 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
 	sdb_store_matcher_t *m;
 	sdb_store_cond_t *cond;
+	_Bool inv = 0;
 
 	/* TODO: this will reject any attributes called "name";
 	 * use a different syntax for querying objects by name */
@@ -684,12 +685,15 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	else if (! strcasecmp(op, "<="))
 		matcher = sdb_store_le_matcher;
 	else if (! strcasecmp(op, "="))
-		/* XXX: this is still handled by sdb_store_matcher_parse_cmp */
 		matcher = sdb_store_eq_matcher;
 	else if (! strcasecmp(op, ">="))
 		matcher = sdb_store_ge_matcher;
 	else if (! strcasecmp(op, ">"))
 		matcher = sdb_store_gt_matcher;
+	else if (! strcasecmp(op, "!=")) {
+		matcher = sdb_store_eq_matcher;
+		inv = 1;
+	}
 	else
 		return NULL;
 
@@ -700,6 +704,16 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	m = matcher(cond);
 	/* pass ownership to 'm' or destroy in case of an error */
 	sdb_object_deref(SDB_OBJ(cond));
+	if (! m)
+		return NULL;
+
+	if (inv) {
+		sdb_store_matcher_t *tmp;
+		tmp = sdb_store_inv_matcher(m);
+		/* pass ownership to the inverse matcher */
+		sdb_object_deref(SDB_OBJ(m));
+		m = tmp;
+	}
 	return m;
 } /* parse_attr_cmp */
 
@@ -741,8 +755,11 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else
 		return NULL;
 
-	if (value->type != SDB_TYPE_STRING)
+	if (value->type != SDB_TYPE_STRING) {
+		if (type == SDB_ATTRIBUTE)
+			return parse_attr_cmp(attr, op, value);
 		return NULL;
+	}
 
 	if (! strcasecmp(attr, "name"))
 		m = sdb_store_name_matcher(type, value->data.string, re);
