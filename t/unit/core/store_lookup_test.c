@@ -421,6 +421,8 @@ START_TEST(test_parse_cmp)
 		{ "attribute", "attr", "=~", "attrname", MATCHER_ATTR },
 		{ "attribute", "attr", "!~", "attrname", MATCHER_NOT },
 		{ "attribute", "attr", "&^", "attrname", -1 },
+		{ "foo",       "name", "=",  "bar",      -1 },
+		{ "foo",       "attr", "=",  "bar",      -1 },
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {

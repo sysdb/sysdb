@@ -683,6 +683,8 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		type = SDB_SERVICE;
 	else if (! strcasecmp(obj_type, "attribute"))
 		type = SDB_ATTRIBUTE;
+	else
+		return NULL;
 
 	/* TODO: support other operators */
 	if (! strcasecmp(op, "=")) {
