@@ -667,6 +667,48 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond)
 				MATCHER_GT, cond));
 } /* sdb_store_gt_matcher */
 
+static sdb_store_matcher_t *
+parse_attr_cmp(const char *attr, const char *op, const char *value)
+{
+	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
+	sdb_store_matcher_t *m;
+	sdb_store_cond_t *cond;
+	sdb_data_t data;
+
+	/* TODO: this will reject any attributes called "name";
+	 * use a different syntax for querying objects by name */
+	if (! strcasecmp(attr, "name"))
+		return NULL;
+
+	if (! strcasecmp(op, "<"))
+		matcher = sdb_store_lt_matcher;
+	else if (! strcasecmp(op, "<="))
+		matcher = sdb_store_le_matcher;
+	else if (! strcasecmp(op, "="))
+		/* XXX: this is still handled by sdb_store_matcher_parse_cmp */
+		matcher = sdb_store_eq_matcher;
+	else if (! strcasecmp(op, ">="))
+		matcher = sdb_store_ge_matcher;
+	else if (! strcasecmp(op, ">"))
+		matcher = sdb_store_gt_matcher;
+	else
+		return NULL;
+
+	data.type = SDB_TYPE_STRING;
+	data.data.string = strdup(value);
+	if (! data.data.string)
+		return NULL;
+	cond = sdb_store_attr_cond(attr, &data);
+	free(data.data.string);
+	if (! cond)
+		return NULL;
+
+	m = matcher(cond);
+	/* pass ownership to 'm' or destroy in case of an error */
+	sdb_object_deref(SDB_OBJ(cond));
+	return m;
+} /* parse_attr_cmp */
+
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		const char *op, const char *value)
@@ -686,7 +728,7 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else
 		return NULL;
 
-	/* TODO: support other operators */
+	/* XXX: this code sucks! */
 	if (! strcasecmp(op, "=")) {
 		/* nothing to do */
 	}
@@ -700,6 +742,8 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		inv = 1;
 		re = 1;
 	}
+	else if (type == SDB_ATTRIBUTE)
+		return parse_attr_cmp(attr, op, value);
 	else
 		return NULL;
 
