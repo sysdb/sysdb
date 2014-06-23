@@ -69,6 +69,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	const char *sstr; /* static string */
 	char *str;
 
+	sdb_data_t data;
+
 	sdb_llist_t     *list;
 	sdb_conn_node_t *node;
 
@@ -106,6 +108,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	compare_matcher
 
 %type <sstr> op
+
+%type <data> data
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m>
@@ -290,13 +294,12 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
-	IDENTIFIER '.' IDENTIFIER op STRING
+	IDENTIFIER '.' IDENTIFIER op data
 		{
-			sdb_data_t data = { SDB_TYPE_STRING, { .string = $5 } };
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &data);
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &$5);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
-			free($5); $5 = NULL;
+			sdb_data_free_datum(&$5);
 		}
 	;
 
@@ -308,6 +311,10 @@ op:
 	CMP_REGEX { $$ = "=~"; }
 	|
 	CMP_NREGEX { $$ = "!~"; }
+	;
+
+data:
+	STRING { $$.type = SDB_TYPE_STRING; $$.data.string = $1; }
 	;
 
 %%
