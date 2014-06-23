@@ -47,6 +47,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <limits.h>
+
 /*
  * private data types
  */
@@ -91,6 +93,23 @@ attr_get(sdb_store_base_t *host, const char *name)
 	sdb_llist_iter_destroy(iter);
 	return attr;
 } /* attr_get */
+
+/*
+ * conditional implementations
+ */
+
+static int
+attr_cmp(sdb_store_base_t *obj, sdb_store_cond_t *cond)
+{
+	sdb_attribute_t *attr;
+
+	attr = SDB_ATTR(attr_get(obj, ATTR_C(cond)->name));
+	if (! attr)
+		return INT_MAX;
+	if (attr->value.type != ATTR_C(cond)->value.type)
+		return INT_MAX;
+	return sdb_data_cmp(&attr->value, &ATTR_C(cond)->value);
+} /* attr_cmp */
 
 /*
  * matcher implementations
@@ -190,6 +209,51 @@ match_attr(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 	return 0;
 } /* match_attr */
 
+static int
+match_lt(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	int status;
+	assert(m->type == MATCHER_LT);
+	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	return (status != INT_MAX) && (status < 0);
+} /* match_lt */
+
+static int
+match_le(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	int status;
+	assert(m->type == MATCHER_LE);
+	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	return (status != INT_MAX) && (status <= 0);
+} /* match_le */
+
+static int
+match_eq(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	int status;
+	assert(m->type == MATCHER_EQ);
+	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	return (status != INT_MAX) && (! status);
+} /* match_eq */
+
+static int
+match_ge(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	int status;
+	assert(m->type == MATCHER_GE);
+	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	return (status != INT_MAX) && (status >= 0);
+} /* match_ge */
+
+static int
+match_gt(sdb_store_matcher_t *m, sdb_store_base_t *obj)
+{
+	int status;
+	assert(m->type == MATCHER_GT);
+	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	return (status != INT_MAX) && (status > 0);
+} /* match_gt */
+
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_base_t *);
 
 /* this array needs to be indexable by the matcher types;
@@ -200,6 +264,48 @@ static matcher_cb matchers[] = {
 	match_unary,
 	match_name,
 	match_attr,
+	match_lt,
+	match_le,
+	match_eq,
+	match_ge,
+	match_gt,
+};
+
+/*
+ * private conditional types
+ */
+
+static int
+attr_cond_init(sdb_object_t *obj, va_list ap)
+{
+	const char *name = va_arg(ap, const char *);
+	const sdb_data_t *value = va_arg(ap, const sdb_data_t *);
+
+	if (! name)
+		return -1;
+
+	SDB_STORE_COND(obj)->cmp = attr_cmp;
+
+	ATTR_C(obj)->name = strdup(name);
+	if (! ATTR_C(obj)->name)
+		return -1;
+	if (sdb_data_copy(&ATTR_C(obj)->value, value))
+		return -1;
+	return 0;
+} /* attr_cond_init */
+
+static void
+attr_cond_destroy(sdb_object_t *obj)
+{
+	if (ATTR_C(obj)->name)
+		free(ATTR_C(obj)->name);
+	sdb_data_free_datum(&ATTR_C(obj)->value);
+} /* attr_cond_destroy */
+
+static sdb_type_t attr_cond_type = {
+	/* size = */ sizeof(attr_cond_t),
+	/* init = */ attr_cond_init,
+	/* destroy = */ attr_cond_destroy,
 };
 
 /*
@@ -317,6 +423,42 @@ attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 } /* attr_tostring */
 
 static int
+cond_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	int type = va_arg(ap, int);
+	sdb_store_cond_t *cond = va_arg(ap, sdb_store_cond_t *);
+
+	if (! cond)
+		return -1;
+
+	sdb_object_ref(SDB_OBJ(cond));
+
+	M(obj)->type = type;
+	COND_M(obj)->cond = cond;
+	return 0;
+} /* cond_matcher_init */
+
+static void
+cond_matcher_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(COND_M(obj)->cond));
+} /* cond_matcher_destroy */
+
+static char *
+cond_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	if (COND_M(m)->cond->cmp == attr_cmp) {
+		char value[buflen];
+		if (sdb_data_format(&ATTR_C(COND_M(m)->cond)->value,
+					value, sizeof(value), SDB_SINGLE_QUOTED) < 0)
+			snprintf(value, sizeof(value), "ERR");
+		snprintf(buf, buflen, "ATTR[%s]{ %s %s }",
+				ATTR_C(COND_M(m)->cond)->name, MATCHER_SYM(m->type), value);
+	}
+	return buf;
+} /* cond_tostring */
+
+static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
@@ -412,6 +554,12 @@ static sdb_type_t attr_type = {
 	/* destroy = */ attr_matcher_destroy,
 };
 
+static sdb_type_t cond_type = {
+	/* size = */ sizeof(cond_matcher_t),
+	/* init = */ cond_matcher_init,
+	/* destroy = */ cond_matcher_destroy,
+};
+
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
@@ -434,11 +582,23 @@ static matcher_tostring_cb matchers_tostring[] = {
 	uop_tostring,
 	name_tostring,
 	attr_tostring,
+	cond_tostring,
+	cond_tostring,
+	cond_tostring,
+	cond_tostring,
+	cond_tostring,
 };
 
 /*
  * public API
  */
+
+sdb_store_cond_t *
+sdb_store_attr_cond(const char *name, const sdb_data_t *value)
+{
+	return SDB_STORE_COND(sdb_object_create("attr-cond", attr_cond_type,
+				name, value));
+} /* sdb_store_attr_cond */
 
 sdb_store_matcher_t *
 sdb_store_name_matcher(int type, const char *name, _Bool re)
@@ -471,6 +631,41 @@ sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
 	return M(sdb_object_create("attr-matcher", attr_type,
 				name, value, NULL));
 } /* sdb_store_attr_matcher */
+
+sdb_store_matcher_t *
+sdb_store_lt_matcher(sdb_store_cond_t *cond)
+{
+	return M(sdb_object_create("lt-matcher", cond_type,
+				MATCHER_LT, cond));
+} /* sdb_store_lt_matcher */
+
+sdb_store_matcher_t *
+sdb_store_le_matcher(sdb_store_cond_t *cond)
+{
+	return M(sdb_object_create("le-matcher", cond_type,
+				MATCHER_LE, cond));
+} /* sdb_store_le_matcher */
+
+sdb_store_matcher_t *
+sdb_store_eq_matcher(sdb_store_cond_t *cond)
+{
+	return M(sdb_object_create("eq-matcher", cond_type,
+				MATCHER_EQ, cond));
+} /* sdb_store_eq_matcher */
+
+sdb_store_matcher_t *
+sdb_store_ge_matcher(sdb_store_cond_t *cond)
+{
+	return M(sdb_object_create("ge-matcher", cond_type,
+				MATCHER_GE, cond));
+} /* sdb_store_ge_matcher */
+
+sdb_store_matcher_t *
+sdb_store_gt_matcher(sdb_store_cond_t *cond)
+{
+	return M(sdb_object_create("gt-matcher", cond_type,
+				MATCHER_GT, cond));
+} /* sdb_store_gt_matcher */
 
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,

@@ -54,6 +54,7 @@ populate(void)
 		sdb_data_t  value;
 	} attrs[] = {
 		{ "a", "k1", { SDB_TYPE_STRING, { .string = "v1" } } },
+		{ "a", "k2", { SDB_TYPE_INTEGER, { .integer = 123 } } },
 	};
 
 	size_t i;
@@ -117,11 +118,12 @@ START_TEST(test_store_match_name)
 		{ SDB_ATTRIBUTE, NULL,   0, 1 },
 		{ SDB_ATTRIBUTE, NULL,   1, 1 },
 		{ SDB_ATTRIBUTE, "k1",   0, 1 },
-		{ SDB_ATTRIBUTE, "k2",   0, 0 },
+		{ SDB_ATTRIBUTE, "k2",   0, 1 },
 		{ SDB_ATTRIBUTE, "k3",   0, 0 },
+		{ SDB_ATTRIBUTE, "k4",   0, 0 },
 		{ SDB_ATTRIBUTE, "k",    1, 1 },
 		{ SDB_ATTRIBUTE, "1",    1, 1 },
-		{ SDB_ATTRIBUTE, "2",    1, 0 },
+		{ SDB_ATTRIBUTE, "3",    1, 0 },
 	};
 
 	size_t i;
@@ -180,8 +182,8 @@ START_TEST(test_store_match_attr)
 		{ "k1", NULL,   0, 1 },
 		{ "k",  NULL,   1, 0 },
 		{ "1",  NULL,   1, 0 },
-		{ "k2", NULL,   0, 0 },
-		{ "k2", NULL,   1, 0 },
+		{ "k3", NULL,   0, 0 },
+		{ "k3", NULL,   1, 0 },
 		{ "k3", NULL,   0, 0 },
 		{ "k3", NULL,   1, 0 },
 		{ "k1", "v1",   0, 1 },
@@ -193,8 +195,8 @@ START_TEST(test_store_match_attr)
 		{ "k1", "v2",   1, 0 },
 		{ "k",  "v1",   0, 0 },
 		{ "k",  "v1",   1, 0 },
-		{ "k2", "1",    0, 0 },
-		{ "k2", "1",    1, 0 },
+		{ "k3", "1",    0, 0 },
+		{ "k3", "1",    1, 0 },
 	};
 
 	size_t i;
@@ -240,6 +242,76 @@ START_TEST(test_store_match_attr)
 	}
 
 	sdb_object_deref(SDB_OBJ(obj));
+}
+END_TEST
+
+START_TEST(test_store_cond)
+{
+	sdb_store_base_t *obj;
+
+	struct {
+		const char *attr;
+		const sdb_data_t value;
+		int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
+	} golden_data[] = {
+		{ "k1", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 1, 1, 1, 0 },
+		{ "k1", { SDB_TYPE_STRING,  { .string  = "v2" } },  1, 1, 0, 0, 0 },
+		{ "k1", { SDB_TYPE_STRING,  { .string  = "v0" } },  0, 0, 0, 1, 1 },
+		{ "k2", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 1, 1, 1, 0 },
+		{ "k2", { SDB_TYPE_INTEGER, { .integer = 124 } },   1, 1, 0, 0, 0 },
+		{ "k2", { SDB_TYPE_INTEGER, { .integer = 122 } },   0, 0, 0, 1, 1 },
+		/* key does not exist */
+		{ "k3", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 0, 0, 0, 0 },
+		{ "k3", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
+		{ "k3", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 0, 0, 0, 0 },
+		/* type mismatch */
+		{ "k1", { SDB_TYPE_INTEGER, { .integer = 0 } },     0, 0, 0, 0, 0 },
+		{ "k2", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
+	};
+
+	int status;
+	size_t i;
+
+	obj = sdb_store_get_host("a");
+	fail_unless(obj != NULL,
+			"sdb_store_get_host(a) = NULL; expected: <host>");
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_cond_t *c;
+		char buf[1024];
+		size_t j;
+
+		struct {
+			sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *);
+			int *expected;
+		} tests[] = {
+			{ sdb_store_lt_matcher, &golden_data[i].expected_lt },
+			{ sdb_store_le_matcher, &golden_data[i].expected_le },
+			{ sdb_store_eq_matcher, &golden_data[i].expected_eq },
+			{ sdb_store_ge_matcher, &golden_data[i].expected_ge },
+			{ sdb_store_gt_matcher, &golden_data[i].expected_gt },
+		};
+
+		sdb_data_format(&golden_data[i].value,
+				buf, sizeof(buf), SDB_UNQUOTED);
+
+		c = sdb_store_attr_cond(golden_data[i].attr,
+				&golden_data[i].value);
+		fail_unless(c != NULL,
+				"sdb_store_attr_cond(%s, %s) = NULL; expected: <cond>",
+				golden_data[i].attr, buf);
+
+		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
+			sdb_store_matcher_t *m = tests[j].matcher(c);
+			char m_str[1024];
+			sdb_object_deref(SDB_OBJ(c));
+			status = sdb_store_matcher_matches(m, obj);
+			fail_unless(status == *tests[j].expected,
+					"sdb_store_matcher_matches(%s) = %d; expected: %d",
+					sdb_store_matcher_tostring(m, m_str, sizeof(m_str)),
+					status, *tests[j].expected);
+		}
+	}
 }
 END_TEST
 
@@ -480,6 +552,7 @@ core_store_lookup_suite(void)
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match_name);
 	tcase_add_test(tc, test_store_match_attr);
+	tcase_add_test(tc, test_store_cond);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
 	tcase_add_test(tc, test_lookup);

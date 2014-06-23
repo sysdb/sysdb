@@ -142,6 +142,26 @@ sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
 /*
+ * Conditionals may be used to lookup hosts from the store based on a
+ * conditional expression.
+ *
+ * A conditional object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
+ */
+struct sdb_store_cond;
+typedef struct sdb_store_cond sdb_store_cond_t;
+#define SDB_STORE_COND(obj) ((sdb_store_cond_t *)(obj))
+
+/*
+ * sdb_store_attr_cond:
+ * Creates a conditional based on attribute values. The value of stored
+ * attributes is compared against the specified value. See sdb_data_cmp for
+ * details about the comparison.
+ */
+sdb_store_cond_t *
+sdb_store_attr_cond(const char *name, const sdb_data_t *value);
+
+/*
  * Store matchers may be used to lookup hosts from the store based on their
  * various attributes. Service and attribute matchers are applied to a host's
  * services and attributes and evaluate to true if *any* service or attribute
@@ -171,6 +191,25 @@ sdb_store_name_matcher(int type, const char *name, _Bool re);
  */
 sdb_store_matcher_t *
 sdb_store_attr_matcher(const char *name, const char *value, _Bool re);
+
+/*
+ * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
+ * sdb_store_ge_matcher, sdb_store_gt_matcher:
+ * Creates a matcher based on a conditional. The matcher matches objects for
+ * which the conditional evaluates the object to compare less than, less or
+ * equal, equal, greater or equal, or greater than the conditional's value
+ * repsectively.
+ */
+sdb_store_matcher_t *
+sdb_store_lt_matcher(sdb_store_cond_t *cond);
+sdb_store_matcher_t *
+sdb_store_le_matcher(sdb_store_cond_t *cond);
+sdb_store_matcher_t *
+sdb_store_eq_matcher(sdb_store_cond_t *cond);
+sdb_store_matcher_t *
+sdb_store_ge_matcher(sdb_store_cond_t *cond);
+sdb_store_matcher_t *
+sdb_store_gt_matcher(sdb_store_cond_t *cond);
 
 /*
  * sdb_store_matcher_parse_cmp:

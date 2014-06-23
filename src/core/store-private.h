@@ -78,6 +78,25 @@ typedef struct {
 #define _interval super.interval
 
 /*
+ * conditionals
+ */
+
+/* compares a store object using the specified conditional */
+typedef int (*cmp_cb)(sdb_store_base_t *, sdb_store_cond_t *);
+
+struct sdb_store_cond {
+	sdb_object_t super;
+	cmp_cb cmp;
+};
+
+typedef struct {
+	sdb_store_cond_t super;
+	char *name;
+	sdb_data_t value;
+} attr_cond_t;
+#define ATTR_C(obj) ((attr_cond_t *)(obj))
+
+/*
  * matchers
  */
 
@@ -89,7 +108,25 @@ enum {
 	MATCHER_NOT,
 	MATCHER_NAME,
 	MATCHER_ATTR,
+	MATCHER_LT,
+	MATCHER_LE,
+	MATCHER_EQ,
+	MATCHER_GE,
+	MATCHER_GT,
 };
+
+#define MATCHER_SYM(t) \
+	(((t) == MATCHER_OR) ? "OR" \
+		: ((t) == MATCHER_AND) ? "AND" \
+		: ((t) == MATCHER_NOT) ? "NOT" \
+		: ((t) == MATCHER_NAME) ? "NAME" \
+		: ((t) == MATCHER_ATTR) ? "ATTR" \
+		: ((t) == MATCHER_LT) ? "<" \
+		: ((t) == MATCHER_LE) ? "<=" \
+		: ((t) == MATCHER_EQ) ? "=" \
+		: ((t) == MATCHER_GE) ? ">=" \
+		: ((t) == MATCHER_GT) ? ">" \
+		: "UNKNOWN")
 
 /* match the name of something */
 typedef struct {
@@ -142,6 +179,13 @@ typedef struct {
 	string_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
+
+/* match using conditionals */
+typedef struct {
+	sdb_store_matcher_t super;
+	sdb_store_cond_t *cond;
+} cond_matcher_t;
+#define COND_M(m) ((cond_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */
