@@ -302,16 +302,26 @@ START_TEST(test_store_cond)
 				golden_data[i].attr, buf);
 
 		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
-			sdb_store_matcher_t *m = tests[j].matcher(c);
+			sdb_store_matcher_t *m;
 			char m_str[1024];
-			sdb_object_deref(SDB_OBJ(c));
+
+			m = tests[j].matcher(c);
+			fail_unless(m != NULL,
+					"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
+
 			status = sdb_store_matcher_matches(m, obj);
 			fail_unless(status == *tests[j].expected,
 					"sdb_store_matcher_matches(%s) = %d; expected: %d",
 					sdb_store_matcher_tostring(m, m_str, sizeof(m_str)),
 					status, *tests[j].expected);
+
+			sdb_object_deref(SDB_OBJ(m));
 		}
+
+		sdb_object_deref(SDB_OBJ(c));
 	}
+
+	sdb_object_deref(SDB_OBJ(obj));
 }
 END_TEST
 
