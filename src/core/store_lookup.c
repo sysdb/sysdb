@@ -667,9 +667,45 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond)
 				MATCHER_GT, cond));
 } /* sdb_store_gt_matcher */
 
+static sdb_store_matcher_t *
+parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
+{
+	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
+	sdb_store_matcher_t *m;
+	sdb_store_cond_t *cond;
+
+	/* TODO: this will reject any attributes called "name";
+	 * use a different syntax for querying objects by name */
+	if (! strcasecmp(attr, "name"))
+		return NULL;
+
+	if (! strcasecmp(op, "<"))
+		matcher = sdb_store_lt_matcher;
+	else if (! strcasecmp(op, "<="))
+		matcher = sdb_store_le_matcher;
+	else if (! strcasecmp(op, "="))
+		/* XXX: this is still handled by sdb_store_matcher_parse_cmp */
+		matcher = sdb_store_eq_matcher;
+	else if (! strcasecmp(op, ">="))
+		matcher = sdb_store_ge_matcher;
+	else if (! strcasecmp(op, ">"))
+		matcher = sdb_store_gt_matcher;
+	else
+		return NULL;
+
+	cond = sdb_store_attr_cond(attr, value);
+	if (! cond)
+		return NULL;
+
+	m = matcher(cond);
+	/* pass ownership to 'm' or destroy in case of an error */
+	sdb_object_deref(SDB_OBJ(cond));
+	return m;
+} /* parse_attr_cmp */
+
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
-		const char *op, const char *value)
+		const char *op, const sdb_data_t *value)
 {
 	int type = -1;
 	_Bool inv = 0;
@@ -683,8 +719,10 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		type = SDB_SERVICE;
 	else if (! strcasecmp(obj_type, "attribute"))
 		type = SDB_ATTRIBUTE;
+	else
+		return NULL;
 
-	/* TODO: support other operators */
+	/* XXX: this code sucks! */
 	if (! strcasecmp(op, "=")) {
 		/* nothing to do */
 	}
@@ -698,13 +736,18 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		inv = 1;
 		re = 1;
 	}
+	else if (type == SDB_ATTRIBUTE)
+		return parse_attr_cmp(attr, op, value);
 	else
 		return NULL;
 
+	if (value->type != SDB_TYPE_STRING)
+		return NULL;
+
 	if (! strcasecmp(attr, "name"))
-		m = sdb_store_name_matcher(type, value, re);
+		m = sdb_store_name_matcher(type, value->data.string, re);
 	else if (type == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, value, re);
+		m = sdb_store_attr_matcher(attr, value->data.string, re);
 
 	if (! m)
 		return NULL;
