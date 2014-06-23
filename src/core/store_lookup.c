@@ -668,12 +668,11 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond)
 } /* sdb_store_gt_matcher */
 
 static sdb_store_matcher_t *
-parse_attr_cmp(const char *attr, const char *op, const char *value)
+parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 {
 	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
 	sdb_store_matcher_t *m;
 	sdb_store_cond_t *cond;
-	sdb_data_t data;
 
 	/* TODO: this will reject any attributes called "name";
 	 * use a different syntax for querying objects by name */
@@ -694,12 +693,7 @@ parse_attr_cmp(const char *attr, const char *op, const char *value)
 	else
 		return NULL;
 
-	data.type = SDB_TYPE_STRING;
-	data.data.string = strdup(value);
-	if (! data.data.string)
-		return NULL;
-	cond = sdb_store_attr_cond(attr, &data);
-	free(data.data.string);
+	cond = sdb_store_attr_cond(attr, value);
 	if (! cond)
 		return NULL;
 
@@ -711,7 +705,7 @@ parse_attr_cmp(const char *attr, const char *op, const char *value)
 
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
-		const char *op, const char *value)
+		const char *op, const sdb_data_t *value)
 {
 	int type = -1;
 	_Bool inv = 0;
@@ -747,10 +741,13 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else
 		return NULL;
 
+	if (value->type != SDB_TYPE_STRING)
+		return NULL;
+
 	if (! strcasecmp(attr, "name"))
-		m = sdb_store_name_matcher(type, value, re);
+		m = sdb_store_name_matcher(type, value->data.string, re);
 	else if (type == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, value, re);
+		m = sdb_store_attr_matcher(attr, value->data.string, re);
 
 	if (! m)
 		return NULL;

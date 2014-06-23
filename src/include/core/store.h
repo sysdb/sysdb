@@ -221,7 +221,7 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond);
  */
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
-		const char *op, const char *value);
+		const char *op, const sdb_data_t *value);
 
 /*
  * sdb_store_dis_matcher:

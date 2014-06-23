@@ -292,7 +292,8 @@ matcher:
 compare_matcher:
 	IDENTIFIER '.' IDENTIFIER op STRING
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, $5);
+			sdb_data_t data = { SDB_TYPE_STRING, { .string = $5 } };
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &data);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 			free($5); $5 = NULL;
