@@ -328,6 +328,12 @@ main(int argc, char **argv)
 	sdb_input_init(&input);
 	sdb_input_mainloop();
 
+	sdb_client_shutdown(input.client, SHUT_WR);
+	while (! sdb_client_eof(input.client)) {
+		/* wait for remaining data to arrive */
+		sdb_command_print_reply(input.client);
+	}
+
 	if (hist_file[0] != '\0') {
 		errno = 0;
 		if (write_history(hist_file)) {
