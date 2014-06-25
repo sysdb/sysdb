@@ -84,6 +84,14 @@ int
 sdb_client_sockfd(sdb_client_t *client);
 
 /*
+ * sdb_client_shutdown:
+ * Shut down the client's send and/or receive operations.
+ * See shutdown(3) for details.
+ */
+int
+sdb_client_shutdown(sdb_client_t *client, int how);
+
+/*
  * sdb_client_close:
  * Close the client connection.
  */

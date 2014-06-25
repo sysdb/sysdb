@@ -211,6 +211,22 @@ sdb_client_sockfd(sdb_client_t *client)
 	return client->fd;
 } /* sdb_client_sockfd */
 
+int
+sdb_client_shutdown(sdb_client_t *client, int how)
+{
+	if (! client) {
+		errno = ENOTSOCK;
+		return -1;
+	}
+
+	if (client->fd < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	return shutdown(client->fd, how);
+} /* sdb_client_shutdown */
+
 void
 sdb_client_close(sdb_client_t *client)
 {
