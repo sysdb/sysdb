@@ -114,11 +114,18 @@ sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la @READLINE_LIBS@
 endif
 
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
-		tools/sysdbd/configfile.c tools/sysdbd/configfile.h
+		tools/sysdbd/configfile.c tools/sysdbd/configfile.h \
+		$(libsysdb_la_SOURCES)
 sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
-sysdbd_LDFLAGS = -export-dynamic
-sysdbd_LDADD = libsysdb.la liboconfig/liboconfig.la
-sysdbd_DEPENDENCIES = liboconfig/liboconfig.la
+sysdbd_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
+sysdbd_LDFLAGS = $(AM_LDFLAGS) -export-dynamic -pthread
+sysdbd_LDADD = libsysdb_fe_parser.la liboconfig/liboconfig.la \
+		$(LIBLTDL) -lrt
+sysdbd_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
+
+if BUILD_WITH_LIBDBI
+sysdbd_LDADD += -ldbi
+endif
 
 sdbconfdir = $(sysconfdir)/sysdb
 dist_sdbconf_DATA = tools/sysdbd/sysdbd.conf.sample
@@ -138,40 +145,40 @@ if BUILD_PLUGIN_CNAMEDNS
 pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
 plugins_cname_dns_la_SOURCE = plugins/cname/dns.c
 plugins_cname_dns_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen plugins/cname/dns.la
-libsysdb_la_DEPENDENCIES += plugins/cname/dns.la
+sysdbd_LDADD += -dlopen plugins/cname/dns.la
+sysdbd_DEPENDENCIES += plugins/cname/dns.la
 endif
 
 if BUILD_PLUGIN_COLLECTD
 pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
 backend_collectd_unixsock_la_SOURCES = backend/collectd/unixsock.c
 backend_collectd_unixsock_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen backend/collectd/unixsock.la
-libsysdb_la_DEPENDENCIES += backend/collectd/unixsock.la
+sysdbd_LDADD += -dlopen backend/collectd/unixsock.la
+sysdbd_DEPENDENCIES += backend/collectd/unixsock.la
 endif
 
 if BUILD_PLUGIN_MKLIVESTATUS
 pkgbackendlib_LTLIBRARIES += backend/mk-livestatus.la
 backend_mk_livestatus_la_SOURCES = backend/mk-livestatus.c
 backend_mk_livestatus_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen backend/mk-livestatus.la
-libsysdb_la_DEPENDENCIES += backend/mk-livestatus.la
+sysdbd_LDADD += -dlopen backend/mk-livestatus.la
+sysdbd_DEPENDENCIES += backend/mk-livestatus.la
 endif
 
 if BUILD_PLUGIN_PUPPETSTORECONFIGS
 pkgbackendpuppetlib_LTLIBRARIES += backend/puppet/store-configs.la
 backend_puppet_store_configs_la_SOURCES = backend/puppet/store-configs.c
 backend_puppet_store_configs_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen backend/puppet/store-configs.la
-libsysdb_la_DEPENDENCIES += backend/puppet/store-configs.la
+sysdbd_LDADD += -dlopen backend/puppet/store-configs.la
+sysdbd_DEPENDENCIES += backend/puppet/store-configs.la
 endif
 
 if BUILD_PLUGIN_SYSLOG
 pkglib_LTLIBRARIES += plugins/syslog.la
 plugins_syslog_la_SOURCE = plugins/syslog.c
 plugins_syslog_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-libsysdb_la_LIBADD += -dlopen plugins/syslog.la
-libsysdb_la_DEPENDENCIES += plugins/syslog.la
+sysdbd_LDADD += -dlopen plugins/syslog.la
+sysdbd_DEPENDENCIES += plugins/syslog.la
 endif
 
 include/client/sysdb.h: include/client/sysdb.h.in ../version
