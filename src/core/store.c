@@ -163,46 +163,10 @@ static sdb_type_t sdb_attribute_type = {
  */
 
 static sdb_store_obj_t *
-store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
+lookup_host(const char *name)
 {
-	sdb_llist_iter_t *iter;
-
-	if (! l)
-		return NULL;
-
-	iter = sdb_llist_get_iter(l);
-	if (! iter)
-		return NULL;
-
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_store_obj_t *sobj = SDB_STORE_OBJ(sdb_llist_iter_get_next(iter));
-		assert(sobj);
-
-		if ((STORE_BASE(sobj)->type == type)
-				&& (! strcasecmp(SDB_OBJ(sobj)->name, name))) {
-			sdb_llist_iter_destroy(iter);
-			return sobj;
-		}
-
-		/* don't lookups non-host types from hierarchical hosts */
-		if ((type != SDB_HOST) && (STORE_BASE(sobj)->type == SDB_HOST))
-			continue;
-
-		sobj = store_lookup_in_list(sobj->services, type, name);
-		if (sobj) {
-			sdb_llist_iter_destroy(iter);
-			return sobj;
-		}
-	}
-	sdb_llist_iter_destroy(iter);
-	return NULL;
-} /* store_lookup_in_list */
-
-static sdb_store_obj_t *
-store_lookup(int type, const char *name)
-{
-	return store_lookup_in_list(host_list, type, name);
-} /* store_lookup */
+	return SDB_STORE_OBJ(sdb_llist_search_by_name(host_list, name));
+} /* lookup_host */
 
 /* The obj_lock has to be acquired before calling this function. */
 static int
@@ -223,6 +187,11 @@ store_obj(const char *hostname, int type, const char *name,
 			|| (type == SDB_SERVICE)
 			|| (type == SDB_ATTRIBUTE));
 
+	assert(hostname || (type == SDB_HOST));
+	assert((! hostname)
+			|| (type == SDB_SERVICE)
+			|| (type == SDB_ATTRIBUTE));
+
 	if (! host_list)
 		if (! (host_list = sdb_llist_create()))
 			return -1;
@@ -238,7 +207,7 @@ store_obj(const char *hostname, int type, const char *name,
 	}
 
 	if (hostname) {
-		sdb_store_obj_t *parent;
+		sdb_store_obj_t *host;
 
 		host_cname = sdb_plugin_cname(strdup(hostname));
 		if (! host_cname) {
@@ -248,8 +217,8 @@ store_obj(const char *hostname, int type, const char *name,
 		}
 		hostname = host_cname;
 
-		parent = store_lookup(SDB_HOST, hostname);
-		if (! parent) {
+		host = lookup_host(hostname);
+		if (! host) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
 					"host '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
 					name, hostname);
@@ -259,21 +228,15 @@ store_obj(const char *hostname, int type, const char *name,
 		}
 
 		if (type == SDB_ATTRIBUTE)
-			parent_list = parent->attributes;
+			parent_list = host->attributes;
 		else
-			parent_list = parent->services;
+			parent_list = host->services;
 	}
 
 	if (type == SDB_HOST)
-		/* make sure that each host is unique */
-		old = STORE_BASE(store_lookup_in_list(host_list, type, name));
-	else if (type == SDB_ATTRIBUTE)
-		/* look into attributes of this host */
-		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
+		old = STORE_BASE(sdb_llist_search_by_name(host_list, name));
 	else
-		/* look into services assigned to this host (store_lookup_in_list
-		 * does not look up services from hierarchical hosts) */
-		old = STORE_BASE(store_lookup_in_list(parent_list, type, name));
+		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
 
 	if (old) {
 		if (old->last_update > last_update) {
@@ -433,7 +396,7 @@ sdb_store_has_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = store_lookup(SDB_HOST, name);
+	host = lookup_host(name);
 	return host != NULL;
 } /* sdb_store_has_host */
 
@@ -445,7 +408,7 @@ sdb_store_get_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = store_lookup(SDB_HOST, name);
+	host = lookup_host(name);
 	if (! host)
 		return NULL;
 
