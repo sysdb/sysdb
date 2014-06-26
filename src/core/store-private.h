@@ -174,8 +174,6 @@ typedef struct {
 typedef struct {
 	sdb_store_matcher_t super;
 	char *name;
-	/* XXX: this needs to be more flexible;
-	 *      add support for type-specific operators */
 	string_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
