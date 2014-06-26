@@ -172,7 +172,7 @@ match_name(sdb_store_matcher_t *m, sdb_store_base_t *obj)
 			return match_string(&NAME_M(m)->name, obj->super.name);
 			break;
 		case SDB_SERVICE:
-			iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->children);
+			iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->services);
 			break;
 		case SDB_ATTRIBUTE:
 			iter = sdb_llist_get_iter(SDB_STORE_OBJ(obj)->attributes);

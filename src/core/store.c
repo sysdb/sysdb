@@ -92,8 +92,8 @@ sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 	if (ret)
 		return ret;
 
-	sobj->children = sdb_llist_create();
-	if (! sobj->children)
+	sobj->services = sdb_llist_create();
+	if (! sobj->services)
 		return -1;
 	sobj->attributes = sdb_llist_create();
 	if (! sobj->attributes)
@@ -110,8 +110,8 @@ sdb_store_obj_destroy(sdb_object_t *obj)
 
 	store_base_destroy(obj);
 
-	if (sobj->children)
-		sdb_llist_destroy(sobj->children);
+	if (sobj->services)
+		sdb_llist_destroy(sobj->services);
 	if (sobj->attributes)
 		sdb_llist_destroy(sobj->attributes);
 } /* sdb_store_obj_destroy */
@@ -188,7 +188,7 @@ store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
 		if ((type != SDB_HOST) && (STORE_BASE(sobj)->type == SDB_HOST))
 			continue;
 
-		sobj = store_lookup_in_list(sobj->children, type, name);
+		sobj = store_lookup_in_list(sobj->services, type, name);
 		if (sobj) {
 			sdb_llist_iter_destroy(iter);
 			return sobj;
@@ -269,7 +269,7 @@ store_obj(int parent_type, const char *parent_name,
 		if (type == SDB_ATTRIBUTE)
 			parent_list = parent->attributes;
 		else
-			parent_list = parent->children;
+			parent_list = parent->services;
 	}
 
 	if (type == SDB_HOST)
@@ -543,7 +543,7 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 
 	if (! (flags & SDB_SKIP_SERVICES)) {
 		sdb_strbuf_append(buf, ", \"services\": ");
-		store_obj_tojson(host->children, SDB_SERVICE, buf);
+		store_obj_tojson(host->services, SDB_SERVICE, buf);
 	}
 
 	sdb_strbuf_append(buf, "}");

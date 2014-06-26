@@ -66,7 +66,7 @@ typedef struct {
 typedef struct {
 	sdb_store_base_t super;
 
-	sdb_llist_t *children;
+	sdb_llist_t *services;
 	sdb_llist_t *attributes;
 } sdb_store_obj_t;
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
