@@ -39,7 +39,7 @@
  */
 
 static int
-lookup_tojson(sdb_store_base_t *obj, void *user_data)
+lookup_tojson(sdb_store_obj_t *obj, void *user_data)
 {
 	sdb_strbuf_t *buf = user_data;
 	if (sdb_strbuf_len(buf) > 1)
@@ -76,7 +76,7 @@ int
 sdb_fe_fetch(sdb_conn_t *conn, const char *name)
 {
 	sdb_strbuf_t *buf;
-	sdb_store_base_t *host;
+	sdb_store_obj_t *host;
 
 	host = sdb_store_get_host(name);
 	if (! host) {

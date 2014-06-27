@@ -41,7 +41,7 @@
 extern "C" {
 #endif
 
-struct sdb_store_base {
+struct sdb_store_obj {
 	sdb_object_t super;
 
 	/* object type */
@@ -50,13 +50,13 @@ struct sdb_store_base {
 	/* common meta information */
 	sdb_time_t last_update;
 	sdb_time_t interval; /* moving average */
-	sdb_store_base_t *parent;
+	sdb_store_obj_t *parent;
 };
-#define STORE_BASE(obj) ((sdb_store_base_t *)(obj))
-#define STORE_CONST_BASE(obj) ((const sdb_store_base_t *)(obj))
+#define STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
+#define STORE_CONST_OBJ(obj) ((const sdb_store_obj_t *)(obj))
 
 typedef struct {
-	sdb_store_base_t super;
+	sdb_store_obj_t super;
 
 	sdb_data_t value;
 } sdb_attribute_t;
@@ -64,7 +64,7 @@ typedef struct {
 #define CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
 
 typedef struct {
-	sdb_store_base_t super;
+	sdb_store_obj_t super;
 
 	sdb_llist_t *attributes;
 } sdb_service_t;
@@ -72,7 +72,7 @@ typedef struct {
 #define CONST_SVC(obj) ((const sdb_service_t *)(obj))
 
 typedef struct {
-	sdb_store_base_t super;
+	sdb_store_obj_t super;
 
 	sdb_llist_t *services;
 	sdb_llist_t *attributes;
@@ -89,7 +89,7 @@ typedef struct {
  */
 
 /* compares a store object using the specified conditional */
-typedef int (*cmp_cb)(sdb_store_base_t *, sdb_store_cond_t *);
+typedef int (*cmp_cb)(sdb_store_obj_t *, sdb_store_cond_t *);
 
 struct sdb_store_cond {
 	sdb_object_t super;

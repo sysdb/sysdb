@@ -116,7 +116,7 @@ START_TEST(test_store_get_host)
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		sdb_store_base_t *sobj1, *sobj2;
+		sdb_store_obj_t *sobj1, *sobj2;
 		int ref_cnt;
 
 		fail_unless(sdb_store_has_host(golden_hosts[i]),
@@ -150,7 +150,7 @@ START_TEST(test_store_get_host)
 		sdb_object_deref(SDB_OBJ(sobj2));
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unknown_hosts); ++i) {
-		sdb_store_base_t *sobj;
+		sdb_store_obj_t *sobj;
 
 		fail_unless(!sdb_store_has_host(unknown_hosts[i]),
 				"sdb_store_has_host(%s) = TRUE; expected: FALSE",
@@ -369,7 +369,7 @@ END_TEST
 
 START_TEST(test_interval)
 {
-	sdb_store_base_t *host;
+	sdb_store_obj_t *host;
 
 	/* 10 us interval */
 	sdb_store_host("host", 10);
@@ -424,7 +424,7 @@ START_TEST(test_interval)
 END_TEST
 
 static int
-iter_incr(sdb_store_base_t *obj, void *user_data)
+iter_incr(sdb_store_obj_t *obj, void *user_data)
 {
 	intptr_t *i = user_data;
 
@@ -440,7 +440,7 @@ iter_incr(sdb_store_base_t *obj, void *user_data)
 } /* iter_incr */
 
 static int
-iter_error(sdb_store_base_t *obj, void *user_data)
+iter_error(sdb_store_obj_t *obj, void *user_data)
 {
 	intptr_t *i = user_data;
 

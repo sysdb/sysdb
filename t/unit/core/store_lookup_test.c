@@ -85,7 +85,7 @@ populate(void)
 
 START_TEST(test_store_match_name)
 {
-	sdb_store_base_t *obj;
+	sdb_store_obj_t *obj;
 
 	struct {
 		int type;
@@ -170,7 +170,7 @@ END_TEST
 
 START_TEST(test_store_match_attr)
 {
-	sdb_store_base_t *obj;
+	sdb_store_obj_t *obj;
 
 	struct {
 		const char *attr_name;
@@ -247,7 +247,7 @@ END_TEST
 
 START_TEST(test_store_cond)
 {
-	sdb_store_base_t *obj;
+	sdb_store_obj_t *obj;
 
 	struct {
 		const char *attr;
@@ -327,7 +327,7 @@ END_TEST
 
 START_TEST(test_store_match_op)
 {
-	sdb_store_base_t *obj;
+	sdb_store_obj_t *obj;
 
 	sdb_store_matcher_t *always = sdb_store_name_matcher(SDB_HOST, "a", 0);
 	sdb_store_matcher_t *never = sdb_store_name_matcher(SDB_HOST, "z", 0);
@@ -491,7 +491,7 @@ START_TEST(test_parse_cmp)
 END_TEST
 
 static int
-lookup_cb(sdb_store_base_t *obj, void *user_data)
+lookup_cb(sdb_store_obj_t *obj, void *user_data)
 {
 	int *i = user_data;
 

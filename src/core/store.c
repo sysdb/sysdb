@@ -61,9 +61,9 @@ static sdb_type_t sdb_service_type;
 static sdb_type_t sdb_attribute_type;
 
 static int
-store_base_init(sdb_object_t *obj, va_list ap)
+store_obj_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_store_base_t *sobj = STORE_BASE(obj);
+	sdb_store_obj_t *sobj = STORE_OBJ(obj);
 
 	sobj->type = va_arg(ap, int);
 
@@ -71,16 +71,16 @@ store_base_init(sdb_object_t *obj, va_list ap)
 	sobj->interval = 0;
 	sobj->parent = NULL;
 	return 0;
-} /* store_base_init */
+} /* store_obj_init */
 
 static void
-store_base_destroy(sdb_object_t *obj)
+store_obj_destroy(sdb_object_t *obj)
 {
-	const sdb_store_base_t *sobj = STORE_CONST_BASE(obj);
+	const sdb_store_obj_t *sobj = STORE_CONST_OBJ(obj);
 
 	if (sobj->parent)
 		sdb_object_deref(SDB_OBJ(sobj->parent));
-} /* store_base_destroy */
+} /* store_obj_destroy */
 
 static int
 sdb_host_init(sdb_object_t *obj, va_list ap)
@@ -89,7 +89,7 @@ sdb_host_init(sdb_object_t *obj, va_list ap)
 	int ret;
 
 	/* this will consume the first argument (type) of ap */
-	ret = store_base_init(obj, ap);
+	ret = store_obj_init(obj, ap);
 	if (ret)
 		return ret;
 
@@ -108,7 +108,7 @@ sdb_host_destroy(sdb_object_t *obj)
 	sdb_host_t *sobj = HOST(obj);
 	assert(obj);
 
-	store_base_destroy(obj);
+	store_obj_destroy(obj);
 
 	if (sobj->services)
 		sdb_llist_destroy(sobj->services);
@@ -123,7 +123,7 @@ sdb_service_init(sdb_object_t *obj, va_list ap)
 	int ret;
 
 	/* this will consume the first argument (type) of ap */
-	ret = store_base_init(obj, ap);
+	ret = store_obj_init(obj, ap);
 	if (ret)
 		return ret;
 
@@ -139,7 +139,7 @@ sdb_service_destroy(sdb_object_t *obj)
 	sdb_service_t *sobj = SVC(obj);
 	assert(obj);
 
-	store_base_destroy(obj);
+	store_obj_destroy(obj);
 
 	if (sobj->attributes)
 		sdb_llist_destroy(sobj->attributes);
@@ -153,7 +153,7 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 
 	/* this will consume the first two arguments
 	 * (type and last_update) of ap */
-	ret = store_base_init(obj, ap);
+	ret = store_obj_init(obj, ap);
 	if (ret)
 		return ret;
 	value = va_arg(ap, const sdb_data_t *);
@@ -169,7 +169,7 @@ sdb_attr_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 
-	store_base_destroy(obj);
+	store_obj_destroy(obj);
 	sdb_data_free_datum(&ATTR(obj)->value);
 } /* sdb_attr_destroy */
 
@@ -204,12 +204,12 @@ lookup_host(const char *name)
 /* The obj_lock has to be acquired before calling this function. */
 static int
 store_obj(const char *hostname, int type, const char *name,
-		sdb_time_t last_update, sdb_store_base_t **updated_obj)
+		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
 {
 	char *host_cname = NULL, *cname = NULL;
 
 	sdb_llist_t *parent_list;
-	sdb_store_base_t *old;
+	sdb_store_obj_t *old;
 	int status = 0;
 
 	if (last_update <= 0)
@@ -267,9 +267,9 @@ store_obj(const char *hostname, int type, const char *name,
 	}
 
 	if (type == SDB_HOST)
-		old = STORE_BASE(sdb_llist_search_by_name(host_list, name));
+		old = STORE_OBJ(sdb_llist_search_by_name(host_list, name));
 	else
-		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
+		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 
 	if (old) {
 		if (old->last_update > last_update) {
@@ -297,17 +297,17 @@ store_obj(const char *hostname, int type, const char *name,
 			*updated_obj = old;
 	}
 	else {
-		sdb_store_base_t *new;
+		sdb_store_obj_t *new;
 
 		if (type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
-			new = STORE_BASE(sdb_object_create(name, sdb_attribute_type,
+			new = STORE_OBJ(sdb_object_create(name, sdb_attribute_type,
 						type, last_update, NULL));
 		}
 		else {
 			sdb_type_t t;
 			t = type == SDB_HOST ? sdb_host_type : sdb_service_type;
-			new = STORE_BASE(sdb_object_create(name, t, type, last_update));
+			new = STORE_OBJ(sdb_object_create(name, t, type, last_update));
 		}
 
 		if (! new) {
@@ -363,8 +363,9 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 
 	/* has_next returns false if the iterator is NULL */
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_store_base_t *sobj = STORE_BASE(sdb_llist_iter_get_next(iter));
+		sdb_store_obj_t *sobj = STORE_OBJ(sdb_llist_iter_get_next(iter));
 		assert(sobj);
+		assert(sobj->type == type);
 
 		if (! sdb_strftime(time_str, sizeof(time_str),
 					"%F %T %z", sobj->last_update))
@@ -377,7 +378,7 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 		interval_str[sizeof(interval_str) - 1] = '\0';
 
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
-		if (type == SDB_ATTRIBUTE) {
+		if (sobj->type == SDB_ATTRIBUTE) {
 			char tmp[sdb_data_strlen(&ATTR(sobj)->value) + 1];
 			sdb_data_format(&ATTR(sobj)->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED);
@@ -436,7 +437,7 @@ sdb_store_has_host(const char *name)
 	return host != NULL;
 } /* sdb_store_has_host */
 
-sdb_store_base_t *
+sdb_store_obj_t *
 sdb_store_get_host(const char *name)
 {
 	sdb_host_t *host;
@@ -449,7 +450,7 @@ sdb_store_get_host(const char *name)
 		return NULL;
 
 	sdb_object_ref(SDB_OBJ(host));
-	return STORE_BASE(host);
+	return STORE_OBJ(host);
 } /* sdb_store_get_host */
 
 int
@@ -459,7 +460,7 @@ sdb_store_attribute(const char *hostname,
 {
 	int status;
 
-	sdb_store_base_t *updated_attr = NULL;
+	sdb_store_obj_t *updated_attr = NULL;
 
 	if ((! hostname) || (! key))
 		return -1;
@@ -500,7 +501,7 @@ sdb_store_service(const char *hostname, const char *name,
 } /* sdb_store_service */
 
 int
-sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
+sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
 {
 	sdb_host_t *host;
 	char time_str[64];
@@ -558,7 +559,7 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 	sdb_strbuf_append(buf, "{\"hosts\":[");
 
 	while (sdb_llist_iter_has_next(host_iter)) {
-		sdb_store_base_t *host = STORE_BASE(sdb_llist_iter_get_next(host_iter));
+		sdb_store_obj_t *host = STORE_OBJ(sdb_llist_iter_get_next(host_iter));
 		assert(host);
 
 		if (sdb_store_host_tojson(host, buf, flags))
@@ -590,7 +591,7 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 
 	/* has_next returns false if the iterator is NULL */
 	while (sdb_llist_iter_has_next(host_iter)) {
-		sdb_store_base_t *host = STORE_BASE(sdb_llist_iter_get_next(host_iter));
+		sdb_store_obj_t *host = STORE_OBJ(sdb_llist_iter_get_next(host_iter));
 		assert(host);
 
 		if (cb(host, user_data)) {

@@ -56,12 +56,12 @@ enum {
 
 
 /*
- * sdb_store_base_t represents the super-class of any object stored in the
+ * sdb_store_obj_t represents the super-class of any object stored in the
  * database. It inherits from sdb_object_t and may safely be cast to a generic
  * object to access its name.
  */
-struct sdb_store_base;
-typedef struct sdb_store_base sdb_store_base_t;
+struct sdb_store_obj;
+typedef struct sdb_store_obj sdb_store_obj_t;
 
 /*
  * sdb_store_clear:
@@ -98,7 +98,7 @@ sdb_store_host(const char *name, sdb_time_t last_update);
 _Bool
 sdb_store_has_host(const char *name);
 
-sdb_store_base_t *
+sdb_store_obj_t *
 sdb_store_get_host(const char *name);
 
 /*
@@ -253,7 +253,7 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m);
  *  - 0 else
  */
 int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_base_t *obj);
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj);
 
 /*
  * sdb_store_matcher_tostring:
@@ -268,7 +268,7 @@ sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen);
  * Lookup callback. It is called for each matching object when looking up data
  * in the store. The lookup aborts if the callback returns non-zero.
  */
-typedef int (*sdb_store_lookup_cb)(sdb_store_base_t *obj, void *user_data);
+typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj, void *user_data);
 
 /*
  * sdb_store_lookup:
@@ -319,13 +319,13 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags);
  *  - a negative value on error
  */
 int
-sdb_store_host_tojson(sdb_store_base_t *host, sdb_strbuf_t *buf, int flags);
+sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf, int flags);
 
 /*
  * sdb_store_iter_cb:
  * Store iterator callback. Iteration stops if the callback returns non-zero.
  */
-typedef int (*sdb_store_iter_cb)(sdb_store_base_t *obj, void *user_data);
+typedef int (*sdb_store_iter_cb)(sdb_store_obj_t *obj, void *user_data);
 
 /*
  * sdb_store_iterate:
