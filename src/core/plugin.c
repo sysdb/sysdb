@@ -1113,11 +1113,10 @@ sdb_plugin_log(int prio, const char *msg)
 	sdb_llist_iter_t *iter;
 	int ret = -1;
 
+	_Bool logged = 0;
+
 	if (! msg)
 		return 0;
-
-	if (! sdb_llist_len(log_list))
-		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
 
 	iter = sdb_llist_get_iter(log_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1131,8 +1130,15 @@ sdb_plugin_log(int prio, const char *msg)
 		tmp = callback(prio, msg, SDB_PLUGIN_CB(obj)->cb_user_data);
 		if (tmp > ret)
 			ret = tmp;
+
+		if (SDB_PLUGIN_CB(obj)->cb_ctx)
+			logged = 1;
+		/* else: this is an internally registered callback */
 	}
 	sdb_llist_iter_destroy(iter);
+
+	if (! logged)
+		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
 	return ret;
 } /* sdb_plugin_log */
 

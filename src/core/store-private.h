@@ -66,7 +66,7 @@ typedef struct {
 typedef struct {
 	sdb_store_base_t super;
 
-	sdb_llist_t *children;
+	sdb_llist_t *services;
 	sdb_llist_t *attributes;
 } sdb_store_obj_t;
 #define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
@@ -174,8 +174,6 @@ typedef struct {
 typedef struct {
 	sdb_store_matcher_t super;
 	char *name;
-	/* XXX: this needs to be more flexible;
-	 *      add support for type-specific operators */
 	string_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))

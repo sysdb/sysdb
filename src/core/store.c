@@ -49,7 +49,7 @@
  * private variables
  */
 
-static sdb_llist_t *obj_list = NULL;
+static sdb_llist_t *host_list = NULL;
 static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
@@ -92,8 +92,8 @@ sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 	if (ret)
 		return ret;
 
-	sobj->children = sdb_llist_create();
-	if (! sobj->children)
+	sobj->services = sdb_llist_create();
+	if (! sobj->services)
 		return -1;
 	sobj->attributes = sdb_llist_create();
 	if (! sobj->attributes)
@@ -110,8 +110,8 @@ sdb_store_obj_destroy(sdb_object_t *obj)
 
 	store_base_destroy(obj);
 
-	if (sobj->children)
-		sdb_llist_destroy(sobj->children);
+	if (sobj->services)
+		sdb_llist_destroy(sobj->services);
 	if (sobj->attributes)
 		sdb_llist_destroy(sobj->attributes);
 } /* sdb_store_obj_destroy */
@@ -163,54 +163,17 @@ static sdb_type_t sdb_attribute_type = {
  */
 
 static sdb_store_obj_t *
-store_lookup_in_list(sdb_llist_t *l, int type, const char *name)
+lookup_host(const char *name)
 {
-	sdb_llist_iter_t *iter;
-
-	if (! l)
-		return NULL;
-
-	iter = sdb_llist_get_iter(l);
-	if (! iter)
-		return NULL;
-
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_store_obj_t *sobj = SDB_STORE_OBJ(sdb_llist_iter_get_next(iter));
-		assert(sobj);
-
-		if ((STORE_BASE(sobj)->type == type)
-				&& (! strcasecmp(SDB_OBJ(sobj)->name, name))) {
-			sdb_llist_iter_destroy(iter);
-			return sobj;
-		}
-
-		/* don't lookups non-host types from hierarchical hosts */
-		if ((type != SDB_HOST) && (STORE_BASE(sobj)->type == SDB_HOST))
-			continue;
-
-		sobj = store_lookup_in_list(sobj->children, type, name);
-		if (sobj) {
-			sdb_llist_iter_destroy(iter);
-			return sobj;
-		}
-	}
-	sdb_llist_iter_destroy(iter);
-	return NULL;
-} /* store_lookup_in_list */
-
-static sdb_store_obj_t *
-store_lookup(int type, const char *name)
-{
-	return store_lookup_in_list(obj_list, type, name);
-} /* store_lookup */
+	return SDB_STORE_OBJ(sdb_llist_search_by_name(host_list, name));
+} /* lookup_host */
 
 /* The obj_lock has to be acquired before calling this function. */
 static int
-store_obj(int parent_type, const char *parent_name,
-		int type, const char *name, sdb_time_t last_update,
-		sdb_store_base_t **updated_obj)
+store_obj(const char *hostname, int type, const char *name,
+		sdb_time_t last_update, sdb_store_base_t **updated_obj)
 {
-	char *parent_cname = NULL, *cname = NULL;
+	char *host_cname = NULL, *cname = NULL;
 
 	sdb_llist_t *parent_list;
 	sdb_store_base_t *old;
@@ -219,22 +182,21 @@ store_obj(int parent_type, const char *parent_name,
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
-	assert((parent_type == 0)
-			|| (parent_type == SDB_HOST)
-			|| (parent_type == SDB_SERVICE));
 	assert((type == 0)
 			|| (type == SDB_HOST)
 			|| (type == SDB_SERVICE)
 			|| (type == SDB_ATTRIBUTE));
 
-	if (parent_type == SDB_HOST) {
-		parent_cname = sdb_plugin_cname(strdup(parent_name));
-		if (! parent_cname) {
-			sdb_log(SDB_LOG_ERR, "store: strdup failed");
+	assert(hostname || (type == SDB_HOST));
+	assert((! hostname)
+			|| (type == SDB_SERVICE)
+			|| (type == SDB_ATTRIBUTE));
+
+	if (! host_list)
+		if (! (host_list = sdb_llist_create()))
 			return -1;
-		}
-		parent_name = parent_cname;
-	}
+	parent_list = host_list;
+
 	if (type == SDB_HOST) {
 		cname = sdb_plugin_cname(strdup(name));
 		if (! cname) {
@@ -244,44 +206,37 @@ store_obj(int parent_type, const char *parent_name,
 		name = cname;
 	}
 
-	if (! obj_list) {
-		if (! (obj_list = sdb_llist_create())) {
-			free(parent_cname);
+	if (hostname) {
+		sdb_store_obj_t *host;
+
+		host_cname = sdb_plugin_cname(strdup(hostname));
+		if (! host_cname) {
+			sdb_log(SDB_LOG_ERR, "store: strdup failed");
 			free(cname);
 			return -1;
 		}
-	}
-	parent_list = obj_list;
+		hostname = host_cname;
 
-	if (parent_type && parent_name) {
-		sdb_store_obj_t *parent;
-
-		parent = store_lookup(parent_type, parent_name);
-		if (! parent) {
+		host = lookup_host(hostname);
+		if (! host) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
-					"parent %s '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
-					name, SDB_STORE_TYPE_TO_NAME(parent_type), parent_name);
-			free(parent_cname);
+					"host '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
+					name, hostname);
+			free(host_cname);
 			free(cname);
 			return -1;
 		}
 
 		if (type == SDB_ATTRIBUTE)
-			parent_list = parent->attributes;
+			parent_list = host->attributes;
 		else
-			parent_list = parent->children;
+			parent_list = host->services;
 	}
 
 	if (type == SDB_HOST)
-		/* make sure that each host is unique */
-		old = STORE_BASE(store_lookup_in_list(obj_list, type, name));
-	else if (type == SDB_ATTRIBUTE)
-		/* look into attributes of this host */
-		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
+		old = STORE_BASE(sdb_llist_search_by_name(host_list, name));
 	else
-		/* look into services assigned to this host (store_lookup_in_list
-		 * does not look up services from hierarchical hosts) */
-		old = STORE_BASE(store_lookup_in_list(parent_list, type, name));
+		old = STORE_BASE(sdb_llist_search_by_name(parent_list, name));
 
 	if (old) {
 		if (old->last_update > last_update) {
@@ -324,13 +279,11 @@ store_obj(int parent_type, const char *parent_name,
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
 					SDB_STORE_TYPE_TO_NAME(type), name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			free(parent_cname);
+			free(host_cname);
 			free(cname);
 			return -1;
 		}
 
-		/* TODO: insert type-aware; the current version works as long as we
-		 * don't support to store hierarchical data */
 		status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
 				sdb_object_cmp_by_name);
 
@@ -340,7 +293,7 @@ store_obj(int parent_type, const char *parent_name,
 		if (updated_obj)
 			*updated_obj = new;
 	}
-	free(parent_cname);
+	free(host_cname);
 	free(cname);
 	return status;
 } /* store_obj */
@@ -415,8 +368,8 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 void
 sdb_store_clear(void)
 {
-	sdb_llist_destroy(obj_list);
-	obj_list = NULL;
+	sdb_llist_destroy(host_list);
+	host_list = NULL;
 } /* sdb_store_clear */
 
 int
@@ -428,7 +381,7 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 
 	pthread_rwlock_wrlock(&obj_lock);
-	status = store_obj(/* parent = */ 0, NULL,
+	status = store_obj(/* hostname = */ NULL,
 			/* stored object = */ SDB_HOST, name, last_update,
 			/* updated_obj = */ NULL);
 	pthread_rwlock_unlock(&obj_lock);
@@ -443,7 +396,7 @@ sdb_store_has_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = store_lookup(SDB_HOST, name);
+	host = lookup_host(name);
 	return host != NULL;
 } /* sdb_store_has_host */
 
@@ -455,7 +408,7 @@ sdb_store_get_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = store_lookup(SDB_HOST, name);
+	host = lookup_host(name);
 	if (! host)
 		return NULL;
 
@@ -476,7 +429,7 @@ sdb_store_attribute(const char *hostname,
 		return -1;
 
 	pthread_rwlock_wrlock(&obj_lock);
-	status = store_obj(/* parent = */ SDB_HOST, hostname,
+	status = store_obj(hostname,
 			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
 
@@ -503,7 +456,7 @@ sdb_store_service(const char *hostname, const char *name,
 		return -1;
 
 	pthread_rwlock_wrlock(&obj_lock);
-	status = store_obj(/* parent = */ SDB_HOST, hostname,
+	status = store_obj(hostname,
 			/* stored object = */ SDB_SERVICE, name, last_update,
 			/* updated obj = */ NULL);
 	pthread_rwlock_unlock(&obj_lock);
@@ -543,7 +496,7 @@ sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 
 	if (! (flags & SDB_SKIP_SERVICES)) {
 		sdb_strbuf_append(buf, ", \"services\": ");
-		store_obj_tojson(host->children, SDB_SERVICE, buf);
+		store_obj_tojson(host->services, SDB_SERVICE, buf);
 	}
 
 	sdb_strbuf_append(buf, "}");
@@ -560,7 +513,7 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 
 	pthread_rwlock_rdlock(&obj_lock);
 
-	host_iter = sdb_llist_get_iter(obj_list);
+	host_iter = sdb_llist_get_iter(host_list);
 	if (! host_iter) {
 		pthread_rwlock_unlock(&obj_lock);
 		return -1;
@@ -595,7 +548,7 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 
 	pthread_rwlock_rdlock(&obj_lock);
 
-	host_iter = sdb_llist_get_iter(obj_list);
+	host_iter = sdb_llist_get_iter(host_list);
 	if (! host_iter)
 		status = -1;
 
