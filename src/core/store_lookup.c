@@ -73,11 +73,11 @@ lookup_iter(sdb_store_obj_t *obj, void *user_data)
 	return 0;
 } /* lookup_iter */
 
-static sdb_store_obj_t *
+static sdb_attribute_t *
 attr_get(sdb_host_t *host, const char *name)
 {
 	sdb_llist_iter_t *iter = NULL;
-	sdb_store_obj_t *attr = NULL;
+	sdb_attribute_t *attr = NULL;
 
 	iter = sdb_llist_get_iter(host->attributes);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -85,7 +85,9 @@ attr_get(sdb_host_t *host, const char *name)
 
 		if (strcasecmp(name, SDB_OBJ(a)->name))
 			continue;
-		attr = STORE_OBJ(a);
+
+		assert(STORE_OBJ(a)->type == SDB_ATTRIBUTE);
+		attr = a;
 		break;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -97,11 +99,11 @@ attr_get(sdb_host_t *host, const char *name)
  */
 
 static int
-attr_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond)
+attr_cmp(sdb_host_t *host, sdb_store_cond_t *cond)
 {
 	sdb_attribute_t *attr;
 
-	attr = ATTR(attr_get(HOST(obj), ATTR_C(cond)->name));
+	attr = attr_get(host, ATTR_C(cond)->name);
 	if (! attr)
 		return INT_MAX;
 	if (attr->value.type != ATTR_C(cond)->value.type)
@@ -131,34 +133,34 @@ match_string(string_matcher_t *m, const char *name)
 } /* match_string */
 
 static int
-match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_logical(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 
 	assert((m->type == MATCHER_AND) || (m->type == MATCHER_OR));
 	assert(OP_M(m)->left && OP_M(m)->right);
 
-	status = sdb_store_matcher_matches(OP_M(m)->left, obj);
+	status = sdb_store_matcher_matches(OP_M(m)->left, STORE_OBJ(host));
 	/* lazy evaluation */
 	if ((! status) && (m->type == MATCHER_AND))
 		return status;
 	else if (status && (m->type == MATCHER_OR))
 		return status;
 
-	return sdb_store_matcher_matches(OP_M(m)->right, obj);
+	return sdb_store_matcher_matches(OP_M(m)->right, STORE_OBJ(host));
 } /* match_logical */
 
 static int
-match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_unary(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	assert(m->type == MATCHER_NOT);
 	assert(UOP_M(m)->op);
 
-	return !sdb_store_matcher_matches(UOP_M(m)->op, obj);
+	return !sdb_store_matcher_matches(UOP_M(m)->op, STORE_OBJ(host));
 } /* match_unary */
 
 static int
-match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_name(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	sdb_llist_iter_t *iter = NULL;
 	int status = 0;
@@ -167,19 +169,19 @@ match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
 
 	switch (NAME_M(m)->obj_type) {
 		case SDB_HOST:
-			return match_string(&NAME_M(m)->name, obj->super.name);
+			return match_string(&NAME_M(m)->name, SDB_OBJ(host)->name);
 			break;
 		case SDB_SERVICE:
-			iter = sdb_llist_get_iter(HOST(obj)->services);
+			iter = sdb_llist_get_iter(host->services);
 			break;
 		case SDB_ATTRIBUTE:
-			iter = sdb_llist_get_iter(HOST(obj)->attributes);
+			iter = sdb_llist_get_iter(host->attributes);
 			break;
 	}
 
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_store_obj_t *child = STORE_OBJ(sdb_llist_iter_get_next(iter));
-		if (match_string(&NAME_M(m)->name, child->super.name)) {
+		sdb_object_t *child = sdb_llist_iter_get_next(iter);
+		if (match_string(&NAME_M(m)->name, child->name)) {
 			status = 1;
 			break;
 		}
@@ -189,14 +191,14 @@ match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
 } /* match_name */
 
 static int
-match_attr(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_attr(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	sdb_attribute_t *attr;
 
 	assert(m->type == MATCHER_ATTR);
 	assert(ATTR_M(m)->name);
 
-	attr = ATTR(attr_get(HOST(obj), ATTR_M(m)->name));
+	attr = attr_get(host, ATTR_M(m)->name);
 	if (attr) {
 		char buf[sdb_data_strlen(&attr->value) + 1];
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
@@ -208,51 +210,51 @@ match_attr(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
 } /* match_attr */
 
 static int
-match_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_lt(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 	assert(m->type == MATCHER_LT);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
 	return (status != INT_MAX) && (status < 0);
 } /* match_lt */
 
 static int
-match_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_le(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 	assert(m->type == MATCHER_LE);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
 	return (status != INT_MAX) && (status <= 0);
 } /* match_le */
 
 static int
-match_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_eq(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 	assert(m->type == MATCHER_EQ);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
 	return (status != INT_MAX) && (! status);
 } /* match_eq */
 
 static int
-match_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_ge(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 	assert(m->type == MATCHER_GE);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
 	return (status != INT_MAX) && (status >= 0);
 } /* match_ge */
 
 static int
-match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+match_gt(sdb_store_matcher_t *m, sdb_host_t *host)
 {
 	int status;
 	assert(m->type == MATCHER_GT);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
 	return (status != INT_MAX) && (status > 0);
 } /* match_gt */
 
-typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_obj_t *);
+typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_host_t *);
 
 /* this array needs to be indexable by the matcher types;
  * -> update the enum in store-private.h when updating this */
@@ -810,7 +812,7 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
 	if ((m->type < 0) || ((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers)))
 		return 0;
 
-	return matchers[m->type](m, obj);
+	return matchers[m->type](m, HOST(obj));
 } /* sdb_store_matcher_matches */
 
 char *

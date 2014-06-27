@@ -184,8 +184,6 @@ START_TEST(test_store_match_attr)
 		{ "1",  NULL,   1, 0 },
 		{ "k3", NULL,   0, 0 },
 		{ "k3", NULL,   1, 0 },
-		{ "k3", NULL,   0, 0 },
-		{ "k3", NULL,   1, 0 },
 		{ "k1", "v1",   0, 1 },
 		{ "k1", "v1",   1, 1 },
 		{ "k1", "^v1$", 1, 1 },
