@@ -203,7 +203,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_VERSION, SDB_VERSION);
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
-	sdb_plugin_register_config("test::integration::mock", mock_config);
+	sdb_plugin_register_config(mock_config);
 	return 0;
 } /* sdb_module_init */
 

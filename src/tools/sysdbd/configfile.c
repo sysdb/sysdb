@@ -198,7 +198,7 @@ daemon_load_backend(oconfig_item_t *ci)
 {
 	sdb_plugin_ctx_t ctx = SDB_PLUGIN_CTX_INIT;
 
-	char  plugin_name[1024];
+	char plugin_name[1024];
 	char *name;
 
 	int i;
@@ -235,6 +235,7 @@ daemon_load_backend(oconfig_item_t *ci)
 static int
 daemon_configure_plugin(oconfig_item_t *ci)
 {
+	char plugin_name[1024];
 	char *name;
 
 	assert(ci);
@@ -247,7 +248,11 @@ daemon_configure_plugin(oconfig_item_t *ci)
 		return ERR_INVALID_ARG;
 	}
 
-	return sdb_plugin_configure(name, ci);
+	if (!strcasecmp(ci->key, "Backend"))
+		snprintf(plugin_name, sizeof(plugin_name), "Backend::%s", name);
+	else
+		strncpy(plugin_name, name, sizeof(plugin_name));
+	return sdb_plugin_configure(plugin_name, ci);
 } /* daemon_configure_backend */
 
 static token_parser_t token_parser_list[] = {

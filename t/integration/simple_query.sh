@@ -39,7 +39,7 @@ PluginDir "$PLUGIN_DIR"
 Interval 2
 
 LoadBackend mock_plugin
-<Backend "test::integration::mock">
+<Backend "mock_plugin">
 </Backend>
 EOF
 

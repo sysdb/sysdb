@@ -689,9 +689,16 @@ sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...)
 } /* sdb_plugin_set_info */
 
 int
-sdb_plugin_register_config(const char *name, sdb_plugin_config_cb callback)
+sdb_plugin_register_config(sdb_plugin_config_cb callback)
 {
-	return plugin_add_callback(&config_list, "init", name,
+	ctx_t *ctx = ctx_get();
+
+	if (! ctx) {
+		sdb_log(SDB_LOG_ERR, "core: Invalid attempt to register a "
+				"config callback from outside a plugin");
+		return -1;
+	}
+	return plugin_add_callback(&config_list, "init", ctx->info.plugin_name,
 			(void *)callback, NULL);
 } /* sdb_plugin_register_config */
 
@@ -829,7 +836,9 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	if (! plugin) {
 		ctx_t *ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 		if (! ctx)
-			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' not loaded.", name);
+			sdb_log(SDB_LOG_ERR, "core: Cannot configure unknown "
+					"plugin '%s'. Missing 'LoadPlugin \"%s\"'?",
+					name, name);
 		else
 			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' did not register "
 					"a config callback.", name);

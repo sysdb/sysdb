@@ -116,7 +116,7 @@ typedef int (*sdb_plugin_log_cb)(int prio, const char *msg,
  *  - a negative value else
  */
 int
-sdb_plugin_register_config(const char *name, sdb_plugin_config_cb callback);
+sdb_plugin_register_config(sdb_plugin_config_cb callback);
 
 /*
  * sdb_plugin_register_init:
@@ -225,7 +225,7 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
  * every plugin care about it.
  *
  * If non-NULL, sdb_plugin_set_ctx stores the previous context in the location
- * pointed to be 'old'.
+ * pointed to by 'old'.
  */
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void);
@@ -234,8 +234,8 @@ sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old);
 
 /*
  * sdb_plugin_configure:
- * Configure the plugin called 'name' (according to the registered config
- * callback) using the config tree 'ci'.
+ * Configure the plugin called 'name' using the config tree 'ci'. The plugin
+ * name is the same as the one used when loading the plugin.
  *
  * Returns:
  *  - 0 on success
