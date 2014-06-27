@@ -50,7 +50,7 @@
  */
 
 static sdb_llist_t *host_list = NULL;
-static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
  * private types
@@ -201,7 +201,7 @@ lookup_host(const char *name)
 	return HOST(sdb_llist_search_by_name(host_list, name));
 } /* lookup_host */
 
-/* The obj_lock has to be acquired before calling this function. */
+/* The host_lock has to be acquired before calling this function. */
 static int
 store_obj(const char *hostname, int type, const char *name,
 		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
@@ -417,11 +417,11 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	if (! name)
 		return -1;
 
-	pthread_rwlock_wrlock(&obj_lock);
+	pthread_rwlock_wrlock(&host_lock);
 	status = store_obj(/* hostname = */ NULL,
 			/* stored object = */ SDB_HOST, name, last_update,
 			/* updated_obj = */ NULL);
-	pthread_rwlock_unlock(&obj_lock);
+	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_host */
 
@@ -465,7 +465,7 @@ sdb_store_attribute(const char *hostname,
 	if ((! hostname) || (! key))
 		return -1;
 
-	pthread_rwlock_wrlock(&obj_lock);
+	pthread_rwlock_wrlock(&host_lock);
 	status = store_obj(hostname,
 			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
@@ -479,7 +479,7 @@ sdb_store_attribute(const char *hostname,
 		}
 	}
 
-	pthread_rwlock_unlock(&obj_lock);
+	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_attribute */
 
@@ -492,11 +492,11 @@ sdb_store_service(const char *hostname, const char *name,
 	if ((! hostname) || (! name))
 		return -1;
 
-	pthread_rwlock_wrlock(&obj_lock);
+	pthread_rwlock_wrlock(&host_lock);
 	status = store_obj(hostname,
 			/* stored object = */ SDB_SERVICE, name, last_update,
 			/* updated obj = */ NULL);
-	pthread_rwlock_unlock(&obj_lock);
+	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service */
 
@@ -548,11 +548,11 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 	if (! buf)
 		return -1;
 
-	pthread_rwlock_rdlock(&obj_lock);
+	pthread_rwlock_rdlock(&host_lock);
 
 	host_iter = sdb_llist_get_iter(host_list);
 	if (! host_iter) {
-		pthread_rwlock_unlock(&obj_lock);
+		pthread_rwlock_unlock(&host_lock);
 		return -1;
 	}
 
@@ -572,7 +572,7 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 	sdb_strbuf_append(buf, "]}");
 
 	sdb_llist_iter_destroy(host_iter);
-	pthread_rwlock_unlock(&obj_lock);
+	pthread_rwlock_unlock(&host_lock);
 	return 0;
 } /* sdb_store_tojson */
 
@@ -583,7 +583,7 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 	sdb_llist_iter_t *host_iter;
 	int status = 0;
 
-	pthread_rwlock_rdlock(&obj_lock);
+	pthread_rwlock_rdlock(&host_lock);
 
 	host_iter = sdb_llist_get_iter(host_list);
 	if (! host_iter)
@@ -601,7 +601,7 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 	}
 
 	sdb_llist_iter_destroy(host_iter);
-	pthread_rwlock_unlock(&obj_lock);
+	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_iterate */
 
