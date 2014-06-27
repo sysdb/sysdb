@@ -60,20 +60,27 @@ typedef struct {
 
 	sdb_data_t value;
 } sdb_attribute_t;
-#define SDB_ATTR(obj) ((sdb_attribute_t *)(obj))
-#define SDB_CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
+#define ATTR(obj) ((sdb_attribute_t *)(obj))
+#define CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
+
+typedef struct {
+	sdb_store_base_t super;
+
+	sdb_llist_t *attributes;
+} sdb_service_t;
+#define SVC(obj) ((sdb_service_t *)(obj))
+#define CONST_SVC(obj) ((const sdb_service_t *)(obj))
 
 typedef struct {
 	sdb_store_base_t super;
 
 	sdb_llist_t *services;
 	sdb_llist_t *attributes;
-} sdb_store_obj_t;
-#define SDB_STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
-#define SDB_CONST_STORE_OBJ(obj) ((const sdb_store_obj_t *)(obj))
+} sdb_host_t;
+#define HOST(obj) ((sdb_host_t *)(obj))
+#define CONST_HOST(obj) ((const sdb_host_t *)(obj))
 
-/* shortcuts for accessing the sdb_store_obj_t attributes
- * of inheriting objects */
+/* shortcuts for accessing service/host attributes */
 #define _last_update super.last_update
 #define _interval super.interval
 

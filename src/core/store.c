@@ -56,7 +56,8 @@ static pthread_rwlock_t obj_lock = PTHREAD_RWLOCK_INITIALIZER;
  * private types
  */
 
-static sdb_type_t sdb_store_obj_type;
+static sdb_type_t sdb_host_type;
+static sdb_type_t sdb_service_type;
 static sdb_type_t sdb_attribute_type;
 
 static int
@@ -82,9 +83,9 @@ store_base_destroy(sdb_object_t *obj)
 } /* store_base_destroy */
 
 static int
-sdb_store_obj_init(sdb_object_t *obj, va_list ap)
+sdb_host_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
+	sdb_host_t *sobj = HOST(obj);
 	int ret;
 
 	/* this will consume the first argument (type) of ap */
@@ -99,13 +100,12 @@ sdb_store_obj_init(sdb_object_t *obj, va_list ap)
 	if (! sobj->attributes)
 		return -1;
 	return 0;
-} /* sdb_store_obj_init */
+} /* sdb_host_init */
 
 static void
-sdb_store_obj_destroy(sdb_object_t *obj)
+sdb_host_destroy(sdb_object_t *obj)
 {
-	sdb_store_obj_t *sobj = SDB_STORE_OBJ(obj);
-
+	sdb_host_t *sobj = HOST(obj);
 	assert(obj);
 
 	store_base_destroy(obj);
@@ -114,7 +114,36 @@ sdb_store_obj_destroy(sdb_object_t *obj)
 		sdb_llist_destroy(sobj->services);
 	if (sobj->attributes)
 		sdb_llist_destroy(sobj->attributes);
-} /* sdb_store_obj_destroy */
+} /* sdb_host_destroy */
+
+static int
+sdb_service_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_service_t *sobj = SVC(obj);
+	int ret;
+
+	/* this will consume the first argument (type) of ap */
+	ret = store_base_init(obj, ap);
+	if (ret)
+		return ret;
+
+	sobj->attributes = sdb_llist_create();
+	if (! sobj->attributes)
+		return -1;
+	return 0;
+} /* sdb_service_init */
+
+static void
+sdb_service_destroy(sdb_object_t *obj)
+{
+	sdb_service_t *sobj = SVC(obj);
+	assert(obj);
+
+	store_base_destroy(obj);
+
+	if (sobj->attributes)
+		sdb_llist_destroy(sobj->attributes);
+} /* sdb_service_destroy */
 
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
@@ -130,7 +159,7 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 	value = va_arg(ap, const sdb_data_t *);
 
 	if (value)
-		if (sdb_data_copy(&SDB_ATTR(obj)->value, value))
+		if (sdb_data_copy(&ATTR(obj)->value, value))
 			return -1;
 	return 0;
 } /* sdb_attr_init */
@@ -141,19 +170,23 @@ sdb_attr_destroy(sdb_object_t *obj)
 	assert(obj);
 
 	store_base_destroy(obj);
-	sdb_data_free_datum(&SDB_ATTR(obj)->value);
+	sdb_data_free_datum(&ATTR(obj)->value);
 } /* sdb_attr_destroy */
 
-static sdb_type_t sdb_store_obj_type = {
-	sizeof(sdb_store_obj_t),
+static sdb_type_t sdb_host_type = {
+	sizeof(sdb_host_t),
+	sdb_host_init,
+	sdb_host_destroy
+};
 
-	sdb_store_obj_init,
-	sdb_store_obj_destroy
+static sdb_type_t sdb_service_type = {
+	sizeof(sdb_service_t),
+	sdb_service_init,
+	sdb_service_destroy
 };
 
 static sdb_type_t sdb_attribute_type = {
 	sizeof(sdb_attribute_t),
-
 	sdb_attr_init,
 	sdb_attr_destroy
 };
@@ -162,10 +195,10 @@ static sdb_type_t sdb_attribute_type = {
  * private helper functions
  */
 
-static sdb_store_obj_t *
+static sdb_host_t *
 lookup_host(const char *name)
 {
-	return SDB_STORE_OBJ(sdb_llist_search_by_name(host_list, name));
+	return HOST(sdb_llist_search_by_name(host_list, name));
 } /* lookup_host */
 
 /* The obj_lock has to be acquired before calling this function. */
@@ -207,7 +240,7 @@ store_obj(const char *hostname, int type, const char *name,
 	}
 
 	if (hostname) {
-		sdb_store_obj_t *host;
+		sdb_host_t *host;
 
 		host_cname = sdb_plugin_cname(strdup(hostname));
 		if (! host_cname) {
@@ -266,13 +299,16 @@ store_obj(const char *hostname, int type, const char *name,
 	else {
 		sdb_store_base_t *new;
 
-		if (type == SDB_ATTRIBUTE)
+		if (type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
 			new = STORE_BASE(sdb_object_create(name, sdb_attribute_type,
 						type, last_update, NULL));
-		else
-			new = STORE_BASE(sdb_object_create(name, sdb_store_obj_type,
-						type, last_update));
+		}
+		else {
+			sdb_type_t t;
+			t = type == SDB_HOST ? sdb_host_type : sdb_service_type;
+			new = STORE_BASE(sdb_object_create(name, t, type, last_update));
+		}
 
 		if (! new) {
 			char errbuf[1024];
@@ -342,8 +378,8 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
 		if (type == SDB_ATTRIBUTE) {
-			char tmp[sdb_data_strlen(&SDB_ATTR(sobj)->value) + 1];
-			sdb_data_format(&SDB_ATTR(sobj)->value, tmp, sizeof(tmp),
+			char tmp[sdb_data_strlen(&ATTR(sobj)->value) + 1];
+			sdb_data_format(&ATTR(sobj)->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED);
 			sdb_strbuf_append(buf, "\"value\": %s, \"last_update\": \"%s\", "
 					"\"update_interval\": \"%s\"}", tmp, time_str,
@@ -391,7 +427,7 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 _Bool
 sdb_store_has_host(const char *name)
 {
-	sdb_store_obj_t *host;
+	sdb_host_t *host;
 
 	if (! name)
 		return NULL;
@@ -403,7 +439,7 @@ sdb_store_has_host(const char *name)
 sdb_store_base_t *
 sdb_store_get_host(const char *name)
 {
-	sdb_store_obj_t *host;
+	sdb_host_t *host;
 
 	if (! name)
 		return NULL;
@@ -435,8 +471,8 @@ sdb_store_attribute(const char *hostname,
 
 	if (status >= 0) {
 		assert(updated_attr);
-		sdb_data_free_datum(&SDB_ATTR(updated_attr)->value);
-		if (sdb_data_copy(&SDB_ATTR(updated_attr)->value, value)) {
+		sdb_data_free_datum(&ATTR(updated_attr)->value);
+		if (sdb_data_copy(&ATTR(updated_attr)->value, value)) {
 			sdb_object_deref(SDB_OBJ(updated_attr));
 			status = -1;
 		}
@@ -466,14 +502,14 @@ sdb_store_service(const char *hostname, const char *name,
 int
 sdb_store_host_tojson(sdb_store_base_t *h, sdb_strbuf_t *buf, int flags)
 {
-	sdb_store_obj_t *host;
+	sdb_host_t *host;
 	char time_str[64];
 	char interval_str[64];
 
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
 
-	host = SDB_STORE_OBJ(h);
+	host = HOST(h);
 
 	if (! sdb_strftime(time_str, sizeof(time_str),
 				"%F %T %z", host->_last_update))
