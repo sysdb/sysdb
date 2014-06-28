@@ -248,6 +248,44 @@ fi; fi
 AC_SUBST([COVERAGE_CFLAGS])
 AC_SUBST([COVERAGE_LDFLAGS])
 
+AC_ARG_ENABLE([gprof],
+		AS_HELP_STRING([--enable-gprof],
+				[Gprof profiling @<:@default=no@:>@]),
+		[enable_gprof="$enableval"],
+		[enable_gprof="no"])
+
+PROFILING_CFLAGS=""
+PROFILING_LDFLAGS=""
+if test "x$enable_gprof" = "xyes"; then
+	PROFILING_CFLAGS="-O0"
+	profiling_flag_have_problem="no"
+
+	AC_MSG_CHECKING([whether $CC accepts -pg])
+	if test_cc_flags -pg; then
+		PROFILING_CFLAGS="$PROFILING_CFLAGS -pg"
+		PROFILING_LDFLAGS="$PROFILING_LDFLAGS -pg"
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([no])
+		profiling_flag_have_problem="yes"
+	fi
+
+	for flag in -fprofile-arcs; do
+		AC_MSG_CHECKING([whether $CC accepts $flag])
+		if test_cc_flags $flag; then
+			PROFILING_CFLAGS="$PROFILING_CFLAGS $flag"
+			AC_MSG_RESULT([yes])
+		fi
+		# else: this is not a serious problem
+	done
+
+	if test "x$profiling_flag_have_problem" != "xno"; then
+		AC_MSG_WARN([Some profiling flags are not supported by your compiler!])
+	fi
+fi
+AC_SUBST([PROFILING_CFLAGS])
+AC_SUBST([PROFILING_LDFLAGS])
+
 m4_divert_once([HELP_ENABLE], [
 Build dependencies:])
 
@@ -454,6 +492,7 @@ AC_MSG_RESULT([    unit testing: . . . . . . . $unit_tests])
 AC_MSG_RESULT([      stdio mocking:  . . . . . $have_fopencookie])
 AC_MSG_RESULT([    coverage testing: . . . . . $enable_gcov])
 AC_MSG_RESULT([    integration testing:  . . . $integration_tests])
+AC_MSG_RESULT([    profiling:  . . . . . . . . $enable_gprof])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])

@@ -1,8 +1,8 @@
 SUBDIRS = liboconfig
 
 # coverage related flags are only set when gcov is enabled
-AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
-AM_LDFLAGS = @COVERAGE_LDFLAGS@
+AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@
+AM_LDFLAGS = @COVERAGE_LDFLAGS@ @PROFILING_LDFLAGS@
 AM_CPPFLAGS  = -I"${top_srcdir}/src/include"
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
@@ -60,7 +60,8 @@ libsysdbclient_la_LIBADD = $(LIBLTDL)
 noinst_LTLIBRARIES += libsysdb_fe_parser.la
 libsysdb_fe_parser_la_SOURCES = \
 		frontend/grammar.y frontend/scanner.l
-libsysdb_fe_parser_la_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+libsysdb_fe_parser_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
+		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 libsysdb_la_SOURCES = \
 		sysdb.c include/sysdb.h \
 		core/object.c include/core/object.h \
@@ -102,7 +103,8 @@ bin_PROGRAMS += sysdb
 # don't use strict CFLAGS for flex code
 noinst_LTLIBRARIES += libsysdb_scanner.la
 libsysdb_scanner_la_SOURCES = tools/sysdb/scanner.l
-libsysdb_scanner_la_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+libsysdb_scanner_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
+		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
 		tools/sysdb/command.c tools/sysdb/command.h \
 		tools/sysdb/input.c tools/sysdb/input.h \
