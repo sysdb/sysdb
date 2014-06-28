@@ -317,7 +317,6 @@ sdb_livestatus_config(oconfig_item_t *ci)
 int
 sdb_module_init(sdb_plugin_info_t *info)
 {
-	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_NAME, "MK-Livestatus");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC,
 			"backend accessing Nagios/Icinga/Shinken using MK Livestatus");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,

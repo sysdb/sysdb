@@ -59,8 +59,6 @@ struct sdb_plugin_info {
 	char *filename;
 
 	/* public attributes */
-	char *name;
-
 	char *description;
 	char *copyright;
 	char *license;
@@ -69,8 +67,7 @@ struct sdb_plugin_info {
 	int   plugin_version;
 };
 #define SDB_PLUGIN_INFO_INIT { \
-	/* plugin_name */ NULL, /* filename */ NULL, \
-	/* name */ NULL, /* desc */ NULL, \
+	/* plugin_name */ NULL, /* filename */ NULL, /* desc */ NULL, \
 	/* copyright */ NULL, /* license */ NULL, \
 	/* version */ -1, /* plugin_version */ -1 }
 #define INFO_GET(i, attr) \
@@ -165,8 +162,6 @@ plugin_info_clear(sdb_plugin_info_t *info)
 	if (info->filename)
 		free(info->filename);
 
-	if (info->name)
-		free(info->name);
 	if (info->description)
 		free(info->description);
 	if (info->copyright)
@@ -526,7 +521,7 @@ module_load(const char *basedir, const char *name,
 
 	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
 			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
-			INFO_GET(&ctx->info, name), ctx->info.plugin_version,
+			ctx->info.plugin_name, ctx->info.plugin_version,
 			INFO_GET(&ctx->info, description),
 			INFO_GET(&ctx->info, copyright),
 			INFO_GET(&ctx->info, license));
@@ -620,7 +615,7 @@ sdb_plugin_load(const char *basedir, const char *name,
 				return status;
 
 			sdb_log(SDB_LOG_INFO, "core: Successfully reloaded plugin "
-					"'%s' (%s)", INFO_GET(&ctx->info, name),
+					"'%s' (%s)", ctx->info.plugin_name,
 					INFO_GET(&ctx->info, description));
 			ctx_set(old_ctx);
 		}
@@ -642,16 +637,6 @@ sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...)
 	va_start(ap, type);
 
 	switch (type) {
-		case SDB_PLUGIN_INFO_NAME:
-			{
-				char *name = va_arg(ap, char *);
-				if (name) {
-					if (info->name)
-						free(info->name);
-					info->name = strdup(name);
-				}
-			}
-			break;
 		case SDB_PLUGIN_INFO_DESC:
 			{
 				char *desc = va_arg(ap, char *);

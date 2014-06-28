@@ -80,7 +80,6 @@ sdb_syslog_shutdown(sdb_object_t __attribute__((unused)) *user_data)
 int
 sdb_module_init(sdb_plugin_info_t *info)
 {
-	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_NAME, "syslog");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC,
 			"log messages to the system logger");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,

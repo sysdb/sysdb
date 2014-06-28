@@ -78,7 +78,6 @@ sdb_plugin_load(const char *basedir, const char *name,
  * and also to provide additional information to the user.
  */
 enum {
-	SDB_PLUGIN_INFO_NAME,          /* plugin name: string */
 	SDB_PLUGIN_INFO_DESC,          /* plugin description: string */
 	SDB_PLUGIN_INFO_COPYRIGHT,     /* plugin copyright: string */
 	SDB_PLUGIN_INFO_LICENSE,       /* plugin license: string */

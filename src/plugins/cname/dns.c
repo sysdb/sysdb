@@ -84,7 +84,6 @@ sdb_dns_cname(const char *name,
 int
 sdb_module_init(sdb_plugin_info_t *info)
 {
-	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_NAME, "cname::dns");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC,
 			"canonicalize hostnames by querying DNS");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,

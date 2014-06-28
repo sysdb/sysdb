@@ -195,7 +195,6 @@ mock_config(oconfig_item_t *ci)
 int
 sdb_module_init(sdb_plugin_info_t *info)
 {
-	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_NAME, "test::integration::mock");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC, "a mock plugin");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,
 			"Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>");
