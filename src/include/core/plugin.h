@@ -93,6 +93,9 @@ sdb_plugin_set_info(sdb_plugin_info_t *info, int type, ...);
  * plugin callback functions:
  * See the description of the respective register function for what arguments
  * the callbacks expect.
+ *
+ * The specified name of callback functions is prepended with the plugin name
+ * before being registered with the core.
  */
 
 typedef int (*sdb_plugin_config_cb)(oconfig_item_t *ci);

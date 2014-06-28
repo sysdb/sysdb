@@ -183,9 +183,9 @@ mock_config(oconfig_item_t *ci)
 		exit(1);
 	}
 
-	sdb_plugin_register_init("mock::init", mock_init, user_data);
-	sdb_plugin_register_shutdown("mock::shutdown", mock_shutdown, user_data);
-	sdb_plugin_register_collector("mock::collect", mock_collect,
+	sdb_plugin_register_init("main", mock_init, user_data);
+	sdb_plugin_register_shutdown("main", mock_shutdown, user_data);
+	sdb_plugin_register_collector("main", mock_collect,
 			/* interval = */ NULL, user_data);
 
 	sdb_object_deref(user_data);

@@ -539,6 +539,18 @@ module_load(const char *basedir, const char *name,
 	return 0;
 } /* module_load */
 
+static char *
+plugin_get_name(const char *name, char *buf, size_t bufsize)
+{
+	ctx_t *ctx = ctx_get();
+
+	if (ctx)
+		snprintf(buf, bufsize, "%s::%s", ctx->info.plugin_name, name);
+	else
+		snprintf(buf, bufsize, "core::%s", name);
+	return buf;
+} /* plugin_get_name */
+
 static int
 plugin_add_callback(sdb_llist_t **list, const char *type,
 		const char *name, void *callback, sdb_object_t *user_data)
@@ -706,7 +718,9 @@ int
 sdb_plugin_register_init(const char *name, sdb_plugin_init_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&init_list, "init", name,
+	char cb_name[1024];
+	return plugin_add_callback(&init_list, "init",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			(void *)callback, user_data);
 } /* sdb_plugin_register_init */
 
@@ -714,7 +728,9 @@ int
 sdb_plugin_register_shutdown(const char *name, sdb_plugin_shutdown_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&shutdown_list, "shutdown", name,
+	char cb_name[1024];
+	return plugin_add_callback(&shutdown_list, "shutdown",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			(void *)callback, user_data);
 } /* sdb_plugin_register_shutdown */
 
@@ -722,22 +738,27 @@ int
 sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&log_list, "log", name, (void *)callback,
-			user_data);
+	char cb_name[1024];
+	return plugin_add_callback(&log_list, "log",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
+			callback, user_data);
 } /* sdb_plugin_register_log */
 
 int
 sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
 		sdb_object_t *user_data)
 {
-	return plugin_add_callback(&cname_list, "cname", name, (void *)callback,
-			user_data);
+	char cb_name[1024];
+	return plugin_add_callback(&cname_list, "cname",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
+			callback, user_data);
 } /* sdb_plugin_register_cname */
 
 int
 sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback,
 		const sdb_time_t *interval, sdb_object_t *user_data)
 {
+	char cb_name[1024];
 	sdb_object_t *obj;
 
 	if ((! name) || (! callback))
@@ -748,7 +769,9 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	if (! collector_list)
 		return -1;
 
-	obj = sdb_object_create(name, sdb_plugin_collector_cb_type,
+	plugin_get_name(name, cb_name, sizeof(cb_name));
+
+	obj = sdb_object_create(cb_name, sdb_plugin_collector_cb_type,
 			&collector_list, "collector", callback, user_data);
 	if (! obj)
 		return -1;
@@ -782,7 +805,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	sdb_object_deref(obj);
 
 	sdb_log(SDB_LOG_INFO, "core: Registered collector callback '%s' "
-			"(interval = %.3fs).", name,
+			"(interval = %.3fs).", cb_name,
 			SDB_TIME_TO_DOUBLE(SDB_PLUGIN_CCB(obj)->ccb_interval));
 	return 0;
 } /* sdb_plugin_register_collector */

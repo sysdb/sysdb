@@ -194,7 +194,6 @@ static int
 sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 {
 	char *name = NULL;
-	char cb_name[1024];
 
 	sdb_object_t *user_data;
 	sdb_dbi_client_t *client;
@@ -315,9 +314,6 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 		return -1;
 	}
 
-	snprintf(cb_name, sizeof(cb_name), "puppet::storeconfigs::%s", name);
-	cb_name[sizeof(cb_name) - 1] = '\0';
-
 	client = sdb_dbi_client_create(driver, database);
 	if (! client) {
 		char errbuf[1024];
@@ -338,10 +334,10 @@ sdb_puppet_stcfg_config_conn(oconfig_item_t *ci)
 		return -1;
 	}
 
-	sdb_plugin_register_init(cb_name, sdb_puppet_stcfg_init, user_data);
-	sdb_plugin_register_shutdown(cb_name, sdb_puppet_stcfg_shutdown,
+	sdb_plugin_register_init(name, sdb_puppet_stcfg_init, user_data);
+	sdb_plugin_register_shutdown(name, sdb_puppet_stcfg_shutdown,
 			user_data);
-	sdb_plugin_register_collector(cb_name, sdb_puppet_stcfg_collect,
+	sdb_plugin_register_collector(name, sdb_puppet_stcfg_collect,
 			/* interval */ NULL, user_data);
 
 	/* pass control to the list */
