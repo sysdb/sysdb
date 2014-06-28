@@ -520,9 +520,11 @@ module_load(const char *basedir, const char *name,
 	sdb_llist_append(all_plugins, SDB_OBJ(ctx));
 
 	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
-			"plugin '%s' v%i (%s)\n\t%s\n\tLicense: %s",
-			ctx->info.plugin_name, ctx->info.plugin_version,
-			INFO_GET(&ctx->info, description),
+			"plugin %s v%i (%s)", ctx->info.plugin_name,
+			ctx->info.plugin_version,
+			INFO_GET(&ctx->info, description));
+	sdb_log(SDB_LOG_INFO, "core: Plugin %s: %s, License: %s",
+			ctx->info.plugin_name,
 			INFO_GET(&ctx->info, copyright),
 			INFO_GET(&ctx->info, license));
 
