@@ -56,13 +56,6 @@ SDB_PLUGIN_MAGIC;
  */
 
 static int
-sdb_syslog_init(sdb_object_t __attribute__((unused)) *user_data)
-{
-	openlog("sysdbd", LOG_NDELAY | LOG_NOWAIT | LOG_PID, LOG_DAEMON);
-	return 0;
-} /* sdb_syslog_init */
-
-static int
 sdb_syslog_log(int prio, const char *msg,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
@@ -88,7 +81,9 @@ sdb_module_init(sdb_plugin_info_t *info)
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_VERSION, SDB_VERSION);
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
-	sdb_plugin_register_init("main", sdb_syslog_init, NULL);
+	if (info)
+		openlog("sysdbd", LOG_NDELAY | LOG_NOWAIT | LOG_PID, LOG_DAEMON);
+
 	sdb_plugin_register_log("main", sdb_syslog_log, NULL);
 	sdb_plugin_register_shutdown("main", sdb_syslog_shutdown, NULL);
 	return 0;
