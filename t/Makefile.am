@@ -12,7 +12,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 TESTS =
 check_PROGRAMS =
-noinst_LTLIBRARIES =
+check_LTLIBRARIES =
 
 #
 # unit tests
@@ -58,7 +58,7 @@ if INTEGRATION_TESTING
 TESTS += integration/simple_config.sh integration/simple_query.sh
 endif
 
-noinst_LTLIBRARIES += integration/mock_plugin.la
+check_LTLIBRARIES += integration/mock_plugin.la
 integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
 # -rpath is a work-around to enforce a shared library
 integration_mock_plugin_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version \
