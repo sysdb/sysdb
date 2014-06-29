@@ -79,6 +79,7 @@ libsysdb_la_SOURCES = \
 		utils/channel.c include/utils/channel.h \
 		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \
+		utils/os.c include/utils/os.h \
 		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		core/time.c include/core/time.h \
