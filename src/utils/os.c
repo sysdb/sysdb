@@ -43,16 +43,11 @@
 #include <libgen.h>
 
 /*
- * private helper functions
+ * public API
  */
 
-/*
- * Recursively create the directory 'pathname' using the specified 'mode'. If
- * 'enforce_mode' is true, the mode will be enforced even if the directory
- * exists already.
- */
-static int
-mkdir_rec(const char *pathname, mode_t mode, _Bool enforce_mode)
+int
+sdb_mkdir_all(const char *pathname, mode_t mode)
 {
 	struct stat st;
 	char *base_dir;
@@ -70,9 +65,6 @@ mkdir_rec(const char *pathname, mode_t mode, _Bool enforce_mode)
 			errno = ENOTDIR;
 			return -1;
 		}
-
-		if ((st.st_mode != mode) && enforce_mode)
-			return chmod(pathname, mode);
 		return 0;
 	}
 
@@ -85,23 +77,12 @@ mkdir_rec(const char *pathname, mode_t mode, _Bool enforce_mode)
 		return -1;
 	base_dir = dirname(base_dir);
 
-	/* don't enforce the mode on parent directories */
-	status = mkdir_rec(base_dir, mode, 0);
+	status = sdb_mkdir_all(base_dir, mode);
 	if (! status)
 		status = mkdir(pathname, mode);
 
 	free(base_dir);
 	return status;
-} /* mkdir_rec */
-
-/*
- * public API
- */
-
-int
-sdb_mkdir_all(const char *pathname, mode_t mode)
-{
-	return mkdir_rec(pathname, mode, 1);
 } /* sdb_mkdir_all */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
