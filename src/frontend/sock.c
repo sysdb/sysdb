@@ -37,6 +37,7 @@
 #include "utils/channel.h"
 #include "utils/error.h"
 #include "utils/llist.h"
+#include "utils/os.h"
 #include "utils/strbuf.h"
 
 #include <assert.h>
@@ -53,6 +54,8 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
+#include <libgen.h>
 
 #include <pthread.h>
 
@@ -94,6 +97,7 @@ static int
 open_unix_sock(listener_t *listener)
 {
 	const char *addr;
+	char *base_dir;
 	struct sockaddr_un sa;
 	int status;
 
@@ -113,6 +117,25 @@ open_unix_sock(listener_t *listener)
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, addr, sizeof(sa.sun_path));
+
+	base_dir = strdup(addr);
+	if (! base_dir) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: strdup failed: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	base_dir = dirname(base_dir);
+
+	/* ensure that the directory exists */
+	if (sdb_mkdir_all(base_dir, 0777)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create directory '%s': %s",
+				base_dir, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		free(base_dir);
+		return -1;
+	}
+	free(base_dir);
 
 	if (unlink(addr) && (errno != ENOENT)) {
 		char errbuf[1024];
