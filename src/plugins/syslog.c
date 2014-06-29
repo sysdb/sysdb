@@ -59,6 +59,9 @@ static int
 sdb_syslog_log(int prio, const char *msg,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
+	/* XXX: make the log-level configurable */
+	if (prio >= SDB_LOG_DEBUG)
+		return 0;
 	syslog(SDB_LOG_PRIO_TO_SYSLOG(prio), "%s", msg);
 	return 0;
 } /* sdb_syslog_log */
