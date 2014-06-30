@@ -36,7 +36,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <dirent.h>
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -85,6 +88,57 @@ sdb_mkdir_all(const char *pathname, mode_t mode)
 	free(pathname_copy);
 	return status;
 } /* sdb_mkdir_all */
+
+int
+sdb_remove_all(const char *pathname)
+{
+	struct stat st;
+
+	if ((! pathname) || (! *pathname)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	memset(&st, 0, sizeof(st));
+	if (stat(pathname, &st))
+		return -1;
+
+	if (S_ISDIR(st.st_mode)) {
+		DIR *d = opendir(pathname);
+
+		if (! d)
+			return -1;
+
+		while (42) {
+			struct dirent de;
+			struct dirent *res = NULL;
+
+			char filename[strlen(pathname) + sizeof(de.d_name) + 2];
+
+			memset(&de, 0, sizeof(de));
+			if (readdir_r(d, &de, &res)) {
+				closedir(d);
+				return -1;
+			}
+
+			if (! res)
+				break;
+
+			if ((de.d_name[0] == '.') && ((de.d_name[1] == '\0')
+						|| ((de.d_name[1] == '.')&& (de.d_name[2] == '\0'))))
+				continue;
+
+			snprintf(filename, sizeof(filename),
+					"%s/%s", pathname, de.d_name);
+			if (sdb_remove_all(filename)) {
+				closedir(d);
+				return -1;
+			}
+		}
+		closedir(d);
+	}
+	return remove(pathname);
+} /* sdb_remove_all */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

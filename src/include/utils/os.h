@@ -37,11 +37,7 @@ extern "C" {
 /*
  * sysdb_mkdir_all:
  * Recursively create the directory 'pathname' (similar to 'mkdir -p' on the
- * command line) and ensure that its mode is 'mode'. Any newly created
- * directories will have permissions according the the specified mode
- * (modified by the process's umask in the usual way). The function will
- * always ensure the specified permissions for the specified directory, even
- * if it exists already.
+ * command line) using file permissions as specified by 'mode'.
  *
  * Returns:
  *  - 0 on success
@@ -49,6 +45,17 @@ extern "C" {
  */
 int
 sdb_mkdir_all(const char *pathname, mode_t mode);
+
+/*
+ * sdb_remove_all:
+ * Recursively deletes the specified path from the filesystem.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_remove_all(const char *pathname);
 
 #ifdef __cplusplus
 } /* extern "C" */
