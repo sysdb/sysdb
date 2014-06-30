@@ -118,15 +118,10 @@ mock_conn_truncate(sdb_conn_t *conn)
 } /* mock_conn_truncate */
 
 static int
-mock_unixsock_listener(char *sock_path)
+mock_unixsock_listener(char *socket_path)
 {
 	struct sockaddr_un sa;
-	char *filename;
 	int fd, status;
-
-	filename = tmpnam(sock_path);
-	fail_unless(filename != NULL,
-			"INTERNAL ERROR: tmpnam() = NULL; expected: a string");
 
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	fail_unless(fd >= 0,
@@ -134,7 +129,7 @@ mock_unixsock_listener(char *sock_path)
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
-	strncpy(sa.sun_path, filename, sizeof(sa.sun_path));
+	strncpy(sa.sun_path, socket_path, sizeof(sa.sun_path));
 
 	status = bind(fd, (struct sockaddr *)&sa, sizeof(sa));
 	fail_unless(status == 0,
@@ -201,7 +196,7 @@ connection_startup(sdb_conn_t *conn)
 
 START_TEST(test_conn_accept)
 {
-	char socket_path[L_tmpnam];
+	char socket_path[] = "connection_test_socket.XXXXXX";
 	int fd, check;
 
 	sdb_conn_t *conn;
@@ -212,7 +207,9 @@ START_TEST(test_conn_accept)
 	fail_unless(conn == NULL,
 			"sdb_connection_accept(-1) = %p; expected: NULL", conn);
 
-	memset(&socket_path, 0, sizeof(socket_path));
+	mkstemp(socket_path);
+	unlink(socket_path);
+
 	fd = mock_unixsock_listener(socket_path);
 	check = pthread_create(&thr, /* attr = */ NULL, mock_client, socket_path);
 	fail_unless(check == 0,
