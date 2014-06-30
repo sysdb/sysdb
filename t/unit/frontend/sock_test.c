@@ -25,6 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "frontend/sock.h"
 #include "libsysdb_test.h"
 
@@ -67,21 +71,15 @@ teardown(void)
 static void
 sock_listen(char *tmp_file)
 {
-	char sock_addr[strlen("unix:") + L_tmpnam + 1];
-	char *filename;
-
+	char sock_addr[strlen("unix:") + strlen(tmp_file) + 1];
 	int check;
-
-	filename = tmpnam(tmp_file);
-	fail_unless(filename != NULL,
-			"INTERNAL ERROR: tmpnam() = NULL; expected: a string");
 
 	sprintf(sock_addr, "unix:%s", tmp_file);
 	check = sdb_fe_sock_add_listener(sock, sock_addr);
 	fail_unless(check == 0,
 			"sdb_fe_sock_add_listener(%s) = %i; expected: 0",
 			sock_addr, check);
-} /* conn */
+} /* sock_listen */
 
 /*
  * parallel testing
@@ -108,7 +106,7 @@ START_TEST(test_listen_and_serve)
 {
 	sdb_fe_loop_t loop = SDB_FE_LOOP_INIT;
 
-	char tmp_file[L_tmpnam];
+	char tmp_file[] = "sock_test_socket.XXXXXX";
 	int check;
 
 	pthread_t thr;
@@ -121,6 +119,8 @@ START_TEST(test_listen_and_serve)
 			"sdb_fe_sock_listen_and_serve() = %i; "
 			"expected: <0 (before adding listeners)", check);
 
+	mkstemp(tmp_file);
+	unlink(tmp_file);
 	sock_listen(tmp_file);
 
 	loop.do_loop = 1;
