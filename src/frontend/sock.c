@@ -97,6 +97,7 @@ static int
 open_unix_sock(listener_t *listener)
 {
 	const char *addr;
+	char *addr_copy;
 	char *base_dir;
 	struct sockaddr_un sa;
 	int status;
@@ -118,24 +119,24 @@ open_unix_sock(listener_t *listener)
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, addr, sizeof(sa.sun_path));
 
-	base_dir = strdup(addr);
-	if (! base_dir) {
+	addr_copy = strdup(addr);
+	if (! addr_copy) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: strdup failed: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
-	base_dir = dirname(base_dir);
+	base_dir = dirname(addr_copy);
 
 	/* ensure that the directory exists */
 	if (sdb_mkdir_all(base_dir, 0777)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create directory '%s': %s",
 				base_dir, sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		free(base_dir);
+		free(addr_copy);
 		return -1;
 	}
-	free(base_dir);
+	free(addr_copy);
 
 	if (unlink(addr) && (errno != ENOENT)) {
 		char errbuf[1024];

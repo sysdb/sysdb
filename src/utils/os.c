@@ -50,6 +50,7 @@ int
 sdb_mkdir_all(const char *pathname, mode_t mode)
 {
 	struct stat st;
+	char *pathname_copy;
 	char *base_dir;
 
 	int status = 0;
@@ -72,16 +73,16 @@ sdb_mkdir_all(const char *pathname, mode_t mode)
 		/* pathname exists but we cannot access it */
 		return -1;
 
-	base_dir = strdup(pathname);
-	if (! base_dir)
+	pathname_copy = strdup(pathname);
+	if (! pathname_copy)
 		return -1;
-	base_dir = dirname(base_dir);
+	base_dir = dirname(pathname_copy);
 
 	status = sdb_mkdir_all(base_dir, mode);
 	if (! status)
 		status = mkdir(pathname, mode);
 
-	free(base_dir);
+	free(pathname_copy);
 	return status;
 } /* sdb_mkdir_all */
 
