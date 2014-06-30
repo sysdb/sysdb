@@ -53,6 +53,7 @@ main(void)
 		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },
 		{ util_llist_suite, NULL },
+		{ util_os_suite, NULL },
 		{ util_strbuf_suite, NULL },
 	};
 

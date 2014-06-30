@@ -103,6 +103,10 @@ util_dbi_suite(void);
 Suite *
 util_llist_suite(void);
 
+/* t/utils/os_test */
+Suite *
+util_os_suite(void);
+
 /* t/utils/strbuf_test */
 Suite *
 util_strbuf_suite(void);

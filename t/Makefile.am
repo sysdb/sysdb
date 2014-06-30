@@ -37,6 +37,7 @@ unit_libsysdb_test_SOURCES = \
 		unit/utils/channel_test.c \
 		unit/utils/dbi_test.c \
 		unit/utils/llist_test.c \
+		unit/utils/os_test.c \
 		unit/utils/strbuf_test.c
 unit_libsysdb_test_CFLAGS = $(AM_CFLAGS) @CHECK_CFLAGS@ -I$(top_srcdir)/t/unit
 unit_libsysdb_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
