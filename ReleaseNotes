@@ -19,6 +19,41 @@
 
   <http://sysdb.io/>
 
+Version 0.2.0, Release Date: 2014-07-01
+---------------------------------------
+
+  This is another development snapshot of SysDB. The main focus of this
+  release is on stabilizing existing features and extending the query
+  infrastructure to support all attribute types and further operators.
+
+   * build system: Fixed linking of sysdbd to include *all* necessary object
+     files. This bug caused some plugins to be un-loadable.
+   * sysdbd: Fixed shutdown process in case of errors.
+   * sysdb: Fixed a bug causing some server replies to be ignored when exiting
+     from the client.
+   * core:
+     - Always log to the standard output stream if no user-provided logging
+       callbacks had been specified. Previously this was disabled after
+       enabling logging to clients in the frontend.
+     - Simplified plugin naming information and determine configuration
+       callback names automatically to ensure better consistency.
+   * store:
+     - Simplified internal data management.
+     - Store the list of backends along with each stored object which provide
+       the respective object.
+   * frontend:
+     - Simplified and improved the internal architecture matching / looking up
+       objects.
+     - Fixed parser to correctly reject invalid object types.
+     - Automatically create the base directory of a listening UNIX socket.
+   * query language: Added support for numeric constants and added operators
+     for less and greater than or equal attribute comparison.
+   * documentation: Added missing files to the distribution tarball.
+
+  Plugins:
+
+   * syslog: Don't log debug messages to syslog.
+
 Version 0.1.0, Release Date: 2014-06-01
 ---------------------------------------
 
