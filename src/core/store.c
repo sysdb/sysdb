@@ -69,6 +69,8 @@ store_obj_init(sdb_object_t *obj, va_list ap)
 
 	sobj->last_update = va_arg(ap, sdb_time_t);
 	sobj->interval = 0;
+	sobj->backends = NULL;
+	sobj->backends_num = 0;
 	sobj->parent = NULL;
 	return 0;
 } /* store_obj_init */
@@ -76,7 +78,14 @@ store_obj_init(sdb_object_t *obj, va_list ap)
 static void
 store_obj_destroy(sdb_object_t *obj)
 {
-	const sdb_store_obj_t *sobj = STORE_CONST_OBJ(obj);
+	sdb_store_obj_t *sobj = STORE_OBJ(obj);
+	size_t i;
+
+	for (i = 0; i < sobj->backends_num; ++i)
+		free(sobj->backends[i]);
+	free(sobj->backends);
+	sobj->backends = NULL;
+	sobj->backends_num = 0;
 
 	if (sobj->parent)
 		sdb_object_deref(SDB_OBJ(sobj->parent));
@@ -207,10 +216,14 @@ store_obj(const char *hostname, int type, const char *name,
 		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
 {
 	char *host_cname = NULL, *cname = NULL;
+	char **tmp;
 
 	sdb_llist_t *parent_list;
-	sdb_store_obj_t *old;
+	sdb_store_obj_t *old, *new;
+	const sdb_plugin_info_t *info;
+
 	int status = 0;
+	size_t i;
 
 	if (last_update <= 0)
 		last_update = sdb_gettime();
@@ -293,12 +306,9 @@ store_obj(const char *hostname, int type, const char *name,
 			}
 		}
 
-		if (updated_obj)
-			*updated_obj = old;
+		new = old;
 	}
 	else {
-		sdb_store_obj_t *new;
-
 		if (type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
 			new = STORE_OBJ(sdb_object_create(name, sdb_attribute_type,
@@ -310,27 +320,51 @@ store_obj(const char *hostname, int type, const char *name,
 			new = STORE_OBJ(sdb_object_create(name, t, type, last_update));
 		}
 
-		if (! new) {
+		if (new) {
+			status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
+					sdb_object_cmp_by_name);
+
+			/* pass control to the list or destroy in case of an error */
+			sdb_object_deref(SDB_OBJ(new));
+		}
+		else {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
 					SDB_STORE_TYPE_TO_NAME(type), name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			free(host_cname);
-			free(cname);
-			return -1;
+			status = -1;
 		}
-
-		status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
-				sdb_object_cmp_by_name);
-
-		/* pass control to the list or destroy in case of an error */
-		sdb_object_deref(SDB_OBJ(new));
-
-		if (updated_obj)
-			*updated_obj = new;
 	}
+
 	free(host_cname);
 	free(cname);
+
+	if (status < 0)
+		return status;
+	assert(new);
+
+	if (updated_obj)
+		*updated_obj = new;
+
+	info = sdb_plugin_current();
+	if (! info)
+		return status;
+
+	for (i = 0; i < new->backends_num; ++i)
+		if (!strcasecmp(new->backends[i], info->plugin_name))
+			return status;
+
+	tmp = realloc(new->backends,
+			(new->backends_num + 1) * sizeof(*new->backends));
+	if (! tmp)
+		return -1;
+
+	new->backends = tmp;
+	new->backends[new->backends_num] = strdup(info->plugin_name);
+	if (! new->backends[new->backends_num])
+		return -1;
+
+	++new->backends_num;
 	return status;
 } /* store_obj */
 

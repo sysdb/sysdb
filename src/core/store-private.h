@@ -50,6 +50,8 @@ struct sdb_store_obj {
 	/* common meta information */
 	sdb_time_t last_update;
 	sdb_time_t interval; /* moving average */
+	char **backends;
+	size_t backends_num;
 	sdb_store_obj_t *parent;
 };
 #define STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
