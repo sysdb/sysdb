@@ -249,6 +249,19 @@ int
 sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old);
 
 /*
+ * sdb_plugin_current:
+ * Retrieve information about the plugin (if any) from which the current call
+ * into the core originated. The return value may not be modified.
+ *
+ * Returns:
+ *  - information about the current plugin if we were called from some
+ *    plugin's callback function
+ *  - NULL else
+ */
+const sdb_plugin_info_t *
+sdb_plugin_current(void);
+
+/*
  * sdb_plugin_configure:
  * Configure the plugin called 'name' using the config tree 'ci'. The plugin
  * name is the same as the one used when loading the plugin.

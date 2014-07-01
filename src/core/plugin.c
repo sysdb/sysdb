@@ -814,6 +814,16 @@ sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old)
 	return 0;
 } /* sdb_plugin_set_ctx */
 
+const sdb_plugin_info_t *
+sdb_plugin_current(void)
+{
+	ctx_t *ctx = ctx_get();
+
+	if (! ctx)
+		return NULL;
+	return &ctx->info;
+} /* sdb_plugin_current */
+
 int
 sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 {
