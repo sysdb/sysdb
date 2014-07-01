@@ -45,8 +45,22 @@ typedef struct {
 } sdb_plugin_ctx_t;
 #define SDB_PLUGIN_CTX_INIT { 0 }
 
-struct sdb_plugin_info;
-typedef struct sdb_plugin_info sdb_plugin_info_t;
+typedef struct {
+	char *plugin_name;
+	char *filename;
+
+	/* public attributes */
+	char *description;
+	char *copyright;
+	char *license;
+
+	int   version;
+	int   plugin_version;
+} sdb_plugin_info_t;
+#define SDB_PLUGIN_INFO_INIT { \
+	/* plugin_name */ NULL, /* filename */ NULL, /* desc */ NULL, \
+	/* copyright */ NULL, /* license */ NULL, \
+	/* version */ -1, /* plugin_version */ -1 }
 
 /* this should be used in the header of a plugin to avoid
  * missing prototype warnings/errors for the plugin init

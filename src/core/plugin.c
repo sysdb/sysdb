@@ -50,28 +50,13 @@
 
 #include <pthread.h>
 
+/* helper to access info attributes */
+#define INFO_GET(i, attr) \
+	((i)->attr ? (i)->attr : #attr" not set")
+
 /*
  * private data types
  */
-
-struct sdb_plugin_info {
-	char *plugin_name;
-	char *filename;
-
-	/* public attributes */
-	char *description;
-	char *copyright;
-	char *license;
-
-	int   version;
-	int   plugin_version;
-};
-#define SDB_PLUGIN_INFO_INIT { \
-	/* plugin_name */ NULL, /* filename */ NULL, /* desc */ NULL, \
-	/* copyright */ NULL, /* license */ NULL, \
-	/* version */ -1, /* plugin_version */ -1 }
-#define INFO_GET(i, attr) \
-	((i)->attr ? (i)->attr : #attr" not set")
 
 typedef struct {
 	sdb_object_t super;
