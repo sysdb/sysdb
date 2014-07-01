@@ -379,6 +379,7 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
 {
 	char time_str[64];
 	char interval_str[64];
+	size_t i;
 
 	if (! sdb_strftime(time_str, sizeof(time_str),
 				"%F %T %z", obj->last_update))
@@ -391,7 +392,15 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
 	interval_str[sizeof(interval_str) - 1] = '\0';
 
 	sdb_strbuf_append(buf, "\"last_update\": \"%s\", "
-			"\"update_interval\": \"%s\"", time_str, interval_str);
+			"\"update_interval\": \"%s\", \"backends\": [",
+			time_str, interval_str);
+
+	for (i = 0; i < obj->backends_num; ++i) {
+		sdb_strbuf_append(buf, "\"%s\"", obj->backends[i]);
+		if (i < obj->backends_num - 1)
+			sdb_strbuf_append(buf, ",");
+	}
+	sdb_strbuf_append(buf, "]");
 } /* store_common_tojson */
 
 /*
