@@ -335,6 +335,32 @@ store_obj(const char *hostname, int type, const char *name,
 } /* store_obj */
 
 /*
+ * store_common_tojson serializes common object attributes to JSON.
+ *
+ * The function never returns an error. Rather, an error message will be part
+ * of the serialized data.
+ */
+static void
+store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
+{
+	char time_str[64];
+	char interval_str[64];
+
+	if (! sdb_strftime(time_str, sizeof(time_str),
+				"%F %T %z", obj->last_update))
+		snprintf(time_str, sizeof(time_str), "<error>");
+	time_str[sizeof(time_str) - 1] = '\0';
+
+	if (! sdb_strfinterval(interval_str, sizeof(interval_str),
+				obj->interval))
+		snprintf(interval_str, sizeof(interval_str), "<error>");
+	interval_str[sizeof(interval_str) - 1] = '\0';
+
+	sdb_strbuf_append(buf, "\"last_update\": \"%s\", "
+			"\"update_interval\": \"%s\"", time_str, interval_str);
+} /* store_common_tojson */
+
+/*
  * store_obj_tojson serializes attribute / service objects to JSON.
  *
  * The function never returns an error. Rather, an error message will be part
@@ -344,13 +370,10 @@ static void
 store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 {
 	sdb_llist_iter_t *iter;
-	char time_str[64];
-	char interval_str[64];
 
 	assert((type == SDB_ATTRIBUTE) || (type == SDB_SERVICE));
 
 	sdb_strbuf_append(buf, "[");
-
 	iter = sdb_llist_get_iter(list);
 	if (! iter) {
 		char errbuf[1024];
@@ -367,28 +390,16 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 		assert(sobj);
 		assert(sobj->type == type);
 
-		if (! sdb_strftime(time_str, sizeof(time_str),
-					"%F %T %z", sobj->last_update))
-			snprintf(time_str, sizeof(time_str), "<error>");
-		time_str[sizeof(time_str) - 1] = '\0';
-
-		if (! sdb_strfinterval(interval_str, sizeof(interval_str),
-					sobj->interval))
-			snprintf(interval_str, sizeof(interval_str), "<error>");
-		interval_str[sizeof(interval_str) - 1] = '\0';
-
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
 		if (sobj->type == SDB_ATTRIBUTE) {
 			char tmp[sdb_data_strlen(&ATTR(sobj)->value) + 1];
 			sdb_data_format(&ATTR(sobj)->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED);
-			sdb_strbuf_append(buf, "\"value\": %s, \"last_update\": \"%s\", "
-					"\"update_interval\": \"%s\"}", tmp, time_str,
-					interval_str);
+			sdb_strbuf_append(buf, "\"value\": %s, ", tmp);
 		}
-		else
-			sdb_strbuf_append(buf, "\"last_update\": \"%s\", "
-					"\"update_interval\": \"%s\"}", time_str, interval_str);
+
+		store_common_tojson(sobj, buf);
+		sdb_strbuf_append(buf, "}");
 
 		if (sdb_llist_iter_has_next(iter))
 			sdb_strbuf_append(buf, ",");
@@ -504,27 +515,14 @@ int
 sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
 {
 	sdb_host_t *host;
-	char time_str[64];
-	char interval_str[64];
 
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
 
 	host = HOST(h);
 
-	if (! sdb_strftime(time_str, sizeof(time_str),
-				"%F %T %z", host->_last_update))
-		snprintf(time_str, sizeof(time_str), "<error>");
-	time_str[sizeof(time_str) - 1] = '\0';
-
-	if (! sdb_strfinterval(interval_str, sizeof(interval_str),
-				host->_interval))
-		snprintf(interval_str, sizeof(interval_str), "<error>");
-	interval_str[sizeof(interval_str) - 1] = '\0';
-
-	sdb_strbuf_append(buf, "{\"name\": \"%s\", "
-			"\"last_update\": \"%s\", \"update_interval\": \"%s\"",
-			SDB_OBJ(host)->name, time_str, interval_str);
+	sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(host)->name);
+	store_common_tojson(h, buf);
 
 	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
 		sdb_strbuf_append(buf, ", \"attributes\": ");
