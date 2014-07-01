@@ -16,7 +16,7 @@ install:
   - pip show cpp-coveralls
 script: ./t/cibuild.sh
 after_success:
-  - test "${CC}x" != "gccx" || coveralls --build-root src --exclude t
+  - test "${CC}x" != "gccx" || coveralls --build-root src --exclude t -E '.*\.[yl]'
 branches:
   only:
     - master
