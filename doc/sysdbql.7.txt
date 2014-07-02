@@ -80,6 +80,15 @@ The following fields may be queried:
 	The value of the named host attribute. If an attribute of the specified
 	does not exist, each comparison is treated as if the value does not match.
 
+'<value>' may either be a string (when matching by object names) or match the
+type of the attribute's value (when matching attribute values). Attribute
+values may either be a string, integer, or decimal number (booleans and binary
+data are not supported by the frontend yet).
+
+When comparing an attribute's value using a regular expression matcher, the
+value will be cast to a string before doing so. No other casts are supported
+at this time.
+
 The following operators may be used to match field values:
 
 *=*::
@@ -96,6 +105,12 @@ The following operators may be used to match field values:
 *!~*::
 	Evalues to true if the field value does not match the specified regular
 	expression.
+
+The following operators may be used, in addition, to match attribute values:
+
+*<*, *\<=*, *>=*, *>*::
+	Evaluates to true if the attribute value is less than, less than or equal
+	to, greater than or equal to or greater than the specified value.
 
 RESPONSE FORMAT
 ---------------
