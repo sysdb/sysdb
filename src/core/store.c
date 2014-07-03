@@ -532,10 +532,8 @@ sdb_store_attribute(const char *hostname,
 
 	if (status >= 0) {
 		assert(updated_attr);
-		sdb_data_free_datum(&ATTR(updated_attr)->value);
-		if (sdb_data_copy(&ATTR(updated_attr)->value, value)) {
+		if (sdb_data_copy(&ATTR(updated_attr)->value, value))
 			status = -1;
-		}
 	}
 
 	pthread_rwlock_unlock(&host_lock);

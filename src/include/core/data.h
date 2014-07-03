@@ -81,7 +81,8 @@ typedef struct {
  * Copy the datum stored in 'src' to the memory location pointed to by 'dst'.
  * Any dynamic data (strings, binary data) is copied to newly allocated
  * memory. Use, for example, sdb_data_free_datum() to free any dynamic memory
- * stored in a datum.
+ * stored in a datum. On error, 'dst' is unchanged. Else, any dynamic memory
+ * in 'dst' will be freed.
  *
  * Returns:
  *  - 0 on success

@@ -65,6 +65,7 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
 			break;
 	}
 
+	sdb_data_free_datum(dst);
 	*dst = tmp;
 	return 0;
 } /* sdb_data_copy */
