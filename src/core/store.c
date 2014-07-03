@@ -210,80 +210,45 @@ lookup_host(const char *name)
 	return HOST(sdb_llist_search_by_name(host_list, name));
 } /* lookup_host */
 
-/* The host_lock has to be acquired before calling this function. */
 static int
-store_obj(const char *hostname, int type, const char *name,
-		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
+record_backend(sdb_store_obj_t *obj)
 {
-	char *host_cname = NULL, *cname = NULL;
-	char **tmp;
-
-	sdb_llist_t *parent_list;
-	sdb_store_obj_t *old, *new;
 	const sdb_plugin_info_t *info;
-
-	int status = 0;
+	char **tmp;
 	size_t i;
 
-	if (last_update <= 0)
-		last_update = sdb_gettime();
+	info = sdb_plugin_current();
+	if (! info)
+		return 0;
 
-	assert((type == 0)
-			|| (type == SDB_HOST)
-			|| (type == SDB_SERVICE)
-			|| (type == SDB_ATTRIBUTE));
+	for (i = 0; i < obj->backends_num; ++i)
+		if (!strcasecmp(obj->backends[i], info->plugin_name))
+			return 0;
 
-	assert(hostname || (type == SDB_HOST));
-	assert((! hostname)
-			|| (type == SDB_SERVICE)
-			|| (type == SDB_ATTRIBUTE));
+	tmp = realloc(obj->backends,
+			(obj->backends_num + 1) * sizeof(*obj->backends));
+	if (! tmp)
+		return -1;
 
-	if (! host_list)
-		if (! (host_list = sdb_llist_create()))
-			return -1;
-	parent_list = host_list;
+	obj->backends = tmp;
+	obj->backends[obj->backends_num] = strdup(info->plugin_name);
+	if (! obj->backends[obj->backends_num])
+		return -1;
 
-	if (type == SDB_HOST) {
-		cname = sdb_plugin_cname(strdup(name));
-		if (! cname) {
-			sdb_log(SDB_LOG_ERR, "store: strdup failed");
-			return -1;
-		}
-		name = cname;
-	}
+	++obj->backends_num;
+	return 0;
+} /* record_backend */
 
-	if (hostname) {
-		sdb_host_t *host;
+static int
+store_obj(sdb_llist_t *parent_list, int type, const char *name,
+		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
+{
+	sdb_store_obj_t *old, *new;
+	int status = 0;
 
-		host_cname = sdb_plugin_cname(strdup(hostname));
-		if (! host_cname) {
-			sdb_log(SDB_LOG_ERR, "store: strdup failed");
-			free(cname);
-			return -1;
-		}
-		hostname = host_cname;
+	assert(parent_list);
 
-		host = lookup_host(hostname);
-		if (! host) {
-			sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
-					"host '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
-					name, hostname);
-			free(host_cname);
-			free(cname);
-			return -1;
-		}
-
-		if (type == SDB_ATTRIBUTE)
-			parent_list = host->attributes;
-		else
-			parent_list = host->services;
-	}
-
-	if (type == SDB_HOST)
-		old = STORE_OBJ(sdb_llist_search_by_name(host_list, name));
-	else
-		old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
-
+	old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	if (old) {
 		if (old->last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
@@ -336,9 +301,6 @@ store_obj(const char *hostname, int type, const char *name,
 		}
 	}
 
-	free(host_cname);
-	free(cname);
-
 	if (status < 0)
 		return status;
 	assert(new);
@@ -346,27 +308,57 @@ store_obj(const char *hostname, int type, const char *name,
 	if (updated_obj)
 		*updated_obj = new;
 
-	info = sdb_plugin_current();
-	if (! info)
-		return status;
-
-	for (i = 0; i < new->backends_num; ++i)
-		if (!strcasecmp(new->backends[i], info->plugin_name))
-			return status;
-
-	tmp = realloc(new->backends,
-			(new->backends_num + 1) * sizeof(*new->backends));
-	if (! tmp)
+	if (record_backend(new))
 		return -1;
-
-	new->backends = tmp;
-	new->backends[new->backends_num] = strdup(info->plugin_name);
-	if (! new->backends[new->backends_num])
-		return -1;
-
-	++new->backends_num;
 	return status;
 } /* store_obj */
+
+/* The host_lock has to be acquired before calling this function. */
+static int
+store_host_obj(const char *hostname, int type, const char *name,
+		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
+{
+	char *cname = NULL;
+	sdb_host_t *host;
+	sdb_llist_t *parent_list;
+
+	int status = 0;
+
+	if (last_update <= 0)
+		last_update = sdb_gettime();
+
+	assert(hostname);
+	assert((type == SDB_SERVICE) || (type == SDB_ATTRIBUTE));
+
+	if (! host_list)
+		return -1;
+
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "store: strdup failed");
+		return -1;
+	}
+
+	host = lookup_host(cname);
+	if (! host) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
+				"host '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
+				name, hostname);
+		free(cname);
+		return -1;
+	}
+
+	if (type == SDB_ATTRIBUTE)
+		parent_list = host->attributes;
+	else
+		parent_list = host->services;
+
+	status = store_obj(parent_list, type, name,
+			last_update, updated_obj);
+
+	free(cname);
+	return status;
+} /* store_host_obj */
 
 /*
  * store_common_tojson serializes common object attributes to JSON.
@@ -466,16 +458,31 @@ sdb_store_clear(void)
 int
 sdb_store_host(const char *name, sdb_time_t last_update)
 {
-	int status;
+	char *cname = NULL;
+	int status = 0;
 
 	if (! name)
 		return -1;
 
+	if (last_update <= 0)
+		last_update = sdb_gettime();
+
+	cname = sdb_plugin_cname(strdup(name));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "store: strdup failed");
+		return -1;
+	}
+
 	pthread_rwlock_wrlock(&host_lock);
-	status = store_obj(/* hostname = */ NULL,
-			/* stored object = */ SDB_HOST, name, last_update,
-			/* updated_obj = */ NULL);
+	if (! host_list)
+		if (! (host_list = sdb_llist_create()))
+			status = -1;
+
+	if (! status)
+		status = store_obj(host_list, SDB_HOST, cname, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
+
+	free(cname);
 	return status;
 } /* sdb_store_host */
 
@@ -520,8 +527,7 @@ sdb_store_attribute(const char *hostname,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	status = store_obj(hostname,
-			/* stored object = */ SDB_ATTRIBUTE, key, last_update,
+	status = store_host_obj(hostname, SDB_ATTRIBUTE, key, last_update,
 			&updated_attr);
 
 	if (status >= 0) {
@@ -547,9 +553,7 @@ sdb_store_service(const char *hostname, const char *name,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	status = store_obj(hostname,
-			/* stored object = */ SDB_SERVICE, name, last_update,
-			/* updated obj = */ NULL);
+	status = store_host_obj(hostname, SDB_SERVICE, name, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service */

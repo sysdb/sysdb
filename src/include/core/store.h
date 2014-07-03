@@ -123,7 +123,7 @@ sdb_store_attribute(const char *hostname,
 
 /*
  * sdb_store_service:
- * Add/update a store in the store. If the service, identified by its name,
+ * Add/update a service in the store. If the service, identified by its name,
  * already exists for the specified host, it will be updated according to the
  * specified 'service' object. If the referenced host does not exist, an error
  * will be reported. Else, a new entry will be created in the store. Any
