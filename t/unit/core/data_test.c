@@ -365,6 +365,59 @@ START_TEST(test_format)
 }
 END_TEST
 
+START_TEST(test_parse)
+{
+	struct {
+		char *input;
+		sdb_data_t result;
+		int expected;
+	} golden_data[] = {
+		{ "4711",    { SDB_TYPE_INTEGER,  { .integer  = 4711 } },       0 },
+		{ "0x10",    { SDB_TYPE_INTEGER,  { .integer  = 16 } },         0 },
+		{ "010",     { SDB_TYPE_INTEGER,  { .integer  = 8 } },          0 },
+		{ "abc",     { SDB_TYPE_INTEGER,  { .integer  = 0 } },         -1 },
+		{ "1.2",     { SDB_TYPE_DECIMAL,  { .decimal  = 1.2 } },        0 },
+		{ "0x1p+16", { SDB_TYPE_DECIMAL,  { .decimal  = 65536.0 } },    0 },
+		{ "abc",     { SDB_TYPE_DECIMAL,  { .decimal  = 0.0 } },       -1 },
+		{ "abc",     { SDB_TYPE_STRING,   { .string   = "abc" } },      0 },
+		{ ".4",      { SDB_TYPE_DATETIME, { .datetime = 400000000 } },  0 },
+		{ "abc",     { SDB_TYPE_DATETIME, { .datetime = 0 } },         -1 },
+		{ "abc",     { SDB_TYPE_BINARY,
+					 { .binary = { 3, (unsigned char *)"abc" } } }, 0 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_data_t result;
+		int type, check;
+
+		memset(&result, 0, sizeof(result));
+		type = golden_data[i].result.type;
+		check = sdb_data_parse(golden_data[i].input, type, &result);
+		fail_unless(check == golden_data[i].expected,
+				"sdb_data_parse(%s, %d, <d>) = %d; expected: %d",
+				golden_data[i].input, type, check, golden_data[i].expected);
+
+		if (check)
+			continue;
+
+		fail_unless(sdb_data_cmp(&result, &golden_data[i].result) == 0,
+				"sdb_data_parse(%s, %d, <d>) did not create expected result",
+				golden_data[i].input, type);
+
+		if (type == SDB_TYPE_STRING)
+			fail_unless(golden_data[i].input == result.data.string,
+					"sdb_data_parse(%s, %d, <d>) modified input string",
+					golden_data[i].input, type);
+		if (type == SDB_TYPE_BINARY)
+			fail_unless(golden_data[i].input == (char *)result.data.binary.datum,
+					"sdb_data_parse(%s, %d, <d>) modified input string",
+					golden_data[i].input, type);
+	}
+}
+END_TEST
+
 Suite *
 core_data_suite(void)
 {
@@ -375,6 +428,7 @@ core_data_suite(void)
 	tcase_add_test(tc, test_data);
 	tcase_add_test(tc, test_cmp);
 	tcase_add_test(tc, test_format);
+	tcase_add_test(tc, test_parse);
 	suite_add_tcase(s, tc);
 
 	return s;

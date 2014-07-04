@@ -146,6 +146,26 @@ enum {
 int
 sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
 
+/*
+ * sdb_data_parse:
+ * Parse the specified string into a datum using the specified type. The
+ * string value is expected to be a raw value of the specified type. Integer
+ * and decimal numbers may be signed or unsigned octal (base 8, if the first
+ * character of the string is "0"), sedecimal (base 16, if the string includes
+ * the "0x" prefix), or decimal. Decimal numbers may also be "infinity" or
+ * "NaN" or may use a decimal exponent. Date-time values are expected to be
+ * specified as (floating point) number of seconds since the epoch. For string
+ * and binary data, the input string is passed to the datum. The function does
+ * not allocate new memory for that purpose. Use sdb_data_copy() if you want
+ * to do that.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_data_parse(char *str, int type, sdb_data_t *data);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

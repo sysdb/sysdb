@@ -30,6 +30,9 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "core/data.h"
+#include "utils/error.h"
+
+#include <errno.h>
 
 #include <inttypes.h>
 
@@ -254,6 +257,62 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	buf[buflen - 1] = '\0';
 	return ret;
 } /* sdb_data_format */
+
+int
+sdb_data_parse(char *str, int type, sdb_data_t *data)
+{
+	sdb_data_t tmp;
+
+	char *endptr = NULL;
+
+	errno = 0;
+	switch (type) {
+		case SDB_TYPE_INTEGER:
+			tmp.data.integer = strtoll(str, &endptr, 0);
+			break;
+		case SDB_TYPE_DECIMAL:
+			tmp.data.decimal = strtod(str, &endptr);
+			break;
+		case SDB_TYPE_STRING:
+			tmp.data.string = str;
+			break;
+		case SDB_TYPE_DATETIME:
+			{
+				double datetime = strtod(str, &endptr);
+				tmp.data.datetime = DOUBLE_TO_SDB_TIME(datetime);
+			}
+			break;
+		case SDB_TYPE_BINARY:
+			/* we don't support any binary information containing 0-bytes */
+			tmp.data.binary.length = strlen(str);
+			tmp.data.binary.datum = (unsigned char *)str;
+			break;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+
+	if ((type == SDB_TYPE_INTEGER) || (type == SDB_TYPE_DECIMAL)
+			|| (type == SDB_TYPE_DATETIME)) {
+		if (errno || (str == endptr)) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_ERR, "core: Failed to parse string "
+					"'%s' as numeric value (type %i): %s", str, type,
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			return -1;
+		}
+		else if (endptr && (*endptr != '\0'))
+			sdb_log(SDB_LOG_WARNING, "core: Ignoring garbage after "
+					"number while parsing numeric value (type %i): %s.",
+					type, endptr);
+	}
+
+	if (data) {
+		*data = tmp;
+		data->type = type;
+	}
+	return 0;
+} /* sdb_data_parse */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

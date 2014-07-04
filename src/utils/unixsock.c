@@ -92,59 +92,6 @@ sdb_unixsock_get_column_count(const char *string, const char *delim)
 } /* sdb_unixsock_get_column_count */
 
 static int
-sdb_unixsock_parse_cell(char *string, int type, sdb_data_t *data)
-{
-	char *endptr = NULL;
-
-	switch (type) {
-		case SDB_TYPE_INTEGER:
-			errno = 0;
-			data->data.integer = strtoll(string, &endptr, 0);
-			break;
-		case SDB_TYPE_DECIMAL:
-			errno = 0;
-			data->data.decimal = strtod(string, &endptr);
-			break;
-		case SDB_TYPE_STRING:
-			data->data.string = string;
-			break;
-		case SDB_TYPE_DATETIME:
-			{
-				double datetime = strtod(string, &endptr);
-				data->data.datetime = DOUBLE_TO_SDB_TIME(datetime);
-			}
-			break;
-		case SDB_TYPE_BINARY:
-			/* we don't support any binary information containing 0-bytes */
-			data->data.binary.length = strlen(string);
-			data->data.binary.datum = (unsigned char *)string;
-			break;
-		default:
-			sdb_log(SDB_LOG_ERR, "unixsock: Unexpected type %i while "
-					"parsing query result.", type);
-			return -1;
-	}
-
-	if ((type == SDB_TYPE_INTEGER) || (type == SDB_TYPE_DECIMAL)
-			|| (type == SDB_TYPE_DATETIME)) {
-		if (errno || (string == endptr)) {
-			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "unixsock: Failed to parse string "
-					"'%s' as numeric value (type %i): %s", string, type,
-					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			return -1;
-		}
-		else if (endptr && (*endptr != '\0'))
-			sdb_log(SDB_LOG_WARNING, "unixsock: Ignoring garbage after "
-					"number while parsing numeric value (type %i): %s.",
-					type, endptr);
-	}
-
-	data->type = type;
-	return 0;
-} /* sdb_unixsock_parse_cell */
-
-static int
 sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 		char *line, sdb_unixsock_client_data_cb callback,
 		sdb_object_t *user_data, const char *delim,
@@ -178,7 +125,7 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 			++next;
 		}
 
-		if (sdb_unixsock_parse_cell(line,
+		if (sdb_data_parse(line,
 					types ? types[i] : SDB_TYPE_STRING, &data[i]))
 			return -1;
 
