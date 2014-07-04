@@ -44,9 +44,14 @@ populate(void)
 	datum.data.string = "v1";
 	sdb_store_attribute("h1", "k1", &datum, 1);
 	datum.data.string = "v2";
-	sdb_store_attribute("h1", "k2", &datum, 1);
+	sdb_store_attribute("h1", "k2", &datum, 2);
 	datum.data.string = "v3";
-	sdb_store_attribute("h1", "k3", &datum, 1);
+	sdb_store_attribute("h1", "k3", &datum, 2);
+
+	/* make sure that older updates don't overwrite existing values */
+	datum.data.string = "fail";
+	sdb_store_attribute("h1", "k2", &datum, 1);
+	sdb_store_attribute("h1", "k3", &datum, 2);
 
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 1);

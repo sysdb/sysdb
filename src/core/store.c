@@ -324,7 +324,7 @@ store_attr(sdb_llist_t *attributes, const char *key, const sdb_data_t *value,
 	int status;
 
 	status = store_obj(attributes, SDB_ATTRIBUTE, key, last_update, &attr);
-	if (status < 0)
+	if (status)
 		return status;
 
 	assert(attr);
