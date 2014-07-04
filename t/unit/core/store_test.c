@@ -55,6 +55,14 @@ populate(void)
 
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 1);
+
+	datum.type = SDB_TYPE_INTEGER;
+	datum.data.integer = 123;
+	sdb_store_service_attr("h2", "s2", "k1", &datum, 2);
+
+	/* don't overwrite */
+	datum.data.integer = 666;
+	sdb_store_service_attr("h2", "s2", "k1", &datum, 2);
 } /* populate */
 
 START_TEST(test_store_host)
@@ -350,10 +358,16 @@ START_TEST(test_store_tojson)
 					"\"services\": ["
 						"{\"name\": \"s1\", "
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
-							"\"update_interval\": \"0s\", \"backends\": []},"
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []},"
 						"{\"name\": \"s2\", "
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
-							"\"update_interval\": \"0s\", \"backends\": []}"
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k1\", \"value\": 123, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]}"
 					"]}"
 			"]}" },
 		{ SDB_SKIP_SERVICES,

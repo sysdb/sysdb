@@ -409,7 +409,7 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
  * of the serialized data.
  */
 static void
-store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
+store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf, int flags)
 {
 	sdb_llist_iter_t *iter;
 
@@ -439,8 +439,14 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf)
 					SDB_DOUBLE_QUOTED);
 			sdb_strbuf_append(buf, "\"value\": %s, ", tmp);
 		}
-
 		store_common_tojson(sobj, buf);
+
+		if ((sobj->type == SDB_SERVICE)
+				&& (! (flags & SDB_SKIP_ATTRIBUTES))) {
+			sdb_strbuf_append(buf, ", \"attributes\": ");
+			store_obj_tojson(SVC(sobj)->attributes, SDB_ATTRIBUTE,
+					buf, flags);
+		}
 		sdb_strbuf_append(buf, "}");
 
 		if (sdb_llist_iter_has_next(iter))
@@ -619,12 +625,12 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
 
 	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
 		sdb_strbuf_append(buf, ", \"attributes\": ");
-		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf);
+		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf, flags);
 	}
 
 	if (! (flags & SDB_SKIP_SERVICES)) {
 		sdb_strbuf_append(buf, ", \"services\": ");
-		store_obj_tojson(host->services, SDB_SERVICE, buf);
+		store_obj_tojson(host->services, SDB_SERVICE, buf, flags);
 	}
 
 	sdb_strbuf_append(buf, "}");
