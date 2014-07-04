@@ -112,7 +112,7 @@ sdb_data_free_datum(sdb_data_t *datum);
  *  - a value greater than zero if d1 compares greater than d2
  */
 int
-sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2);
+sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2);
 
 /*
  * sdb_data_strlen:

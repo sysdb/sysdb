@@ -92,7 +92,7 @@ sdb_data_free_datum(sdb_data_t *datum)
 } /* sdb_data_free_datum */
 
 int
-sdb_data_cmp(sdb_data_t *d1, sdb_data_t *d2)
+sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 {
 #define CMP_NULL(a, b) \
 	do { \
