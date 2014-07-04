@@ -327,6 +327,10 @@ store_attr(sdb_llist_t *attributes, const char *key, const sdb_data_t *value,
 	if (status)
 		return status;
 
+	/* don't update unchanged values */
+	if (! sdb_data_cmp(&ATTR(attr)->value, value))
+		return status;
+
 	assert(attr);
 	if (sdb_data_copy(&ATTR(attr)->value, value))
 		return -1;
