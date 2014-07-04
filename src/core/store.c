@@ -248,6 +248,9 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 
 	assert(parent_list);
 
+	if (last_update <= 0)
+		last_update = sdb_gettime();
+
 	old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	if (old) {
 		if (old->last_update >= last_update) {
@@ -313,52 +316,52 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 	return status;
 } /* store_obj */
 
-/* The host_lock has to be acquired before calling this function. */
 static int
-store_host_obj(const char *hostname, int type, const char *name,
-		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
+store_attr(sdb_llist_t *attributes, const char *key, const sdb_data_t *value,
+		sdb_time_t last_update)
+{
+	sdb_store_obj_t *attr = NULL;
+	int status;
+
+	status = store_obj(attributes, SDB_ATTRIBUTE, key, last_update, &attr);
+	if (status < 0)
+		return status;
+
+	assert(attr);
+	if (sdb_data_copy(&ATTR(attr)->value, value))
+		return -1;
+	return status;
+} /* store_attr */
+
+/* The host_lock has to be acquired before calling this function. */
+static sdb_llist_t *
+get_host_children(const char *hostname, int type)
 {
 	char *cname = NULL;
 	sdb_host_t *host;
-	sdb_llist_t *parent_list;
-
-	int status = 0;
-
-	if (last_update <= 0)
-		last_update = sdb_gettime();
 
 	assert(hostname);
 	assert((type == SDB_SERVICE) || (type == SDB_ATTRIBUTE));
 
 	if (! host_list)
-		return -1;
+		return NULL;
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
 		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return -1;
+		return NULL;
 	}
 
 	host = lookup_host(cname);
-	if (! host) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to store %s '%s' - "
-				"host '%s' not found", SDB_STORE_TYPE_TO_NAME(type),
-				name, hostname);
-		free(cname);
-		return -1;
-	}
+	free(cname);
+	if (! host)
+		return NULL;
 
 	if (type == SDB_ATTRIBUTE)
-		parent_list = host->attributes;
+		return host->attributes;
 	else
-		parent_list = host->services;
-
-	status = store_obj(parent_list, type, name,
-			last_update, updated_obj);
-
-	free(cname);
-	return status;
-} /* store_host_obj */
+		return host->services;
+} /* get_host_children */
 
 /*
  * store_common_tojson serializes common object attributes to JSON.
@@ -464,9 +467,6 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	if (! name)
 		return -1;
 
-	if (last_update <= 0)
-		last_update = sdb_gettime();
-
 	cname = sdb_plugin_cname(strdup(name));
 	if (! cname) {
 		sdb_log(SDB_LOG_ERR, "store: strdup failed");
@@ -519,22 +519,22 @@ sdb_store_attribute(const char *hostname,
 		const char *key, const sdb_data_t *value,
 		sdb_time_t last_update)
 {
-	int status;
-
-	sdb_store_obj_t *updated_attr = NULL;
+	sdb_llist_t *attrs;
+	int status = 0;
 
 	if ((! hostname) || (! key))
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	status = store_host_obj(hostname, SDB_ATTRIBUTE, key, last_update,
-			&updated_attr);
-
-	if (status >= 0) {
-		assert(updated_attr);
-		if (sdb_data_copy(&ATTR(updated_attr)->value, value))
-			status = -1;
+	attrs = get_host_children(hostname, SDB_ATTRIBUTE);
+	if (! attrs) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
+				"host '%s' not found", key, hostname);
+		status = -1;
 	}
+
+	if (! status)
+		status = store_attr(attrs, key, value, last_update);
 
 	pthread_rwlock_unlock(&host_lock);
 	return status;
@@ -544,16 +544,61 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	int status;
+	sdb_llist_t *services;
+
+	int status = 0;
 
 	if ((! hostname) || (! name))
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	status = store_host_obj(hostname, SDB_SERVICE, name, last_update, NULL);
+	services = get_host_children(hostname, SDB_SERVICE);
+	if (! services) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store service '%s' - "
+				"host '%s' not found", name, hostname);
+		status = -1;
+	}
+
+	if (! status)
+		status = store_obj(services, SDB_SERVICE, name, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service */
+
+int
+sdb_store_service_attr(const char *hostname, const char *service,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+{
+	sdb_llist_t *services;
+	sdb_service_t *svc;
+	int status = 0;
+
+	if ((! hostname) || (! service) || (! key))
+		return -1;
+
+	pthread_rwlock_wrlock(&host_lock);
+	services = get_host_children(hostname, SDB_SERVICE);
+	if (! services) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
+				"for service '%s' - host '%ss' not found",
+				key, service, hostname);
+		pthread_rwlock_unlock(&host_lock);
+		return -1;
+	}
+
+	svc = SVC(sdb_llist_search_by_name(services, service));
+	if (! svc) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
+				"service '%s/%s' not found", key, hostname, service);
+		status = -1;
+	}
+
+	if (! status)
+		status = store_attr(svc->attributes, key, value, last_update);
+
+	pthread_rwlock_unlock(&host_lock);
+	return status;
+} /* sdb_store_service_attr */
 
 int
 sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)

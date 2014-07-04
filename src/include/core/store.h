@@ -142,6 +142,24 @@ sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update);
 
 /*
+ * sdb_store_service_attr:
+ * Add/update a service's attribute in the store. If the attribute, identified
+ * by its key, already exists for the specified service, it will be updated to
+ * the specified value. If the references service (for the specified host)
+ * does not exist, an error will be reported. Any memory required for storing
+ * the entry will be allocated and managed by the store itself.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
+int
+sdb_store_service_attr(const char *hostname, const char *service,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+
+/*
  * Conditionals may be used to lookup hosts from the store based on a
  * conditional expression.
  *

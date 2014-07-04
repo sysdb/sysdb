@@ -240,6 +240,54 @@ START_TEST(test_store_service)
 }
 END_TEST
 
+START_TEST(test_store_service_attr)
+{
+	struct {
+		const char *host;
+		const char *svc;
+		const char *attr;
+		const sdb_data_t value;
+		sdb_time_t  last_update;
+		int expected;
+	} golden_data[] = {
+		{ "k", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		/* retry, it should still fail */
+		{ "k", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		{ "l", "sX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		/* retry, it should still fail */
+		{ "l", "sX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
+		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 2,  0 },
+		{ "l", "s1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "l", "s1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
+		{ "l", "s2", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "m", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+	};
+
+	size_t i;
+
+	sdb_store_host("m", 1);
+	sdb_store_host("l", 1);
+	sdb_store_service("m", "s1", 1);
+	sdb_store_service("l", "s1", 1);
+	sdb_store_service("l", "s2", 1);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		int status;
+
+		status = sdb_store_service_attr(golden_data[i].host,
+				golden_data[i].svc, golden_data[i].attr,
+				&golden_data[i].value, golden_data[i].last_update);
+		fail_unless(status == golden_data[i].expected,
+				"sdb_store_service_attr(%s, %s, %s, %d, %d) = %d; "
+				"expected: %d", golden_data[i].host, golden_data[i].svc,
+				golden_data[i].attr, golden_data[i].value.data.integer,
+				golden_data[i].last_update, status, golden_data[i].expected);
+	}
+}
+END_TEST
+
 static void
 verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
 {
@@ -497,6 +545,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
+	tcase_add_test(tc, test_store_service_attr);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_iterate);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
