@@ -250,7 +250,7 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 
 	old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
 	if (old) {
-		if (old->last_update > last_update) {
+		if (old->last_update >= last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
 					"value too old (%"PRIscTIME" < %"PRIscTIME")",
 					SDB_STORE_TYPE_TO_NAME(type), name,

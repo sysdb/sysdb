@@ -59,13 +59,13 @@ START_TEST(test_store_host)
 		sdb_time_t  last_update;
 		int         expected;
 	} golden_data[] = {
+		{ "a", 1, 0 },
 		{ "a", 2, 0 },
-		{ "a", 3, 0 },
 		{ "a", 1, 1 },
-		{ "b", 2, 0 },
+		{ "b", 1, 0 },
 		{ "b", 1, 1 },
 		{ "A", 1, 1 }, /* case-insensitive */
-		{ "A", 4, 0 },
+		{ "A", 3, 0 },
 	};
 
 	struct {
@@ -172,14 +172,14 @@ START_TEST(test_store_attr)
 		sdb_time_t  last_update;
 		int         expected;
 	} golden_data[] = {
-		{ "k", "k", "v", 1, -1 },
-		{ "k", "k", "v", 1, -1 }, /* retry to ensure the host is not created */
-		{ "l", "k1", "v1", 1, 0 },
-		{ "l", "k1", "v2", 2, 0 },
-		{ "l", "k1", "v3", 1, 1 },
-		{ "l", "k2", "v1", 1, 0 },
-		{ "m", "k", "v1", 2, 0 },
-		{ "m", "k", "v2", 1, 1 },
+		{ "k", "k",  "v",  1, -1 },
+		{ "k", "k",  "v",  1, -1 }, /* retry to ensure the host is not created */
+		{ "l", "k1", "v1", 1,  0 },
+		{ "l", "k1", "v2", 2,  0 },
+		{ "l", "k1", "v3", 2,  1 },
+		{ "l", "k2", "v1", 1,  0 },
+		{ "m", "k",  "v1", 1,  0 },
+		{ "m", "k",  "v2", 1,  1 },
 	};
 
 	size_t i;
@@ -213,14 +213,14 @@ START_TEST(test_store_service)
 		sdb_time_t  last_update;
 		int         expected;
 	} golden_data[] = {
-		{ "k", "s", 1, -1 },
-		{ "k", "s", 1, -1 }, /* retry to ensure the host is not created */
-		{ "l", "s1", 1, 0 },
-		{ "l", "s1", 2, 0 },
-		{ "l", "s1", 1, 1 },
-		{ "l", "s2", 1, 0 },
-		{ "m", "s", 2, 0 },
-		{ "m", "s", 1, 1 },
+		{ "k", "s",  1, -1 },
+		{ "k", "s",  1, -1 }, /* retry to ensure the host is not created */
+		{ "l", "s1", 1,  0 },
+		{ "l", "s1", 2,  0 },
+		{ "l", "s1", 2,  1 },
+		{ "l", "s2", 1,  0 },
+		{ "m", "s",  1,  0 },
+		{ "m", "s",  1,  1 },
 	};
 
 	size_t i;
