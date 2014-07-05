@@ -34,6 +34,7 @@ pkgutilsinclude_HEADERS = \
 		include/utils/dbi.h \
 		include/utils/error.h \
 		include/utils/llist.h \
+		include/utils/os.h \
 		include/utils/proto.h \
 		include/utils/strbuf.h \
 		include/utils/unixsock.h
