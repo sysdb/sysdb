@@ -141,7 +141,7 @@ llist_insert_after(sdb_llist_t *list, sdb_llist_elem_t *elem,
 
 static sdb_llist_elem_t *
 llist_search(sdb_llist_t *list,
-		sdb_llist_lookup_cb lookup, const void *user_data)
+		sdb_object_lookup_cb lookup, const void *user_data)
 {
 	sdb_llist_elem_t *elem;
 
@@ -297,7 +297,7 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx)
 
 int
 sdb_llist_insert_sorted(sdb_llist_t *list,
-		sdb_object_t *obj, sdb_llist_cmp_cb compare)
+		sdb_object_t *obj, sdb_object_cmp_cb compare)
 {
 	sdb_llist_elem_t *prev;
 	sdb_llist_elem_t *next;
@@ -343,7 +343,7 @@ sdb_llist_get(sdb_llist_t *list, size_t i)
 
 sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
-		sdb_llist_lookup_cb lookup, const void *user_data)
+		sdb_object_lookup_cb lookup, const void *user_data)
 {
 	sdb_llist_elem_t *elem;
 
@@ -382,7 +382,7 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key)
 
 sdb_object_t *
 sdb_llist_remove(sdb_llist_t *list,
-		sdb_llist_lookup_cb lookup, const void *user_data)
+		sdb_object_lookup_cb lookup, const void *user_data)
 {
 	sdb_llist_elem_t *elem;
 	sdb_object_t *obj = NULL;

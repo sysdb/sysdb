@@ -69,6 +69,12 @@ typedef struct {
 #define SDB_CONST_OBJ_WRAPPER(obj) ((const sdb_object_wrapper_t *)(obj))
 
 /*
+ * Callback types for comparing objects or performing object lookup.
+ */
+typedef int (*sdb_object_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
+typedef int (*sdb_object_lookup_cb)(const sdb_object_t *, const void *user_data);
+
+/*
  * sdb_object_create:
  * Allocates a new sdb_object_t of the specified 'name' and 'type'. The object
  * will be initialized to zero and then passed on to the 'init' function (if

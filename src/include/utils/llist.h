@@ -40,9 +40,6 @@ typedef struct sdb_llist sdb_llist_t;
 struct sdb_llist_iter;
 typedef struct sdb_llist_iter sdb_llist_iter_t;
 
-typedef int (*sdb_llist_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
-typedef int (*sdb_llist_lookup_cb)(const sdb_object_t *, const void *user_data);
-
 /*
  * sdb_llist_create, sdb_llist_destroy:
  * Create and destroy a doubly linked list object.
@@ -125,7 +122,7 @@ sdb_llist_insert(sdb_llist_t *list, sdb_object_t *obj, size_t idx);
  */
 int
 sdb_llist_insert_sorted(sdb_llist_t *list,
-		sdb_object_t *obj, sdb_llist_cmp_cb);
+		sdb_object_t *obj, sdb_object_cmp_cb);
 
 /*
  * sdb_llist_get:
@@ -148,7 +145,7 @@ sdb_llist_get(sdb_llist_t *list, size_t i);
  */
 sdb_object_t *
 sdb_llist_search(sdb_llist_t *list,
-		sdb_llist_lookup_cb lookup, const void *user_data);
+		sdb_object_lookup_cb lookup, const void *user_data);
 
 /*
  * sdb_llist_search_by_name:
@@ -175,7 +172,7 @@ sdb_llist_search_by_name(sdb_llist_t *list, const char *key);
  */
 sdb_object_t *
 sdb_llist_remove(sdb_llist_t *list,
-		sdb_llist_lookup_cb lookup, const void *user_data);
+		sdb_object_lookup_cb lookup, const void *user_data);
 
 /*
  * sdb_llist_remove_by_name:
