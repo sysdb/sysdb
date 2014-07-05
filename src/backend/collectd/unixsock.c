@@ -135,29 +135,48 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 {
 	sdb_collectd_state_t *state;
 
-	const char *hostname;
+	char *hostname;
 	const char *plugin;
 	const char *type;
-	sdb_time_t last_update;
+	sdb_data_t last_update;
 
 	assert(user_data);
 
-	assert(n == 4);
-	assert((data[0].type == SDB_TYPE_DATETIME)
+	/* 0: <last_update> <hostname>
+	 * 1: <plugin>
+	 * 2: <type> */
+	assert(n == 3);
+	assert((data[0].type == SDB_TYPE_STRING)
 			&& (data[1].type == SDB_TYPE_STRING)
-			&& (data[2].type == SDB_TYPE_STRING)
-			&& (data[3].type == SDB_TYPE_STRING));
+			&& (data[2].type == SDB_TYPE_STRING));
 
-	last_update = data[0].data.datetime;
-	hostname = data[1].data.string;
-	plugin   = data[2].data.string;
-	type     = data[3].data.string;
+	hostname = data[0].data.string;
+	plugin   = data[1].data.string;
+	type     = data[2].data.string;
+
+	hostname = strchr(hostname, ' ');
+	if (! hostname) {
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Expected to find "
+				"a space character in the LISTVAL response");
+		return -1;
+	}
+	*hostname = '\0';
+	++hostname;
+
+	if (sdb_data_parse(data[0].data.string, SDB_TYPE_DATETIME, &last_update)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to parse "
+				"timestamp '%s' returned by LISTVAL: %s", data[0].data.string,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
 
 	state = SDB_OBJ_WRAPPER(user_data)->data;
-	if (sdb_collectd_store_host(state, hostname, last_update))
+	if (sdb_collectd_store_host(state, hostname, last_update.data.datetime))
 		return -1;
 
-	if (sdb_collectd_add_svc(hostname, plugin, type, last_update))
+	if (sdb_collectd_add_svc(hostname, plugin, type,
+				last_update.data.datetime))
 		++state->svc_failed;
 	else
 		++state->svc_updated;
@@ -260,10 +279,9 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	}
 
 	if (sdb_unixsock_client_process_lines(client, sdb_collectd_get_data,
-				SDB_OBJ(&state_obj), count, /* delim */ " /",
-				/* column count = */ 4,
-				SDB_TYPE_DATETIME, SDB_TYPE_STRING,
-				SDB_TYPE_STRING, SDB_TYPE_STRING)) {
+				SDB_OBJ(&state_obj), count, /* delim */ "/",
+				/* column count = */ 3,
+				SDB_TYPE_STRING, SDB_TYPE_STRING, SDB_TYPE_STRING)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
 				"to read response from collectd @ %s.",
 				sdb_unixsock_client_path(client));
