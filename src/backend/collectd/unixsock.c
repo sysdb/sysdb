@@ -112,10 +112,14 @@ sdb_collectd_store_host(sdb_collectd_state_t *state,
 } /* sdb_collectd_store_host */
 
 static int
-sdb_collectd_add_svc(const char *hostname, const char *plugin,
-		const char *type, sdb_time_t last_update)
+sdb_collectd_add_svc(const char *hostname, char *plugin, char *type,
+		sdb_time_t last_update)
 {
-	char name[strlen(plugin) + strlen(type) + 2];
+	char  name[strlen(plugin) + strlen(type) + 2];
+	char *plugin_instance, *type_instance;
+
+	sdb_data_t data = { SDB_TYPE_STRING, { .string = NULL } };
+
 	int  status;
 
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
@@ -126,6 +130,31 @@ sdb_collectd_add_svc(const char *hostname, const char *plugin,
 				"store/update service '%s/%s'.", hostname, name);
 		return -1;
 	}
+
+	plugin_instance = strchr(plugin, '-');
+	if (plugin_instance) {
+		*plugin_instance = '\0';
+		++plugin_instance;
+
+		data.data.string = plugin_instance;
+		sdb_store_service_attr(hostname, name,
+				"plugin_instance", &data, last_update);
+	}
+
+	type_instance = strchr(type, '-');
+	if (type_instance) {
+		*type_instance = '\0';
+		++type_instance;
+
+		data.data.string = type_instance;
+		sdb_store_service_attr(hostname, name,
+				"type_instance", &data, last_update);
+	}
+
+	data.data.string = plugin;
+	sdb_store_service_attr(hostname, name, "plugin", &data, last_update);
+	data.data.string = type;
+	sdb_store_service_attr(hostname, name, "type", &data, last_update);
 	return 0;
 } /* sdb_collectd_add_svc */
 
@@ -134,11 +163,11 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data, sdb_object_t *user_data)
 {
 	sdb_collectd_state_t *state;
+	sdb_data_t last_update;
 
 	char *hostname;
-	const char *plugin;
-	const char *type;
-	sdb_data_t last_update;
+	char *plugin;
+	char *type;
 
 	assert(user_data);
 
