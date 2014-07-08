@@ -55,6 +55,9 @@ lcov --base-directory src --directory src --no-external \
 	--capture -o sysdb_coverage.info \
 	|| lcov --base-directory src --directory src \
 		--capture -o sysdb_coverage.info
+for pattern in '*.y' '*.l'; do
+	lcov --remove sysdb_coverage.info "$pattern" -o sysdb_coverage.info
+done
 
 V=$( ./version-gen.sh )
 genhtml -o "$srcdir"/t/coverage \
