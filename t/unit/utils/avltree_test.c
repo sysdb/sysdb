@@ -47,19 +47,23 @@ teardown(void)
 	tree = NULL;
 } /* teardown */
 
-/* 'a' - 'k' */
+/* 'a' thru 'o' */
 static sdb_object_t test_data[] = {
-	SSTRING_OBJ("d"),
+	SSTRING_OBJ("h"),
+	SSTRING_OBJ("j"),
+	SSTRING_OBJ("i"),
 	SSTRING_OBJ("f"),
 	SSTRING_OBJ("e"),
+	SSTRING_OBJ("g"),
+	SSTRING_OBJ("k"),
+	SSTRING_OBJ("l"),
+	SSTRING_OBJ("m"),
+	SSTRING_OBJ("n"),
+	SSTRING_OBJ("o"),
+	SSTRING_OBJ("d"),
+	SSTRING_OBJ("c"),
 	SSTRING_OBJ("b"),
 	SSTRING_OBJ("a"),
-	SSTRING_OBJ("c"),
-	SSTRING_OBJ("g"),
-	SSTRING_OBJ("h"),
-	SSTRING_OBJ("i"),
-	SSTRING_OBJ("j"),
-	SSTRING_OBJ("k"),
 };
 
 static void
