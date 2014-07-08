@@ -48,6 +48,11 @@
 
 #define SDB_STATIC_ARRAY_LEN(a) (sizeof((a)) / sizeof((a)[0]))
 
+#define SDB_MIN(a, b) ((a) <= (b) ? (a) : (b))
+#define SDB_MAX(a, b) ((a) >= (b) ? (a) : (b))
+
+#define SDB_CMP(a, b) ((a) < (b) ? -1 : (a) > (b) ? 1 : 0)
+
 #ifdef __cplusplus
 extern "C" {
 #endif

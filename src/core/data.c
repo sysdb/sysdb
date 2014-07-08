@@ -29,6 +29,8 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "sysdb.h"
+
 #include "core/data.h"
 #include "utils/error.h"
 
@@ -109,17 +111,16 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	if (d1->type != d2->type)
 		return -1;
 
-#define CMP(a, b) ((a) < (b) ? -1 : (a) > (b) ? 1 : 0)
 	switch (d1->type) {
 		case SDB_TYPE_INTEGER:
-			return CMP(d1->data.integer, d2->data.integer);
+			return SDB_CMP(d1->data.integer, d2->data.integer);
 		case SDB_TYPE_DECIMAL:
-			return CMP(d1->data.decimal, d2->data.decimal);
+			return SDB_CMP(d1->data.decimal, d2->data.decimal);
 		case SDB_TYPE_STRING:
 			CMP_NULL(d1->data.string, d2->data.string);
 			return strcasecmp(d1->data.string, d2->data.string);
 		case SDB_TYPE_DATETIME:
-			return CMP(d1->data.datetime, d2->data.datetime);
+			return SDB_CMP(d1->data.datetime, d2->data.datetime);
 		case SDB_TYPE_BINARY:
 		{
 			int diff;
@@ -146,7 +147,6 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 		default:
 			return -1;
 	}
-#undef CMP
 #undef CMP_NULL
 } /* sdb_data_cmp */
 
