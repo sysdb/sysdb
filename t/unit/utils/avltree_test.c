@@ -127,6 +127,21 @@ START_TEST(test_insert)
 				"sdb_avltree_size(<tree>) = %d; expected: %zu",
 				check, i + 1);
 	}
+
+	/* and again ... now reporting errors because of duplicates */
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(test_data); ++i) {
+		int check;
+
+		check = sdb_avltree_insert(tree, &test_data[i]);
+		fail_unless(check < 0,
+				"sdb_avltree_insert(<tree>, <%s>) = %d (redo); expected: <0",
+				test_data[i].name, check);
+
+		check = (int)sdb_avltree_size(tree);
+		fail_unless(check == SDB_STATIC_ARRAY_LEN(test_data),
+				"sdb_avltree_size(<tree>) = %d; expected: %zu",
+				check, SDB_STATIC_ARRAY_LEN(test_data));
+	}
 }
 END_TEST
 
@@ -171,6 +186,12 @@ START_TEST(test_iter)
 			"sdb_avltree_iter_get_next(<iter>) = <obj>; expected: NULL");
 
 	sdb_avltree_iter_destroy(iter);
+
+	sdb_avltree_clear(tree);
+	check = sdb_avltree_size(tree);
+	fail_unless(check == 0,
+			"sdb_avltree_clear(<tree>) left %zu nodes in the tree; "
+			"expected: 0", check);
 }
 END_TEST
 
