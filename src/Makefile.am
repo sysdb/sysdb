@@ -30,6 +30,7 @@ pkgfeinclude_HEADERS = \
 		include/frontend/sock.h
 pkgutilsincludedir = $(pkgincludedir)/utils
 pkgutilsinclude_HEADERS = \
+		include/utils/avltree.h \
 		include/utils/channel.h \
 		include/utils/dbi.h \
 		include/utils/error.h \
@@ -77,6 +78,7 @@ libsysdb_la_SOURCES = \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
+		utils/avltree.c include/utils/avltree.h \
 		utils/channel.c include/utils/channel.h \
 		utils/error.c include/utils/error.h \
 		utils/llist.c include/utils/llist.h \

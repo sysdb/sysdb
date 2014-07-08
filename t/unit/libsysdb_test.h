@@ -91,6 +91,10 @@ fe_parser_suite(void);
 Suite *
 fe_sock_suite(void);
 
+/* t/utils/avltree_test */
+Suite *
+util_avltree_suite(void);
+
 /* t/utils/channel_test */
 Suite *
 util_channel_suite(void);

@@ -1,6 +1,6 @@
 /*
- * SysDB - t/unit/libsysdb_test.c
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - src/include/utils/avltree.h
+ * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,60 +25,59 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if HAVE_CONFIG_H
-#	include "config.h"
-#endif /* HAVE_CONFIG_H */
+#ifndef SDB_UTILS_AVLTREE_H
+#define SDB_UTILS_AVLTREE_H 1
 
-#include "libsysdb_test.h"
+#include "core/object.h"
 
-#include <check.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * An AVL tree implements Adelson-Velskii and Landis' self-balancing search
+ * tree. It supports search, insert, and delete operations in average and
+ * worst-case time-complexity O(log n).
+ *
+ * XXX: self-balancing is not implemented yet
+ */
+struct sdb_avltree;
+typedef struct sdb_avltree sdb_avltree_t;
+
+struct sdb_avltree_iter;
+typedef struct sdb_avltree_iter sdb_avltree_iter_t;
+
+sdb_avltree_t *
+sdb_avltree_create(sdb_object_cmp_cb cmp);
+
+void
+sdb_avltree_destroy(sdb_avltree_t *tree);
+
+void
+sdb_avltree_clear(sdb_avltree_t *tree);
 
 int
-main(void)
-{
-	int failed = 0;
-	size_t i;
+sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj);
 
-	suite_creator_t creators[] = {
-		{ core_data_suite, NULL },
-		{ core_object_suite, NULL },
-		{ core_store_suite, NULL },
-		{ core_store_lookup_suite, NULL },
-		{ core_time_suite, NULL },
-		{ fe_conn_suite, NULL },
-		{ fe_parser_suite, NULL },
-		{ fe_sock_suite, NULL },
-		{ util_avltree_suite, NULL },
-		{ util_channel_suite, NULL },
-		{ util_dbi_suite, NULL },
-		{ util_llist_suite, NULL },
-		{ util_os_suite, NULL },
-		{ util_strbuf_suite, NULL },
-	};
+sdb_avltree_iter_t *
+sdb_avltree_get_iter(sdb_avltree_t *tree);
 
-	putenv("TZ=UTC");
+void
+sdb_avltree_iter_destroy(sdb_avltree_iter_t *iter);
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(creators); ++i) {
-		SRunner *sr;
-		Suite *s;
+_Bool
+sdb_avltree_iter_has_next(sdb_avltree_iter_t *iter);
+sdb_object_t *
+sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter);
 
-		if (creators[i].msg)
-			printf("%s\n", creators[i].msg);
+size_t
+sdb_avltree_size(sdb_avltree_t *tree);
 
-		if (!creators[i].creator)
-			continue;
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
-		s = creators[i].creator();
-		sr = srunner_create(s);
-		srunner_run_all(sr, CK_NORMAL);
-		failed += srunner_ntests_failed(sr);
-		srunner_free(sr);
-	}
-
-	return failed;
-} /* main */
+#endif /* ! SDB_UTILS_AVLTREE_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
