@@ -31,8 +31,9 @@
 
 #include "utils/avltree.h"
 
-#include <stdlib.h>
+#include <assert.h>
 
+#include <stdlib.h>
 #include <pthread.h>
 
 /*
@@ -202,8 +203,16 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	if (! n)
 		return -1;
 
+	if (! tree->root) {
+		tree->root = n;
+		tree->size = 1;
+		return 0;
+	}
+
 	parent = tree->root;
-	while (parent) {
+	while (42) {
+		assert(parent);
+
 		diff = tree->cmp(obj, parent->obj);
 		if (! diff) {
 			node_destroy(n);
@@ -224,15 +233,6 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 			}
 			parent = parent->right;
 		}
-	}
-
-	if (! parent) {
-		/* new root */
-		if (diff < 0)
-			n->right = tree->root;
-		else
-			n->left = tree->root;
-		tree->root = n;
 	}
 
 	n->parent = parent;
