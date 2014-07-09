@@ -73,6 +73,9 @@ sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter);
 size_t
 sdb_avltree_size(sdb_avltree_t *tree);
 
+_Bool
+sdb_avltree_valid(sdb_avltree_t *tree);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

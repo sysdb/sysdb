@@ -130,6 +130,10 @@ START_TEST(test_insert)
 		fail_unless(check == (int)i + 1,
 				"sdb_avltree_size(<tree>) = %d; expected: %zu",
 				check, i + 1);
+
+		fail_unless(sdb_avltree_valid(tree),
+				"sdb_avltree_insert(<tree>, <%s>) left behind invalid tree",
+				test_data[i].name);
 	}
 
 	/* and again ... now reporting errors because of duplicates */

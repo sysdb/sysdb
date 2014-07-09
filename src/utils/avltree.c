@@ -31,6 +31,7 @@
 
 #include "sysdb.h"
 #include "utils/avltree.h"
+#include "utils/error.h"
 
 #include <assert.h>
 
@@ -54,6 +55,7 @@ struct node {
 	size_t height;
 };
 
+#define NODE_NAME(n) ((n) && (n)->obj ? (n)->obj->name : "<nil>")
 #define NODE_HEIGHT(n) ((n) ? (n)->height : (size_t)0)
 #define CALC_HEIGHT(n) (SDB_MAX(NODE_HEIGHT((n)->right), \
 			NODE_HEIGHT((n)->left)) + 1)
@@ -419,6 +421,57 @@ sdb_avltree_size(sdb_avltree_t *tree)
 {
 	return tree ? tree->size : 0;
 } /* sdb_avltree_size */
+
+_Bool
+sdb_avltree_valid(sdb_avltree_t *tree)
+{
+	node_t *n;
+
+	_Bool status = 1;
+	size_t size = 0;
+
+	if (! tree)
+		return 1;
+
+	for (n = node_smallest(tree); n; n = node_next(n)) {
+		int bf = BALANCE(n);
+
+		if ((bf < -1) || (1 < bf)) {
+			sdb_log(SDB_LOG_ERR, "avltree: Unbalanced node '%s' (bf=%i)",
+					NODE_NAME(n), bf);
+			status = 0;
+		}
+
+		if (NODE_HEIGHT(n) != n->height) {
+			sdb_log(SDB_LOG_ERR, "avltree: Unexpected height for node '%s': "
+					"%zu; expected: %zu", NODE_NAME(n), n->height,
+					NODE_HEIGHT(n));
+			status = 0;
+		}
+
+		if (n->parent && (n->parent->left != n) && (n->parent->right != n)) {
+			sdb_log(SDB_LOG_ERR, "avltree: Invalid child nodes for parent of "
+					"node '%s': {left: %s, right: %s}; expected: %s",
+					NODE_NAME(n), NODE_NAME(n->parent->left),
+					NODE_NAME(n->parent->right), NODE_NAME(n));
+			status = 0;
+		}
+		if ((! n->parent) && (n != tree->root)) {
+			sdb_log(SDB_LOG_ERR, "avltree: Non-root node '%s' does not "
+					"have a parent", NODE_NAME(n));
+			status = 0;
+		}
+
+		++size;
+	}
+
+	if (size != tree->size) {
+		sdb_log(SDB_LOG_ERR, "avltree: Invalid size %zu; expected: %zu",
+				tree->size, size);
+		status = 0;
+	}
+	return status;
+} /* sdb_avltree_valid */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
