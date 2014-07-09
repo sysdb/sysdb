@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "sysdb.h"
 #include "utils/avltree.h"
 
 #include <assert.h>
@@ -49,7 +50,16 @@ struct node {
 	node_t *parent;
 	node_t *left;
 	node_t *right;
+
+	size_t height;
 };
+
+#define NODE_HEIGHT(n) ((n) ? (n)->height : (size_t)0)
+#define CALC_HEIGHT(n) (SDB_MAX(NODE_HEIGHT((n)->right), \
+			NODE_HEIGHT((n)->left)) + 1)
+
+#define BALANCE(n) \
+	((n) ? (int)NODE_HEIGHT((n)->left) - (int)NODE_HEIGHT((n)->right) : 0)
 
 struct sdb_avltree {
 	pthread_rwlock_t lock;
@@ -88,6 +98,7 @@ node_create(sdb_object_t *obj)
 	sdb_object_ref(obj);
 	n->obj = obj;
 	n->parent = n->left = n->right = NULL;
+	n->height = 1;
 	return n;
 } /* node_create */
 
@@ -139,6 +150,94 @@ tree_clear(sdb_avltree_t *tree)
 	tree->root = NULL;
 	tree->size = 0;
 } /* tree_clear */
+
+/* Switch node 'n' with its right child, making 'n'
+ * the new left child of that node. */
+static void
+rotate_left(sdb_avltree_t *tree, node_t *n)
+{
+	node_t *n2 = n->right;
+	node_t *c = n2->left;
+
+	n2->parent = n->parent;
+	if (! n2->parent)
+		tree->root = n2;
+	else if (n2->parent->left == n)
+		n2->parent->left = n2;
+	else
+		n2->parent->right = n2;
+
+	n2->left = n;
+	n->parent = n2;
+
+	n->right = c;
+	if (c)
+		c->parent = n;
+
+	n->height = CALC_HEIGHT(n);
+	n2->height = CALC_HEIGHT(n2);
+} /* rotate_left */
+
+/* Switch node 'n' with its left child, making 'n'
+ * the new right child of that node. */
+static void
+rotate_right(sdb_avltree_t *tree, node_t *n)
+{
+	node_t *n2 = n->left;
+	node_t *c = n2->right;
+
+	n2->parent = n->parent;
+	if (! n2->parent)
+		tree->root = n2;
+	else if (n2->parent->left == n)
+		n2->parent->left = n2;
+	else
+		n2->parent->right = n2;
+
+	n2->right = n;
+	n->parent = n2;
+
+	n->left = c;
+	if (c)
+		c->parent = n;
+
+	n->height = CALC_HEIGHT(n);
+	n2->height = CALC_HEIGHT(n2);
+} /* rotate_right */
+
+/* Rebalance a tree starting at node 'n' towards the root;
+ * also, update the node heights all the way up to the root. */
+static void
+rebalance(sdb_avltree_t *tree, node_t *n)
+{
+	for ( ; n; n = n->parent) {
+		int bf = BALANCE(n);
+
+		if (bf == 0)
+			return;
+
+		if ((-1 <= bf) && (bf <= 1)) {
+			n->height = CALC_HEIGHT(n);
+			continue;
+		}
+
+		assert((-2 <= bf) && (bf <= 2));
+
+		if (bf == 2) {
+			if (BALANCE(n->left) == -1)
+				rotate_left(tree, n->left);
+			rotate_right(tree, n);
+		}
+		else {
+			if (BALANCE(n->right) == 1)
+				rotate_right(tree, n->right);
+			rotate_left(tree, n);
+		}
+
+		/* n was moved downwards; get back to the previous level */
+		n = n->parent;
+	}
+} /* rebalance */
 
 /*
  * public API
@@ -238,7 +337,7 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	n->parent = parent;
 	++tree->size;
 
-	/* XXX: rebalance */
+	rebalance(tree, parent);
 	return 0;
 } /* sdb_avltree_insert */
 
