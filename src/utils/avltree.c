@@ -153,7 +153,7 @@ tree_clear(sdb_avltree_t *tree)
 {
 	node_t *n;
 
-	n = tree->root;
+	n = node_smallest(tree);
 	while (n) {
 		node_t *tmp = node_next(n);
 
