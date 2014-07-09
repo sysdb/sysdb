@@ -57,6 +57,9 @@ sdb_avltree_clear(sdb_avltree_t *tree);
 int
 sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj);
 
+sdb_object_t *
+sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref);
+
 sdb_avltree_iter_t *
 sdb_avltree_get_iter(sdb_avltree_t *tree);
 

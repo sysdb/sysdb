@@ -362,6 +362,31 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	return 0;
 } /* sdb_avltree_insert */
 
+sdb_object_t *
+sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref)
+{
+	node_t *n;
+
+	if (! tree)
+		return NULL;
+
+	n = tree->root;
+	while (n) {
+		int diff = tree->cmp(n->obj, ref);
+
+		if (! diff) {
+			sdb_object_ref(n->obj);
+			return n->obj;
+		}
+
+		if (diff < 0)
+			n = n->right;
+		else
+			n = n->left;
+	}
+	return NULL;
+} /* sdb_avltree_lookup_by_name */
+
 sdb_avltree_iter_t *
 sdb_avltree_get_iter(sdb_avltree_t *tree)
 {

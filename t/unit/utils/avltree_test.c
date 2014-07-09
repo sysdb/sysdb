@@ -66,6 +66,8 @@ static sdb_object_t test_data[] = {
 	SDB_OBJECT_STATIC("a"),
 };
 
+static char *unused_names[] = { "x", "y", "z" };
+
 static void
 populate(void)
 {
@@ -153,6 +155,38 @@ START_TEST(test_insert)
 }
 END_TEST
 
+START_TEST(test_lookup)
+{
+	size_t i;
+
+	populate();
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(test_data); ++i) {
+		sdb_object_t ref = SDB_OBJECT_STATIC(test_data[i].name);
+		sdb_object_t *obj;
+
+		obj = sdb_avltree_lookup(tree, &ref);
+		fail_unless(obj != NULL,
+				"sdb_avltree_lookup(<tree>, <%s>) = NULL; "
+				"expected: <obj>", ref.name);
+		fail_unless(obj == &test_data[i],
+				"sdb_avltree_lookup(<tree>, <%s>) = %p (%s); "
+				"expected: %p, (%s)", ref.name, obj, obj->name,
+				&test_data[i], test_data[i].name);
+	}
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unused_names); ++i) {
+		sdb_object_t ref = SDB_OBJECT_STATIC(unused_names[i]);
+		sdb_object_t *obj;
+
+		obj = sdb_avltree_lookup(tree, &ref);
+		fail_unless(obj == NULL,
+				"sdb_avltree_lookup(<tree>, <%s> = %p (%s); "
+				"expected: NULL", ref.name, obj, obj ? obj->name : "<nil>");
+	}
+}
+END_TEST
+
 START_TEST(test_iter)
 {
 	sdb_avltree_iter_t *iter;
@@ -213,6 +247,7 @@ util_avltree_suite(void)
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_null);
 	tcase_add_test(tc, test_insert);
+	tcase_add_test(tc, test_lookup);
 	tcase_add_test(tc, test_iter);
 	suite_add_tcase(s, tc);
 
