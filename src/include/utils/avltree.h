@@ -38,8 +38,6 @@ extern "C" {
  * An AVL tree implements Adelson-Velskii and Landis' self-balancing search
  * tree. It supports search, insert, and delete operations in average and
  * worst-case time-complexity O(log n).
- *
- * XXX: self-balancing is not implemented yet
  */
 struct sdb_avltree;
 typedef struct sdb_avltree sdb_avltree_t;
