@@ -302,9 +302,12 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	if (! n)
 		return -1;
 
+	pthread_rwlock_wrlock(&tree->lock);
+
 	if (! tree->root) {
 		tree->root = n;
 		tree->size = 1;
+		pthread_rwlock_unlock(&tree->lock);
 		return 0;
 	}
 
@@ -315,6 +318,7 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 		diff = tree->cmp(obj, parent->obj);
 		if (! diff) {
 			node_destroy(n);
+			pthread_rwlock_unlock(&tree->lock);
 			return -1;
 		}
 
@@ -338,6 +342,7 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	++tree->size;
 
 	rebalance(tree, parent);
+	pthread_rwlock_unlock(&tree->lock);
 	return 0;
 } /* sdb_avltree_insert */
 
