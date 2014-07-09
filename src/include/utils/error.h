@@ -43,11 +43,6 @@
 extern "C" {
 #endif
 
-/* max length of any error message */
-#ifndef SDB_MAX_ERROR
-#	define SDB_MAX_ERROR 4096
-#endif /* ! SDB_MAX_ERROR */
-
 /* On Linux systems and possibly others, this should be the same as the LOG_
  * constants defined by syslog. */
 enum {
