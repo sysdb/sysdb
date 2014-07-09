@@ -261,8 +261,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	long int count;
 
 	sdb_collectd_state_t state = SDB_COLLECTD_STATE_INIT;
-	sdb_object_wrapper_t state_obj = SDB_OBJECT_WRAPPER_STATIC(&state,
-			/* destructor = */ NULL);
+	sdb_object_wrapper_t state_obj = SDB_OBJECT_WRAPPER_STATIC(&state);
 
 	if (! user_data)
 		return -1;

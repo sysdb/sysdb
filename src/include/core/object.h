@@ -133,8 +133,8 @@ sdb_object_t *
 sdb_object_create_wrapper(const char *name,
 		void *data, void (*destructor)(void *));
 
-#define SDB_OBJECT_WRAPPER_STATIC(obj, destructor) \
-	{ SDB_OBJECT_INIT, (obj), (destructor) }
+#define SDB_OBJECT_WRAPPER_STATIC(obj) \
+	{ SDB_OBJECT_INIT, (obj), /* destructor */ NULL }
 
 /*
  * sdb_object_deref:
