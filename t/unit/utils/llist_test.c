@@ -35,13 +35,13 @@
  */
 
 static sdb_object_t golden_data[] = {
-	SSTRING_OBJ("abc"),
-	SSTRING_OBJ("bcd"),
-	SSTRING_OBJ("cde"),
-	SSTRING_OBJ("def"),
-	SSTRING_OBJ("efg"),
-	SSTRING_OBJ("fgh"),
-	SSTRING_OBJ("ghi")
+	SDB_OBJECT_STATIC("abc"),
+	SDB_OBJECT_STATIC("bcd"),
+	SDB_OBJECT_STATIC("cde"),
+	SDB_OBJECT_STATIC("def"),
+	SDB_OBJECT_STATIC("efg"),
+	SDB_OBJECT_STATIC("fgh"),
+	SDB_OBJECT_STATIC("ghi")
 };
 
 static char *unused_names[] = {

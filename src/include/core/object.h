@@ -57,6 +57,10 @@ struct sdb_object {
 #define SDB_OBJECT_INIT { SDB_TYPE_INIT, 1, NULL }
 #define SDB_OBJECT_TYPED_INIT(t) { (t), 1, NULL }
 
+#define SDB_OBJECT_STATIC(name) { \
+	/* type */ { sizeof(sdb_object_t), NULL, NULL }, \
+	/* ref-cnt */ 1, (name) }
+
 typedef struct {
 	sdb_object_t super;
 	void *data;

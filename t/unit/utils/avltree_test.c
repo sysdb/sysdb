@@ -49,21 +49,21 @@ teardown(void)
 
 /* 'a' thru 'o' */
 static sdb_object_t test_data[] = {
-	SSTRING_OBJ("h"),
-	SSTRING_OBJ("j"),
-	SSTRING_OBJ("i"),
-	SSTRING_OBJ("f"),
-	SSTRING_OBJ("e"),
-	SSTRING_OBJ("g"),
-	SSTRING_OBJ("k"),
-	SSTRING_OBJ("l"),
-	SSTRING_OBJ("m"),
-	SSTRING_OBJ("n"),
-	SSTRING_OBJ("o"),
-	SSTRING_OBJ("d"),
-	SSTRING_OBJ("c"),
-	SSTRING_OBJ("b"),
-	SSTRING_OBJ("a"),
+	SDB_OBJECT_STATIC("h"),
+	SDB_OBJECT_STATIC("j"),
+	SDB_OBJECT_STATIC("i"),
+	SDB_OBJECT_STATIC("f"),
+	SDB_OBJECT_STATIC("e"),
+	SDB_OBJECT_STATIC("g"),
+	SDB_OBJECT_STATIC("k"),
+	SDB_OBJECT_STATIC("l"),
+	SDB_OBJECT_STATIC("m"),
+	SDB_OBJECT_STATIC("n"),
+	SDB_OBJECT_STATIC("o"),
+	SDB_OBJECT_STATIC("d"),
+	SDB_OBJECT_STATIC("c"),
+	SDB_OBJECT_STATIC("b"),
+	SDB_OBJECT_STATIC("a"),
 };
 
 static void
@@ -76,7 +76,7 @@ populate(void)
 
 START_TEST(test_null)
 {
-	sdb_object_t o1 = SSTRING_OBJ("obj");
+	sdb_object_t o1 = SDB_OBJECT_STATIC("obj");
 	sdb_object_t *o2;
 	sdb_avltree_iter_t *iter;
 	int check;

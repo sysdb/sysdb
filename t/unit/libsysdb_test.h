@@ -37,16 +37,6 @@
 #include <string.h>
 
 /*
- * private testing helpers
- */
-
-/* static string object:
- * Any such object may is of type sdb_object_t but may never be destroyed. */
-#define SSTRING_OBJ(name) { \
-	/* type = */ { sizeof(sdb_object_t), NULL, NULL }, \
-	/* ref_cnt = */ 1, /* name = */ (name) }
-
-/*
  * test-related data-types
  */
 
