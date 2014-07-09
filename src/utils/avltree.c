@@ -134,6 +134,20 @@ node_next(node_t *n)
 	return next;
 } /* node_next */
 
+static node_t *
+node_smallest(sdb_avltree_t *tree)
+{
+	node_t *n;
+
+	if (! tree)
+		return NULL;
+
+	n = tree->root;
+	while (n && n->left)
+		n = n->left;
+	return n;
+} /* node_smallest */
+
 static void
 tree_clear(sdb_avltree_t *tree)
 {
@@ -361,9 +375,7 @@ sdb_avltree_get_iter(sdb_avltree_t *tree)
 	pthread_rwlock_rdlock(&tree->lock);
 
 	iter->tree = tree;
-	iter->node = tree->root->left;
-	while (iter->node && iter->node->left)
-		iter->node = iter->node->left;
+	iter->node = node_smallest(tree);
 
 	pthread_rwlock_unlock(&tree->lock);
 	return iter;
