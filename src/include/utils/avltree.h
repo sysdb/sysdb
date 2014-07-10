@@ -45,24 +45,69 @@ typedef struct sdb_avltree sdb_avltree_t;
 struct sdb_avltree_iter;
 typedef struct sdb_avltree_iter sdb_avltree_iter_t;
 
+/*
+ * sdb_avltree_create:
+ * Creates an AVL tree. Insert and lookup operations will use the specified
+ * compare function to determine the location of an object in the tree. If no
+ * function has been specified, it defaults to sdb_object_cmp_by_name, that
+ * is, objects will be compared by their names.
+ */
 sdb_avltree_t *
 sdb_avltree_create(sdb_object_cmp_cb cmp);
 
+/*
+ * sdb_avltree_destroy:
+ * Destroy the specified AVL tree and release all included objects (decrement
+ * the ref-count).
+ */
 void
 sdb_avltree_destroy(sdb_avltree_t *tree);
 
+/*
+ * sdb_avltree_clear:
+ * Remove all nodes from the tree, releasing the included objects (decrement
+ * the ref-count).
+ */
 void
 sdb_avltree_clear(sdb_avltree_t *tree);
 
+/*
+ * sdb_avltree_insert:
+ * Insert a new node into the tree (using the tree's compare function to find
+ * the right location). Each object must be unique (based on the compare
+ * function). This operation may change the structure of the tree by
+ * rebalancing subtrees which no longer comply with the rules of AVL.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
 int
 sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj);
 
+/*
+ * sdb_avltree_lookup:
+ * Lookup an object from a tree. The object matching the specified reference
+ * object (using the tree's compare function) will be returned.
+ *
+ * Returns:
+ *  - the requested object
+ *  - NULL if no such object exists
+ */
 sdb_object_t *
 sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref);
 
+/*
+ * sdb_avltree_get_iter, sdb_avltree_iter_has_next, sdb_avltree_iter_get_next,
+ * sdb_avltree_iter_destroy:
+ * Iterate through all nodes of the tree. The iterator will start at the
+ * smallest element (based on the tree's compare function) and then iterate
+ * through the sorted sequence of all nodes.
+ *
+ * sdb_avltree_iter_get_next returns NULL if there is no next element.
+ */
 sdb_avltree_iter_t *
 sdb_avltree_get_iter(sdb_avltree_t *tree);
-
 void
 sdb_avltree_iter_destroy(sdb_avltree_iter_t *iter);
 
@@ -71,9 +116,23 @@ sdb_avltree_iter_has_next(sdb_avltree_iter_t *iter);
 sdb_object_t *
 sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter);
 
+/*
+ * sdb_avltree_size:
+ * Returns the number of nodes in the tree.
+ */
 size_t
 sdb_avltree_size(sdb_avltree_t *tree);
 
+/*
+ * sdb_avltree_valid:
+ * Validate a tree, checking if all rules of AVL are met. All errors will be
+ * reported through the logging sub-system. This function is mainly intended
+ * for debugging and (unit) testing.
+ *
+ * Returns:
+ *  - true if the tree is valid
+ *  - false else
+ */
 _Bool
 sdb_avltree_valid(sdb_avltree_t *tree);
 

@@ -74,6 +74,11 @@ typedef struct {
 
 /*
  * Callback types for comparing objects or performing object lookup.
+ * Any function of type sdb_object_cmp_cb shall return a negative value, zero,
+ * or a positive value if the first object compares less than, equal to, or
+ * greater than the second object respectively.
+ * Any function of type sdb_object_lookup_cb shall return zero for all
+ * matching objects.
  */
 typedef int (*sdb_object_cmp_cb)(const sdb_object_t *, const sdb_object_t *);
 typedef int (*sdb_object_lookup_cb)(const sdb_object_t *, const void *user_data);
