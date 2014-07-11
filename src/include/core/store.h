@@ -32,7 +32,6 @@
 #include "core/object.h"
 #include "core/data.h"
 #include "core/time.h"
-#include "utils/llist.h"
 #include "utils/strbuf.h"
 
 #include <stdio.h>

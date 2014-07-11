@@ -33,6 +33,7 @@
 #define SDB_CORE_STORE_PRIVATE_H 1
 
 #include "core/store.h"
+#include "utils/avltree.h"
 
 #include <sys/types.h>
 #include <regex.h>
@@ -68,7 +69,7 @@ typedef struct {
 typedef struct {
 	sdb_store_obj_t super;
 
-	sdb_llist_t *attributes;
+	sdb_avltree_t *attributes;
 } sdb_service_t;
 #define SVC(obj) ((sdb_service_t *)(obj))
 #define CONST_SVC(obj) ((const sdb_service_t *)(obj))
@@ -76,8 +77,8 @@ typedef struct {
 typedef struct {
 	sdb_store_obj_t super;
 
-	sdb_llist_t *services;
-	sdb_llist_t *attributes;
+	sdb_avltree_t *services;
+	sdb_avltree_t *attributes;
 } sdb_host_t;
 #define HOST(obj) ((sdb_host_t *)(obj))
 #define CONST_HOST(obj) ((const sdb_host_t *)(obj))

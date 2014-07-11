@@ -32,8 +32,8 @@
 #include "sysdb.h"
 #include "core/store-private.h"
 #include "core/plugin.h"
+#include "utils/avltree.h"
 #include "utils/error.h"
-#include "utils/llist.h"
 
 #include <assert.h>
 
@@ -49,7 +49,7 @@
  * private variables
  */
 
-static sdb_llist_t *host_list = NULL;
+static sdb_avltree_t *hosts = NULL;
 static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
@@ -102,10 +102,10 @@ sdb_host_init(sdb_object_t *obj, va_list ap)
 	if (ret)
 		return ret;
 
-	sobj->services = sdb_llist_create();
+	sobj->services = sdb_avltree_create();
 	if (! sobj->services)
 		return -1;
-	sobj->attributes = sdb_llist_create();
+	sobj->attributes = sdb_avltree_create();
 	if (! sobj->attributes)
 		return -1;
 	return 0;
@@ -120,9 +120,9 @@ sdb_host_destroy(sdb_object_t *obj)
 	store_obj_destroy(obj);
 
 	if (sobj->services)
-		sdb_llist_destroy(sobj->services);
+		sdb_avltree_destroy(sobj->services);
 	if (sobj->attributes)
-		sdb_llist_destroy(sobj->attributes);
+		sdb_avltree_destroy(sobj->attributes);
 } /* sdb_host_destroy */
 
 static int
@@ -136,7 +136,7 @@ sdb_service_init(sdb_object_t *obj, va_list ap)
 	if (ret)
 		return ret;
 
-	sobj->attributes = sdb_llist_create();
+	sobj->attributes = sdb_avltree_create();
 	if (! sobj->attributes)
 		return -1;
 	return 0;
@@ -151,7 +151,7 @@ sdb_service_destroy(sdb_object_t *obj)
 	store_obj_destroy(obj);
 
 	if (sobj->attributes)
-		sdb_llist_destroy(sobj->attributes);
+		sdb_avltree_destroy(sobj->attributes);
 } /* sdb_service_destroy */
 
 static int
@@ -207,7 +207,7 @@ static sdb_type_t sdb_attribute_type = {
 static sdb_host_t *
 lookup_host(const char *name)
 {
-	return HOST(sdb_llist_search_by_name(host_list, name));
+	return HOST(sdb_avltree_lookup(hosts, name));
 } /* lookup_host */
 
 static int
@@ -240,18 +240,18 @@ record_backend(sdb_store_obj_t *obj)
 } /* record_backend */
 
 static int
-store_obj(sdb_llist_t *parent_list, int type, const char *name,
+store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
 		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
 {
 	sdb_store_obj_t *old, *new;
 	int status = 0;
 
-	assert(parent_list);
+	assert(parent_tree);
 
 	if (last_update <= 0)
 		last_update = sdb_gettime();
 
-	old = STORE_OBJ(sdb_llist_search_by_name(parent_list, name));
+	old = STORE_OBJ(sdb_avltree_lookup(parent_tree, name));
 	if (old) {
 		if (old->last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
@@ -280,6 +280,7 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 		}
 
 		new = old;
+		sdb_object_deref(SDB_OBJ(old));
 	}
 	else {
 		if (type == SDB_ATTRIBUTE) {
@@ -294,10 +295,9 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 		}
 
 		if (new) {
-			status = sdb_llist_insert_sorted(parent_list, SDB_OBJ(new),
-					sdb_object_cmp_by_name);
+			status = sdb_avltree_insert(parent_tree, SDB_OBJ(new));
 
-			/* pass control to the list or destroy in case of an error */
+			/* pass control to the tree or destroy in case of an error */
 			sdb_object_deref(SDB_OBJ(new));
 		}
 		else {
@@ -322,7 +322,7 @@ store_obj(sdb_llist_t *parent_list, int type, const char *name,
 } /* store_obj */
 
 static int
-store_attr(sdb_llist_t *attributes, const char *key, const sdb_data_t *value,
+store_attr(sdb_avltree_t *attributes, const char *key, const sdb_data_t *value,
 		sdb_time_t last_update)
 {
 	sdb_store_obj_t *attr = NULL;
@@ -343,7 +343,7 @@ store_attr(sdb_llist_t *attributes, const char *key, const sdb_data_t *value,
 } /* store_attr */
 
 /* The host_lock has to be acquired before calling this function. */
-static sdb_llist_t *
+static sdb_avltree_t *
 get_host_children(const char *hostname, int type)
 {
 	char *cname = NULL;
@@ -352,7 +352,7 @@ get_host_children(const char *hostname, int type)
 	assert(hostname);
 	assert((type == SDB_SERVICE) || (type == SDB_ATTRIBUTE));
 
-	if (! host_list)
+	if (! hosts)
 		return NULL;
 
 	cname = sdb_plugin_cname(strdup(hostname));
@@ -366,6 +366,7 @@ get_host_children(const char *hostname, int type)
 	if (! host)
 		return NULL;
 
+	sdb_object_deref(SDB_OBJ(host));
 	if (type == SDB_ATTRIBUTE)
 		return host->attributes;
 	else
@@ -414,14 +415,14 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
  * of the serialized data.
  */
 static void
-store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf, int flags)
+store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf, int flags)
 {
-	sdb_llist_iter_t *iter;
+	sdb_avltree_iter_t *iter;
 
 	assert((type == SDB_ATTRIBUTE) || (type == SDB_SERVICE));
 
 	sdb_strbuf_append(buf, "[");
-	iter = sdb_llist_get_iter(list);
+	iter = sdb_avltree_get_iter(tree);
 	if (! iter) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "store: Failed to retrieve %ss: %s\n",
@@ -432,8 +433,8 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf, int flags)
 	}
 
 	/* has_next returns false if the iterator is NULL */
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_store_obj_t *sobj = STORE_OBJ(sdb_llist_iter_get_next(iter));
+	while (sdb_avltree_iter_has_next(iter)) {
+		sdb_store_obj_t *sobj = STORE_OBJ(sdb_avltree_iter_get_next(iter));
 		assert(sobj);
 		assert(sobj->type == type);
 
@@ -454,11 +455,11 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf, int flags)
 		}
 		sdb_strbuf_append(buf, "}");
 
-		if (sdb_llist_iter_has_next(iter))
+		if (sdb_avltree_iter_has_next(iter))
 			sdb_strbuf_append(buf, ",");
 	}
 
-	sdb_llist_iter_destroy(iter);
+	sdb_avltree_iter_destroy(iter);
 	sdb_strbuf_append(buf, "]");
 } /* store_obj_tojson */
 
@@ -469,8 +470,8 @@ store_obj_tojson(sdb_llist_t *list, int type, sdb_strbuf_t *buf, int flags)
 void
 sdb_store_clear(void)
 {
-	sdb_llist_destroy(host_list);
-	host_list = NULL;
+	sdb_avltree_destroy(hosts);
+	hosts = NULL;
 } /* sdb_store_clear */
 
 int
@@ -489,12 +490,12 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	}
 
 	pthread_rwlock_wrlock(&host_lock);
-	if (! host_list)
-		if (! (host_list = sdb_llist_create()))
+	if (! hosts)
+		if (! (hosts = sdb_avltree_create()))
 			status = -1;
 
 	if (! status)
-		status = store_obj(host_list, SDB_HOST, cname, last_update, NULL);
+		status = store_obj(hosts, SDB_HOST, cname, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
 
 	free(cname);
@@ -525,7 +526,6 @@ sdb_store_get_host(const char *name)
 	if (! host)
 		return NULL;
 
-	sdb_object_ref(SDB_OBJ(host));
 	return STORE_OBJ(host);
 } /* sdb_store_get_host */
 
@@ -534,7 +534,7 @@ sdb_store_attribute(const char *hostname,
 		const char *key, const sdb_data_t *value,
 		sdb_time_t last_update)
 {
-	sdb_llist_t *attrs;
+	sdb_avltree_t *attrs;
 	int status = 0;
 
 	if ((! hostname) || (! key))
@@ -559,7 +559,7 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	sdb_llist_t *services;
+	sdb_avltree_t *services;
 
 	int status = 0;
 
@@ -584,7 +584,7 @@ int
 sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
-	sdb_llist_t *services;
+	sdb_avltree_t *services;
 	sdb_service_t *svc;
 	int status = 0;
 
@@ -601,7 +601,7 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		return -1;
 	}
 
-	svc = SVC(sdb_llist_search_by_name(services, service));
+	svc = SVC(sdb_avltree_lookup(services, service));
 	if (! svc) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
 				"service '%s/%s' not found", key, hostname, service);
@@ -611,6 +611,7 @@ sdb_store_service_attr(const char *hostname, const char *service,
 	if (! status)
 		status = store_attr(svc->attributes, key, value, last_update);
 
+	sdb_object_deref(SDB_OBJ(svc));
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service_attr */
@@ -645,14 +646,14 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
 int
 sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 {
-	sdb_llist_iter_t *host_iter;
+	sdb_avltree_iter_t *host_iter;
 
 	if (! buf)
 		return -1;
 
 	pthread_rwlock_rdlock(&host_lock);
 
-	host_iter = sdb_llist_get_iter(host_list);
+	host_iter = sdb_avltree_get_iter(hosts);
 	if (! host_iter) {
 		pthread_rwlock_unlock(&host_lock);
 		return -1;
@@ -660,20 +661,22 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 
 	sdb_strbuf_append(buf, "{\"hosts\":[");
 
-	while (sdb_llist_iter_has_next(host_iter)) {
-		sdb_store_obj_t *host = STORE_OBJ(sdb_llist_iter_get_next(host_iter));
+	while (sdb_avltree_iter_has_next(host_iter)) {
+		sdb_store_obj_t *host;
+
+		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
 		if (sdb_store_host_tojson(host, buf, flags))
 			return -1;
 
-		if (sdb_llist_iter_has_next(host_iter))
+		if (sdb_avltree_iter_has_next(host_iter))
 			sdb_strbuf_append(buf, ",");
 	}
 
 	sdb_strbuf_append(buf, "]}");
 
-	sdb_llist_iter_destroy(host_iter);
+	sdb_avltree_iter_destroy(host_iter);
 	pthread_rwlock_unlock(&host_lock);
 	return 0;
 } /* sdb_store_tojson */
@@ -682,18 +685,20 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 int
 sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 {
-	sdb_llist_iter_t *host_iter;
+	sdb_avltree_iter_t *host_iter;
 	int status = 0;
 
 	pthread_rwlock_rdlock(&host_lock);
 
-	host_iter = sdb_llist_get_iter(host_list);
+	host_iter = sdb_avltree_get_iter(hosts);
 	if (! host_iter)
 		status = -1;
 
 	/* has_next returns false if the iterator is NULL */
-	while (sdb_llist_iter_has_next(host_iter)) {
-		sdb_store_obj_t *host = STORE_OBJ(sdb_llist_iter_get_next(host_iter));
+	while (sdb_avltree_iter_has_next(host_iter)) {
+		sdb_store_obj_t *host;
+
+		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
 		if (cb(host, user_data)) {
@@ -702,7 +707,7 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 		}
 	}
 
-	sdb_llist_iter_destroy(host_iter);
+	sdb_avltree_iter_destroy(host_iter);
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_iterate */

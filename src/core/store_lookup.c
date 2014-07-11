@@ -76,12 +76,12 @@ lookup_iter(sdb_store_obj_t *obj, void *user_data)
 static sdb_attribute_t *
 attr_get(sdb_host_t *host, const char *name)
 {
-	sdb_llist_iter_t *iter = NULL;
+	sdb_avltree_iter_t *iter = NULL;
 	sdb_attribute_t *attr = NULL;
 
-	iter = sdb_llist_get_iter(host->attributes);
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_attribute_t *a = ATTR(sdb_llist_iter_get_next(iter));
+	iter = sdb_avltree_get_iter(host->attributes);
+	while (sdb_avltree_iter_has_next(iter)) {
+		sdb_attribute_t *a = ATTR(sdb_avltree_iter_get_next(iter));
 
 		if (strcasecmp(name, SDB_OBJ(a)->name))
 			continue;
@@ -90,7 +90,7 @@ attr_get(sdb_host_t *host, const char *name)
 		attr = a;
 		break;
 	}
-	sdb_llist_iter_destroy(iter);
+	sdb_avltree_iter_destroy(iter);
 	return attr;
 } /* attr_get */
 
@@ -162,7 +162,7 @@ match_unary(sdb_store_matcher_t *m, sdb_host_t *host)
 static int
 match_name(sdb_store_matcher_t *m, sdb_host_t *host)
 {
-	sdb_llist_iter_t *iter = NULL;
+	sdb_avltree_iter_t *iter = NULL;
 	int status = 0;
 
 	assert(m->type == MATCHER_NAME);
@@ -172,21 +172,21 @@ match_name(sdb_store_matcher_t *m, sdb_host_t *host)
 			return match_string(&NAME_M(m)->name, SDB_OBJ(host)->name);
 			break;
 		case SDB_SERVICE:
-			iter = sdb_llist_get_iter(host->services);
+			iter = sdb_avltree_get_iter(host->services);
 			break;
 		case SDB_ATTRIBUTE:
-			iter = sdb_llist_get_iter(host->attributes);
+			iter = sdb_avltree_get_iter(host->attributes);
 			break;
 	}
 
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_object_t *child = sdb_llist_iter_get_next(iter);
+	while (sdb_avltree_iter_has_next(iter)) {
+		sdb_object_t *child = sdb_avltree_iter_get_next(iter);
 		if (match_string(&NAME_M(m)->name, child->name)) {
 			status = 1;
 			break;
 		}
 	}
-	sdb_llist_iter_destroy(iter);
+	sdb_avltree_iter_destroy(iter);
 	return status;
 } /* match_name */
 
