@@ -37,6 +37,7 @@ START_TEST(test_data)
 
 	d2.type = SDB_TYPE_INTEGER;
 	d2.data.integer = 4711;
+	memset(&d1, 0, sizeof(d1));
 	check = sdb_data_copy(&d1, &d2);
 	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
 	fail_unless(d1.type == d2.type,
