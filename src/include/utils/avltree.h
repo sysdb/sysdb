@@ -47,13 +47,10 @@ typedef struct sdb_avltree_iter sdb_avltree_iter_t;
 
 /*
  * sdb_avltree_create:
- * Creates an AVL tree. Insert and lookup operations will use the specified
- * compare function to determine the location of an object in the tree. If no
- * function has been specified, it defaults to sdb_object_cmp_by_name, that
- * is, objects will be compared by their names.
+ * Creates an AVL tree. Objects will be compared by their names.
  */
 sdb_avltree_t *
-sdb_avltree_create(sdb_object_cmp_cb cmp);
+sdb_avltree_create(void);
 
 /*
  * sdb_avltree_destroy:
@@ -73,10 +70,9 @@ sdb_avltree_clear(sdb_avltree_t *tree);
 
 /*
  * sdb_avltree_insert:
- * Insert a new node into the tree (using the tree's compare function to find
- * the right location). Each object must be unique (based on the compare
- * function). This operation may change the structure of the tree by
- * rebalancing subtrees which no longer comply with the rules of AVL.
+ * Insert a new node into the tree. Each object must be unique. This operation
+ * may change the structure of the tree by rebalancing subtrees which no
+ * longer comply with the rules of AVL.
  *
  * Returns:
  *  - 0 on success
@@ -87,22 +83,21 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj);
 
 /*
  * sdb_avltree_lookup:
- * Lookup an object from a tree. The object matching the specified reference
- * object (using the tree's compare function) will be returned.
+ * Lookup an object from a tree by name.
  *
  * Returns:
  *  - the requested object
  *  - NULL if no such object exists
  */
 sdb_object_t *
-sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref);
+sdb_avltree_lookup(sdb_avltree_t *tree, const char *name);
 
 /*
  * sdb_avltree_get_iter, sdb_avltree_iter_has_next, sdb_avltree_iter_get_next,
  * sdb_avltree_iter_destroy:
  * Iterate through all nodes of the tree. The iterator will start at the
- * smallest element (based on the tree's compare function) and then iterate
- * through the sorted sequence of all nodes.
+ * smallest element (based on the name) and then iterate through the sorted
+ * sequence of all nodes.
  *
  * sdb_avltree_iter_get_next returns NULL if there is no next element.
  */

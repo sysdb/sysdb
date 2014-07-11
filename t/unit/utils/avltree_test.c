@@ -35,7 +35,7 @@ static sdb_avltree_t *tree;
 static void
 setup(void)
 {
-	tree = sdb_avltree_create(NULL);
+	tree = sdb_avltree_create();
 	fail_unless(tree != NULL,
 			"sdb_avltree_create() = NULL; expected AVL-tree object");
 } /* setup */
@@ -162,27 +162,26 @@ START_TEST(test_lookup)
 	populate();
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(test_data); ++i) {
-		sdb_object_t ref = SDB_OBJECT_STATIC(test_data[i].name);
 		sdb_object_t *obj;
 
-		obj = sdb_avltree_lookup(tree, &ref);
+		obj = sdb_avltree_lookup(tree, test_data[i].name);
 		fail_unless(obj != NULL,
-				"sdb_avltree_lookup(<tree>, <%s>) = NULL; "
-				"expected: <obj>", ref.name);
+				"sdb_avltree_lookup(<tree>, %s) = NULL; "
+				"expected: <obj>", test_data[i].name);
 		fail_unless(obj == &test_data[i],
-				"sdb_avltree_lookup(<tree>, <%s>) = %p (%s); "
-				"expected: %p, (%s)", ref.name, obj, obj->name,
+				"sdb_avltree_lookup(<tree>, %s) = %p (%s); "
+				"expected: %p, (%s)", test_data[i].name, obj, obj->name,
 				&test_data[i], test_data[i].name);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unused_names); ++i) {
-		sdb_object_t ref = SDB_OBJECT_STATIC(unused_names[i]);
 		sdb_object_t *obj;
 
-		obj = sdb_avltree_lookup(tree, &ref);
+		obj = sdb_avltree_lookup(tree, unused_names[i]);
 		fail_unless(obj == NULL,
-				"sdb_avltree_lookup(<tree>, <%s> = %p (%s); "
-				"expected: NULL", ref.name, obj, obj ? obj->name : "<nil>");
+				"sdb_avltree_lookup(<tree>, %s) = %p (%s); "
+				"expected: NULL", unused_names[i],
+				obj, obj ? obj->name : "<nil>");
 	}
 }
 END_TEST

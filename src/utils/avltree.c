@@ -36,6 +36,7 @@
 #include <assert.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 /*
@@ -65,8 +66,6 @@ struct node {
 
 struct sdb_avltree {
 	pthread_rwlock_t lock;
-
-	sdb_object_cmp_cb cmp;
 
 	node_t *root;
 	size_t size;
@@ -260,7 +259,7 @@ rebalance(sdb_avltree_t *tree, node_t *n)
  */
 
 sdb_avltree_t *
-sdb_avltree_create(sdb_object_cmp_cb cmp)
+sdb_avltree_create(void)
 {
 	sdb_avltree_t *tree;
 
@@ -268,11 +267,7 @@ sdb_avltree_create(sdb_object_cmp_cb cmp)
 	if (! tree)
 		return NULL;
 
-	if (! cmp)
-		cmp = sdb_object_cmp_by_name;
-
 	pthread_rwlock_init(&tree->lock, /* attr = */ NULL);
-	tree->cmp = cmp;
 
 	tree->root = NULL;
 	tree->size = 0;
@@ -331,7 +326,7 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 	while (42) {
 		assert(parent);
 
-		diff = tree->cmp(obj, parent->obj);
+		diff = strcasecmp(obj->name, parent->obj->name);
 		if (! diff) {
 			node_destroy(n);
 			pthread_rwlock_unlock(&tree->lock);
@@ -363,7 +358,7 @@ sdb_avltree_insert(sdb_avltree_t *tree, sdb_object_t *obj)
 } /* sdb_avltree_insert */
 
 sdb_object_t *
-sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref)
+sdb_avltree_lookup(sdb_avltree_t *tree, const char *name)
 {
 	node_t *n;
 
@@ -372,7 +367,7 @@ sdb_avltree_lookup(sdb_avltree_t *tree, const sdb_object_t *ref)
 
 	n = tree->root;
 	while (n) {
-		int diff = tree->cmp(n->obj, ref);
+		int diff = strcasecmp(n->obj->name, name);
 
 		if (! diff) {
 			sdb_object_ref(n->obj);
