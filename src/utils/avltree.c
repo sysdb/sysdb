@@ -154,9 +154,30 @@ tree_clear(sdb_avltree_t *tree)
 {
 	node_t *n;
 
-	n = node_smallest(tree);
+	if ((! tree) || (! tree->root))
+		return;
+
+	/* do a depth-first iteration and delete the leafs */
+	n = tree->root;
 	while (n) {
-		node_t *tmp = node_next(n);
+		node_t *tmp;
+
+		if (n->left) {
+			n = n->left;
+			continue;
+		}
+		else if (n->right) {
+			n = n->right;
+			continue;
+		}
+
+		tmp = n->parent;
+		if (tmp) {
+			if (tmp->left == n)
+				tmp->left = NULL;
+			else
+				tmp->right = NULL;
+		}
 
 		node_destroy(n);
 		n = tmp;
