@@ -18,6 +18,8 @@ check_LTLIBRARIES =
 # unit tests
 #
 
+LOG_COMPILER = $(abs_srcdir)/testwrapper.sh
+
 if UNIT_TESTING
 TESTS += unit/libsysdb_test unit/libsysdb_net_test
 check_PROGRAMS += unit/libsysdb_test unit/libsysdb_net_test
