@@ -751,12 +751,16 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	if (interval)
 		SDB_PLUGIN_CCB(obj)->ccb_interval = *interval;
 	else {
-		sdb_time_t tmp = sdb_plugin_get_ctx().interval;
+		ctx_t *ctx = ctx_get();
 
-		if (tmp > 0)
-			SDB_PLUGIN_CCB(obj)->ccb_interval = tmp;
-		else
-			SDB_PLUGIN_CCB(obj)->ccb_interval = 0;
+		if (! ctx) {
+			sdb_log(SDB_LOG_ERR, "core: Cannot determine interval "
+					"for collector %s; none specified and no plugin "
+					"context found", cb_name);
+			return -1;
+		}
+
+		SDB_PLUGIN_CCB(obj)->ccb_interval = ctx->public.interval;
 	}
 
 	if (! (SDB_PLUGIN_CCB(obj)->ccb_next_update = sdb_gettime())) {
