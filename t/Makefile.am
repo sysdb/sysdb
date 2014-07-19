@@ -1,5 +1,6 @@
 EXTRA_DIST = \
 		coverage.sh \
+		testwrapper.sh \
 		integration/simple_config.sh \
 		integration/simple_query.sh \
 		integration/test_lib.sh \
