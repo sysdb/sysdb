@@ -9,6 +9,15 @@
 }
 {
    <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:gcov_exit
+   fun:__run_exit_handlers
+   fun:exit
+   fun:srunner_run
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
    Memcheck:Param
    timer_create(evp)
    fun:timer_create@@GLIBC_2.3.3
