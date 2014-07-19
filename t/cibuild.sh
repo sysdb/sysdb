@@ -17,7 +17,7 @@ case "$CICFLAGS" in
 		# skip regular tests
 		;;
 	*)
-		make test
+		make test TESTS_ENVIRONMENT="./testwrapper.sh"
 		;;
 esac
 
