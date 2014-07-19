@@ -33,6 +33,12 @@ set -e
 
 source "$( dirname "$0" )/test_lib.sh"
 
+run_sysdb -V
+run_sysdb -h
+
+run_sysdbd -V
+run_sysdbd -h
+
 cat <<EOF > "$SYSDBD_CONF"
 Listen "invalid://address"
 EOF
