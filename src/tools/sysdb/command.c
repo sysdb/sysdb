@@ -61,8 +61,10 @@ sdb_command_print_reply(sdb_client_t *client)
 	if (sdb_client_recv(client, &rcode, recv_buf) < 0)
 		rcode = UINT32_MAX;
 
-	if (sdb_client_eof(client))
+	if (sdb_client_eof(client)) {
+		sdb_strbuf_destroy(recv_buf);
 		return -1;
+	}
 
 	if (rcode == UINT32_MAX) {
 		printf("ERROR: ");
