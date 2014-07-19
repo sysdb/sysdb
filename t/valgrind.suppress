@@ -7,3 +7,11 @@
    fun:srunner_run_all
    fun:main
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   timer_create(evp)
+   fun:timer_create@@GLIBC_2.3.3
+   fun:srunner_run
+   fun:main
+}
