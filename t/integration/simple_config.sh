@@ -33,21 +33,47 @@ set -e
 
 source "$( dirname "$0" )/test_lib.sh"
 
+# Very basics ;-)
 run_sysdb -V
 run_sysdb -h
 
 run_sysdbd -V
 run_sysdbd -h
 
+# Simple invalid configuration examples.
+cat <<EOF > "$SYSDBD_CONF"
+Invalid "option"
+EOF
+if run_sysdbd_foreground -D -C "$SYSDBD_CONF"; then
+	echo 'SysDBd accepted invalid option; expected: failure' >&2
+	exit 1
+fi
+
 cat <<EOF > "$SYSDBD_CONF"
 Listen "invalid://address"
 EOF
-
 if run_sysdbd_foreground -D -C "$SYSDBD_CONF"; then
 	echo 'SysDBd accepted invalid listen address; expected: failure' >&2
 	exit 1
 fi
 
+cat <<EOF > "$SYSDBD_CONF"
+Interval "foo"
+EOF
+if run_sysdbd_foreground -D -C "$SYSDBD_CONF"; then
+	echo 'SysDBd accepted invalid interval; expected: failure' >&2
+	exit 1
+fi
+
+cat <<EOF > "$SYSDBD_CONF"
+Interval -3.0
+EOF
+if run_sysdbd_foreground -D -C "$SYSDBD_CONF"; then
+	echo 'SysDBd accepted invalid interval; expected: failure' >&2
+	exit 1
+fi
+
+# Simple configuration examples.
 cat <<EOF > "$SYSDBD_CONF"
 Listen "$SOCKET_FILE"
 EOF
