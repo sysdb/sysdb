@@ -50,6 +50,8 @@
 #include "utils/error.h"
 #include "utils/strbuf.h"
 
+#include <errno.h>
+
 #include <sys/select.h>
 
 #include <stdio.h>
@@ -131,7 +133,8 @@ handle_input(char *line)
 	sdb_strbuf_append(sysdb_input->input, "\n");
 	free(line);
 
-	rl_callback_handler_remove();
+	if (sysdb_input->interactive)
+		rl_callback_handler_remove();
 } /* handle_input */
 
 /* wait for a new line of data to be available */
@@ -145,13 +148,19 @@ input_readline(void)
 
 	const char *prompt = "sysdb=> ";
 
+	len = sdb_strbuf_len(sysdb_input->input);
+
+	if (! sysdb_input->interactive) {
+		char *line = readline("");
+		handle_input(line);
+		return (ssize_t)(sdb_strbuf_len(sysdb_input->input) - len);
+	}
+
 	if (sysdb_input->query_len)
 		prompt = "sysdb-> ";
 
 	rl_callback_handler_install(prompt, handle_input);
 	client_fd = sdb_client_sockfd(sysdb_input->client);
-
-	len = sdb_strbuf_len(sysdb_input->input);
 	while ((sdb_strbuf_len(sysdb_input->input) == len)
 			&& (! sysdb_input->eof)) {
 		int n;
@@ -208,10 +217,10 @@ sdb_input_init(sdb_input_t *input)
 	/* register input handler */
 	sysdb_input = input;
 
-	if (! isatty(STDIN_FILENO))
-		return -1;
-
-	term_rawmode();
+	input->interactive = isatty(STDIN_FILENO) != 0;
+	errno = 0;
+	if (input->interactive)
+		term_rawmode();
 	return 0;
 } /* sdb_input_init */
 
