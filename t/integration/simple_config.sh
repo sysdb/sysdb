@@ -53,7 +53,14 @@ Listen "$SOCKET_FILE"
 EOF
 
 run_sysdbd -D -C "$SYSDBD_CONF"
-
 wait_for_sysdbd
+
+# reconfigure
+cat <<EOF > "$SYSDBD_CONF"
+Listen "${SOCKET_FILE}-2"
+EOF
+kill -HUP $SYSDBD_PID
+wait_for_sysdbd "${SOCKET_FILE}-2"
+
 stop_sysdbd
 

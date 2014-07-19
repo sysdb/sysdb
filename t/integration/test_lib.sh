@@ -62,7 +62,7 @@ function run_sysdbd_foreground() {
 }
 
 function stop_sysdbd() {
-	if test -z $SYSDBD_PID; then
+	if test -z "$SYSDBD_PID"; then
 		echo "Cannot stop sysdbd; PID unknown" >&2
 		exit 1
 	fi
@@ -72,9 +72,13 @@ function stop_sysdbd() {
 }
 
 function wait_for_sysdbd() {
+	local socket="$SOCKET_FILE"
 	local i
+	if test -n "$1"; then
+		socket="$1"
+	fi
 	for (( i=0; i<10; i++ )); do
-		if test -e "$SOCKET_FILE"; then
+		if test -e "$socket"; then
 			break
 		fi
 		sleep 1
