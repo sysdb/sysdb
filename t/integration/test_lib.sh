@@ -42,6 +42,8 @@ MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
 MEMCHECK="$MEMCHECK --trace-children=yes"
 MEMCHECK="$MEMCHECK --track-fds=yes"
 MEMCHECK="$MEMCHECK --leak-check=full"
+MEMCHECK="$MEMCHECK --suppressions=$TOP_SRCDIR/t/valgrind.suppress"
+MEMCHECK="$MEMCHECK --gen-suppressions=all"
 
 SYSDBD_CONF="$TESTDIR/sysdbd.conf"
 
