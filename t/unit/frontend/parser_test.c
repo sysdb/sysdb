@@ -106,6 +106,22 @@ START_TEST(test_parse)
 		  "attribute.foo = "
 		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
 
+		/* NULL */
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo "
+		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "attribute.foo "
+		  "IS NOT NULL",         -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "NOT attribute.foo "
+		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts WHERE "
+		  "host.name IS NULL",   -1, -1, 0 },
+		{ "LOOKUP hosts WHERE "
+		  "service.name "
+		  "IS NULL",             -1, -1, 0 },
+
 		/* invalid numeric constants */
 		{ "LOOKUP hosts WHERE "
 		  "attribute.foo = "
@@ -210,6 +226,16 @@ START_TEST(test_parse_matcher)
 		{ "host.name =~ 'pattern' OR "
 		  "service.name =~ 'pattern'",      -1,  MATCHER_OR },
 		{ "NOT host.name = 'host'",         -1,  MATCHER_NOT },
+		/* numeric expressions */
+		{ "attribute.foo < 123",            -1,  MATCHER_LT },
+		{ "attribute.foo <= 123",           -1,  MATCHER_LE },
+		{ "attribute.foo = 123",            -1,  MATCHER_EQ },
+		{ "attribute.foo >= 123",           -1,  MATCHER_GE },
+		{ "attribute.foo > 123",            -1,  MATCHER_GT },
+		/* NULL; while this is an implementation detail,
+		 * IS NULL currently maps to an equality matcher */
+		{ "attribute.foo IS NULL",          -1,  MATCHER_ISNULL },
+		{ "attribute.foo IS NOT NULL",      -1,  MATCHER_NOT },
 
 		/* check operator precedence */
 		{ "host.name = 'name' OR "

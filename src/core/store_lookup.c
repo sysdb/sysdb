@@ -254,11 +254,19 @@ match_gt(sdb_store_matcher_t *m, sdb_host_t *host)
 	return (status != INT_MAX) && (status > 0);
 } /* match_gt */
 
+static int
+match_isnull(sdb_store_matcher_t *m, sdb_host_t *host)
+{
+	assert(m->type == MATCHER_ISNULL);
+	return attr_get(host, ISNULL_M(m)->attr_name) == NULL;
+} /* match_isnull */
+
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_host_t *);
 
 /* this array needs to be indexable by the matcher types;
  * -> update the enum in store-private.h when updating this */
-static matcher_cb matchers[] = {
+static matcher_cb
+matchers[] = {
 	match_logical,
 	match_logical,
 	match_unary,
@@ -269,6 +277,7 @@ static matcher_cb matchers[] = {
 	match_eq,
 	match_ge,
 	match_gt,
+	match_isnull,
 };
 
 /*
@@ -542,6 +551,39 @@ uop_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 	return buf;
 } /* uop_tostring */
 
+static int
+isnull_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	const char *name;
+
+	M(obj)->type = va_arg(ap, int);
+	if (M(obj)->type != MATCHER_ISNULL)
+		return -1;
+
+	name = va_arg(ap, const char *);
+	if (! name)
+		return -1;
+	ISNULL_M(obj)->attr_name = strdup(name);
+	if (! ISNULL_M(obj)->attr_name)
+		return -1;
+	return 0;
+} /* isnull_matcher_init */
+
+static void
+isnull_matcher_destroy(sdb_object_t *obj)
+{
+	if (ISNULL_M(obj)->attr_name)
+		free(ISNULL_M(obj)->attr_name);
+	ISNULL_M(obj)->attr_name = NULL;
+} /* isnull_matcher_destroy */
+
+static char *
+isnull_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	snprintf(buf, buflen, "(IS NULL, attr.%s)", ISNULL_M(m)->attr_name);
+	return buf;
+} /* isnull_tostring */
+
 static sdb_type_t name_type = {
 	/* size = */ sizeof(name_matcher_t),
 	/* init = */ name_matcher_init,
@@ -572,11 +614,18 @@ static sdb_type_t uop_type = {
 	/* destroy = */ uop_matcher_destroy,
 };
 
+static sdb_type_t isnull_type = {
+	/* size = */ sizeof(isnull_matcher_t),
+	/* init = */ isnull_matcher_init,
+	/* destroy = */ isnull_matcher_destroy,
+};
+
 typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
 
 /* this array needs to be indexable by the matcher types;
  * -> update the enum in store-private.h when updating this */
-static matcher_tostring_cb matchers_tostring[] = {
+static matcher_tostring_cb
+matchers_tostring[] = {
 	op_tostring,
 	op_tostring,
 	uop_tostring,
@@ -587,6 +636,7 @@ static matcher_tostring_cb matchers_tostring[] = {
 	cond_tostring,
 	cond_tostring,
 	cond_tostring,
+	isnull_tostring,
 };
 
 /*
@@ -667,6 +717,13 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond)
 				MATCHER_GT, cond));
 } /* sdb_store_gt_matcher */
 
+sdb_store_matcher_t *
+sdb_store_isnull_matcher(const char *attr_name)
+{
+	return M(sdb_object_create("isnull-matcher", isnull_type,
+				MATCHER_ISNULL, attr_name));
+} /* sdb_store_isnull_matcher */
+
 static sdb_store_matcher_t *
 parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 {
@@ -680,7 +737,11 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	if (! strcasecmp(attr, "name"))
 		return NULL;
 
-	if (! strcasecmp(op, "<"))
+	if (! strcasecmp(op, "IS"))
+		return sdb_store_isnull_matcher(attr);
+	else if (! value)
+		return NULL;
+	else if (! strcasecmp(op, "<"))
 		matcher = sdb_store_lt_matcher;
 	else if (! strcasecmp(op, "<="))
 		matcher = sdb_store_le_matcher;

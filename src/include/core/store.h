@@ -210,6 +210,13 @@ sdb_store_matcher_t *
 sdb_store_attr_matcher(const char *name, const char *value, _Bool re);
 
 /*
+ * sdb_store_isnull_matcher:
+ * Creates a matcher matching "missing" attributes.
+ */
+sdb_store_matcher_t *
+sdb_store_isnull_matcher(const char *attr_name);
+
+/*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
  * sdb_store_ge_matcher, sdb_store_gt_matcher:
  * Creates a matcher based on a conditional. The matcher matches objects for

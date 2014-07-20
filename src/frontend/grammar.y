@@ -81,9 +81,12 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token AND OR NOT WHERE
+%token AND OR IS NOT WHERE
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 %token CMP_LT CMP_LE CMP_GE CMP_GT
+
+/* NULL token */
+%token NULL_T
 
 %token FETCH LIST LOOKUP
 
@@ -97,7 +100,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %right NOT
 %left CMP_EQUAL CMP_NEQUAL
 %left CMP_LT CMP_LE CMP_GE CMP_GT
-%left CMP_REGEX CMP_NREGEX
+%nonassoc CMP_REGEX CMP_NREGEX
+%nonassoc IS
 %left '(' ')'
 %left '.'
 
@@ -304,6 +308,25 @@ compare_matcher:
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 			sdb_data_free_datum(&$5);
+		}
+	|
+	IDENTIFIER '.' IDENTIFIER IS NULL_T
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+		}
+	|
+	IDENTIFIER '.' IDENTIFIER IS NOT NULL_T
+		{
+			sdb_store_matcher_t *m;
+			m = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+
+			/* sdb_store_inv_matcher return NULL if m==NULL */
+			$$ = sdb_store_inv_matcher(m);
+			sdb_object_deref(SDB_OBJ(m));
 		}
 	;
 

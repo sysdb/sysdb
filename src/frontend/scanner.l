@@ -108,12 +108,16 @@ float		({float1}|{float2}|{float3}|{float4}|{float5})
 			return AND;
 		else if (! strcasecmp(yytext, "FETCH"))
 			return FETCH;
+		else if (! strcasecmp(yytext, "IS"))
+			return IS;
 		else if (! strcasecmp(yytext, "LIST"))
 			return LIST;
 		else if (! strcasecmp(yytext, "LOOKUP"))
 			return LOOKUP;
 		else if (! strcasecmp(yytext, "NOT"))
 			return NOT;
+		else if (! strcasecmp(yytext, "NULL"))
+			return NULL_T;
 		else if (! strcasecmp(yytext, "OR"))
 			return OR;
 		else if (! strcasecmp(yytext, "WHERE"))

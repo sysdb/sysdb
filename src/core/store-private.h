@@ -123,6 +123,7 @@ enum {
 	MATCHER_EQ,
 	MATCHER_GE,
 	MATCHER_GT,
+	MATCHER_ISNULL,
 };
 
 #define MATCHER_SYM(t) \
@@ -136,6 +137,7 @@ enum {
 		: ((t) == MATCHER_EQ) ? "=" \
 		: ((t) == MATCHER_GE) ? ">=" \
 		: ((t) == MATCHER_GT) ? ">" \
+		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
 		: "UNKNOWN")
 
 /* match the name of something */
@@ -187,6 +189,12 @@ typedef struct {
 	string_matcher_t value;
 } attr_matcher_t;
 #define ATTR_M(m) ((attr_matcher_t *)(m))
+
+typedef struct {
+	sdb_store_matcher_t super;
+	char *attr_name; /* we only support matching attributes */
+} isnull_matcher_t;
+#define ISNULL_M(m) ((isnull_matcher_t *)(m))
 
 /* match using conditionals */
 typedef struct {
