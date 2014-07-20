@@ -580,7 +580,7 @@ isnull_matcher_destroy(sdb_object_t *obj)
 static char *
 isnull_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 {
-	snprintf(buf, buflen, "(IS NULL, attr.%s)", ISNULL_M(m)->attr_name);
+	snprintf(buf, buflen, "(IS NULL, ATTR[%s])", ISNULL_M(m)->attr_name);
 	return buf;
 } /* isnull_tostring */
 
