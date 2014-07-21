@@ -55,7 +55,8 @@ CONFIGURATION
 
 SEE ALSO
 --------
-manpage:sysdbd[1], manpage:sysdbd.conf[5]
+manpage:sysdbd[1], manpage:sysdbd.conf[5],
+http://puppetlabs.com/
 
 AUTHOR
 ------
