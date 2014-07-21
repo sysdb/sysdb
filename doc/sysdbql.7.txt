@@ -67,13 +67,13 @@ are supported by SysDB:
 
 The following fields may be queried:
 
-*host.name*::
+*host*::
 	The full name of the host.
 
-*service.name*::
+*service*::
 	The full service name as referenced by the host.
 
-*attribute.name*::
+*attribute*::
 	The full name of a host attribute.
 
 *attribute.*'<name>'::
@@ -111,6 +111,10 @@ The following operators may be used, in addition, to match attribute values:
 *<*, *\<=*, *>=*, *>*::
 	Evaluates to true if the attribute value is less than, less than or equal
 	to, greater than or equal to or greater than the specified value.
+
+In addition, a named attribute may be check for existence using the *IS NULL*
+and *IS NOT NULL* expressions. An attribute is considered to be *NULL* if it
+is not set for a host.
 
 RESPONSE FORMAT
 ---------------
@@ -179,7 +183,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
 
 SEE ALSO
 --------
-manpage:sysdb[1]
+manpage:sysdb[1], manpage:sysdb[7]
 
 AUTHOR
 ------
