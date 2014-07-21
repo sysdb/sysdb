@@ -59,23 +59,23 @@ START_TEST(test_parse)
 		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts WHERE "
-		  "host.name = 'host'",  -1,  1, CONNECTION_LOOKUP },
+		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE NOT "
-		  "host.name = 'host'",  -1,  1, CONNECTION_LOOKUP },
+		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE "
-		  "host.name =~ 'p' AND "
-		  "service.name =~ 'p'", -1,  1, CONNECTION_LOOKUP },
+		  "host =~ 'p' AND "
+		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE NOT "
-		  "host.name =~ 'p' AND "
-		  "service.name =~ 'p'", -1,  1, CONNECTION_LOOKUP },
+		  "host =~ 'p' AND "
+		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE "
-		  "host.name =~ 'p' AND "
-		  "service.name =~ 'p' OR "
-		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
+		  "host =~ 'p' AND "
+		  "service =~ 'p' OR "
+		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE NOT "
-		  "host.name =~ 'p' AND "
-		  "service.name =~ 'p' OR "
-		  "service.name =~ 'r'", -1,  1, CONNECTION_LOOKUP },
+		  "host =~ 'p' AND "
+		  "service =~ 'p' OR "
+		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
 
 		/* numeric constants */
 		{ "LOOKUP hosts WHERE "
@@ -117,10 +117,9 @@ START_TEST(test_parse)
 		  "NOT attribute.foo "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts WHERE "
-		  "host.name IS NULL",   -1, -1, 0 },
+		  "host IS NULL",        -1, -1, 0 },
 		{ "LOOKUP hosts WHERE "
-		  "service.name "
-		  "IS NULL",             -1, -1, 0 },
+		  "service IS NULL",     -1, -1, 0 },
 
 		/* invalid numeric constants */
 		{ "LOOKUP hosts WHERE "
@@ -152,7 +151,7 @@ START_TEST(test_parse)
 
 		{ "LOOKUP hosts",        -1, -1, 0 },
 		{ "LOOKUP foo WHERE "
-		  "host.name = 'host'",  -1, -1, 0 },
+		  "host = 'host'",       -1, -1, 0 },
 	};
 
 	size_t i;
@@ -200,70 +199,70 @@ START_TEST(test_parse_matcher)
 		int expected;
 	} golden_data[] = {
 		/* empty expressions */
-		{ NULL,                             -1, -1 },
-		{ "",                               -1, -1 },
+		{ NULL,                        -1, -1 },
+		{ "",                          -1, -1 },
 
 		/* valid expressions */
-		{ "host.name = 'localhost'",        -1,  MATCHER_NAME },
-		{ "host.name != 'localhost'",       -1,  MATCHER_NOT },
-		{ "host.name =~ 'host'",            -1,  MATCHER_NAME },
-		{ "host.name !~ 'host'",            -1,  MATCHER_NOT },
-		{ "host.name = 'localhost' -- foo", -1,  MATCHER_NAME },
-		{ "host.name = 'host' <garbage>",   18,  MATCHER_NAME },
+		{ "host = 'localhost'",        -1,  MATCHER_NAME },
+		{ "host != 'localhost'",       -1,  MATCHER_NOT },
+		{ "host =~ 'host'",            -1,  MATCHER_NAME },
+		{ "host !~ 'host'",            -1,  MATCHER_NOT },
+		{ "host = 'localhost' -- foo", -1,  MATCHER_NAME },
+		{ "host = 'host' <garbage>",   13,  MATCHER_NAME },
 		/* match hosts by service */
-		{ "service.name = 'name'",          -1,  MATCHER_NAME },
-		{ "service.name != 'name'",         -1,  MATCHER_NOT },
-		{ "service.name =~ 'pattern'",      -1,  MATCHER_NAME },
-		{ "service.name !~ 'pattern'",      -1,  MATCHER_NOT },
+		{ "service = 'name'",          -1,  MATCHER_NAME },
+		{ "service != 'name'",         -1,  MATCHER_NOT },
+		{ "service =~ 'pattern'",      -1,  MATCHER_NAME },
+		{ "service !~ 'pattern'",      -1,  MATCHER_NOT },
 		/* match hosts by attribute */
-		{ "attribute.name = 'name'",        -1,  MATCHER_NAME },
-		{ "attribute.name != 'name'",       -1,  MATCHER_NOT },
-		{ "attribute.name =~ 'pattern'",    -1,  MATCHER_NAME },
-		{ "attribute.name !~ 'pattern'",    -1,  MATCHER_NOT },
+		{ "attribute = 'name'",        -1,  MATCHER_NAME },
+		{ "attribute != 'name'",       -1,  MATCHER_NOT },
+		{ "attribute =~ 'pattern'",    -1,  MATCHER_NAME },
+		{ "attribute !~ 'pattern'",    -1,  MATCHER_NOT },
 		/* composite expressions */
-		{ "host.name =~ 'pattern' AND "
-		  "service.name =~ 'pattern'",      -1,  MATCHER_AND },
-		{ "host.name =~ 'pattern' OR "
-		  "service.name =~ 'pattern'",      -1,  MATCHER_OR },
-		{ "NOT host.name = 'host'",         -1,  MATCHER_NOT },
+		{ "host =~ 'pattern' AND "
+		  "service =~ 'pattern'",      -1,  MATCHER_AND },
+		{ "host =~ 'pattern' OR "
+		  "service =~ 'pattern'",      -1,  MATCHER_OR },
+		{ "NOT host = 'host'",         -1,  MATCHER_NOT },
 		/* numeric expressions */
-		{ "attribute.foo < 123",            -1,  MATCHER_LT },
-		{ "attribute.foo <= 123",           -1,  MATCHER_LE },
-		{ "attribute.foo = 123",            -1,  MATCHER_EQ },
-		{ "attribute.foo >= 123",           -1,  MATCHER_GE },
-		{ "attribute.foo > 123",            -1,  MATCHER_GT },
+		{ "attribute.foo < 123",       -1,  MATCHER_LT },
+		{ "attribute.foo <= 123",      -1,  MATCHER_LE },
+		{ "attribute.foo = 123",       -1,  MATCHER_EQ },
+		{ "attribute.foo >= 123",      -1,  MATCHER_GE },
+		{ "attribute.foo > 123",       -1,  MATCHER_GT },
 		/* NULL; while this is an implementation detail,
 		 * IS NULL currently maps to an equality matcher */
-		{ "attribute.foo IS NULL",          -1,  MATCHER_ISNULL },
-		{ "attribute.foo IS NOT NULL",      -1,  MATCHER_NOT },
+		{ "attribute.foo IS NULL",     -1,  MATCHER_ISNULL },
+		{ "attribute.foo IS NOT NULL", -1,  MATCHER_NOT },
 
 		/* check operator precedence */
-		{ "host.name = 'name' OR "
-		  "service.name = 'name' AND "
-		  "attribute.name = 'name' OR "
-		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
-		{ "host.name = 'name' AND "
-		  "service.name = 'name' AND "
-		  "attribute.name = 'name' OR "
-		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
-		{ "host.name = 'name' AND "
-		  "service.name = 'name' OR "
-		  "attribute.name = 'name' AND "
-		  "attribute.foo = 'bar'",          -1,  MATCHER_OR },
-		{ "(host.name = 'name' OR "
-		  "service.name = 'name') AND "
-		  "(attribute.name = 'name' OR "
-		  "attribute.foo = 'bar')",         -1,  MATCHER_AND },
-		{ "NOT host.name = 'name' OR "
-		  "service.name = 'name'",          -1,  MATCHER_OR },
-		{ "NOT host.name = 'name' OR "
-		  "NOT service.name = 'name'",      -1,  MATCHER_OR },
-		{ "NOT (host.name = 'name' OR "
-		  "NOT service.name = 'name')",     -1,  MATCHER_NOT },
+		{ "host = 'name' OR "
+		  "service = 'name' AND "
+		  "attribute = 'name' OR "
+		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		{ "host = 'name' AND "
+		  "service = 'name' AND "
+		  "attribute = 'name' OR "
+		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		{ "host = 'name' AND "
+		  "service = 'name' OR "
+		  "attribute = 'name' AND "
+		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		{ "(host = 'name' OR "
+		  "service = 'name') AND "
+		  "(attribute = 'name' OR "
+		  "attribute.foo = 'bar')",    -1,  MATCHER_AND },
+		{ "NOT host = 'name' OR "
+		  "service = 'name'",          -1,  MATCHER_OR },
+		{ "NOT host = 'name' OR "
+		  "NOT service = 'name'",      -1,  MATCHER_OR },
+		{ "NOT (host = 'name' OR "
+		  "NOT service = 'name')",     -1,  MATCHER_NOT },
 
 		/* syntax errors */
-		{ "LIST",                           -1, -1 },
-		{ "foo &^ bar",                     -1, -1 },
+		{ "LIST",                      -1, -1 },
+		{ "foo &^ bar",                -1, -1 },
 	};
 
 	size_t i;

@@ -302,6 +302,13 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
+	IDENTIFIER op data
+		{
+			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, &$3);
+			free($1); $1 = NULL;
+			sdb_data_free_datum(&$3);
+		}
+	|
 	IDENTIFIER '.' IDENTIFIER op data
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &$5);

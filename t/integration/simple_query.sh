@@ -98,7 +98,7 @@ echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts WHERE attribute.name != 'architecture'" )"
+	-c "LOOKUP hosts WHERE attribute != 'architecture'" )"
 echo "$output" \
 	| grep -F '"some.host.name"' \
 	| grep -F '"localhost"'
@@ -107,7 +107,7 @@ echo "$output" | grep -F 'host1.example.com' && exit 1
 echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts WHERE service.name = 'sysdbd'" )"
+	-c "LOOKUP hosts WHERE service = 'sysdbd'" )"
 echo "$output" | grep -F '"localhost"'
 echo "$output" | grep -F 'some.host.name' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
@@ -115,7 +115,7 @@ echo "$output" | grep -F 'host1.example.com' && exit 1
 echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts WHERE host.name =~ 'example.com'" )"
+	-c "LOOKUP hosts WHERE host =~ 'example.com'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"'

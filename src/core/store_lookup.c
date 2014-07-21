@@ -732,9 +732,7 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	sdb_store_cond_t *cond;
 	_Bool inv = 0;
 
-	/* TODO: this will reject any attributes called "name";
-	 * use a different syntax for querying objects by name */
-	if (! strcasecmp(attr, "name"))
+	if (! attr)
 		return NULL;
 
 	if (! strcasecmp(op, "IS")) {
@@ -826,7 +824,7 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		return NULL;
 	}
 
-	if (! strcasecmp(attr, "name"))
+	if (! attr)
 		m = sdb_store_name_matcher(type, value->data.string, re);
 	else if (type == SDB_ATTRIBUTE)
 		m = sdb_store_attr_matcher(attr, value->data.string, re);
