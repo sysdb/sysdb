@@ -737,8 +737,12 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	if (! strcasecmp(attr, "name"))
 		return NULL;
 
-	if (! strcasecmp(op, "IS"))
-		return sdb_store_isnull_matcher(attr);
+	if (! strcasecmp(op, "IS")) {
+		if (! value)
+			return sdb_store_isnull_matcher(attr);
+		else
+			return NULL;
+	}
 	else if (! value)
 		return NULL;
 	else if (! strcasecmp(op, "<"))

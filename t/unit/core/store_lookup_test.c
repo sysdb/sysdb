@@ -451,6 +451,7 @@ START_TEST(test_parse_cmp)
 		{ "attribute", "attr", ">=", &attrname, MATCHER_GE },
 		{ "attribute", "attr", ">",  &attrname, MATCHER_GT },
 		{ "attribute", "attr", "IS", NULL,      MATCHER_ISNULL },
+		{ "attribute", "attr", "IS", &attrname, -1 },
 		{ "foo",       "name", "=",  &attrname, -1 },
 		{ "foo",       "attr", "=",  &attrname, -1 },
 	};
