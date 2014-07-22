@@ -88,7 +88,7 @@ sdb_fe_parse(const char *query, int len)
 } /* sdb_fe_parse */
 
 sdb_store_matcher_t *
-sdb_fe_parse_matcher(const char *expr, int len)
+sdb_fe_parse_matcher(const char *cond, int len)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
@@ -98,10 +98,10 @@ sdb_fe_parse_matcher(const char *expr, int len)
 
 	int yyres;
 
-	if (scanner_init(expr, len, &scanner, &yyextra))
+	if (scanner_init(cond, len, &scanner, &yyextra))
 		return NULL;
 
-	yyextra.mode = SDB_PARSE_EXPR;
+	yyextra.mode = SDB_PARSE_COND;
 
 	yyres = sdb_fe_yyparse(scanner);
 	sdb_fe_scanner_destroy(scanner);
