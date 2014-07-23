@@ -111,8 +111,26 @@ Testing
   For the latest coverage report, see:
   <https://coveralls.io/r/tokkee/sysdb>
 
+Documentation
+-------------
+
+  All documentation for SysDB is available as manual pages (in roff and HTML
+  formats) and shipped alongside the source code in the doc/ subdirectory.
+  Also, it is available online at <http://sysdb.io/documentation/>.
+
+Getting Help
+------------
+
+  Various channels for asynchronous and real-time communication with
+  developers and users are available. See <http://sysdb.io/contact/> for
+  details about the mailing list, IRC channel, and social media.
+
 Author
 ------
 
   Sebastian “tokkee” Harl <sh@tokkee.org>
+
+  See the file THANKS for credits and inspiration.
+
+  Want to contribute? Check out the website <http://sysdb.io> for details.
 
