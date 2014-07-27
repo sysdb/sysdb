@@ -491,22 +491,22 @@ START_TEST(test_parse_cmp)
 END_TEST
 
 static int
-lookup_cb(sdb_store_obj_t *obj, void *user_data)
+scan_cb(sdb_store_obj_t *obj, void *user_data)
 {
 	int *i = user_data;
 
 	fail_unless(obj != NULL,
-			"sdb_store_lookup callback received NULL obj; expected: "
+			"sdb_store_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_lookup callback received NULL user_data; "
+			"sdb_store_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
 	return 0;
-} /* lookup_cb */
+} /* scan_cb */
 
-START_TEST(test_lookup)
+START_TEST(test_scan)
 {
 #define PTR_RE "0x[0-9a-f]+"
 	struct {
@@ -569,11 +569,11 @@ START_TEST(test_lookup)
 	size_t i;
 
 	n = 0;
-	check = sdb_store_lookup(NULL, lookup_cb, &n);
+	check = sdb_store_scan(NULL, scan_cb, &n);
 	fail_unless(check == 0,
-			"sdb_store_lookup() = %d; expected: 0", check);
+			"sdb_store_scan() = %d; expected: 0", check);
 	fail_unless(n == 3,
-			"sdb_store_lookup called callback %d times; expected: 3", (int)n);
+			"sdb_store_scan called callback %d times; expected: 3", (int)n);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *m;
@@ -591,9 +591,9 @@ START_TEST(test_lookup)
 				golden_data[i].tostring_re);
 
 		n = 0;
-		sdb_store_lookup(m, lookup_cb, &n);
+		sdb_store_scan(m, scan_cb, &n);
 		fail_unless(n == golden_data[i].expected,
-				"sdb_store_lookup(matcher{%s}) found %d hosts; expected: %d",
+				"sdb_store_scan(matcher{%s}) found %d hosts; expected: %d",
 				golden_data[i].query, n, golden_data[i].expected);
 		sdb_object_deref(SDB_OBJ(m));
 	}
@@ -613,7 +613,7 @@ core_store_lookup_suite(void)
 	tcase_add_test(tc, test_store_cond);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
-	tcase_add_test(tc, test_lookup);
+	tcase_add_test(tc, test_scan);
 	suite_add_tcase(s, tc);
 
 	return s;

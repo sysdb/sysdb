@@ -295,16 +295,17 @@ sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen);
 typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj, void *user_data);
 
 /*
- * sdb_store_lookup:
+ * sdb_store_scan:
  * Look up objects in the store. The specified callback function is called for
- * each object in the store matching 'm'.
+ * each object in the store matching 'm'. The function performs a full scan of
+ * all hosts stored in the database.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_lookup(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
+sdb_store_scan(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
 		void *user_data);
 
 /*

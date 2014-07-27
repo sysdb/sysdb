@@ -57,21 +57,21 @@ typedef struct {
 	sdb_store_matcher_t *m;
 	sdb_store_lookup_cb  cb;
 	void *user_data;
-} lookup_iter_data_t;
+} scan_iter_data_t;
 
 /*
  * private helper functions
  */
 
 static int
-lookup_iter(sdb_store_obj_t *obj, void *user_data)
+scan_iter(sdb_store_obj_t *obj, void *user_data)
 {
-	lookup_iter_data_t *d = user_data;
+	scan_iter_data_t *d = user_data;
 
 	if (sdb_store_matcher_matches(d->m, obj))
 		return d->cb(obj, d->user_data);
 	return 0;
-} /* lookup_iter */
+} /* scan_iter */
 
 static sdb_attribute_t *
 attr_get(sdb_host_t *host, const char *name)
@@ -891,15 +891,15 @@ sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 } /* sdb_store_matcher_tostring */
 
 int
-sdb_store_lookup(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
+sdb_store_scan(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
 		void *user_data)
 {
-	lookup_iter_data_t data = { m, cb, user_data };
+	scan_iter_data_t data = { m, cb, user_data };
 
 	if (! cb)
 		return -1;
-	return sdb_store_iterate(lookup_iter, &data);
-} /* sdb_store_lookup */
+	return sdb_store_iterate(scan_iter, &data);
+} /* sdb_store_scan */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
