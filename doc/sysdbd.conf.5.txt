@@ -137,6 +137,8 @@ SEE ALSO
 --------
 manpage:sysdbd[1], manpage:sysdb[7]
 
+The SysDB homepage: http://sysdb.io/
+
 Backend documentation:
 ~~~~~~~~~~~~~~~~~~~~~~
 

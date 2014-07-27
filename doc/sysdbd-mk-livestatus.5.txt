@@ -42,7 +42,12 @@ CONFIGURATION
 
 SEE ALSO
 --------
-manpage:sysdbd[1], manpage:sysdbd.conf[5]
+manpage:sysdbd[1], manpage:sysdbd.conf[5],
+https://mathias-kettner.de/checkmk_livestatus.html,
+http://icinga.org/, http://www.naemon.org/, http://www.nagios.org/,
+http://shinken-monitoring.org/
+
+The SysDB homepage: http://sysdb.io/
 
 AUTHOR
 ------
