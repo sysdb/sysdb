@@ -150,6 +150,7 @@ float		({float1}|{float2}|{float3}|{float4}|{float5})
 \<=	{ return CMP_LE; }
 \>=	{ return CMP_GE; }
 \>	{ return CMP_GT; }
+\|\|	{ return CONCAT; }
 
 .	{ /* XXX: */ return yytext[0]; }
 

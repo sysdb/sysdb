@@ -92,7 +92,7 @@ START_TEST(test_parse)
 		  "12.4",                -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo <= "
-		  "12.",                 -1,  1, CONNECTION_LOOKUP },
+		  "12. + .3",            -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo >= "
 		  ".4",                  -1,  1, CONNECTION_LOOKUP },
@@ -138,6 +138,11 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "0x12",                -1, -1, 0 },
+
+		/* invalid expressions */
+		{ "LOOKUP hosts MATCHING "
+		  "attribute.foo = "
+		  "1.23 + 'foo'",        -1, -1, 0 },
 
 		/* comments */
 		{ "/* some comment */",  -1,  0, 0 },

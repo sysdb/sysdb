@@ -75,6 +75,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	sdb_conn_node_t *node;
 
 	sdb_store_matcher_t *m;
+	sdb_store_expr_t *expr;
 }
 
 %start statements
@@ -84,6 +85,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token AND OR IS NOT MATCHING
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 %token CMP_LT CMP_LE CMP_GE CMP_GT
+%token CONCAT
 
 /* NULL token */
 %token NULL_T
@@ -101,7 +103,10 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %left CMP_EQUAL CMP_NEQUAL
 %left CMP_LT CMP_LE CMP_GE CMP_GT
 %nonassoc CMP_REGEX CMP_NREGEX
+%left CONCAT
 %nonassoc IS
+%left '+' '-'
+%left '*' '/' '%'
 %left '(' ')'
 %left '.'
 
@@ -115,12 +120,14 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %type <m> matcher
 	compare_matcher
 
+%type <expr> expression
+
 %type <sstr> op
 
 %type <data> data
 
 %destructor { free($$); } <str>
-%destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m>
+%destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m> <expr>
 
 %%
 
@@ -302,19 +309,38 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
-	IDENTIFIER op data
+	IDENTIFIER op expression
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, &$3);
+			sdb_data_t value = SDB_DATA_INIT;
+			if (sdb_store_expr_eval($3, &value)) {
+				sdb_object_deref(SDB_OBJ($3));
+				free($1); $1 = NULL;
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, failed to evaluate expression"));
+				YYABORT;
+			}
+			sdb_object_deref(SDB_OBJ($3));
+			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, &value);
 			free($1); $1 = NULL;
-			sdb_data_free_datum(&$3);
+			sdb_data_free_datum(&value);
 		}
 	|
-	IDENTIFIER '.' IDENTIFIER op data
+	IDENTIFIER '.' IDENTIFIER op expression
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &$5);
+			sdb_data_t value = SDB_DATA_INIT;
+			if (sdb_store_expr_eval($5, &value)) {
+				sdb_object_deref(SDB_OBJ($5));
+				free($1); $1 = NULL;
+				free($3); $3 = NULL;
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, failed to evaluate expression"));
+				YYABORT;
+			}
+			sdb_object_deref(SDB_OBJ($5));
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &value);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
-			sdb_data_free_datum(&$5);
+			sdb_data_free_datum(&value);
 		}
 	|
 	IDENTIFIER '.' IDENTIFIER IS NULL_T
@@ -334,6 +360,54 @@ compare_matcher:
 			/* sdb_store_inv_matcher return NULL if m==NULL */
 			$$ = sdb_store_inv_matcher(m);
 			sdb_object_deref(SDB_OBJ(m));
+		}
+	;
+
+expression:
+	'(' expression ')'
+		{
+			$$ = $2;
+		}
+	|
+	expression '+' expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_ADD, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
+	expression '-' expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_SUB, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
+	expression '*' expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_MUL, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
+	expression '/' expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_DIV, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
+	expression '%' expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_MOD, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
+	data
+		{
+			$$ = sdb_store_expr_constvalue(&$1);
+			sdb_data_free_datum(&$1);
 		}
 	;
 
