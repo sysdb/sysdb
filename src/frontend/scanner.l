@@ -114,14 +114,14 @@ float		({float1}|{float2}|{float3}|{float4}|{float5})
 			return LIST;
 		else if (! strcasecmp(yytext, "LOOKUP"))
 			return LOOKUP;
+		else if (! strcasecmp(yytext, "MATCHING"))
+			return MATCHING;
 		else if (! strcasecmp(yytext, "NOT"))
 			return NOT;
 		else if (! strcasecmp(yytext, "NULL"))
 			return NULL_T;
 		else if (! strcasecmp(yytext, "OR"))
 			return OR;
-		else if (! strcasecmp(yytext, "WHERE"))
-			return WHERE;
 
 		yylval->str = strdup(yytext);
 		return IDENTIFIER;

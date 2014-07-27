@@ -81,7 +81,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token AND OR IS NOT WHERE
+%token AND OR IS NOT MATCHING
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 %token CMP_LT CMP_LE CMP_GE CMP_GT
 
@@ -221,12 +221,12 @@ list_statement:
 	;
 
 /*
- * LOOKUP <type> WHERE <expression>;
+ * LOOKUP <type> MATCHING <expression>;
  *
  * Returns detailed information about <type> matching expression.
  */
 lookup_statement:
-	LOOKUP IDENTIFIER WHERE expression
+	LOOKUP IDENTIFIER MATCHING expression
 		{
 			/* TODO: support other types as well */
 			if (strcasecmp($2, "hosts")) {

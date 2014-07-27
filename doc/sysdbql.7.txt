@@ -11,7 +11,7 @@ SYNOPSIS
 
   LIST;
 
-  QUERY hosts WHERE attribute.architecture = 'amd64';
+  LOOKUP hosts MATCHING attribute.architecture = 'amd64';
 
 DESCRIPTION
 -----------
@@ -39,20 +39,20 @@ value includes the hostname, a list of services referenced by the host, and a
 list of attributes for the host and each service. If the host does not exist,
 an error is returned.
 
-*LOOKUP* hosts *WHERE* '<search_condition>'::
+*LOOKUP* hosts *MATCHING* '<search_condition>'::
 Retrieve detailed information about all host objects matching the specified
 search condition. The return value is a list of detailed information for each
 matching host providing the same details as returned by the *FETCH* command.
-See the section "WHERE clause" for more details about how to specify the
+See the section "MATCHING clause" for more details about how to specify the
 search condition.
 
-WHERE clause
-~~~~~~~~~~~~
-The *WHERE* clause in a query specifies a boolean expression which is used to
-match host objects based on their names, their attributes, or services
-referenced by the host. Each *WHERE* clause may be made up of one or multiple
-subexpressions each matching on one criteria. The following subexpressions
-are supported by SysDB:
+MATCHING clause
+~~~~~~~~~~~~~~~
+The *MATCHING* clause in a query specifies a boolean expression which is used
+to match host objects based on their names, their attributes, or services
+referenced by the host. Each *MATCHING* clause may be made up of one or
+multiple subexpressions each matching on one criteria. The following
+subexpressions are supported by SysDB:
 
 '<field>' '<operator>' '<value>'::
 	Match a named field against the specified value. See below for what fields
@@ -158,7 +158,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
           ...
         }]}
 
-  LOOKUP hosts WHERE attribute.architecture = 'amd64';
+  LOOKUP hosts MATCHING attribute.architecture = 'amd64';
   [{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",

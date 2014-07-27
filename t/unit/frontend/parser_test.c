@@ -58,84 +58,84 @@ START_TEST(test_parse)
 		{ "LIST;",               -1,  1, CONNECTION_LIST   },
 		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
 
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE NOT "
+		{ "LOOKUP hosts MATCHING NOT "
 		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' AND "
 		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE NOT "
+		{ "LOOKUP hosts MATCHING NOT "
 		  "host =~ 'p' AND "
 		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' AND "
 		  "service =~ 'p' OR "
 		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE NOT "
+		{ "LOOKUP hosts MATCHING NOT "
 		  "host =~ 'p' AND "
 		  "service =~ 'p' OR "
 		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
 
 		/* numeric constants */
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "1234",                -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo != "
 		  "+234",                -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo < "
 		  "-234",                -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo > "
 		  "12.4",                -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo <= "
 		  "12.",                 -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo >= "
 		  ".4",                  -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "+12e3",               -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "+12e-3",              -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
 
 		/* NULL */
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo "
 		  "IS NOT NULL",         -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "NOT attribute.foo "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "host IS NULL",        -1, -1, 0 },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "service IS NULL",     -1, -1, 0 },
 
 		/* invalid numeric constants */
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "+-12e+3",             -1, -1, 0 },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "-12e-+3",             -1, -1, 0 },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "e+3",                 -1, -1, 0 },
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "3e",                  -1, -1, 0 },
 		/* following SQL standard, we don't support hex numbers */
-		{ "LOOKUP hosts WHERE "
+		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
 		  "0x12",                -1, -1, 0 },
 
@@ -150,7 +150,7 @@ START_TEST(test_parse)
 		{ "/* some incomplete",  -1, -1, 0 },
 
 		{ "LOOKUP hosts",        -1, -1, 0 },
-		{ "LOOKUP foo WHERE "
+		{ "LOOKUP foo MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
 	};
 
