@@ -110,7 +110,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	fetch_statement
 	list_statement
 	lookup_statement
-	expression
+	condition
 
 %type <m> matcher
 	compare_matcher
@@ -131,7 +131,7 @@ statements:
 			if (parser_mode != SDB_PARSE_DEFAULT) {
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
-							"expecting expression"));
+							"expecting condition"));
 				sdb_object_deref(SDB_OBJ($3));
 				YYABORT;
 			}
@@ -148,7 +148,7 @@ statements:
 			if (parser_mode != SDB_PARSE_DEFAULT) {
 				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
-							"expecting expression"));
+							"expecting condition"));
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -159,12 +159,12 @@ statements:
 			}
 		}
 	|
-	expression
+	condition
 		{
-			/* only accept this in expression parse mode */
-			if (! (parser_mode & SDB_PARSE_EXPR)) {
+			/* only accept this in condition parse mode */
+			if (! (parser_mode & SDB_PARSE_COND)) {
 				sdb_fe_yyerror(&yylloc, scanner,
-						YY_("syntax error, unexpected expression, "
+						YY_("syntax error, unexpected condition, "
 							"expecting statement"));
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
@@ -221,12 +221,12 @@ list_statement:
 	;
 
 /*
- * LOOKUP <type> MATCHING <expression>;
+ * LOOKUP <type> MATCHING <condition>;
  *
- * Returns detailed information about <type> matching expression.
+ * Returns detailed information about <type> matching condition.
  */
 lookup_statement:
-	LOOKUP IDENTIFIER MATCHING expression
+	LOOKUP IDENTIFIER MATCHING condition
 		{
 			/* TODO: support other types as well */
 			if (strcasecmp($2, "hosts")) {
@@ -247,13 +247,13 @@ lookup_statement:
 		}
 	;
 
-expression:
+condition:
 	matcher
 		{
 			if (! $1) {
 				/* TODO: improve error reporting */
 				sdb_fe_yyerror(&yylloc, scanner,
-						YY_("syntax error, invalid expression"));
+						YY_("syntax error, invalid condition"));
 				YYABORT;
 			}
 
