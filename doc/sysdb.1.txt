@@ -59,6 +59,8 @@ SEE ALSO
 --------
 manpage:sysdbd[1], manpage:sysdbql[7]
 
+The SysDB homepage: http://sysdb.io/
+
 AUTHOR
 ------
 SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.

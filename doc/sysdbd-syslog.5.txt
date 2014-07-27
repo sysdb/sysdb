@@ -23,6 +23,8 @@ SEE ALSO
 --------
 manpage:sysdbd[1], manpage:sysdbd.conf[5]
 
+The SysDB homepage: http://sysdb.io/
+
 AUTHOR
 ------
 SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
