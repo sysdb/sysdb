@@ -42,6 +42,10 @@
 extern "C" {
 #endif
 
+/*
+ * core types
+ */
+
 struct sdb_store_obj {
 	sdb_object_t super;
 

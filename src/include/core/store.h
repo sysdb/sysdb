@@ -159,6 +159,52 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
+ * Expressions specify arithmetic expressions.
+ *
+ * A expression object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
+ */
+struct sdb_store_expr;
+typedef struct sdb_store_expr sdb_store_expr_t;
+#define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
+
+/*
+ * sdb_store_expr_create:
+ * Creates an arithmetic expression implementing the specified operator on the
+ * specified left and right operand.
+ *
+ * Returns:
+ *  - an expression object on success
+ *  - NULL else
+ */
+sdb_store_expr_t *
+sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right);
+
+/*
+ * sdb_store_expr_constvalue:
+ * Creates an expression which evaluates to the specified constant value.
+ *
+ * Returns:
+ *  - an expression object on success
+ *  - NULL else
+ */
+sdb_store_expr_t *
+sdb_store_expr_constvalue(const sdb_data_t *value);
+
+/*
+ * sdb_store_expr_eval:
+ * Evaluate an expression and stores the result in 'res'. The result's value
+ * will be allocated dynamically if necessary and, thus, should be free'd by
+ * the caller (e.g. using sdb_data_free_datum);
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_data_t *res);
+
+/*
  * Conditionals may be used to lookup hosts from the store based on a
  * conditional expression.
  *
