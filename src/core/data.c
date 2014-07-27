@@ -42,6 +42,60 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <math.h>
+
+/*
+ * private helper functions
+ */
+
+static int
+data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
+{
+	unsigned char *new;
+	unsigned char *s1, *s2;
+	size_t len1, len2;
+
+	if (d1->type == SDB_TYPE_STRING) {
+		s1 = (unsigned char *)d1->data.string;
+		s2 = (unsigned char *)d2->data.string;
+		len1 = s1 ? strlen((char *)s1) : 0;
+		len2 = s2 ? strlen((char *)s2) : 0;
+	}
+	else if (d1->type == SDB_TYPE_BINARY) {
+		s1 = d1->data.binary.datum;
+		s2 = d2->data.binary.datum;
+		len1 = d1->data.binary.length;
+		len2 = d2->data.binary.length;
+	}
+	else
+		return -1;
+
+	if (s1 || s2) {
+		new = malloc(len1 + len2 + 1);
+		if (! new)
+			return -1;
+	}
+	else
+		new = NULL;
+
+	if (len1)
+		memcpy(new, s1, len1);
+	if (len2)
+		memcpy(new + len1, s2, len2);
+	if (new)
+		new[len1 + len2] = '\0';
+
+	res->type = d1->type;
+	if (res->type == SDB_TYPE_STRING) {
+		res->data.string = (char *)new;
+	}
+	else {
+		res->data.binary.datum = new;
+		res->data.binary.length = len1 + len2;
+	}
+	return 0;
+} /* data_concat */
+
 /*
  * public API
  */
@@ -149,6 +203,99 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	}
 #undef CMP_NULL
 } /* sdb_data_cmp */
+
+int
+sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
+		sdb_data_t *res)
+{
+	if (d1->type != d2->type)
+		return -1;
+
+	switch (op) {
+		case SDB_DATA_CONCAT:
+			return data_concat(d1, d2, res);
+		case SDB_DATA_ADD:
+			switch (d1->type) {
+				case SDB_TYPE_INTEGER:
+					res->data.integer = d1->data.integer + d2->data.integer;
+					break;
+				case SDB_TYPE_DECIMAL:
+					res->data.decimal = d1->data.decimal + d2->data.decimal;
+					break;
+				case SDB_TYPE_DATETIME:
+					res->data.datetime = d1->data.datetime + d2->data.datetime;
+					break;
+				default:
+					return -1;
+			}
+			break;
+		case SDB_DATA_SUB:
+			switch (d1->type) {
+				case SDB_TYPE_INTEGER:
+					res->data.integer = d1->data.integer - d2->data.integer;
+					break;
+				case SDB_TYPE_DECIMAL:
+					res->data.decimal = d1->data.decimal - d2->data.decimal;
+					break;
+				case SDB_TYPE_DATETIME:
+					res->data.datetime = d1->data.datetime - d2->data.datetime;
+					break;
+				default:
+					return -1;
+			}
+			break;
+		case SDB_DATA_MUL:
+			switch (d1->type) {
+				case SDB_TYPE_INTEGER:
+					res->data.integer = d1->data.integer * d2->data.integer;
+					break;
+				case SDB_TYPE_DECIMAL:
+					res->data.decimal = d1->data.decimal * d2->data.decimal;
+					break;
+				case SDB_TYPE_DATETIME:
+					res->data.datetime = d1->data.datetime * d2->data.datetime;
+					break;
+				default:
+					return -1;
+			}
+			break;
+		case SDB_DATA_DIV:
+			switch (d1->type) {
+				case SDB_TYPE_INTEGER:
+					res->data.integer = d1->data.integer / d2->data.integer;
+					break;
+				case SDB_TYPE_DECIMAL:
+					res->data.decimal = d1->data.decimal / d2->data.decimal;
+					break;
+				case SDB_TYPE_DATETIME:
+					res->data.datetime = d1->data.datetime / d2->data.datetime;
+					break;
+				default:
+					return -1;
+			}
+			break;
+		case SDB_DATA_MOD:
+			switch (d1->type) {
+				case SDB_TYPE_INTEGER:
+					res->data.integer = d1->data.integer % d2->data.integer;
+					break;
+				case SDB_TYPE_DECIMAL:
+					res->data.decimal = fmod(d1->data.decimal, d2->data.decimal);
+					break;
+				case SDB_TYPE_DATETIME:
+					res->data.datetime = d1->data.datetime % d2->data.datetime;
+					break;
+				default:
+					return -1;
+			}
+			break;
+		default:
+			return -1;
+	}
+
+	res->type = d1->type;
+	return 0;
+} /* sdb_data_expr_eval */
 
 size_t
 sdb_data_strlen(const sdb_data_t *datum)

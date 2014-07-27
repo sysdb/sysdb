@@ -89,7 +89,7 @@ libsysdb_la_SOURCES = \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
+libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread -lm
 libsysdb_la_LIBADD = libsysdb_fe_parser.la \
 		$(LIBLTDL) -lrt liboconfig/liboconfig.la
 libsysdb_la_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
@@ -124,7 +124,7 @@ sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
 		$(libsysdb_la_SOURCES)
 sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdbd_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-sysdbd_LDFLAGS = $(AM_LDFLAGS) -export-dynamic -pthread
+sysdbd_LDFLAGS = $(AM_LDFLAGS) -export-dynamic -pthread -lm
 sysdbd_LDADD = libsysdb_fe_parser.la liboconfig/liboconfig.la \
 		$(LIBLTDL) -lrt
 sysdbd_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la

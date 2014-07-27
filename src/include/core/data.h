@@ -75,6 +75,7 @@ typedef struct {
 		} binary;             /* SDB_TYPE_BINARY */
 	} data;
 } sdb_data_t;
+#define SDB_DATA_INIT { 0, { .integer = 0 } }
 
 /*
  * sdb_data_copy:
@@ -113,6 +114,46 @@ sdb_data_free_datum(sdb_data_t *datum);
  */
 int
 sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2);
+
+/*
+ * Operators supported by sdb_data_eval_expr.
+ */
+enum {
+	SDB_DATA_ADD = 1, /* addition */
+	SDB_DATA_SUB,     /* substraction */
+	SDB_DATA_MUL,     /* multiplication */
+	SDB_DATA_DIV,     /* division */
+	SDB_DATA_MOD,     /* modulo */
+	SDB_DATA_CONCAT,  /* string / binary data concatenation */
+};
+
+#define SDB_DATA_OP_TO_STRING(op) \
+	(((op) == SDB_DATA_ADD) \
+		? "+" \
+		: ((op) == SDB_DATA_SUB) \
+			? "-" \
+			: ((op) == SDB_DATA_MUL) \
+				? "*" \
+				: ((op) == SDB_DATA_DIV) \
+					? "/" \
+					: ((op) == SDB_DATA_MOD) \
+						? "%" \
+						: ((op) == SDB_DATA_CONCAT) \
+							? "||" : "UNKNOWN")
+
+/*
+ * sdb_data_expr_eval:
+ * Evaluate a simple arithmetic expression on two data points. The data-type
+ * of d1 and d2 have to be the same. String and binary data only support
+ * concatenation and all other data types only support the other operators.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
+		sdb_data_t *res);
 
 /*
  * sdb_data_strlen:
