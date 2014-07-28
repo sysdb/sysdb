@@ -818,6 +818,9 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	else
 		return NULL;
 
+	if (! value)
+		return NULL;
+
 	if (value->type != SDB_TYPE_STRING) {
 		if (type == SDB_ATTRIBUTE)
 			return parse_attr_cmp(attr, op, value);
