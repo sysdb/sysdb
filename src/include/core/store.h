@@ -316,14 +316,22 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m);
 
 /*
  * sdb_store_matcher_matches:
- * Check whether the specified matcher matches the specified store object.
+ * Check whether the specified matcher matches the specified store object. If
+ * specified, the filter will be used to preselect objects for further
+ * evaluation. It is applied to any object that's used during the evaluation
+ * of the matcher. Only those objects matching the filter will be considered.
+ *
+ * Note that the filter is applied to all object types (hosts, service,
+ * attribute). Thus, any object-specific matchers are mostly unsuited for this
+ * purpose and, if used, may result in unexpected behavior.
  *
  * Returns:
  *  - 1 if the object matches
  *  - 0 else
  */
 int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj);
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter);
 
 /*
  * sdb_store_matcher_tostring:
@@ -344,15 +352,17 @@ typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj, void *user_data);
  * sdb_store_scan:
  * Look up objects in the store. The specified callback function is called for
  * each object in the store matching 'm'. The function performs a full scan of
- * all hosts stored in the database.
+ * all hosts stored in the database. If specified, the filter will be used to
+ * preselect objects for further evaluation. See the description of
+ * 'sdb_store_matcher_matches' for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_scan(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
-		void *user_data);
+sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+		sdb_store_lookup_cb cb, void *user_data);
 
 /*
  * Flags for serialization functions.

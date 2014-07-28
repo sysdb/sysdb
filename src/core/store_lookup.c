@@ -55,6 +55,7 @@
 
 typedef struct {
 	sdb_store_matcher_t *m;
+	sdb_store_matcher_t *filter;
 	sdb_store_lookup_cb  cb;
 	void *user_data;
 } scan_iter_data_t;
@@ -68,13 +69,13 @@ scan_iter(sdb_store_obj_t *obj, void *user_data)
 {
 	scan_iter_data_t *d = user_data;
 
-	if (sdb_store_matcher_matches(d->m, obj))
+	if (sdb_store_matcher_matches(d->m, obj, d->filter))
 		return d->cb(obj, d->user_data);
 	return 0;
 } /* scan_iter */
 
 static sdb_attribute_t *
-attr_get(sdb_host_t *host, const char *name)
+attr_get(sdb_host_t *host, const char *name, sdb_store_matcher_t *filter)
 {
 	sdb_avltree_iter_t *iter = NULL;
 	sdb_attribute_t *attr = NULL;
@@ -91,6 +92,10 @@ attr_get(sdb_host_t *host, const char *name)
 		break;
 	}
 	sdb_avltree_iter_destroy(iter);
+
+	if (filter && (! sdb_store_matcher_matches(filter, STORE_OBJ(attr),
+					NULL)))
+		return NULL;
 	return attr;
 } /* attr_get */
 
@@ -99,7 +104,8 @@ attr_get(sdb_host_t *host, const char *name)
  */
 
 static int
-attr_cmp(sdb_host_t *host, sdb_store_cond_t *cond)
+attr_cmp(sdb_host_t *host, sdb_store_cond_t *cond,
+		sdb_store_matcher_t *filter)
 {
 	sdb_attribute_t *attr;
 	sdb_data_t value = SDB_DATA_INIT;
@@ -108,7 +114,7 @@ attr_cmp(sdb_host_t *host, sdb_store_cond_t *cond)
 	if (sdb_store_expr_eval(ATTR_C(cond)->expr, &value))
 		return INT_MAX;
 
-	attr = attr_get(host, ATTR_C(cond)->name);
+	attr = attr_get(host, ATTR_C(cond)->name, filter);
 	if (! attr)
 		status = INT_MAX;
 	else if (attr->value.type != value.type)
@@ -141,34 +147,39 @@ match_string(string_matcher_t *m, const char *name)
 } /* match_string */
 
 static int
-match_logical(sdb_store_matcher_t *m, sdb_host_t *host)
+match_logical(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 
 	assert((m->type == MATCHER_AND) || (m->type == MATCHER_OR));
 	assert(OP_M(m)->left && OP_M(m)->right);
 
-	status = sdb_store_matcher_matches(OP_M(m)->left, STORE_OBJ(host));
+	status = sdb_store_matcher_matches(OP_M(m)->left, STORE_OBJ(host),
+			filter);
+
 	/* lazy evaluation */
 	if ((! status) && (m->type == MATCHER_AND))
 		return status;
 	else if (status && (m->type == MATCHER_OR))
 		return status;
 
-	return sdb_store_matcher_matches(OP_M(m)->right, STORE_OBJ(host));
+	return sdb_store_matcher_matches(OP_M(m)->right, STORE_OBJ(host), filter);
 } /* match_logical */
 
 static int
-match_unary(sdb_store_matcher_t *m, sdb_host_t *host)
+match_unary(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	assert(m->type == MATCHER_NOT);
 	assert(UOP_M(m)->op);
 
-	return !sdb_store_matcher_matches(UOP_M(m)->op, STORE_OBJ(host));
+	return !sdb_store_matcher_matches(UOP_M(m)->op, STORE_OBJ(host), filter);
 } /* match_unary */
 
 static int
-match_name(sdb_store_matcher_t *m, sdb_host_t *host)
+match_name(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_iter_t *iter = NULL;
 	int status = 0;
@@ -189,6 +200,9 @@ match_name(sdb_store_matcher_t *m, sdb_host_t *host)
 
 	while (sdb_avltree_iter_has_next(iter)) {
 		sdb_object_t *child = sdb_avltree_iter_get_next(iter);
+		if (filter && (! sdb_store_matcher_matches(filter, STORE_OBJ(child),
+						NULL)))
+			continue;
 		if (match_string(&NAME_M(m)->name, child->name)) {
 			status = 1;
 			break;
@@ -199,14 +213,15 @@ match_name(sdb_store_matcher_t *m, sdb_host_t *host)
 } /* match_name */
 
 static int
-match_attr(sdb_store_matcher_t *m, sdb_host_t *host)
+match_attr(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	sdb_attribute_t *attr;
 
 	assert(m->type == MATCHER_ATTR);
 	assert(ATTR_M(m)->name);
 
-	attr = attr_get(host, ATTR_M(m)->name);
+	attr = attr_get(host, ATTR_M(m)->name, filter);
 	if (attr) {
 		char buf[sdb_data_strlen(&attr->value) + 1];
 		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
@@ -218,58 +233,65 @@ match_attr(sdb_store_matcher_t *m, sdb_host_t *host)
 } /* match_attr */
 
 static int
-match_lt(sdb_store_matcher_t *m, sdb_host_t *host)
+match_lt(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 	assert(m->type == MATCHER_LT);
-	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond, filter);
 	return (status != INT_MAX) && (status < 0);
 } /* match_lt */
 
 static int
-match_le(sdb_store_matcher_t *m, sdb_host_t *host)
+match_le(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 	assert(m->type == MATCHER_LE);
-	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond, filter);
 	return (status != INT_MAX) && (status <= 0);
 } /* match_le */
 
 static int
-match_eq(sdb_store_matcher_t *m, sdb_host_t *host)
+match_eq(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 	assert(m->type == MATCHER_EQ);
-	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond, filter);
 	return (status != INT_MAX) && (! status);
 } /* match_eq */
 
 static int
-match_ge(sdb_store_matcher_t *m, sdb_host_t *host)
+match_ge(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 	assert(m->type == MATCHER_GE);
-	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond, filter);
 	return (status != INT_MAX) && (status >= 0);
 } /* match_ge */
 
 static int
-match_gt(sdb_store_matcher_t *m, sdb_host_t *host)
+match_gt(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	int status;
 	assert(m->type == MATCHER_GT);
-	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond);
+	status = COND_M(m)->cond->cmp(host, COND_M(m)->cond, filter);
 	return (status != INT_MAX) && (status > 0);
 } /* match_gt */
 
 static int
-match_isnull(sdb_store_matcher_t *m, sdb_host_t *host)
+match_isnull(sdb_store_matcher_t *m, sdb_host_t *host,
+		sdb_store_matcher_t *filter)
 {
 	assert(m->type == MATCHER_ISNULL);
-	return attr_get(host, ISNULL_M(m)->attr_name) == NULL;
+	return attr_get(host, ISNULL_M(m)->attr_name, filter) == NULL;
 } /* match_isnull */
 
-typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_host_t *);
+typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_host_t *,
+		sdb_store_matcher_t *);
 
 /* this array needs to be indexable by the matcher types;
  * -> update the enum in store-private.h when updating this */
@@ -885,9 +907,13 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m)
 } /* sdb_store_inv_matcher */
 
 int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
 {
 	if (obj->type != SDB_HOST)
+		return 0;
+
+	if (filter && (! sdb_store_matcher_matches(filter, obj, NULL)))
 		return 0;
 
 	/* "NULL" always matches */
@@ -897,7 +923,7 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj)
 	if ((m->type < 0) || ((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers)))
 		return 0;
 
-	return matchers[m->type](m, HOST(obj));
+	return matchers[m->type](m, HOST(obj), filter);
 } /* sdb_store_matcher_matches */
 
 char *
@@ -913,10 +939,10 @@ sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 } /* sdb_store_matcher_tostring */
 
 int
-sdb_store_scan(sdb_store_matcher_t *m, sdb_store_lookup_cb cb,
-		void *user_data)
+sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+		sdb_store_lookup_cb cb, void *user_data)
 {
-	scan_iter_data_t data = { m, cb, user_data };
+	scan_iter_data_t data = { m, filter, cb, user_data };
 
 	if (! cb)
 		return -1;

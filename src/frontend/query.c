@@ -166,7 +166,7 @@ sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m)
 
 	sdb_strbuf_append(buf, "[");
 
-	if (sdb_store_scan(m, lookup_tojson, buf)) {
+	if (sdb_store_scan(m, /* filter */ NULL, lookup_tojson, buf)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
 		sdb_strbuf_destroy(buf);
