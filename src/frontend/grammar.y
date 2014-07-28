@@ -311,36 +311,17 @@ matcher:
 compare_matcher:
 	IDENTIFIER op expression
 		{
-			sdb_data_t value = SDB_DATA_INIT;
-			if (sdb_store_expr_eval($3, &value)) {
-				sdb_object_deref(SDB_OBJ($3));
-				free($1); $1 = NULL;
-				sdb_fe_yyerror(&yylloc, scanner,
-						YY_("syntax error, failed to evaluate expression"));
-				YYABORT;
-			}
-			sdb_object_deref(SDB_OBJ($3));
-			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, &value);
+			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, $3);
 			free($1); $1 = NULL;
-			sdb_data_free_datum(&value);
+			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
 	IDENTIFIER '.' IDENTIFIER op expression
 		{
-			sdb_data_t value = SDB_DATA_INIT;
-			if (sdb_store_expr_eval($5, &value)) {
-				sdb_object_deref(SDB_OBJ($5));
-				free($1); $1 = NULL;
-				free($3); $3 = NULL;
-				sdb_fe_yyerror(&yylloc, scanner,
-						YY_("syntax error, failed to evaluate expression"));
-				YYABORT;
-			}
-			sdb_object_deref(SDB_OBJ($5));
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, &value);
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, $5);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
-			sdb_data_free_datum(&value);
+			sdb_object_deref(SDB_OBJ($5));
 		}
 	|
 	IDENTIFIER '.' IDENTIFIER IS NULL_T

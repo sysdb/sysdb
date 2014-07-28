@@ -275,6 +275,7 @@ START_TEST(test_store_cond)
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_expr_t *expr;
 		sdb_store_cond_t *c;
 		char buf[1024];
 		size_t j;
@@ -293,10 +294,15 @@ START_TEST(test_store_cond)
 		sdb_data_format(&golden_data[i].value,
 				buf, sizeof(buf), SDB_UNQUOTED);
 
-		c = sdb_store_attr_cond(golden_data[i].attr,
-				&golden_data[i].value);
+		expr = sdb_store_expr_constvalue(&golden_data[i].value);
+		fail_unless(expr != NULL,
+				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
+				buf);
+
+		c = sdb_store_attr_cond(golden_data[i].attr, expr);
+		sdb_object_deref(SDB_OBJ(expr));
 		fail_unless(c != NULL,
-				"sdb_store_attr_cond(%s, %s) = NULL; expected: <cond>",
+				"sdb_store_attr_cond(%s, expr{%s}) = NULL; expected: <cond>",
 				golden_data[i].attr, buf);
 
 		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
@@ -461,19 +467,25 @@ START_TEST(test_parse_cmp)
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_expr_t *expr;
 		char buf[1024];
-
-		check = sdb_store_matcher_parse_cmp(golden_data[i].obj_type,
-				golden_data[i].attr, golden_data[i].op,
-				golden_data[i].value);
 
 		if (sdb_data_format(golden_data[i].value,
 					buf, sizeof(buf), SDB_UNQUOTED) < 0)
 			snprintf(buf, sizeof(buf), "ERR");
 
+		expr = sdb_store_expr_constvalue(golden_data[i].value);
+		fail_unless(expr != NULL || golden_data[i].value == NULL,
+				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
+				buf);
+
+		check = sdb_store_matcher_parse_cmp(golden_data[i].obj_type,
+				golden_data[i].attr, golden_data[i].op, expr);
+		sdb_object_deref(SDB_OBJ(expr));
+
 		if (golden_data[i].expected == -1) {
 			fail_unless(check == NULL,
-					"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) = %p; "
+					"sdb_store_matcher_parse_cmp(%s, %s, %s, expr{%s}) = %p; "
 					"expected: NULL", golden_data[i].obj_type,
 					golden_data[i].attr, golden_data[i].op, buf, check);
 			continue;

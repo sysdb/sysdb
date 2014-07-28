@@ -102,13 +102,21 @@ static int
 attr_cmp(sdb_host_t *host, sdb_store_cond_t *cond)
 {
 	sdb_attribute_t *attr;
+	sdb_data_t value = SDB_DATA_INIT;
+	int status;
+
+	if (sdb_store_expr_eval(ATTR_C(cond)->expr, &value))
+		return INT_MAX;
 
 	attr = attr_get(host, ATTR_C(cond)->name);
 	if (! attr)
-		return INT_MAX;
-	if (attr->value.type != ATTR_C(cond)->value.type)
-		return INT_MAX;
-	return sdb_data_cmp(&attr->value, &ATTR_C(cond)->value);
+		status = INT_MAX;
+	else if (attr->value.type != value.type)
+		status = INT_MAX;
+	else
+		status = sdb_data_cmp(&attr->value, &value);
+	sdb_data_free_datum(&value);
+	return status;
 } /* attr_cmp */
 
 /*
@@ -288,7 +296,7 @@ static int
 attr_cond_init(sdb_object_t *obj, va_list ap)
 {
 	const char *name = va_arg(ap, const char *);
-	const sdb_data_t *value = va_arg(ap, const sdb_data_t *);
+	sdb_store_expr_t *expr = va_arg(ap, sdb_store_expr_t *);
 
 	if (! name)
 		return -1;
@@ -298,8 +306,8 @@ attr_cond_init(sdb_object_t *obj, va_list ap)
 	ATTR_C(obj)->name = strdup(name);
 	if (! ATTR_C(obj)->name)
 		return -1;
-	if (sdb_data_copy(&ATTR_C(obj)->value, value))
-		return -1;
+	ATTR_C(obj)->expr = expr;
+	sdb_object_ref(SDB_OBJ(expr));
 	return 0;
 } /* attr_cond_init */
 
@@ -308,7 +316,7 @@ attr_cond_destroy(sdb_object_t *obj)
 {
 	if (ATTR_C(obj)->name)
 		free(ATTR_C(obj)->name);
-	sdb_data_free_datum(&ATTR_C(obj)->value);
+	sdb_object_deref(SDB_OBJ(ATTR_C(obj)->expr));
 } /* attr_cond_destroy */
 
 static sdb_type_t attr_cond_type = {
@@ -457,12 +465,17 @@ static char *
 cond_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 {
 	if (COND_M(m)->cond->cmp == attr_cmp) {
-		char value[buflen];
-		if (sdb_data_format(&ATTR_C(COND_M(m)->cond)->value,
-					value, sizeof(value), SDB_SINGLE_QUOTED) < 0)
-			snprintf(value, sizeof(value), "ERR");
+		sdb_data_t value = SDB_DATA_INIT;
+		char value_str[buflen];
+		if (sdb_store_expr_eval(ATTR_C(COND_M(m)->cond)->expr, &value))
+			snprintf(value_str, sizeof(value_str), "ERR");
+		else if (sdb_data_format(&value, value_str, sizeof(value_str),
+					SDB_SINGLE_QUOTED) < 0)
+			snprintf(value_str, sizeof(value_str), "ERR");
 		snprintf(buf, buflen, "ATTR[%s]{ %s %s }",
-				ATTR_C(COND_M(m)->cond)->name, MATCHER_SYM(m->type), value);
+				ATTR_C(COND_M(m)->cond)->name, MATCHER_SYM(m->type),
+				value_str);
+		sdb_data_free_datum(&value);
 	}
 	return buf;
 } /* cond_tostring */
@@ -644,10 +657,10 @@ matchers_tostring[] = {
  */
 
 sdb_store_cond_t *
-sdb_store_attr_cond(const char *name, const sdb_data_t *value)
+sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr)
 {
 	return SDB_STORE_COND(sdb_object_create("attr-cond", attr_cond_type,
-				name, value));
+				name, expr));
 } /* sdb_store_attr_cond */
 
 sdb_store_matcher_t *
@@ -656,11 +669,9 @@ sdb_store_name_matcher(int type, const char *name, _Bool re)
 	sdb_store_matcher_t *m;
 
 	if (re)
-		m = M(sdb_object_create("name-matcher", name_type,
-					NULL, name));
+		m = M(sdb_object_create("name-matcher", name_type, NULL, name));
 	else
-		m = M(sdb_object_create("name-matcher", name_type,
-					name, NULL));
+		m = M(sdb_object_create("name-matcher", name_type, name, NULL));
 
 	if (! m)
 		return NULL;
@@ -672,14 +683,18 @@ sdb_store_name_matcher(int type, const char *name, _Bool re)
 sdb_store_matcher_t *
 sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
 {
+	sdb_store_matcher_t *m;
+
 	if (! name)
 		return NULL;
 
 	if (re)
-		return M(sdb_object_create("attr-matcher", attr_type,
+		m = M(sdb_object_create("attr-matcher", attr_type,
 					name, NULL, value));
-	return M(sdb_object_create("attr-matcher", attr_type,
-				name, value, NULL));
+	else
+		m = M(sdb_object_create("attr-matcher", attr_type,
+					name, value, NULL));
+	return m;
 } /* sdb_store_attr_matcher */
 
 sdb_store_matcher_t *
@@ -725,7 +740,7 @@ sdb_store_isnull_matcher(const char *attr_name)
 } /* sdb_store_isnull_matcher */
 
 static sdb_store_matcher_t *
-parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
+parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
 {
 	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
 	sdb_store_matcher_t *m;
@@ -736,12 +751,12 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 		return NULL;
 
 	if (! strcasecmp(op, "IS")) {
-		if (! value)
+		if (! expr)
 			return sdb_store_isnull_matcher(attr);
 		else
 			return NULL;
 	}
-	else if (! value)
+	else if (! expr)
 		return NULL;
 	else if (! strcasecmp(op, "<"))
 		matcher = sdb_store_lt_matcher;
@@ -760,7 +775,7 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 	else
 		return NULL;
 
-	cond = sdb_store_attr_cond(attr, value);
+	cond = sdb_store_attr_cond(attr, expr);
 	if (! cond)
 		return NULL;
 
@@ -782,12 +797,13 @@ parse_attr_cmp(const char *attr, const char *op, const sdb_data_t *value)
 
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
-		const char *op, const sdb_data_t *value)
+		const char *op, sdb_store_expr_t *expr)
 {
 	int type = -1;
 	_Bool inv = 0;
 	_Bool re = 0;
 
+	sdb_data_t value = SDB_DATA_INIT;
 	sdb_store_matcher_t *m = NULL;
 
 	if (! strcasecmp(obj_type, "host"))
@@ -814,23 +830,26 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		re = 1;
 	}
 	else if (type == SDB_ATTRIBUTE)
-		return parse_attr_cmp(attr, op, value);
+		return parse_attr_cmp(attr, op, expr);
 	else
 		return NULL;
 
-	if (! value)
+	if (! expr)
 		return NULL;
 
-	if (value->type != SDB_TYPE_STRING) {
-		if (type == SDB_ATTRIBUTE)
-			return parse_attr_cmp(attr, op, value);
+	if (sdb_store_expr_eval(expr, &value))
 		return NULL;
+	if (value.type != SDB_TYPE_STRING) {
+		sdb_data_free_datum(&value);
+		return parse_attr_cmp(attr, op, expr);
 	}
 
 	if (! attr)
-		m = sdb_store_name_matcher(type, value->data.string, re);
+		m = sdb_store_name_matcher(type, value.data.string, re);
 	else if (type == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, value->data.string, re);
+		m = sdb_store_attr_matcher(attr, value.data.string, re);
+
+	sdb_data_free_datum(&value);
 
 	if (! m)
 		return NULL;

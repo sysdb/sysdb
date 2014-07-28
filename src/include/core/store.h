@@ -218,11 +218,11 @@ typedef struct sdb_store_cond sdb_store_cond_t;
 /*
  * sdb_store_attr_cond:
  * Creates a conditional based on attribute values. The value of stored
- * attributes is compared against the specified value. See sdb_data_cmp for
- * details about the comparison.
+ * attributes is compared against the value the expression evaluates to. See
+ * sdb_data_cmp for details about the comparison.
  */
 sdb_store_cond_t *
-sdb_store_attr_cond(const char *name, const sdb_data_t *value);
+sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr);
 
 /*
  * Store matchers may be used to lookup hosts from the store based on their
@@ -283,7 +283,7 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond);
 
 /*
  * sdb_store_matcher_parse_cmp:
- * Parse a simple compare expression (<obj_type>.<attr> <op> <value>).
+ * Parse a simple compare expression (<obj_type>.<attr> <op> <expression>).
  *
  * Returns:
  *  - a matcher object on success
@@ -291,7 +291,7 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond);
  */
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
-		const char *op, const sdb_data_t *value);
+		const char *op, sdb_store_expr_t *expr);
 
 /*
  * sdb_store_dis_matcher:

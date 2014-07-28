@@ -106,7 +106,7 @@ struct sdb_store_cond {
 typedef struct {
 	sdb_store_cond_t super;
 	char *name;
-	sdb_data_t value;
+	sdb_store_expr_t *expr;
 } attr_cond_t;
 #define ATTR_C(obj) ((attr_cond_t *)(obj))
 
