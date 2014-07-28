@@ -95,9 +95,9 @@ typedef struct {
  * conditionals
  */
 
-/* compares a host using the specified conditional and taking the specified
+/* compares an object using the specified conditional and taking the specified
  * filter into account */
-typedef int (*cmp_cb)(sdb_host_t *, sdb_store_cond_t *,
+typedef int (*cmp_cb)(sdb_store_obj_t *, sdb_store_cond_t *,
 		sdb_store_matcher_t *);
 
 struct sdb_store_cond {

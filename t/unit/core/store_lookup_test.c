@@ -539,10 +539,10 @@ START_TEST(test_scan)
 	} golden_data[] = {
 		{ "host = 'a'", NULL,               1,
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
-		{ "host = 'a'", "host = 'b'",       0,
+		{ "host = 'a'", "host = 'x'",       0, /* filter never matches */
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
 		{ "host = 'a'",
-			"attribute.x IS NULL",          1,
+			"NOT attribute.x = ''",         1, /* filter always matches */
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
 		{ "host =~ 'a|b'", NULL,            2,
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
@@ -552,11 +552,21 @@ START_TEST(test_scan)
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
 		{ "service = 's1'", NULL,           2,
 			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
+		{ "service = 's1'", "host = 'x'",   0, /* filter never matches */
+			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
+		{ "service = 's1'",
+			"NOT attribute.x = ''",         2, /* filter always matches */
+			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
 		{ "service =~ 's'", NULL,           2,
 			"OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
 		{ "service !~ 's'", NULL,           1,
 			"\\(NOT, OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
 		{ "attribute = 'k1'", NULL,         1,
+			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
+		{ "attribute = 'k1'", "host = 'x'", 0, /* filter never matches */
+			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
+		{ "attribute = 'k1'",
+			"NOT attribute.x = ''",         1, /* filter always matches */
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute = 'x'", NULL,          0,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
@@ -630,9 +640,9 @@ START_TEST(test_scan)
 		n = 0;
 		sdb_store_scan(m, filter, scan_cb, &n);
 		fail_unless(n == golden_data[i].expected,
-				"sdb_store_scan(matcher{%s}, filter{NULL}) found %d hosts; "
-				"expected: %d", golden_data[i].query, n,
-				golden_data[i].expected);
+				"sdb_store_scan(matcher{%s}, filter{%s}) found %d hosts; "
+				"expected: %d", golden_data[i].query, golden_data[i].filter,
+				n, golden_data[i].expected);
 		sdb_object_deref(SDB_OBJ(filter));
 		sdb_object_deref(SDB_OBJ(m));
 	}
