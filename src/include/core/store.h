@@ -53,7 +53,6 @@ enum {
 		: ((t) == SDB_SERVICE) ? "service" \
 		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
 
-
 /*
  * sdb_store_obj_t represents the super-class of any object stored in the
  * database. It inherits from sdb_object_t and may safely be cast to a generic
@@ -61,6 +60,22 @@ enum {
  */
 struct sdb_store_obj;
 typedef struct sdb_store_obj sdb_store_obj_t;
+
+/*
+ * Queryable fields of a stored object.
+ */
+enum {
+	SDB_FIELD_LAST_UPDATE = 1, /* datetime */
+	SDB_FIELD_AGE,             /* datetime */
+	SDB_FIELD_INTERVAL,        /* datetime */
+	SDB_FIELD_BACKEND,         /* string */
+};
+
+#define SDB_FIELD_TO_NAME(f) \
+	(((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
+		: ((f) == SDB_FIELD_AGE) ? "age" \
+		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
+		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")
 
 /*
  * sdb_store_clear:
@@ -223,6 +238,15 @@ typedef struct sdb_store_cond sdb_store_cond_t;
  */
 sdb_store_cond_t *
 sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr);
+
+/*
+ * sdb_store_obj_cond:
+ * Creates a conditional based on queryable object fields. The respective
+ * field of *any* object type is compared against the value the expression
+ * evaluates to.
+ */
+sdb_store_cond_t *
+sdb_store_obj_cond(int field, sdb_store_expr_t *expr);
 
 /*
  * Store matchers may be used to lookup hosts from the store based on their
