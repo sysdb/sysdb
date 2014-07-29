@@ -508,6 +508,8 @@ cond_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 				value_str);
 		sdb_data_free_datum(&value);
 	}
+	else
+		snprintf(buf, buflen, "<unknown>");
 	return buf;
 } /* cond_tostring */
 
