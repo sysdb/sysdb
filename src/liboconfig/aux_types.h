@@ -1,5 +1,5 @@
-#ifndef AUX_TYPES_H
-#define AUX_TYPES_H 1
+#ifndef SDB_OCONFIG_AUX_TYPES_H
+#define SDB_OCONFIG_AUX_TYPES_H 1
 
 struct statement_list_s
 {
@@ -15,4 +15,4 @@ struct argument_list_s
 };
 typedef struct argument_list_s argument_list_t;
 
-#endif /* AUX_TYPES_H */
+#endif /* SDB_OCONFIG_AUX_TYPES_H */
