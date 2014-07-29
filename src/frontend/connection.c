@@ -314,10 +314,11 @@ command_handle(sdb_conn_t *conn)
 		}
 
 		case CONNECTION_FETCH:
-			status = sdb_fe_fetch(conn, sdb_strbuf_string(conn->buf));
+			status = sdb_fe_fetch(conn, sdb_strbuf_string(conn->buf),
+					/* filter = */ NULL);
 			break;
 		case CONNECTION_LIST:
-			status = sdb_fe_list(conn);
+			status = sdb_fe_list(conn, /* filter = */ NULL);
 			break;
 		case CONNECTION_LOOKUP:
 		{
@@ -332,7 +333,7 @@ command_handle(sdb_conn_t *conn)
 				break;
 			}
 
-			status = sdb_fe_lookup(conn, m);
+			status = sdb_fe_lookup(conn, m, /* filter = */ NULL);
 			sdb_object_deref(SDB_OBJ(m));
 			break;
 		}

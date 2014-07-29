@@ -38,14 +38,28 @@
  * private helper functions
  */
 
+typedef struct {
+	sdb_strbuf_t *buf;
+	sdb_store_matcher_t *filter;
+
+	size_t last_len;
+} tojson_data_t;
+
 static int
 lookup_tojson(sdb_store_obj_t *obj, void *user_data)
 {
-	sdb_strbuf_t *buf = user_data;
-	if (sdb_strbuf_len(buf) > 1)
-		sdb_strbuf_append(buf, ",");
-	return sdb_store_host_tojson(obj, buf,
-			/* filter = */ NULL, /* flags = */ 0);
+	tojson_data_t *data = user_data;
+	int status;
+
+	if (data->filter && (! sdb_store_matcher_matches(data->filter, obj, NULL)))
+		return 0;
+
+	if (sdb_strbuf_len(data->buf) > data->last_len)
+		sdb_strbuf_append(data->buf, ",");
+	data->last_len = sdb_strbuf_len(data->buf);
+	status = sdb_store_host_tojson(obj, data->buf,
+			data->filter, /* flags = */ 0);
+	return status;
 } /* lookup_tojson */
 
 /*
@@ -60,11 +74,13 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 
 	switch (node->cmd) {
 		case CONNECTION_FETCH:
-			return sdb_fe_fetch(conn, CONN_FETCH(node)->name);
+			return sdb_fe_fetch(conn, CONN_FETCH(node)->name,
+					/* filter = */ NULL);
 		case CONNECTION_LIST:
-			return sdb_fe_list(conn);
+			return sdb_fe_list(conn, /* filter = */ NULL);
 		case CONNECTION_LOOKUP:
-			return sdb_fe_lookup(conn, CONN_LOOKUP(node)->matcher->matcher);
+			return sdb_fe_lookup(conn, CONN_LOOKUP(node)->matcher->matcher,
+					/* filter = */ NULL);
 
 		default:
 			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);
@@ -74,7 +90,7 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 } /* sdb_fe_exec */
 
 int
-sdb_fe_fetch(sdb_conn_t *conn, const char *name)
+sdb_fe_fetch(sdb_conn_t *conn, const char *name, sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
@@ -101,8 +117,7 @@ sdb_fe_fetch(sdb_conn_t *conn, const char *name)
 		return -1;
 	}
 
-	if (sdb_store_host_tojson(host, buf,
-				/* filter = */ NULL, /* flags = */ 0)) {
+	if (sdb_store_host_tojson(host, buf, filter, /* flags = */ 0)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"host '%s' to JSON", name);
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
@@ -119,7 +134,7 @@ sdb_fe_fetch(sdb_conn_t *conn, const char *name)
 } /* sdb_fe_fetch */
 
 int
-sdb_fe_list(sdb_conn_t *conn)
+sdb_fe_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
 
@@ -135,8 +150,7 @@ sdb_fe_list(sdb_conn_t *conn)
 		return -1;
 	}
 
-	if (sdb_store_tojson(buf,
-				/* filter = */ NULL, /* flags = */ SDB_SKIP_ALL)) {
+	if (sdb_store_tojson(buf, filter, /* flags = */ SDB_SKIP_ALL)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
@@ -151,36 +165,41 @@ sdb_fe_list(sdb_conn_t *conn)
 } /* sdb_fe_list */
 
 int
-sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m)
+sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
+		sdb_store_matcher_t *filter)
 {
-	sdb_strbuf_t *buf;
+	tojson_data_t data = { NULL, filter, 0 };
 
-	buf = sdb_strbuf_create(1024);
-	if (! buf) {
+	data.buf = sdb_strbuf_create(1024);
+	if (! data.buf) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
 				"buffer to handle LOOKUP command: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
+		sdb_strbuf_destroy(data.buf);
 		return -1;
 	}
 
-	sdb_strbuf_append(buf, "[");
+	sdb_strbuf_append(data.buf, "[");
 
-	if (sdb_store_scan(m, /* filter */ NULL, lookup_tojson, buf)) {
+	/* Let the JSON serializer handle the filter instead of the scanner. Else,
+	 * we'd have to filter twice -- once in the scanner and then again in the
+	 * serializer. */
+	data.last_len = sdb_strbuf_len(data.buf);
+	if (sdb_store_scan(m, /* filter */ NULL, lookup_tojson, &data)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
-		sdb_strbuf_destroy(buf);
+		sdb_strbuf_destroy(data.buf);
 		return -1;
 	}
 
-	sdb_strbuf_append(buf, "]");
+	sdb_strbuf_append(data.buf, "]");
 
 	sdb_connection_send(conn, CONNECTION_OK,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-	sdb_strbuf_destroy(buf);
+			(uint32_t)sdb_strbuf_len(data.buf), sdb_strbuf_string(data.buf));
+	sdb_strbuf_destroy(data.buf);
 	return 0;
 } /* sdb_fe_lookup */
 
