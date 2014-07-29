@@ -629,9 +629,6 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
 
-	if (filter && (! sdb_store_matcher_matches(filter, h, NULL)))
-		return 0;
-
 	sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(host)->name);
 	store_common_tojson(h, buf);
 
@@ -653,6 +650,7 @@ int
 sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 {
 	sdb_avltree_iter_t *host_iter;
+	size_t len;
 
 	if (! buf)
 		return -1;
@@ -667,20 +665,22 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 
 	sdb_strbuf_append(buf, "{\"hosts\":[");
 
+	len = sdb_strbuf_len(buf);
 	while (sdb_avltree_iter_has_next(host_iter)) {
 		sdb_store_obj_t *host;
-		size_t len = sdb_strbuf_len(buf);
 
 		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
+		if (filter && (! sdb_store_matcher_matches(filter, host, NULL)))
+			continue;
+
+		if (sdb_strbuf_len(buf) > len)
+			sdb_strbuf_append(buf, ",");
+		len = sdb_strbuf_len(buf);
+
 		if (sdb_store_host_tojson(host, buf, filter, flags))
 			return -1;
-
-		/* sdb_store_host_tojson may leave the buffer unmodified */
-		if ((sdb_avltree_iter_has_next(host_iter))
-				&& (sdb_strbuf_len(buf) != len))
-			sdb_strbuf_append(buf, ",");
 	}
 
 	sdb_strbuf_append(buf, "]}");
