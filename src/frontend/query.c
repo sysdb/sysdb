@@ -44,7 +44,8 @@ lookup_tojson(sdb_store_obj_t *obj, void *user_data)
 	sdb_strbuf_t *buf = user_data;
 	if (sdb_strbuf_len(buf) > 1)
 		sdb_strbuf_append(buf, ",");
-	return sdb_store_host_tojson(obj, buf, /* flags = */ 0);
+	return sdb_store_host_tojson(obj, buf,
+			/* filter = */ NULL, /* flags = */ 0);
 } /* lookup_tojson */
 
 /*
@@ -100,7 +101,8 @@ sdb_fe_fetch(sdb_conn_t *conn, const char *name)
 		return -1;
 	}
 
-	if (sdb_store_host_tojson(host, buf, /* flags = */ 0)) {
+	if (sdb_store_host_tojson(host, buf,
+				/* filter = */ NULL, /* flags = */ 0)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"host '%s' to JSON", name);
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
@@ -133,7 +135,8 @@ sdb_fe_list(sdb_conn_t *conn)
 		return -1;
 	}
 
-	if (sdb_store_tojson(buf, /* flags = */ SDB_SKIP_ALL)) {
+	if (sdb_store_tojson(buf,
+				/* filter = */ NULL, /* flags = */ SDB_SKIP_ALL)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");

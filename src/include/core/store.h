@@ -405,26 +405,31 @@ enum {
 /*
  * sdb_store_tojson:
  * Serialize the entire store to JSON and append the result to the specified
- * buffer.
+ * buffer. If specified, only objects matching the filter will be included in
+ * the result (see sdb_store_host_tojson for details).
  *
  * Returns:
  *  - 0 on success
  *  - a negative value on error
  */
 int
-sdb_store_tojson(sdb_strbuf_t *buf, int flags);
+sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags);
 
 /*
  * sdb_store_host_tojson:
  * Serialize a host object to JSON and append the result to the specified
- * buffer.
+ * buffer. If specified, only objects matching the filter will be included in
+ * the result. The filter is applied to each object individually and, thus,
+ * should not be of any object-type specific kind. If the filter rejects the
+ * host object, the function returns success but leaves the buffer unmodified.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value on error
  */
 int
-sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf, int flags);
+sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
+		sdb_store_matcher_t *filter, int flags);
 
 /*
  * sdb_store_iter_cb:

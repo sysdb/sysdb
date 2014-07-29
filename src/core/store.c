@@ -415,7 +415,8 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
  * of the serialized data.
  */
 static void
-store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf, int flags)
+store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf,
+		sdb_store_matcher_t *filter, int flags)
 {
 	sdb_avltree_iter_t *iter;
 
@@ -438,6 +439,9 @@ store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf, int flags)
 		assert(sobj);
 		assert(sobj->type == type);
 
+		if (filter && (! sdb_store_matcher_matches(filter, sobj, NULL)))
+			continue;
+
 		sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(sobj)->name);
 		if (sobj->type == SDB_ATTRIBUTE) {
 			char tmp[sdb_data_strlen(&ATTR(sobj)->value) + 1];
@@ -451,7 +455,7 @@ store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf, int flags)
 				&& (! (flags & SDB_SKIP_ATTRIBUTES))) {
 			sdb_strbuf_append(buf, ", \"attributes\": ");
 			store_obj_tojson(SVC(sobj)->attributes, SDB_ATTRIBUTE,
-					buf, flags);
+					buf, filter, flags);
 		}
 		sdb_strbuf_append(buf, "}");
 
@@ -617,26 +621,28 @@ sdb_store_service_attr(const char *hostname, const char *service,
 } /* sdb_store_service_attr */
 
 int
-sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
+sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
+		sdb_store_matcher_t *filter, int flags)
 {
-	sdb_host_t *host;
+	sdb_host_t *host = HOST(h);
 
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
 
-	host = HOST(h);
+	if (filter && (! sdb_store_matcher_matches(filter, h, NULL)))
+		return 0;
 
 	sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(host)->name);
 	store_common_tojson(h, buf);
 
 	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
 		sdb_strbuf_append(buf, ", \"attributes\": ");
-		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf, flags);
+		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf, filter, flags);
 	}
 
 	if (! (flags & SDB_SKIP_SERVICES)) {
 		sdb_strbuf_append(buf, ", \"services\": ");
-		store_obj_tojson(host->services, SDB_SERVICE, buf, flags);
+		store_obj_tojson(host->services, SDB_SERVICE, buf, filter, flags);
 	}
 
 	sdb_strbuf_append(buf, "}");
@@ -644,7 +650,7 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf, int flags)
 } /* sdb_store_host_tojson */
 
 int
-sdb_store_tojson(sdb_strbuf_t *buf, int flags)
+sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 {
 	sdb_avltree_iter_t *host_iter;
 
@@ -663,14 +669,17 @@ sdb_store_tojson(sdb_strbuf_t *buf, int flags)
 
 	while (sdb_avltree_iter_has_next(host_iter)) {
 		sdb_store_obj_t *host;
+		size_t len = sdb_strbuf_len(buf);
 
 		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
-		if (sdb_store_host_tojson(host, buf, flags))
+		if (sdb_store_host_tojson(host, buf, filter, flags))
 			return -1;
 
-		if (sdb_avltree_iter_has_next(host_iter))
+		/* sdb_store_host_tojson may leave the buffer unmodified */
+		if ((sdb_avltree_iter_has_next(host_iter))
+				&& (sdb_strbuf_len(buf) != len))
 			sdb_strbuf_append(buf, ",");
 	}
 
