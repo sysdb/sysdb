@@ -610,6 +610,90 @@ START_TEST(test_parse_cmp)
 }
 END_TEST
 
+START_TEST(test_parse_field_cmp)
+{
+	sdb_data_t datetime = { SDB_TYPE_DATETIME, { .datetime = 1 } };
+	sdb_data_t string = { SDB_TYPE_STRING, { .string = "s" } };
+
+	struct {
+		const char *field;
+		const char *op;
+		const sdb_data_t *value;
+		int expected;
+	} golden_data[] = {
+		{ "last_update", "<",  &datetime, MATCHER_LT },
+		{ "last_update", "<=", &datetime, MATCHER_LE },
+		{ "last_update", "=",  &datetime, MATCHER_EQ },
+		{ "last_update", ">=", &datetime, MATCHER_GE },
+		{ "last_update", ">",  &datetime, MATCHER_GT },
+		{ "last_update", "!=", &datetime, MATCHER_NOT },
+		{ "age",         "<",  &datetime, MATCHER_LT },
+		{ "age",         "<=", &datetime, MATCHER_LE },
+		{ "age",         "=",  &datetime, MATCHER_EQ },
+		{ "age",         ">=", &datetime, MATCHER_GE },
+		{ "age",         ">",  &datetime, MATCHER_GT },
+		{ "age",         "!=", &datetime, MATCHER_NOT },
+		{ "interval",    "<",  &datetime, MATCHER_LT },
+		{ "interval",    "<=", &datetime, MATCHER_LE },
+		{ "interval",    "=",  &datetime, MATCHER_EQ },
+		{ "interval",    ">=", &datetime, MATCHER_GE },
+		{ "interval",    ">",  &datetime, MATCHER_GT },
+		{ "interval",    "!=", &datetime, MATCHER_NOT },
+		{ "backend",     "=",  &string,   MATCHER_EQ },
+		{ "backend",     "!=", &string,   MATCHER_NOT },
+		/* the behavior for other operators on :backend
+		 * is currently unspecified */
+		{ "last_update", "=",  NULL,      -1 },
+		{ "last_update", "IS", NULL,      -1 },
+		{ "age",         "=",  NULL,      -1 },
+		{ "interval",    "=",  NULL,      -1 },
+		{ "backend",     "=",  NULL,      -1 },
+		{ "backend",     "=~", &string,   -1 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_matcher_t *check;
+		sdb_store_expr_t *expr;
+		char buf[1024];
+
+		if (sdb_data_format(golden_data[i].value,
+					buf, sizeof(buf), SDB_UNQUOTED) < 0)
+			snprintf(buf, sizeof(buf), "ERR");
+
+		expr = sdb_store_expr_constvalue(golden_data[i].value);
+		fail_unless(expr != NULL || golden_data[i].value == NULL,
+				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
+				buf);
+
+		check = sdb_store_matcher_parse_field_cmp(golden_data[i].field,
+				golden_data[i].op, expr);
+		sdb_object_deref(SDB_OBJ(expr));
+
+		if (golden_data[i].expected == -1) {
+			fail_unless(check == NULL,
+					"sdb_store_matcher_parse_field_cmp(%s, %s, expr{%s}) = %p; "
+					"expected: NULL", golden_data[i].field,
+					golden_data[i].op, buf, check);
+			continue;
+		}
+
+		fail_unless(check != NULL,
+				"sdb_store_matcher_parse_field_cmp(%s, %s, %s) = %p; "
+				"expected: NULL", golden_data[i].field,
+				golden_data[i].op, buf, check);
+		fail_unless(M(check)->type == golden_data[i].expected,
+				"sdb_store_matcher_parse_field_cmp(%s, %s, %s) returned "
+				"matcher of type %d; expected: %d", golden_data[i].field,
+				golden_data[i].op, buf, M(check)->type,
+				golden_data[i].expected);
+
+		sdb_object_deref(SDB_OBJ(check));
+	}
+}
+END_TEST
+
 static int
 scan_cb(sdb_store_obj_t *obj, void *user_data)
 {
@@ -761,6 +845,7 @@ core_store_lookup_suite(void)
 	tcase_add_test(tc, test_obj_cond);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
+	tcase_add_test(tc, test_parse_field_cmp);
 	tcase_add_test(tc, test_scan);
 	suite_add_tcase(s, tc);
 

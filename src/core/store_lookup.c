@@ -874,6 +874,44 @@ sdb_store_isnull_matcher(const char *attr_name)
 } /* sdb_store_isnull_matcher */
 
 static sdb_store_matcher_t *
+maybe_inv_matcher(sdb_store_matcher_t *m, _Bool inv)
+{
+	sdb_store_matcher_t *tmp;
+
+	if ((! m) || (! inv))
+		return m;
+
+	tmp = sdb_store_inv_matcher(m);
+	/* pass ownership to the inverse matcher */
+	sdb_object_deref(SDB_OBJ(m));
+	return tmp;
+} /* maybe_inv_matcher */
+
+static int
+parse_cond_op(const char *op,
+		sdb_store_matcher_t *(**matcher)(sdb_store_cond_t *), _Bool *inv)
+{
+	*inv = 0;
+	if (! strcasecmp(op, "<"))
+		*matcher = sdb_store_lt_matcher;
+	else if (! strcasecmp(op, "<="))
+		*matcher = sdb_store_le_matcher;
+	else if (! strcasecmp(op, "="))
+		*matcher = sdb_store_eq_matcher;
+	else if (! strcasecmp(op, ">="))
+		*matcher = sdb_store_ge_matcher;
+	else if (! strcasecmp(op, ">"))
+		*matcher = sdb_store_gt_matcher;
+	else if (! strcasecmp(op, "!=")) {
+		*matcher = sdb_store_eq_matcher;
+		*inv = 1;
+	}
+	else
+		return -1;
+	return 0;
+} /* parse_cond_op */
+
+static sdb_store_matcher_t *
 parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
 {
 	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
@@ -892,21 +930,7 @@ parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
 	}
 	else if (! expr)
 		return NULL;
-	else if (! strcasecmp(op, "<"))
-		matcher = sdb_store_lt_matcher;
-	else if (! strcasecmp(op, "<="))
-		matcher = sdb_store_le_matcher;
-	else if (! strcasecmp(op, "="))
-		matcher = sdb_store_eq_matcher;
-	else if (! strcasecmp(op, ">="))
-		matcher = sdb_store_ge_matcher;
-	else if (! strcasecmp(op, ">"))
-		matcher = sdb_store_gt_matcher;
-	else if (! strcasecmp(op, "!=")) {
-		matcher = sdb_store_eq_matcher;
-		inv = 1;
-	}
-	else
+	else if (parse_cond_op(op, &matcher, &inv))
 		return NULL;
 
 	cond = sdb_store_attr_cond(attr, expr);
@@ -916,17 +940,7 @@ parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
 	m = matcher(cond);
 	/* pass ownership to 'm' or destroy in case of an error */
 	sdb_object_deref(SDB_OBJ(cond));
-	if (! m)
-		return NULL;
-
-	if (inv) {
-		sdb_store_matcher_t *tmp;
-		tmp = sdb_store_inv_matcher(m);
-		/* pass ownership to the inverse matcher */
-		sdb_object_deref(SDB_OBJ(m));
-		m = tmp;
-	}
-	return m;
+	return maybe_inv_matcher(m, inv);
 } /* parse_attr_cmp */
 
 sdb_store_matcher_t *
@@ -984,19 +998,47 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		m = sdb_store_attr_matcher(attr, value.data.string, re);
 
 	sdb_data_free_datum(&value);
+	return maybe_inv_matcher(m, inv);
+} /* sdb_store_matcher_parse_cmp */
 
-	if (! m)
+sdb_store_matcher_t *
+sdb_store_matcher_parse_field_cmp(const char *name, const char *op,
+		sdb_store_expr_t *expr)
+{
+	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
+	sdb_store_matcher_t *m;
+	sdb_store_cond_t *cond;
+	_Bool inv = 0;
+
+	int field;
+
+	if (! expr)
 		return NULL;
 
-	if (inv) {
-		sdb_store_matcher_t *tmp;
-		tmp = sdb_store_inv_matcher(m);
-		/* pass ownership to the inverse matcher */
-		sdb_object_deref(SDB_OBJ(m));
-		m = tmp;
-	}
-	return m;
-} /* sdb_store_matcher_parse_cmp */
+	if (! strcasecmp(name, "last_update"))
+		field = SDB_FIELD_LAST_UPDATE;
+	else if (! strcasecmp(name, "age"))
+		field = SDB_FIELD_AGE;
+	else if (! strcasecmp(name, "interval"))
+		field = SDB_FIELD_INTERVAL;
+	else if (! strcasecmp(name, "backend"))
+		field = SDB_FIELD_BACKEND;
+	else
+		return NULL;
+
+	if (parse_cond_op(op, &matcher, &inv))
+		return NULL;
+
+	cond = sdb_store_obj_cond(field, expr);
+	if (! cond)
+		return NULL;
+
+	assert(matcher);
+	m = matcher(cond);
+	/* pass ownership to 'm' or destroy in case of an error */
+	sdb_object_deref(SDB_OBJ(cond));
+	return maybe_inv_matcher(m, inv);
+} /* sdb_store_matcher_parse_field_cmp */
 
 sdb_store_matcher_t *
 sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)

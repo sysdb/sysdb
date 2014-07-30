@@ -310,6 +310,13 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
+	':' IDENTIFIER op expression
+		{
+			$$ = sdb_store_matcher_parse_field_cmp($2, $3, $4);
+			free($2); $2 = NULL;
+			sdb_object_deref(SDB_OBJ($4));
+		}
+	|
 	IDENTIFIER op expression
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, $3);

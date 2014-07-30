@@ -318,6 +318,19 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		const char *op, sdb_store_expr_t *expr);
 
 /*
+ * sdb_store_matcher_parse_field_cmp:
+ * Parse a simple compare expression for queryable object fields (<field> <op>
+ * <expression>).
+ *
+ * Returns:
+ *  - a matcher object on success
+ *  - NULL else
+ */
+sdb_store_matcher_t *
+sdb_store_matcher_parse_field_cmp(const char *name, const char *op,
+		sdb_store_expr_t *expr);
+
+/*
  * sdb_store_dis_matcher:
  * Creates a matcher matching the disjunction (logical OR) of two matchers.
  */
