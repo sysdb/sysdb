@@ -29,7 +29,7 @@
 # Integration tests using simple configuration snippets.
 #
 
-set -e
+set -ex
 
 source "$( dirname "$0" )/test_lib.sh"
 
