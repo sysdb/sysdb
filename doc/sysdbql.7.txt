@@ -39,12 +39,13 @@ value includes the hostname, a list of services referenced by the host, and a
 list of attributes for the host and each service. If the host does not exist,
 an error is returned.
 
-*LOOKUP* hosts *MATCHING* '<search_condition>'::
+*LOOKUP* hosts *MATCHING* '<search_condition>' [*FILTER* '<filter_condition>']::
 Retrieve detailed information about all host objects matching the specified
 search condition. The return value is a list of detailed information for each
 matching host providing the same details as returned by the *FETCH* command.
-See the section "MATCHING clause" for more details about how to specify the
-search condition.
+If a filter condition is specified, only objects matching that filter will be
+included in the reply. See the sections "MATCHING clause" and "FILTER clause"
+for more details about how to specify the search and filter conditions.
 
 MATCHING clause
 ~~~~~~~~~~~~~~~
@@ -82,8 +83,8 @@ The following fields may be queried:
 
 '<value>' may either be a string (when matching by object names) or match the
 type of the attribute's value (when matching attribute values). Attribute
-values may either be a string, integer, or decimal number (booleans and binary
-data are not supported by the frontend yet).
+values may either be a string, integer, decimal number, or a date-time value
+(booleans and binary data are not supported by the frontend yet).
 
 When comparing an attribute's value using a regular expression matcher, the
 value will be cast to a string before doing so. No other casts are supported
@@ -115,6 +116,39 @@ The following operators may be used, in addition, to match attribute values:
 In addition, a named attribute may be check for existence using the *IS NULL*
 and *IS NOT NULL* expressions. An attribute is considered to be *NULL* if it
 is not set for a host.
+
+FILTER clause
+~~~~~~~~~~~~~
+The *FILTER* clause in a query specifies a boolean expression which is used to
+filter objects included in the query's response. The filter is applied to
+hosts, services, and attributes alike and, thus, will usually be based on the
+core properties of the stored objects. The basic syntax for filter clauses is
+the same as for matching clauses (see the description about subexpressions
+above).
+
+The following common fields of stored objects may be queried:
+
+*:last_update*::
+	The timestamp of the last update of the object.
+
+*:age*::
+	The amount of time since the last update of the object.
+
+*:interval*::
+	The interval with which the object gets updated. This value is determined
+	automatically based on a moving average determined from the update
+	timestamps of an object. It depends on the update timestamps as provided
+	by the backend (if available) and SysDB's query interval.
+
+*:backend*::
+	The name of the backend (plugin) providing the data.
+
+The type of the *last_update*, *age*, and *interval* fields is date-time and
+the type of the *backend* field is string. All conditional operators may be
+used to compare the date-time fields (but not regular expression or *IS NULL*
+operators). The backend field may only be matched by (in)equality. Each object
+may be provided by multiple backends. The filter matches if the specified
+value matches any of them.
 
 RESPONSE FORMAT
 ---------------
