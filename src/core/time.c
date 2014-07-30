@@ -115,16 +115,16 @@ sdb_strfinterval(char *s, size_t len, sdb_time_t interval)
 #define LEN (len > n ? len - n : 0)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(specs); ++i) {
 		if (interval >= specs[i].interval) {
-			n += snprintf(s + n, LEN, "%"PRIscTIME"%s",
+			n += snprintf(s + n, LEN, "%"PRIsdbTIME"%s",
 					interval / specs[i].interval, specs[i].suffix);
 			interval %= specs[i].interval;
-			if (i == SDB_STATIC_ARRAY_LEN(specs) - 1)
+			if (specs[i].interval == SDB_INTERVAL_SECOND)
 				have_seconds = 1;
 		}
 	}
 
 	if (interval) {
-		n += snprintf(s + n, LEN, ".%09"PRIscTIME, interval);
+		n += snprintf(s + n, LEN, ".%09"PRIsdbTIME, interval);
 		have_seconds = 1;
 
 		/* removing trailing zeroes */

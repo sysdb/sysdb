@@ -106,7 +106,7 @@ sdb_collectd_store_host(sdb_collectd_state_t *state,
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-			"host '%s' (last update timestamp = %"PRIscTIME").",
+			"host '%s' (last update timestamp = %"PRIsdbTIME").",
 			hostname, last_update);
 	return 0;
 } /* sdb_collectd_store_host */

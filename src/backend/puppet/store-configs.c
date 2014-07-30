@@ -72,7 +72,7 @@ sdb_puppet_stcfg_get_hosts(sdb_dbi_client_t __attribute__((unused)) *client,
 	else if (! status)
 		sdb_log(SDB_LOG_DEBUG, "puppet::store-configs backend: "
 				"Added/updated host '%s' (last update timestamp = "
-				"%"PRIscTIME").", hostname, timestamp);
+				"%"PRIsdbTIME").", hostname, timestamp);
 	return 0;
 } /* sdb_puppet_stcfg_get_hosts */
 

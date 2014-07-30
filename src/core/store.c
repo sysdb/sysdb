@@ -255,7 +255,7 @@ store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
 	if (old) {
 		if (old->last_update > last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
-					"value too old (%"PRIscTIME" < %"PRIscTIME")",
+					"value too old (%"PRIsdbTIME" < %"PRIsdbTIME")",
 					SDB_STORE_TYPE_TO_NAME(type), name,
 					last_update, old->last_update);
 			/* don't report an error; the object may be updated by multiple

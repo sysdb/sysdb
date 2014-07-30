@@ -558,8 +558,8 @@ query_callback(sdb_dbi_client_t *c,
 			case SDB_TYPE_DATETIME:
 				fail_unless(data[i].data.datetime
 							== SECS_TO_SDB_TIME(expected_data.datetime),
-						"query callback received unexpected data "PRIscTIME
-						" for column %zu; expected: "PRIscTIME,
+						"query callback received unexpected data "PRIsdbTIME
+						" for column %zu; expected: "PRIsdbTIME,
 						data[i].data.integer, i,
 						SECS_TO_SDB_TIME(expected_data.integer));
 				break;

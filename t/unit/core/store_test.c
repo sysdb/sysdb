@@ -517,7 +517,7 @@ START_TEST(test_interval)
 
 	fail_unless(host->interval == 10,
 			"sdb_store_host() did not calculate interval correctly: "
-			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 10);
+			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates for the same timestamp don't modify the interval */
 	sdb_store_host("host", 40);
@@ -527,8 +527,8 @@ START_TEST(test_interval)
 
 	fail_unless(host->interval == 10,
 			"sdb_store_host() changed interval when doing multiple updates "
-			"using the same timestamp; got: %"PRIscTIME"; "
-			"expected: %"PRIscTIME, host->interval, 10);
+			"using the same timestamp; got: %"PRIsdbTIME"; "
+			"expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates using an timestamp don't modify the interval */
 	sdb_store_host("host", 20);
@@ -538,20 +538,20 @@ START_TEST(test_interval)
 
 	fail_unless(host->interval == 10,
 			"sdb_store_host() changed interval when doing multiple updates "
-			"using an old timestamp; got: %"PRIscTIME"; expected: %"PRIscTIME,
+			"using an old timestamp; got: %"PRIsdbTIME"; expected: %"PRIsdbTIME,
 			host->interval, 10);
 
 	/* new interval: 20 us */
 	sdb_store_host("host", 60);
 	fail_unless(host->interval == 11,
 			"sdb_store_host() did not calculate interval correctly: "
-			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 11);
+			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	/* new interval: 40 us */
 	sdb_store_host("host", 100);
 	fail_unless(host->interval == 13,
 			"sdb_store_host() did not calculate interval correctly: "
-			"got: %"PRIscTIME"; expected: %"PRIscTIME, host->interval, 11);
+			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	sdb_object_deref(SDB_OBJ(host));
 }

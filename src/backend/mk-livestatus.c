@@ -79,7 +79,7 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
-			"host '%s' (last update timestamp = %"PRIscTIME").",
+			"host '%s' (last update timestamp = %"PRIsdbTIME").",
 			hostname, timestamp);
 	return 0;
 } /* sdb_livestatus_get_host */
@@ -115,7 +115,7 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 		return 0;
 
 	sdb_log(SDB_LOG_DEBUG, "MK Livestatus backend: Added/updated "
-			"service '%s / %s' (last update timestamp = %"PRIscTIME").",
+			"service '%s / %s' (last update timestamp = %"PRIsdbTIME").",
 			hostname, svcname, timestamp);
 	return 0;
 } /* sdb_livestatus_get_svc */

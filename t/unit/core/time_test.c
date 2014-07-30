@@ -68,14 +68,14 @@ START_TEST(test_strfinterval)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		check = sdb_strfinterval(buf, sizeof(buf), golden_data[i].interval);
 		fail_unless(check > 0,
-				"sdb_strfinterval(<buf>, <size>, %"PRIscTIME") = %zu; "
+				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
 				"expected: >0", golden_data[i].interval, check);
 		fail_unless(!strcmp(buf, golden_data[i].expected),
-				"sdb_strfinterval(<buf>, <size>, %"PRIscTIME") did not "
+				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") did not "
 				"format interval correctly; got: '%s'; expected: '%s'",
 				golden_data[i].interval, buf, golden_data[i].expected);
 		fail_unless(check == strlen(golden_data[i].expected),
-				"sdb_strfinterval(<buf>, <size>, %"PRIscTIME") = %zu; "
+				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
 				"expected: %zu", golden_data[i].interval, check,
 				strlen(golden_data[i].expected));
 	}

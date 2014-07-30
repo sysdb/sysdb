@@ -41,7 +41,7 @@ extern "C" {
  * The time, in nano-seconds, since the epoch.
  */
 typedef uint64_t sdb_time_t;
-#define PRIscTIME PRIu64
+#define PRIsdbTIME PRIu64
 
 #define SECS_TO_SDB_TIME(s) ((sdb_time_t)(s) * (sdb_time_t)1000000000)
 #define SDB_TIME_TO_SECS(t) ((t) / (sdb_time_t)1000000000)
