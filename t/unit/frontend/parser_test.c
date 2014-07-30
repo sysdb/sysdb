@@ -106,6 +106,22 @@ START_TEST(test_parse)
 		  "attribute.foo = "
 		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
 
+		/* date, time, interval constants */
+		{ "LOOKUP hosts MATCHING "
+		  "attribute.foo = "
+		  "1 Y 42D",             -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "attribute.foo = "
+		  "1s 42D",              -1,  1, CONNECTION_LOOKUP },
+		/*
+		 * TODO: Something like 1Y42D should work as well but it doesn't since
+		 * the scanner will tokenize it into {digit}{identifier} :-/
+		 *
+		{ "LOOKUP hosts MATCHING "
+		  "attribute.foo = "
+		  "1Y42D",               -1,  1, CONNECTION_LOOKUP },
+		 */
+
 		/* NULL */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo "

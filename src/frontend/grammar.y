@@ -125,6 +125,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %type <sstr> op
 
 %type <data> data
+	interval interval_elem
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m> <expr>
@@ -416,6 +417,44 @@ data:
 	INTEGER { $$ = $1; }
 	|
 	FLOAT { $$ = $1; }
+	|
+	interval { $$ = $1; }
+	;
+
+interval:
+	interval interval_elem
+		{
+			$$.data.datetime = $1.data.datetime + $2.data.datetime;
+		}
+	|
+	interval_elem { $$ = $1; }
+	;
+
+interval_elem:
+	INTEGER IDENTIFIER
+		{
+			sdb_time_t unit = 1;
+
+			unit = sdb_strpunit($2);
+			if (! unit) {
+				char errmsg[strlen($2) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("invalid time unit %s"), $2);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($2); $2 = NULL;
+				YYABORT;
+			}
+			free($2); $2 = NULL;
+
+			$$.type = SDB_TYPE_DATETIME;
+			$$.data.datetime = (sdb_time_t)$1.data.integer * unit;
+
+			if ($1.data.integer < 0) {
+				sdb_fe_yyerror(&yylloc, scanner,
+						YY_("syntax error, negative intervals not supported"));
+				YYABORT;
+			}
+		}
 	;
 
 %%
