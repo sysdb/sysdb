@@ -41,7 +41,7 @@
  * public API
  */
 
-/* 1 second (in micro-seconds) */
+/* 1 second (in nano-seconds) */
 #define SEC 1000000000L
 
 const sdb_time_t SDB_INTERVAL_YEAR   = 3652425L   * 24L * 60L * 60L * 100000L;
@@ -146,6 +146,32 @@ sdb_strfinterval(char *s, size_t len, sdb_time_t interval)
 		s[len - 1] = '\0';
 	return n;
 } /* sdb_strfinterval */
+
+sdb_time_t
+sdb_strpunit(const char *s)
+{
+	struct {
+		const char *s;
+		sdb_time_t unit;
+	} units[] = {
+		{ "Y", SDB_INTERVAL_YEAR },
+		{ "M", SDB_INTERVAL_MONTH },
+		{ "D", SDB_INTERVAL_DAY },
+		{ "h", SDB_INTERVAL_HOUR },
+		{ "m", SDB_INTERVAL_MINUTE },
+		{ "s", SDB_INTERVAL_SECOND },
+		{ "ms", SDB_INTERVAL_SECOND / 1000L },
+		{ "us", SDB_INTERVAL_SECOND / 1000000L },
+		{ "ns", 1 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(units); ++i)
+		if (! strcmp(s, units[i].s))
+			return units[i].unit;
+	return 0;
+} /* sdb_strpunit */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

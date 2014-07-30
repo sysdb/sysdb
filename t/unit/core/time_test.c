@@ -34,7 +34,6 @@ START_TEST(test_strfinterval)
 {
 	char buf[1024];
 	size_t check;
-	size_t i;
 
 	struct {
 		sdb_time_t  interval;
@@ -59,6 +58,8 @@ START_TEST(test_strfinterval)
 		  + 1234,               "1Y1M1D1h1m1.000001234s" },
 	};
 
+	size_t i;
+
 	/* this should return the number of bytes which would have been written;
 	 * most notably, it should not segfault ;-) */
 	check = sdb_strfinterval(NULL, 0, 4711); /* expected: .000004711s */
@@ -82,6 +83,41 @@ START_TEST(test_strfinterval)
 }
 END_TEST
 
+START_TEST(test_strpunit)
+{
+	struct {
+		const char *s;
+		sdb_time_t expected;
+	} golden_data[] = {
+		{ "Y",  SDB_INTERVAL_YEAR },
+		{ "M",  SDB_INTERVAL_MONTH },
+		{ "D",  SDB_INTERVAL_DAY },
+		{ "h",  SDB_INTERVAL_HOUR },
+		{ "m",  SDB_INTERVAL_MINUTE },
+		{ "s",  SDB_INTERVAL_SECOND },
+		{ "ms", 1000000L },
+		{ "us", 1000L },
+		{ "ns", 1L },
+		/* invalid units */
+		{ "y",  0 },
+		{ "d",  0 },
+		{ "H",  0 },
+		{ "S",  0 },
+		{ "ps", 0 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_time_t check = sdb_strpunit(golden_data[i].s);
+
+		fail_unless(check == golden_data[i].expected,
+				"sdb_strpunit(%s) = %"PRIsdbTIME"; expected: %"PRIsdbTIME,
+				golden_data[i].s, check, golden_data[i].expected);
+	}
+}
+END_TEST
+
 Suite *
 core_time_suite(void)
 {
@@ -90,6 +126,7 @@ core_time_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_strfinterval);
+	tcase_add_test(tc, test_strpunit);
 	suite_add_tcase(s, tc);
 
 	return s;

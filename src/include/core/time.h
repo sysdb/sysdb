@@ -79,6 +79,19 @@ sdb_strftime(char *s, size_t len, const char *format, sdb_time_t);
 size_t
 sdb_strfinterval(char *s, size_t len, sdb_time_t interval);
 
+/*
+ * sdb_strpunit:
+ * Parse the specified string as a time unit.
+ * "Y" (year), "M" (month), "D" (day), "h" (hour), "m" (minute), "s" (second),
+ * "ms" (milli-second), "us" (micro-second), "ns" (nano-second).
+ *
+ * Returns:
+ *  - the time interval corresponding to the specified unit on success
+ *  - 0 else
+ */
+sdb_time_t
+sdb_strpunit(const char *s);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -75,10 +75,16 @@ csc_start	\/\*
 csc_inside	([^*/]+|[^*]\/|\*[^/])
 csc_end		\*\/
 
+/*
+ * Strings and identifiers.
+ */
 identifier	([A-Za-z_][A-Za-z_0-9$]*)
 /* TODO: fully support SQL strings */
 string		('[^']*')
 
+/*
+ * Numeric constants.
+ */
 dec			([\+\-]?[0-9]+)
 exp			([\+\-]?[0-9]+[Ee]\+?[0-9]+)
 integer		({dec}|{exp})
