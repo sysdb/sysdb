@@ -44,6 +44,21 @@
 
 #define YY_EXTRA_TYPE sdb_fe_yyextra_t *
 
+static struct {
+	const char *name;
+	int id;
+} reserved_words[] = {
+	{ "AND",      AND },
+	{ "FETCH",    FETCH },
+	{ "IS",       IS },
+	{ "LIST",     LIST },
+	{ "LOOKUP",   LOOKUP },
+	{ "MATCHING", MATCHING },
+	{ "NOT",      NOT },
+	{ "NULL",     NULL_T },
+	{ "OR",       OR },
+};
+
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
@@ -109,25 +124,10 @@ float		({float1}|{float2}|{float3}|{float4}|{float5})
 	}
 
 {identifier} {
-		/* XXX: simplify handling of reserved words */
-		if (! strcasecmp(yytext, "AND"))
-			return AND;
-		else if (! strcasecmp(yytext, "FETCH"))
-			return FETCH;
-		else if (! strcasecmp(yytext, "IS"))
-			return IS;
-		else if (! strcasecmp(yytext, "LIST"))
-			return LIST;
-		else if (! strcasecmp(yytext, "LOOKUP"))
-			return LOOKUP;
-		else if (! strcasecmp(yytext, "MATCHING"))
-			return MATCHING;
-		else if (! strcasecmp(yytext, "NOT"))
-			return NOT;
-		else if (! strcasecmp(yytext, "NULL"))
-			return NULL_T;
-		else if (! strcasecmp(yytext, "OR"))
-			return OR;
+		size_t i;
+		for (i = 0; i < SDB_STATIC_ARRAY_LEN(reserved_words); ++i)
+			if (! strcasecmp(reserved_words[i].name, yytext))
+				return reserved_words[i].id;
 
 		yylval->str = strdup(yytext);
 		return IDENTIFIER;
