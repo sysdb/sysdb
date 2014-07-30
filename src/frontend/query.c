@@ -79,8 +79,14 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 		case CONNECTION_LIST:
 			return sdb_fe_list(conn, /* filter = */ NULL);
 		case CONNECTION_LOOKUP:
-			return sdb_fe_lookup(conn, CONN_LOOKUP(node)->matcher->matcher,
-					/* filter = */ NULL);
+		{
+			sdb_store_matcher_t *m = NULL, *filter = NULL;
+			if (CONN_LOOKUP(node)->matcher)
+				m = CONN_LOOKUP(node)->matcher->matcher;
+			if (CONN_LOOKUP(node)->filter)
+				filter = CONN_LOOKUP(node)->filter->matcher;
+			return sdb_fe_lookup(conn, m, filter);
+		}
 
 		default:
 			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);

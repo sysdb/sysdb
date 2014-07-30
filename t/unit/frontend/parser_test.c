@@ -76,6 +76,16 @@ START_TEST(test_parse)
 		  "host =~ 'p' AND "
 		  "service =~ 'p' OR "
 		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host =~ 'p' "
+		  "FILTER :age > 1D",    -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host =~ 'p' "
+		  "FILTER :age > 1D AND "
+		  ":interval < 240s" ,   -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host =~ 'p' "
+		  "FILTER NOT :age>1D",  -1,  1, CONNECTION_LOOKUP },
 
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
@@ -256,6 +266,15 @@ START_TEST(test_parse_matcher)
 		 * IS NULL currently maps to an equality matcher */
 		{ "attribute.foo IS NULL",     -1,  MATCHER_ISNULL },
 		{ "attribute.foo IS NOT NULL", -1,  MATCHER_NOT },
+
+		/* object field matchers */
+		{ ":last_update < 10s",        -1,  MATCHER_LT },
+		{ ":AGE <= 1m",                -1,  MATCHER_LE },
+		{ ":interval = 10h",           -1,  MATCHER_EQ },
+		{ ":Last_Update >= 24D",       -1,  MATCHER_GE },
+		{ ":age > 1M",                 -1,  MATCHER_GT },
+		{ ":age != 20Y",               -1,  MATCHER_NOT },
+		{ ":backend != 'be'",          -1,  MATCHER_NOT },
 
 		/* check operator precedence */
 		{ "host = 'name' OR "

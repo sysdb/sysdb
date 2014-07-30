@@ -82,7 +82,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token SCANNER_ERROR
 
-%token AND OR IS NOT MATCHING
+%token AND OR IS NOT MATCHING FILTER
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 %token CMP_LT CMP_LE CMP_GE CMP_GT
 %token CONCAT
@@ -229,7 +229,7 @@ list_statement:
 	;
 
 /*
- * LOOKUP <type> MATCHING <condition>;
+ * LOOKUP <type> MATCHING <condition> [FILTER <condition>];
  *
  * Returns detailed information about <type> matching condition.
  */
@@ -253,6 +253,27 @@ lookup_statement:
 			$$->cmd = CONNECTION_LOOKUP;
 			free($2); $2 = NULL;
 		}
+	|
+	LOOKUP IDENTIFIER MATCHING condition FILTER condition
+		{
+			/* TODO: support other types as well */
+			if (strcasecmp($2, "hosts")) {
+				char errmsg[strlen($2) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown table %s"), $2);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($2); $2 = NULL;
+				sdb_object_deref(SDB_OBJ($4));
+				YYABORT;
+			}
+
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_lookup_t, conn_lookup_destroy));
+			CONN_LOOKUP($$)->matcher = CONN_MATCHER($4);
+			CONN_LOOKUP($$)->filter = CONN_MATCHER($6);
+			$$->cmd = CONNECTION_LOOKUP;
+			free($2); $2 = NULL;
+		}
 	;
 
 condition:
@@ -266,7 +287,7 @@ condition:
 			}
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
-						conn_node_matcher_t, conn_matcher_destroy));
+						conn_matcher_t, conn_matcher_destroy));
 			$$->cmd = CONNECTION_EXPR;
 			CONN_MATCHER($$)->matcher = $1;
 		}

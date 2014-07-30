@@ -50,6 +50,7 @@ static struct {
 } reserved_words[] = {
 	{ "AND",      AND },
 	{ "FETCH",    FETCH },
+	{ "FILTER",   FILTER },
 	{ "IS",       IS },
 	{ "LIST",     LIST },
 	{ "LOOKUP",   LOOKUP },
