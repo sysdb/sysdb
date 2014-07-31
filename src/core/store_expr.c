@@ -35,6 +35,7 @@
 
 #include "sysdb.h"
 #include "core/store-private.h"
+#include "core/data.h"
 #include "core/object.h"
 
 #include <assert.h>
@@ -46,7 +47,14 @@
 struct sdb_store_expr {
 	sdb_object_t super;
 
+	/*
+	 * type:
+	 * -1: field value (field type store in data.data.integer)
+	 *  0: const value (stored in data)
+	 * >0: operator id
+	 */
 	int type;
+
 	sdb_store_expr_t *left;
 	sdb_store_expr_t *right;
 
@@ -67,7 +75,7 @@ expr_init(sdb_object_t *obj, va_list ap)
 
 	sdb_store_expr_t *expr = SDB_STORE_EXPR(obj);
 
-	if (! type) {
+	if (type <= 0) {
 		if (! value)
 			return -1;
 	} else {
@@ -114,9 +122,21 @@ static sdb_type_t expr_type = {
 sdb_store_expr_t *
 sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
+	if ((op < 0) || (SDB_DATA_CONCAT < op))
+		return NULL;
 	return SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
 				op, left, right, NULL));
 } /* sdb_store_expr_create */
+
+sdb_store_expr_t *
+sdb_store_expr_fieldvalue(int field)
+{
+	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
+	if ((field < 0) || (SDB_FIELD_BACKEND < field))
+		return NULL;
+	return SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
+				-1, NULL, NULL, &value));
+} /* sdb_store_expr_fieldvalue */
 
 sdb_store_expr_t *
 sdb_store_expr_constvalue(const sdb_data_t *value)
@@ -126,7 +146,8 @@ sdb_store_expr_constvalue(const sdb_data_t *value)
 } /* sdb_store_expr_constvalue */
 
 int
-sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_data_t *res)
+sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
+		sdb_data_t *res)
 {
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
 
@@ -135,10 +156,12 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_data_t *res)
 
 	if (! expr->type)
 		return sdb_data_copy(res, &expr->data);
+	else if (expr->type < 0)
+		return sdb_store_get_field(obj, (int)expr->data.data.integer, res);
 
-	if (sdb_store_expr_eval(expr->left, &v1))
+	if (sdb_store_expr_eval(expr->left, obj, &v1))
 		return -1;
-	if (sdb_store_expr_eval(expr->right, &v2)) {
+	if (sdb_store_expr_eval(expr->right, obj, &v2)) {
 		sdb_data_free_datum(&v1);
 		return -1;
 	}

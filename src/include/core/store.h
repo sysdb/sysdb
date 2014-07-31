@@ -211,6 +211,18 @@ sdb_store_expr_t *
 sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
+ * sdb_store_expr_fieldvalue:
+ * Creates an expression which evaluates to the value of the specified
+ * queryable field of a stored object.
+ *
+ * Returns:
+ *  - an expression object on success
+ *  - NULL else
+ */
+sdb_store_expr_t *
+sdb_store_expr_fieldvalue(int field);
+
+/*
  * sdb_store_expr_constvalue:
  * Creates an expression which evaluates to the specified constant value.
  *
@@ -223,16 +235,19 @@ sdb_store_expr_constvalue(const sdb_data_t *value);
 
 /*
  * sdb_store_expr_eval:
- * Evaluate an expression and stores the result in 'res'. The result's value
- * will be allocated dynamically if necessary and, thus, should be free'd by
- * the caller (e.g. using sdb_data_free_datum);
+ * Evaluate an expression for the specified stored object and stores the
+ * result in 'res'. The result's value will be allocated dynamically if
+ * necessary and, thus, should be free'd by the caller (e.g. using
+ * sdb_data_free_datum). The object may be NULL, in which case the expression
+ * needs to evaluate to a constant value.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_data_t *res);
+sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
+		sdb_data_t *res);
 
 /*
  * Conditionals may be used to lookup hosts from the store based on a

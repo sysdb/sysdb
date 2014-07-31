@@ -114,7 +114,7 @@ attr_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 	if (obj->type != SDB_HOST)
 		return INT_MAX;
 
-	if (sdb_store_expr_eval(ATTR_C(cond)->expr, &value))
+	if (sdb_store_expr_eval(ATTR_C(cond)->expr, obj, &value))
 		return INT_MAX;
 
 	attr = attr_get(HOST(obj), ATTR_C(cond)->name, filter);
@@ -138,7 +138,7 @@ obj_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 
 	if (sdb_store_get_field(obj, OBJ_C(cond)->field, &obj_value))
 		return INT_MAX;
-	if (sdb_store_expr_eval(OBJ_C(cond)->expr, &value))
+	if (sdb_store_expr_eval(OBJ_C(cond)->expr, obj, &value))
 		return INT_MAX;
 
 	if (obj_value.type != value.type) {
@@ -577,7 +577,7 @@ cond_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 		return buf;
 	}
 
-	if (sdb_store_expr_eval(expr, &value))
+	if (sdb_store_expr_eval(expr, NULL, &value))
 		snprintf(value_str, sizeof(value_str), "ERR");
 	else if (sdb_data_format(&value, value_str, sizeof(value_str),
 				SDB_SINGLE_QUOTED) < 0)
@@ -966,7 +966,7 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	if (! expr)
 		return NULL;
 
-	if (sdb_store_expr_eval(expr, &value))
+	if (sdb_store_expr_eval(expr, NULL, &value))
 		return NULL;
 	if (value.type != SDB_TYPE_STRING) {
 		sdb_data_free_datum(&value);
