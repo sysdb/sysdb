@@ -854,6 +854,20 @@ sdb_store_isnull_matcher(const char *attr_name)
 				MATCHER_ISNULL, attr_name));
 } /* sdb_store_isnull_matcher */
 
+int
+sdb_store_parse_field_name(const char *name)
+{
+	if (! strcasecmp(name, "last_update"))
+		return SDB_FIELD_LAST_UPDATE;
+	else if (! strcasecmp(name, "age"))
+		return SDB_FIELD_AGE;
+	else if (! strcasecmp(name, "interval"))
+		return SDB_FIELD_INTERVAL;
+	else if (! strcasecmp(name, "backend"))
+		return SDB_FIELD_BACKEND;
+	return -1;
+} /* sdb_store_parse_field_name */
+
 static sdb_store_matcher_t *
 maybe_inv_matcher(sdb_store_matcher_t *m, _Bool inv)
 {
@@ -996,20 +1010,12 @@ sdb_store_matcher_parse_field_cmp(const char *name, const char *op,
 	if (! expr)
 		return NULL;
 
-	if (! strcasecmp(name, "last_update"))
-		field = SDB_FIELD_LAST_UPDATE;
-	else if (! strcasecmp(name, "age"))
-		field = SDB_FIELD_AGE;
-	else if (! strcasecmp(name, "interval"))
-		field = SDB_FIELD_INTERVAL;
-	else if (! strcasecmp(name, "backend"))
-		field = SDB_FIELD_BACKEND;
-	else
+	field = sdb_store_parse_field_name(name);
+	if (field < 0)
 		return NULL;
 
 	if (parse_cond_op(op, &matcher, &inv))
 		return NULL;
-
 	cond = sdb_store_obj_cond(field, expr);
 	if (! cond)
 		return NULL;

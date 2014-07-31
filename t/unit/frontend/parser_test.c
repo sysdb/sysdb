@@ -86,6 +86,10 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
 		  "FILTER NOT :age>1D",  -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host =~ 'p' "
+		  "FILTER :age>"
+		  ":interval",           -1,  1, CONNECTION_LOOKUP },
 
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
@@ -275,6 +279,7 @@ START_TEST(test_parse_matcher)
 		{ ":age > 1M",                 -1,  MATCHER_GT },
 		{ ":age != 20Y",               -1,  MATCHER_NOT },
 		{ ":backend != 'be'",          -1,  MATCHER_NOT },
+		{ ":age <= 2 * :interval",     -1,  MATCHER_LE },
 
 		/* check operator precedence */
 		{ "host = 'name' OR "

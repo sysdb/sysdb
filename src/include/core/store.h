@@ -336,6 +336,17 @@ sdb_store_matcher_t *
 sdb_store_gt_matcher(sdb_store_cond_t *cond);
 
 /*
+ * sdb_store_parse_field_name:
+ * Parse the name of a stored object's queryable field.
+ *
+ * Returns:
+ *  - the field id on success
+ *  - a negative value else
+ */
+int
+sdb_store_parse_field_name(const char *name);
+
+/*
  * sdb_store_matcher_parse_cmp:
  * Parse a simple compare expression (<obj_type>.<attr> <op> <expression>).
  *
