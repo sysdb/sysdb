@@ -174,6 +174,21 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
+ * sdb_store_get_field:
+ * Get the value of a stored object's queryable field. The caller is
+ * responsible for freeing any dynamically allocated memory possibly stored in
+ * the returned value.
+ *
+ * Note: Retrieving the backend this way is not currently supported.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
+
+/*
  * Expressions specify arithmetic expressions.
  *
  * A expression object inherits from sdb_object_t and, thus, may safely be

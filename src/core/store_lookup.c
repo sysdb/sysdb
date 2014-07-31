@@ -136,27 +136,8 @@ obj_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 	sdb_data_t value = SDB_DATA_INIT;
 	int status;
 
-	switch (OBJ_C(cond)->field) {
-		case SDB_FIELD_LAST_UPDATE:
-			obj_value.type = SDB_TYPE_DATETIME;
-			obj_value.data.datetime = obj->last_update;
-			break;
-		case SDB_FIELD_AGE:
-			obj_value.type = SDB_TYPE_DATETIME;
-			obj_value.data.datetime = sdb_gettime() - obj->last_update;
-			break;
-		case SDB_FIELD_INTERVAL:
-			obj_value.type = SDB_TYPE_DATETIME;
-			obj_value.data.datetime = obj->interval;
-			break;
-		case SDB_FIELD_BACKEND:
-			obj_value.type = SDB_TYPE_STRING;
-			obj_value.data.string = NULL; /* handled separately */
-			break;
-		default:
-			return INT_MAX;
-	}
-
+	if (sdb_store_get_field(obj, OBJ_C(cond)->field, &obj_value))
+		return INT_MAX;
 	if (sdb_store_expr_eval(OBJ_C(cond)->expr, &value))
 		return INT_MAX;
 

@@ -501,6 +501,69 @@ START_TEST(test_store_tojson)
 }
 END_TEST
 
+START_TEST(test_get_field)
+{
+	sdb_store_obj_t *host;
+	sdb_data_t value = SDB_DATA_INIT;
+	int check;
+
+	sdb_store_host("host", 10);
+	sdb_store_host("host", 20);
+
+	host = sdb_store_get_host("host");
+	fail_unless(host != NULL,
+			"INTERNAL ERROR: store doesn't have host after adding it");
+
+	check = sdb_store_get_field(NULL, 0, NULL);
+	fail_unless(check < 0,
+			"sdb_store_get_field(NULL, 0, NULL) = %d; expected: <0");
+	check = sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, NULL);
+	fail_unless(check < 0,
+			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
+			"expected: <0");
+	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, NULL);
+	fail_unless(check < 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
+			"expected: <0");
+	check = sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, &value);
+	fail_unless(check < 0,
+			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, <value>) = %d; "
+			"expected: <0");
+
+	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, &value);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, <value>) = "
+			"%d; expected: 0");
+	fail_unless((value.type == SDB_TYPE_DATETIME)
+			&& (value.data.datetime == 20),
+			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, <value>) "
+			"returned value {%d, %lu}; expected {%d, 20}",
+			value.type, value.data.datetime, SDB_TYPE_DATETIME);
+
+	check = sdb_store_get_field(host, SDB_FIELD_AGE, &value);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_AGE, <value>) = "
+			"%d; expected: 0");
+	/* let's assume we're at least in year 1980 ;-) */
+	fail_unless((value.type == SDB_TYPE_DATETIME)
+			&& (value.data.datetime > 10L * SDB_INTERVAL_YEAR),
+			"sdb_store_get_field(<host>, SDB_FIELD_AGE, <value>) "
+			"returned value {%d, %lu}; expected {%d, >%lu}",
+			value.type, value.data.datetime,
+			SDB_TYPE_DATETIME, 10L * SDB_INTERVAL_YEAR);
+
+	check = sdb_store_get_field(host, SDB_FIELD_INTERVAL, &value);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_INTERVAL, <value>) = "
+			"%d; expected: 0");
+	fail_unless((value.type == SDB_TYPE_DATETIME)
+			&& (value.data.datetime == 10),
+			"sdb_store_get_field(<host>, SDB_FIELD_INTERVAL, <value>) "
+			"returned value {%d, %lu}; expected {%d, 10}",
+			value.type, value.data.datetime, SDB_TYPE_DATETIME);
+}
+END_TEST
+
 START_TEST(test_interval)
 {
 	sdb_store_obj_t *host;
@@ -632,6 +695,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_attr);
 	tcase_add_test(tc, test_store_service);
 	tcase_add_test(tc, test_store_service_attr);
+	tcase_add_test(tc, test_get_field);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_iterate);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);

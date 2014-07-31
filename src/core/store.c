@@ -621,6 +621,34 @@ sdb_store_service_attr(const char *hostname, const char *service,
 } /* sdb_store_service_attr */
 
 int
+sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
+{
+	if ((! obj) || (! res))
+		return -1;
+
+	switch (field) {
+		case SDB_FIELD_LAST_UPDATE:
+			res->type = SDB_TYPE_DATETIME;
+			res->data.datetime = obj->last_update;
+			break;
+		case SDB_FIELD_AGE:
+			res->type = SDB_TYPE_DATETIME;
+			res->data.datetime = sdb_gettime() - obj->last_update;
+			break;
+		case SDB_FIELD_INTERVAL:
+			res->type = SDB_TYPE_DATETIME;
+			res->data.datetime = obj->interval;
+			break;
+		case SDB_FIELD_BACKEND:
+			/* TODO: add support for storing array values in a data object
+			 * for now, fall thru to the error case */
+		default:
+			return -1;
+	}
+	return 0;
+} /* sdb_store_get_field */
+
+int
 sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
 		sdb_store_matcher_t *filter, int flags)
 {
