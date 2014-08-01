@@ -421,6 +421,51 @@ START_TEST(test_expr_eval)
 				{ .binary = { 6, (unsigned char *)"a\0ab\0b" } },
 			},
 		},
+		/* supported type-mismatches */
+		{
+			/* int * datetime */
+			{ SDB_TYPE_INTEGER,  { .integer  = 20 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 2 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			{ SDB_TYPE_DATETIME, { .datetime = 40 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+		},
+		{
+			/* datetime * int, datetime / int, datetime % int */
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_INTEGER,  { .integer  = 2 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			{ SDB_TYPE_DATETIME, { .datetime = 40 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 10 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 0 } },
+			SDB_DATA_INIT,
+		},
+		{
+			/* float * datetime */
+			{ SDB_TYPE_DECIMAL,  { .decimal  = 20.0 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 2 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			{ SDB_TYPE_DATETIME, { .datetime = 40 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+		},
+		{
+			/* datetime * float, datetime / float, datetime % float */
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_DECIMAL,  { .decimal  = 2.0 } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			{ SDB_TYPE_DATETIME, { .datetime = 40 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 10 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 0 } },
+			SDB_DATA_INIT,
+		},
 	};
 
 	size_t i;

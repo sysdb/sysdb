@@ -143,9 +143,14 @@ enum {
 
 /*
  * sdb_data_expr_eval:
- * Evaluate a simple arithmetic expression on two data points. The data-type
- * of d1 and d2 have to be the same. String and binary data only support
- * concatenation and all other data types only support the other operators.
+ * Evaluate a simple arithmetic expression on two data points. String and
+ * binary data only support concatenation and all other data types only
+ * support the other operators.
+ *
+ * The data-types of d1 and d2 have to be the same, except for the following
+ * cases:
+ *  - <integer> or <decimal> <mul> <datetime>
+ *  - <datetime> <mul> or <div> or <mod> <integer> or <decimal>
  *
  * Returns:
  *  - 0 on success
