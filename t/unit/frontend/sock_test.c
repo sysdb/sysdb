@@ -111,7 +111,7 @@ START_TEST(test_listen_and_serve)
 
 	pthread_t thr;
 
-	int sock_fd;
+	int fd, sock_fd;
 	struct sockaddr_un sa;
 
 	check = sdb_fe_sock_listen_and_serve(sock, &loop);
@@ -119,8 +119,9 @@ START_TEST(test_listen_and_serve)
 			"sdb_fe_sock_listen_and_serve() = %i; "
 			"expected: <0 (before adding listeners)", check);
 
-	mkstemp(tmp_file);
+	fd = mkstemp(tmp_file);
 	unlink(tmp_file);
+	close(fd);
 	sock_listen(tmp_file);
 
 	loop.do_loop = 1;

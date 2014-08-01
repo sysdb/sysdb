@@ -113,8 +113,12 @@ mock_conn_rewind(sdb_conn_t *conn)
 static void
 mock_conn_truncate(sdb_conn_t *conn)
 {
+	int status;
 	lseek(conn->fd, 0, SEEK_SET);
-	ftruncate(conn->fd, 0);
+	status = ftruncate(conn->fd, 0);
+	fail_unless(status == 0,
+			"INTERNAL ERROR: ftruncate(%d, 0) = %d; expected: 0",
+			conn->fd, status);
 } /* mock_conn_truncate */
 
 static int
@@ -207,8 +211,9 @@ START_TEST(test_conn_accept)
 	fail_unless(conn == NULL,
 			"sdb_connection_accept(-1) = %p; expected: NULL", conn);
 
-	mkstemp(socket_path);
+	fd = mkstemp(socket_path);
 	unlink(socket_path);
+	close(fd);
 
 	fd = mock_unixsock_listener(socket_path);
 	check = pthread_create(&thr, /* attr = */ NULL, mock_client, socket_path);
