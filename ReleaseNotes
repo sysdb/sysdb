@@ -19,6 +19,62 @@
 
   <http://sysdb.io/>
 
+Version 0.3.0, Release Date: 2014-08-01
+---------------------------------------
+
+  This release includes major enhancements and new features in the SysDB store
+  which is the core of the database. Most notably, complex expressions are now
+  supported when looking up information and filters may be used to preselect
+  the information to be returned. Some backward-incompatible changes were
+  introduced in the query language to avoid potentially confusing semantics.
+
+   * sysdb: Fixed non-interactive mode when using libedit.
+   * core:
+     - Fixed weird behavior when collector callbacks were registered without
+       any plugin context information (as it would, e.g., happen when using
+       LoadPlugin instead of LoadBackend in sysdbd).
+   * store:
+     - Introduced service attributes -- similar to host attributes but
+       assigned to a service object.
+     - Don't log “value too old” messages if an updated object uses the same
+       timestamp as the old object.
+     - Switched from linked-lists to AVL trees for storing all object types to
+       reduce lookup times from O(n) to O(log n).
+     - Added infrastructure for handling and evaluating arithmetic
+       expressions and filters (see also the changes to the query language
+       below).
+     - Export various fields describing base attributes of all stored object
+       types: last_update, age, interval, and backend. These fields may be
+       used when querying the store.
+   * frontend: Include new service attributes in JSON output.
+   * query language:
+     - Added support for ‘IS NULL’ attribute checks matching on non-existent
+       attributes.
+     - Changed ‘LOOKUP ... WHERE’ queries to ‘LOOKUP ... MATCHING’ to avoid
+       confusion with SQL semantics.
+     - Switched from ‘<obj>.name’ to ‘<obj>’ in MATCHING clauses, thus, no
+       longer shadowing attributes called “name”.
+     - Added support for arithmetic expressions in places that used simple
+       data values before. Arithmetic expressions support addition,
+       subtraction, multiplication, division, modulo, and concatenation
+       operations. The expressions may be based on constant values or
+       queryable fields of the stored objects (specified as ‘:last_update’,
+       ‘:age’, ‘:interval’, and ‘:backend’).
+     - Added ‘FILTER’ support to ‘LOOKUP’ queries. Filters are conditional
+       expressions which may optionally be used to limit the query and the
+       result to object (of any type) matching the filter condition.
+     - Added support to specify date and time values.
+   * utils:
+     - avltree: Added an AVL tree (self-balancing binary tree) implementation.
+   * documentation: Added documentation for the new query language features.
+   * testing: Run all unit tests through valgrind by default (if available).
+
+  Backends:
+   * collectd::unixsock:
+     - Added support for spaces in identifiers.
+     - Store plugin identifier (host, plugin, plugin_instance, type,
+       type_instance) as service attributes.
+
 Version 0.2.0, Release Date: 2014-07-01
 ---------------------------------------
 
@@ -51,7 +107,6 @@ Version 0.2.0, Release Date: 2014-07-01
    * documentation: Added missing files to the distribution tarball.
 
   Plugins:
-
    * syslog: Don't log debug messages to syslog.
 
 Version 0.1.0, Release Date: 2014-06-01
