@@ -29,7 +29,6 @@
 #include "core/object.h"
 #include "core/plugin.h"
 #include "frontend/connection-private.h"
-#include "frontend/parser.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
@@ -265,102 +264,23 @@ command_handle(sdb_conn_t *conn)
 	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
 			conn->cmd, conn->cmd_len);
 
-	switch (conn->cmd) {
-		case CONNECTION_PING:
-			status = sdb_connection_ping(conn);
-			break;
-		case CONNECTION_STARTUP:
-			status = sdb_fe_session_start(conn);
-			break;
-
-		case CONNECTION_QUERY:
-		{
-			sdb_llist_t *parsetree;
-			sdb_conn_node_t *node = NULL;
-
-			parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
-					(int)conn->cmd_len);
-			if (! parsetree) {
-				char query[conn->cmd_len + 1];
-				strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
-				query[sizeof(query) - 1] = '\0';
-				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s'",
-						query);
-				status = -1;
-				break;
-			}
-
-			switch (sdb_llist_len(parsetree)) {
-				case 0:
-					/* skipping empty command */
-					break;
-				case 1:
-					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
-					break;
-
-				default:
-				{
-					char query[conn->cmd_len + 1];
-					strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
-					query[sizeof(query) - 1] = '\0';
-					sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %d command%s "
-							"in multi-statement query '%s'",
-							sdb_llist_len(parsetree) - 1,
-							sdb_llist_len(parsetree) == 2 ? "" : "s",
-							query);
-					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
-				}
-			}
-
-			if (node) {
-				status = sdb_fe_exec(conn, node);
-				sdb_object_deref(SDB_OBJ(node));
-			}
-
-			sdb_llist_destroy(parsetree);
-			break;
-		}
-
-		case CONNECTION_FETCH:
-		{
-			char hostname[conn->cmd_len + 1];
-			strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
-			hostname[sizeof(hostname) - 1] = '\0';
-			status = sdb_fe_exec_fetch(conn, hostname, /* filter = */ NULL);
-			break;
-		}
-		case CONNECTION_LIST:
-			status = sdb_fe_exec_list(conn, /* filter = */ NULL);
-			break;
-		case CONNECTION_LOOKUP:
-		{
-			sdb_store_matcher_t *m;
-
-			m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
-					(int)conn->cmd_len);
-			if (! m) {
-				char expr[conn->cmd_len + 1];
-				strncpy(expr, sdb_strbuf_string(conn->buf), conn->cmd_len);
-				expr[sizeof(expr) - 1] = '\0';
-				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
-						"lookup condition '%s'", expr);
-				status = -1;
-				break;
-			}
-
-			status = sdb_fe_exec_lookup(conn, m, /* filter = */ NULL);
-			sdb_object_deref(SDB_OBJ(m));
-			break;
-		}
-
-		default:
-		{
-			sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
-					conn->cmd);
-			sdb_strbuf_sprintf(conn->errbuf, "Invalid command %#x", conn->cmd);
-			status = -1;
-			break;
-		}
+	if (conn->cmd == CONNECTION_PING)
+		status = sdb_connection_ping(conn);
+	else if (conn->cmd == CONNECTION_STARTUP)
+		status = sdb_fe_session_start(conn);
+	else if (conn->cmd == CONNECTION_QUERY)
+		status = sdb_fe_query(conn);
+	else if (conn->cmd == CONNECTION_FETCH)
+		status = sdb_fe_fetch(conn);
+	else if (conn->cmd == CONNECTION_LIST)
+		status = sdb_fe_list(conn);
+	else if (conn->cmd == CONNECTION_LOOKUP)
+		status = sdb_fe_lookup(conn);
+	else {
+		sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
+				conn->cmd);
+		sdb_strbuf_sprintf(conn->errbuf, "Invalid command %#x", conn->cmd);
+		status = -1;
 	}
 
 	if (status)

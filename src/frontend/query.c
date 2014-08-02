@@ -29,10 +29,12 @@
 
 #include "core/store.h"
 #include "frontend/connection-private.h"
+#include "frontend/parser.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
 
 #include <errno.h>
+#include <string.h>
 
 /*
  * private helper functions
@@ -65,6 +67,92 @@ lookup_tojson(sdb_store_obj_t *obj, void *user_data)
 /*
  * public API
  */
+
+int
+sdb_fe_query(sdb_conn_t *conn)
+{
+	sdb_llist_t *parsetree;
+	sdb_conn_node_t *node = NULL;
+	int status = 0;
+
+	parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
+			(int)conn->cmd_len);
+	if (! parsetree) {
+		char query[conn->cmd_len + 1];
+		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+		query[sizeof(query) - 1] = '\0';
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s'",
+				query);
+		return -1;
+	}
+
+	switch (sdb_llist_len(parsetree)) {
+		case 0:
+			/* skipping empty command */
+			break;
+		case 1:
+			node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+			break;
+
+		default:
+			{
+				char query[conn->cmd_len + 1];
+				strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+				query[sizeof(query) - 1] = '\0';
+				sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %d command%s "
+						"in multi-statement query '%s'",
+						sdb_llist_len(parsetree) - 1,
+						sdb_llist_len(parsetree) == 2 ? "" : "s",
+						query);
+				node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+			}
+	}
+
+	if (node) {
+		status = sdb_fe_exec(conn, node);
+		sdb_object_deref(SDB_OBJ(node));
+	}
+
+	sdb_llist_destroy(parsetree);
+	return status;
+} /* sdb_fe_query */
+
+int
+sdb_fe_fetch(sdb_conn_t *conn)
+{
+	char hostname[conn->cmd_len + 1];
+	strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
+	hostname[sizeof(hostname) - 1] = '\0';
+	return sdb_fe_exec_fetch(conn, hostname, /* filter = */ NULL);
+} /* sdb_fe_fetch */
+
+int
+sdb_fe_list(sdb_conn_t *conn)
+{
+	return sdb_fe_exec_list(conn, /* filter = */ NULL);
+} /* sdb_fe_list */
+
+int
+sdb_fe_lookup(sdb_conn_t *conn)
+{
+	sdb_store_matcher_t *m;
+	int status;
+
+	m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
+			(int)conn->cmd_len);
+	if (! m) {
+		char expr[conn->cmd_len + 1];
+		strncpy(expr, sdb_strbuf_string(conn->buf), conn->cmd_len);
+		expr[sizeof(expr) - 1] = '\0';
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
+				"lookup condition '%s'", expr);
+		return -1;
+	}
+
+	status = sdb_fe_exec_lookup(conn, m, /* filter = */ NULL);
+	sdb_object_deref(SDB_OBJ(m));
+	return status;
+} /* sdb_fe_lookup */
 
 int
 sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)

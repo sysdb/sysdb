@@ -166,6 +166,25 @@ sdb_fe_session_start(sdb_conn_t *conn);
  */
 
 /*
+ * sdb_fe_query, sdb_fe_fetch, sdb_fe_list, sdb_fe_lookup:
+ * Handle the CONNECTION_QUERY, CONNECTION_FETCH, CONNECTION_LIST, and
+ * CONNECTION_LOOKUP commands respectively. It is expected that the current
+ * command has been initialized already.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_fe_query(sdb_conn_t *conn);
+int
+sdb_fe_fetch(sdb_conn_t *conn);
+int
+sdb_fe_list(sdb_conn_t *conn);
+int
+sdb_fe_lookup(sdb_conn_t *conn);
+
+/*
  * sdb_fe_exec_fetch:
  * Execute the 'FETCH' command. Send the named host, serialized as JSON, to
  * the client. If specified, only objects matching the filter will be
