@@ -70,7 +70,7 @@ echo "$output" \
 	| grep -F '"other.host.name"' \
 	| grep -F '"some.host.name"'
 
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH 'host1.example.com'" )"
+output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'host1.example.com'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"mock service"' \
@@ -80,11 +80,11 @@ echo "$output" | grep -F 'localhost' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
-(echo 'LIST hosts;'; sleep 1; echo "FETCH 'host1.example.com'") \
+(echo 'LIST hosts;'; sleep 1; echo "FETCH host 'host1.example.com'") \
 	| run_sysdb -H "$SOCKET_FILE"
 
 # When requesting information for unknown hosts, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH 'does.not.exist'" )" \
+output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'does.not.exist'" )" \
 	&& exit 1
 echo "$output" | grep -F 'not found'
 

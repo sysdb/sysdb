@@ -52,8 +52,8 @@ START_TEST(test_parse)
 		{ ";;",                  -1,  0, 0 },
 
 		/* valid commands */
-		{ "FETCH 'host'",        -1,  1, CONNECTION_FETCH  },
-		{ "FETCH 'host' FILTER "
+		{ "FETCH host 'host'",   -1,  1, CONNECTION_FETCH  },
+		{ "FETCH host 'host' FILTER "
 		  "host = 'host'",       -1,  1, CONNECTION_FETCH  },
 
 		{ "LIST hosts",          -1,  1, CONNECTION_LIST   },
@@ -187,13 +187,20 @@ START_TEST(test_parse)
 		/* syntax errors */
 		{ "INVALID",             -1, -1, 0 },
 		{ "FETCH host",          -1, -1, 0 },
-		{ "LIST; INVALID",        8, -1, 0 },
+		{ "FETCH 'host'",        -1, -1, 0 },
+		{ "LIST hosts; INVALID", -1, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
 
 		{ "LIST",                -1, -1, 0 },
-		{ "LIST MATCHING "
+		{ "LIST foo",            -1, -1, 0 },
+		{ "LIST hosts MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
-		{ "FETCH 'host' MATCHING "
+		{ "LIST foo FILTER "
+		  "host = 'host'",       -1, -1, 0 },
+		{ "FETCH host 'host' MATCHING "
+		  "host = 'host'",       -1, -1, 0 },
+		{ "FETCH foo 'host'",    -1, -1, 0 },
+		{ "FETCH foo 'host' FILTER "
 		  "host = 'host'",       -1, -1, 0 },
 
 		{ "LOOKUP foo",          -1, -1, 0 },

@@ -201,17 +201,29 @@ statement:
 	;
 
 /*
- * FETCH <hostname> [FILTER <condition>];
+ * FETCH <type> <hostname> [FILTER <condition>];
  *
  * Retrieve detailed information about a single host.
  */
 fetch_statement:
-	FETCH STRING filter_clause
+	FETCH IDENTIFIER STRING filter_clause
 		{
+			/* TODO: support other types as well */
+			if (strcasecmp($2, "host")) {
+				char errmsg[strlen($2) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown data-source %s"), $2);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($2); $2 = NULL;
+				free($3); $3 = NULL;
+				sdb_object_deref(SDB_OBJ($4));
+				YYABORT;
+			}
+
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
-			CONN_FETCH($$)->name = strdup($2);
-			CONN_FETCH($$)->filter = CONN_MATCHER($3);
+			CONN_FETCH($$)->name = $3;
+			CONN_FETCH($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_FETCH;
 			free($2); $2 = NULL;
 		}
