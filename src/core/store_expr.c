@@ -86,8 +86,7 @@ expr_init(sdb_object_t *obj, va_list ap)
 	}
 
 	if (value)
-		if (sdb_data_copy(&expr->data, value))
-			return -1;
+		expr->data = *value;
 
 	sdb_object_ref(SDB_OBJ(left));
 	sdb_object_ref(SDB_OBJ(right));
@@ -122,10 +121,20 @@ static sdb_type_t expr_type = {
 sdb_store_expr_t *
 sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
-	if ((op < 0) || (SDB_DATA_CONCAT < op))
+	sdb_data_t value = SDB_DATA_INIT;
+
+	if ((op < 0) || (SDB_DATA_CONCAT < op) || (! left) || (! right))
 		return NULL;
-	return SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
-				op, left, right, NULL));
+
+	if (left->type || right->type)
+		return SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
+					op, left, right, NULL));
+	/* else: both expressions are constant values; evaluate now */
+
+	if (sdb_data_expr_eval(op, &left->data, &right->data, &value))
+		return NULL;
+	return SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+				0, NULL, NULL, &value));
 } /* sdb_store_expr_create */
 
 sdb_store_expr_t *
@@ -141,8 +150,11 @@ sdb_store_expr_fieldvalue(int field)
 sdb_store_expr_t *
 sdb_store_expr_constvalue(const sdb_data_t *value)
 {
+	sdb_data_t data = SDB_DATA_INIT;
+	if (sdb_data_copy(&data, value))
+		return NULL;
 	return SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
-				0, NULL, NULL, value));
+				0, NULL, NULL, &data));
 } /* sdb_store_expr_constvalue */
 
 int
