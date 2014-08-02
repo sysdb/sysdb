@@ -56,11 +56,11 @@ START_TEST(test_parse)
 		{ "FETCH 'host' FILTER "
 		  "host = 'host'",       -1,  1, CONNECTION_FETCH  },
 
-		{ "LIST",                -1,  1, CONNECTION_LIST   },
-		{ "LIST -- comment",     -1,  1, CONNECTION_LIST   },
-		{ "LIST;",               -1,  1, CONNECTION_LIST   },
-		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
-		{ "LIST FILTER "
+		{ "LIST hosts",          -1,  1, CONNECTION_LIST   },
+		{ "LIST hosts -- foo",   -1,  1, CONNECTION_LIST   },
+		{ "LIST hosts;",         -1,  1, CONNECTION_LIST   },
+		{ "LIST hosts; INVALID", 11,  1, CONNECTION_LIST   },
+		{ "LIST hosts FILTER "
 		  "host = 'host'",       -1,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
@@ -190,6 +190,7 @@ START_TEST(test_parse)
 		{ "LIST; INVALID",        8, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
 
+		{ "LIST",                -1, -1, 0 },
 		{ "LIST MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
 		{ "FETCH 'host' MATCHING "

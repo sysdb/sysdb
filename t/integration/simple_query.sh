@@ -54,7 +54,7 @@ echo "$output" | grep "Failed to parse query 'INVALID'"
 echo "$output" | grep "parse error: syntax error"
 
 # Simple, successful commands.
-output="$( run_sysdb -H "$SOCKET_FILE" -c LIST )"
+output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST hosts' )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"' \
@@ -62,7 +62,7 @@ echo "$output" \
 	| grep -F '"other.host.name"' \
 	| grep -F '"some.host.name"'
 
-output="$( echo 'LIST;' | run_sysdb -H "$SOCKET_FILE" )" || echo $?
+output="$( echo 'LIST hosts;' | run_sysdb -H "$SOCKET_FILE" )" || echo $?
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"' \
@@ -80,7 +80,7 @@ echo "$output" | grep -F 'localhost' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
-(echo 'LIST;'; sleep 1; echo "FETCH 'host1.example.com'") \
+(echo 'LIST hosts;'; sleep 1; echo "FETCH 'host1.example.com'") \
 	| run_sysdb -H "$SOCKET_FILE"
 
 # When requesting information for unknown hosts, expect a non-zero exit code.

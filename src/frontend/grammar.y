@@ -201,7 +201,7 @@ statement:
 	;
 
 /*
- * FETCH <hostname>;
+ * FETCH <hostname> [FILTER <condition>];
  *
  * Retrieve detailed information about a single host.
  */
@@ -218,17 +218,29 @@ fetch_statement:
 	;
 
 /*
- * LIST;
+ * LIST <type> [FILTER <condition>];
  *
  * Returns a list of all hosts in the store.
  */
 list_statement:
-	LIST filter_clause
+	LIST IDENTIFIER filter_clause
 		{
+			/* TODO: support other types as well */
+			if (strcasecmp($2, "hosts")) {
+				char errmsg[strlen($2) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown data-source %s"), $2);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($2); $2 = NULL;
+				sdb_object_deref(SDB_OBJ($3));
+				YYABORT;
+			}
+
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_list_t, conn_list_destroy));
-			CONN_LIST($$)->filter = CONN_MATCHER($2);
+			CONN_LIST($$)->filter = CONN_MATCHER($3);
 			$$->cmd = CONNECTION_LIST;
+			free($2); $2 = NULL;
 		}
 	;
 
