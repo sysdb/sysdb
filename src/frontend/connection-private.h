@@ -81,15 +81,22 @@ struct sdb_conn {
 
 typedef struct {
 	sdb_conn_node_t super;
-	char *name;
-} conn_fetch_t;
-#define CONN_FETCH(obj) ((conn_fetch_t *)(obj))
-
-typedef struct {
-	sdb_conn_node_t super;
 	sdb_store_matcher_t *matcher;
 } conn_matcher_t;
 #define CONN_MATCHER(obj) ((conn_matcher_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
+	conn_matcher_t *filter;
+} conn_list_t;
+#define CONN_LIST(obj) ((conn_list_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
+	char *name;
+	conn_matcher_t *filter;
+} conn_fetch_t;
+#define CONN_FETCH(obj) ((conn_fetch_t *)(obj))
 
 typedef struct {
 	sdb_conn_node_t super;
@@ -101,27 +108,32 @@ typedef struct {
 /*
  * type helper functions
  */
+
+static void __attribute__((unused))
+conn_matcher_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(CONN_MATCHER(obj)->matcher));
+} /* conn_matcher_destroy */
+
+static void __attribute__((unused))
+conn_list_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(CONN_LIST(obj)->filter));
+} /* conn_list_destroy */
+
 static void __attribute__((unused))
 conn_fetch_destroy(sdb_object_t *obj)
 {
 	if (CONN_FETCH(obj)->name)
 		free(CONN_FETCH(obj)->name);
+	sdb_object_deref(SDB_OBJ(CONN_FETCH(obj)->filter));
 } /* conn_fetch_destroy */
-
-static void __attribute__((unused))
-conn_matcher_destroy(sdb_object_t *obj)
-{
-	if (CONN_MATCHER(obj)->matcher)
-		sdb_object_deref(SDB_OBJ(CONN_MATCHER(obj)->matcher));
-} /* conn_matcher_destroy */
 
 static void __attribute__((unused))
 conn_lookup_destroy(sdb_object_t *obj)
 {
-	if (CONN_LOOKUP(obj)->matcher)
-		sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
-	if (CONN_LOOKUP(obj)->filter)
-		sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->filter));
+	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
+	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->filter));
 } /* conn_lookup_destroy */
 
 #ifdef __cplusplus

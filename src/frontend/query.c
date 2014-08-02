@@ -167,24 +167,26 @@ sdb_fe_lookup(sdb_conn_t *conn)
 int
 sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 {
+	sdb_store_matcher_t *m = NULL, *filter = NULL;
+
 	if (! node)
 		return -1;
 
 	switch (node->cmd) {
 		case CONNECTION_FETCH:
-			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->name,
-					/* filter = */ NULL);
+			if (CONN_FETCH(node)->filter)
+				filter = CONN_FETCH(node)->filter->matcher;
+			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->name, filter);
 		case CONNECTION_LIST:
-			return sdb_fe_exec_list(conn, /* filter = */ NULL);
+			if (CONN_LIST(node)->filter)
+				filter = CONN_LIST(node)->filter->matcher;
+			return sdb_fe_exec_list(conn, filter);
 		case CONNECTION_LOOKUP:
-		{
-			sdb_store_matcher_t *m = NULL, *filter = NULL;
 			if (CONN_LOOKUP(node)->matcher)
 				m = CONN_LOOKUP(node)->matcher->matcher;
 			if (CONN_LOOKUP(node)->filter)
 				filter = CONN_LOOKUP(node)->filter->matcher;
 			return sdb_fe_exec_lookup(conn, m, filter);
-		}
 
 		default:
 			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);

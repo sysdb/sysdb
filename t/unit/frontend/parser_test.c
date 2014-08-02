@@ -53,10 +53,15 @@ START_TEST(test_parse)
 
 		/* valid commands */
 		{ "FETCH 'host'",        -1,  1, CONNECTION_FETCH  },
+		{ "FETCH 'host' FILTER "
+		  "host = 'host'",       -1,  1, CONNECTION_FETCH  },
+
 		{ "LIST",                -1,  1, CONNECTION_LIST   },
 		{ "LIST -- comment",     -1,  1, CONNECTION_LIST   },
 		{ "LIST;",               -1,  1, CONNECTION_LIST   },
 		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
+		{ "LIST FILTER "
+		  "host = 'host'",       -1,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
@@ -184,6 +189,11 @@ START_TEST(test_parse)
 		{ "FETCH host",          -1, -1, 0 },
 		{ "LIST; INVALID",        8, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
+
+		{ "LIST MATCHING "
+		  "host = 'host'",       -1, -1, 0 },
+		{ "FETCH 'host' MATCHING "
+		  "host = 'host'",       -1, -1, 0 },
 
 		{ "LOOKUP foo",          -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "

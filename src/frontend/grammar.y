@@ -206,11 +206,12 @@ statement:
  * Retrieve detailed information about a single host.
  */
 fetch_statement:
-	FETCH STRING
+	FETCH STRING filter_clause
 		{
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
 			CONN_FETCH($$)->name = strdup($2);
+			CONN_FETCH($$)->filter = CONN_MATCHER($3);
 			$$->cmd = CONNECTION_FETCH;
 			free($2); $2 = NULL;
 		}
@@ -222,10 +223,11 @@ fetch_statement:
  * Returns a list of all hosts in the store.
  */
 list_statement:
-	LIST
+	LIST filter_clause
 		{
-			$$ = SDB_CONN_NODE(sdb_object_create_T(/* name = */ NULL,
-						sdb_conn_node_t));
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_list_t, conn_list_destroy));
+			CONN_LIST($$)->filter = CONN_MATCHER($2);
 			$$->cmd = CONNECTION_LIST;
 		}
 	;
