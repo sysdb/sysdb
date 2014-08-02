@@ -208,6 +208,8 @@ int
 sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		sdb_data_t *res)
 {
+	if ((! d1) || (! d2) || (! res))
+		return -1;
 	switch (op) {
 		case SDB_DATA_CONCAT:
 			return data_concat(d1, d2, res);
