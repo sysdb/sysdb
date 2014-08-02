@@ -75,6 +75,9 @@ sdb_fe_query(sdb_conn_t *conn)
 	sdb_conn_node_t *node = NULL;
 	int status = 0;
 
+	if ((! conn) || (conn->cmd != CONNECTION_QUERY))
+		return -1;
+
 	parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
 			(int)conn->cmd_len);
 	if (! parsetree) {
@@ -121,6 +124,8 @@ int
 sdb_fe_fetch(sdb_conn_t *conn)
 {
 	char hostname[conn->cmd_len + 1];
+	if ((! conn) || (conn->cmd != CONNECTION_FETCH))
+		return -1;
 	strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
 	hostname[sizeof(hostname) - 1] = '\0';
 	return sdb_fe_exec_fetch(conn, hostname, /* filter = */ NULL);
@@ -129,6 +134,8 @@ sdb_fe_fetch(sdb_conn_t *conn)
 int
 sdb_fe_list(sdb_conn_t *conn)
 {
+	if ((! conn) || (conn->cmd != CONNECTION_LIST))
+		return -1;
 	return sdb_fe_exec_list(conn, /* filter = */ NULL);
 } /* sdb_fe_list */
 
@@ -137,6 +144,9 @@ sdb_fe_lookup(sdb_conn_t *conn)
 {
 	sdb_store_matcher_t *m;
 	int status;
+
+	if ((! conn) || (conn->cmd != CONNECTION_LOOKUP))
+		return -1;
 
 	m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
 			(int)conn->cmd_len);
