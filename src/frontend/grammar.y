@@ -115,6 +115,8 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	fetch_statement
 	list_statement
 	lookup_statement
+	matching_clause
+	filter_clause
 	condition
 
 %type <m> matcher
@@ -234,47 +236,42 @@ list_statement:
  * Returns detailed information about <type> matching condition.
  */
 lookup_statement:
-	LOOKUP IDENTIFIER MATCHING condition
+	LOOKUP IDENTIFIER matching_clause filter_clause
 		{
 			/* TODO: support other types as well */
 			if (strcasecmp($2, "hosts")) {
 				char errmsg[strlen($2) + 32];
 				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown table %s"), $2);
+						YY_("unknown data-source %s"), $2);
 				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				free($2); $2 = NULL;
+				sdb_object_deref(SDB_OBJ($3));
 				sdb_object_deref(SDB_OBJ($4));
 				YYABORT;
 			}
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_lookup_t, conn_lookup_destroy));
-			CONN_LOOKUP($$)->matcher = CONN_MATCHER($4);
-			$$->cmd = CONNECTION_LOOKUP;
-			free($2); $2 = NULL;
-		}
-	|
-	LOOKUP IDENTIFIER MATCHING condition FILTER condition
-		{
-			/* TODO: support other types as well */
-			if (strcasecmp($2, "hosts")) {
-				char errmsg[strlen($2) + 32];
-				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown table %s"), $2);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
-				free($2); $2 = NULL;
-				sdb_object_deref(SDB_OBJ($4));
-				YYABORT;
-			}
-
-			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
-						conn_lookup_t, conn_lookup_destroy));
-			CONN_LOOKUP($$)->matcher = CONN_MATCHER($4);
-			CONN_LOOKUP($$)->filter = CONN_MATCHER($6);
+			CONN_LOOKUP($$)->matcher = CONN_MATCHER($3);
+			CONN_LOOKUP($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_LOOKUP;
 			free($2); $2 = NULL;
 		}
 	;
+
+matching_clause:
+	MATCHING condition { $$ = $2; }
+	|
+	/* empty */ { $$ = NULL; }
+
+filter_clause:
+	FILTER condition { $$ = $2; }
+	|
+	/* empty */ { $$ = NULL; }
+
+/*
+ * Basic expressions.
+ */
 
 condition:
 	matcher

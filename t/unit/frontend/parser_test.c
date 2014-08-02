@@ -58,6 +58,7 @@ START_TEST(test_parse)
 		{ "LIST;",               -1,  1, CONNECTION_LIST   },
 		{ "LIST; INVALID",        5,  1, CONNECTION_LIST   },
 
+		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
@@ -184,8 +185,13 @@ START_TEST(test_parse)
 		{ "LIST; INVALID",        8, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
 
-		{ "LOOKUP hosts",        -1, -1, 0 },
+		{ "LOOKUP foo",          -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
+		  "host = 'host'",       -1, -1, 0 },
+		{ "LOOKUP foo FILTER "
+		  "host = 'host'",       -1, -1, 0 },
+		{ "LOOKUP foo MATCHING "
+		  "host = 'host' FILTER "
 		  "host = 'host'",       -1, -1, 0 },
 	};
 
