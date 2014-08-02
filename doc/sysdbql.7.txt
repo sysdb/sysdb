@@ -9,9 +9,12 @@ sysdbql - the SysDB query language
 SYNOPSIS
 --------
 
-  LIST;
+  LIST hosts;
 
-  LOOKUP hosts MATCHING attribute.architecture = 'amd64';
+  FETCH host 'some.host.name';
+
+  LOOKUP hosts MATCHING attribute.architecture = 'amd64'
+               FILTER :age < 5 * :interval;
 
 DESCRIPTION
 -----------
@@ -27,25 +30,33 @@ QUERY COMMANDS
 Each command is terminated by a semicolon. The following commands are
 available to retrieve information from SysDB:
 
-*LIST*::
+*LIST* hosts [*FILTER* '<filter_condition>']::
 Retrieve a sorted (by name) list of all hosts currently stored in SysDB. The
-return value is a list of hosts where each host description includes its name,
-the timestamp of the last update of the object in SysDB and an approximation
-of the interval with which the host was updated.
+return value is a list of hosts where each host specification includes its
+name, the timestamp of the last update of the object known to SysDB and an
+approximation of the interval with which the host was updated. If a filter
+condition is specified, only objects matching that filter will be included in
+the reply. See the section "FILTER clause" for more details about how to
+specify the search and filter conditions.
 
-*FETCH* '<hostname>'::
+*FETCH* host '<hostname>' [*FILTER* '<filter_condition>']::
 Retrieve detailed information about the specified host object. The return
 value includes the hostname, a list of services referenced by the host, and a
 list of attributes for the host and each service. If the host does not exist,
-an error is returned.
+an error is returned. If a filter condition is specified, only objects
+matching that filter will be included in the reply. See the section "FILTER
+clause" for more details about how to specify the search and filter
+conditions.
 
 *LOOKUP* hosts *MATCHING* '<search_condition>' [*FILTER* '<filter_condition>']::
 Retrieve detailed information about all host objects matching the specified
 search condition. The return value is a list of detailed information for each
 matching host providing the same details as returned by the *FETCH* command.
-If a filter condition is specified, only objects matching that filter will be
-included in the reply. See the sections "MATCHING clause" and "FILTER clause"
-for more details about how to specify the search and filter conditions.
+If no host matches the search criteria, it's not considered an error. Instead,
+an empty list is returned. If a filter condition is specified, only objects
+matching that filter will be included in the reply. See the sections "MATCHING
+clause" and "FILTER clause" for more details about how to specify the search
+and filter conditions.
 
 MATCHING clause
 ~~~~~~~~~~~~~~~
@@ -80,6 +91,8 @@ The following fields may be queried:
 *attribute.*'<name>'::
 	The value of the named host attribute. If an attribute of the specified
 	does not exist, each comparison is treated as if the value does not match.
+	See the documentation for the *IS NULL* and *IS NOT NULL* operators for
+	ways to check if an attribute exists.
 
 '<value>' may either be a string (when matching by object names) or match the
 type of the attribute's value (when matching attribute values). Attribute
@@ -113,9 +126,9 @@ The following operators may be used, in addition, to match attribute values:
 	Evaluates to true if the attribute value is less than, less than or equal
 	to, greater than or equal to or greater than the specified value.
 
-In addition, a named attribute may be check for existence using the *IS NULL*
-and *IS NOT NULL* expressions. An attribute is considered to be *NULL* if it
-is not set for a host.
+In addition, a named attribute may be checked for existence using the *IS
+NULL* and *IS NOT NULL* operators. An attribute is considered to be *NULL* if
+it is not set for a host.
 
 FILTER clause
 ~~~~~~~~~~~~~
@@ -126,10 +139,11 @@ core properties of the stored objects. The basic syntax for filter clauses is
 the same as for matching clauses (see the description about subexpressions
 above).
 
-The following common fields of stored objects may be queried:
+The following fields (core properties) of stored objects may be queried:
 
 *:last_update*::
-	The timestamp of the last update of the object.
+	The timestamp of the last update of the object. This value is based on
+	information provided by the queried backend if possible.
 
 *:age*::
 	The amount of time since the last update of the object.
@@ -160,7 +174,7 @@ EXAMPLES
 The following examples illustrate the use of the commands and what their
 replies look like. The replies are pretty-printed to more easily follow them.
 
-  LIST;
+  LIST hosts;
   {"hosts":[{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
@@ -171,7 +185,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
       "update_interval": "5m4s"
     }]}
 
-  FETCH 'host1.example.com';
+  FETCH host 'host1.example.com';
   {
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
