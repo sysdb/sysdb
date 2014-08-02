@@ -162,6 +162,7 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_data_t *res)
 {
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
+	int status = 0;
 
 	if ((! expr) || (! res))
 		return -1;
@@ -178,12 +179,11 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		return -1;
 	}
 
-	if (sdb_data_expr_eval(expr->type, &v1, &v2, res)) {
-		sdb_data_free_datum(&v1);
-		sdb_data_free_datum(&v2);
-		return -1;
-	}
-	return 0;
+	if (sdb_data_expr_eval(expr->type, &v1, &v2, res))
+		status = -1;
+	sdb_data_free_datum(&v1);
+	sdb_data_free_datum(&v2);
+	return status;
 } /* sdb_store_expr_eval */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
