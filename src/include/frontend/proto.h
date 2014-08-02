@@ -32,29 +32,114 @@
 extern "C" {
 #endif
 
+/*
+ * The SysDB frontend protocol is based messages being passed between the
+ * client and the server. Each message includes a header containing the
+ * message type which is usually a status or command code, the length of the
+ * message not including the header, and the message body. The content of the
+ * message body depends on the message type. Both, the message type and length
+ * are stored in an unsigned 32bit integer in network byte-order.
+ *
+ *                  1               3               4               6
+ *  0               6               2               8               4
+ * +-------------------------------+-------------------------------+
+ * | message type                  | message length                |
+ * +-------------------------------+-------------------------------+
+ * | message body ...
+ *
+ */
+
 /* status codes returned to a client */
 typedef enum {
+	/*
+	 * CONNECTION_OK:
+	 * Indicates that a command was successful. The message body will contain
+	 * the result of the command (if any) encoded as a JSON string.
+	 */
 	CONNECTION_OK = 0,
+
+	/*
+	 * CONNECTION_ERROR:
+	 * Indicates that a command has failed. The message body will contain a
+	 * string describing the error.
+	 */
 	CONNECTION_ERROR,
 
+	/*
+	 * CONNECTION_LOG:
+	 * Indicates an asynchronous log message. The message body will contain
+	 * the message string providing informational or warning logs. Log
+	 * messages may be sent to the client any time.
+	 */
 	CONNECTION_LOG,
 } sdb_conn_status_t;
 
 /* accepted commands / state of the connection */
 typedef enum {
-	/* connection handling */
+	/*
+	 * CONNECTION_IDLE:
+	 * This is an internal state used for idle connections.
+	 */
 	CONNECTION_IDLE = 0,
+
+	/*
+	 * CONNECTION_PING:
+	 * Check if the current connection is still alive. The server will reply
+	 * with CONNECTION_OK if it was able to handle the command.
+	 */
 	CONNECTION_PING,
+
+	/*
+	 * CONNECTION_STARTUP:
+	 * Setup of a client connection. The message body shall include the
+	 * username of the user contacting the server. The server may then send
+	 * further requests to the client for authentication (not implemented
+	 * yet). Once the setup and authentication was successful, the server
+	 * replies with CONNECTION_OK. No other messages may be sent to the server
+	 * before this.
+	 */
 	CONNECTION_STARTUP,
 
-	/* querying */
+	/*
+	 * Querying the server.
+	 */
+
+	/*
+	 * CONNECTION_QUERY:
+	 * Execute a query in the server. The message body shall include a single
+	 * query command as a text string. Multiple commands are ignored by the
+	 * server entirely.
+	 */
 	CONNECTION_QUERY,
-	/* query commands */
+
+	/*
+	 * CONNECTION_FETCH:
+	 * Execute the 'FETCH' command in the server. The message body shall
+	 * include the hostname of the host to be retrieved.
+	 */
 	CONNECTION_FETCH,
+
+	/*
+	 * CONNECTION_LIST:
+	 * Execute the 'LIST' command in the server.
+	 */
 	CONNECTION_LIST,
+
+	/*
+	 * CONNECTION_LOOKUP:
+	 * Execute the 'LOOKUP' command in the server. The message body shall
+	 * include the conditional expression of the 'MATCHING' clause.
+	 */
 	CONNECTION_LOOKUP,
 
-	/* command elements */
+	/*
+	 * Command subcomponents.
+	 */
+
+	/*
+	 * CONNECTION_EXPR:
+	 * A parsed expression. Only used internally.
+	 */
 	CONNECTION_EXPR,
 } sdb_conn_state_t;
 
