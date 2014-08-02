@@ -176,6 +176,44 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
+ * sdb_store_metric:
+ * Add/update a metric in the store. If the metric, identified by its name,
+ * already exists for the specified host, it will be updated according to the
+ * specified 'metric' object. If the referenced host does not exist, an error
+ * will be reported. Else, a new entry will be created in the store. Any
+ * memory required for storing the entry will be allocated an managed by the
+ * store itself. The specified metric-object will not be referenced or
+ * further accessed.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
+int
+sdb_store_metric(const char *hostname, const char *name,
+		sdb_time_t last_update);
+
+/*
+ * sdb_store_metric_attr:
+ * Add/update a metric's attribute in the store. If the attribute, identified
+ * by its key, already exists for the specified metric, it will be updated to
+ * the specified value. If the references metric (for the specified host)
+ * does not exist, an error will be reported. Any memory required for storing
+ * the entry will be allocated and managed by the store itself.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
+ */
+int
+sdb_store_metric_attr(const char *hostname, const char *metric,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+
+/*
  * sdb_store_get_field:
  * Get the value of a stored object's queryable field. The caller is
  * responsible for freeing any dynamically allocated memory possibly stored in

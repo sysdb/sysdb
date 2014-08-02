@@ -53,10 +53,16 @@ populate(void)
 	sdb_store_attribute("h1", "k2", &datum, 1);
 	sdb_store_attribute("h1", "k3", &datum, 2);
 
+	sdb_store_metric("h1", "m1", 2);
+	sdb_store_metric("h1", "m2", 1);
+
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 2);
 
 	datum.type = SDB_TYPE_INTEGER;
+	datum.data.integer = 42;
+	sdb_store_metric_attr("h1", "m1", "k3", &datum, 2);
+
 	datum.data.integer = 123;
 	sdb_store_service_attr("h2", "s2", "k1", &datum, 2);
 	datum.data.integer = 4711;
@@ -220,6 +226,89 @@ START_TEST(test_store_attr)
 }
 END_TEST
 
+START_TEST(test_store_metric)
+{
+	struct {
+		const char *host;
+		const char *metric;
+		sdb_time_t  last_update;
+		int         expected;
+	} golden_data[] = {
+		{ "k", "m",  1, -1 },
+		{ "k", "m",  1, -1 }, /* retry to ensure the host is not created */
+		{ "l", "m1", 1,  0 },
+		{ "l", "m1", 2,  0 },
+		{ "l", "m1", 2,  1 },
+		{ "l", "m2", 1,  0 },
+		{ "m", "m",  1,  0 },
+		{ "m", "m",  1,  1 },
+	};
+
+	size_t i;
+
+	sdb_store_host("m", 1);
+	sdb_store_host("l", 1);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		int status;
+
+		status = sdb_store_metric(golden_data[i].host,
+				golden_data[i].metric, golden_data[i].last_update);
+		fail_unless(status == golden_data[i].expected,
+				"sdb_store_metric(%s, %s, %d) = %d; expected: %d",
+				golden_data[i].host, golden_data[i].metric,
+				golden_data[i].last_update, status, golden_data[i].expected);
+	}
+}
+END_TEST
+
+START_TEST(test_store_metric_attr)
+{
+	struct {
+		const char *host;
+		const char *metric;
+		const char *attr;
+		const sdb_data_t value;
+		sdb_time_t  last_update;
+		int expected;
+	} golden_data[] = {
+		{ "k", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		/* retry, it should still fail */
+		{ "k", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		{ "l", "mX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		/* retry, it should still fail */
+		{ "l", "mX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
+		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
+		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 2,  0 },
+		{ "l", "m1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "l", "m1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
+		{ "l", "m2", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+		{ "m", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
+	};
+
+	size_t i;
+
+	sdb_store_host("m", 1);
+	sdb_store_host("l", 1);
+	sdb_store_metric("m", "m1", 1);
+	sdb_store_metric("l", "m1", 1);
+	sdb_store_metric("l", "m2", 1);
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		int status;
+
+		status = sdb_store_metric_attr(golden_data[i].host,
+				golden_data[i].metric, golden_data[i].attr,
+				&golden_data[i].value, golden_data[i].last_update);
+		fail_unless(status == golden_data[i].expected,
+				"sdb_store_metric_attr(%s, %s, %s, %d, %d) = %d; "
+				"expected: %d", golden_data[i].host, golden_data[i].metric,
+				golden_data[i].attr, golden_data[i].value.data.integer,
+				golden_data[i].last_update, status, golden_data[i].expected);
+	}
+}
+END_TEST
+
 START_TEST(test_store_service)
 {
 	struct {
@@ -304,7 +393,8 @@ START_TEST(test_store_service_attr)
 END_TEST
 
 static void
-verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
+verify_json_output(sdb_strbuf_t *buf, const char *expected,
+		const char *filter_str, int flags)
 {
 	int pos;
 	size_t len1, len2;
@@ -325,9 +415,10 @@ verify_json_output(sdb_strbuf_t *buf, const char *expected, int flags)
 	}
 
 	fail_unless(pos == -1,
-			"sdb_store_tojson(%x) returned unexpected result\n"
+			"sdb_store_tojson(<buf>, %s, %x) returned unexpected result\n"
 			"         got: %s\n              %*s\n    expected: %s",
-			flags, sdb_strbuf_string(buf), pos + 1, "^", expected);
+			filter_str, flags, sdb_strbuf_string(buf), pos + 1, "^",
+			expected);
 } /* verify_json_output */
 
 START_TEST(test_store_tojson)
@@ -359,7 +450,20 @@ START_TEST(test_store_tojson)
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
 							"\"update_interval\": \"0s\", \"backends\": []}"
 					"], "
-					"\"metrics\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k3\", \"value\": 42, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]},"
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []}"
+					"], "
 					"\"services\": []},"
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
@@ -398,7 +502,20 @@ START_TEST(test_store_tojson)
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
 							"\"update_interval\": \"0s\", \"backends\": []}"
 					"], "
-					"\"metrics\": []},"
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k3\", \"value\": 42, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]},"
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []}"
+					"]},"
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
 					"\"attributes\": [], "
@@ -445,7 +562,14 @@ START_TEST(test_store_tojson)
 			"{\"hosts\":["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
-					"\"metrics\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []},"
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"], "
 					"\"services\": []},"
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
@@ -494,7 +618,12 @@ START_TEST(test_store_tojson)
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
 							"\"update_interval\": \"0s\", \"backends\": []},"
 					"], "
-					"\"metrics\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []}"
+					"], "
 					"\"services\": []}"
 			"]}" },
 		{ { sdb_store_ge_matcher, SDB_FIELD_LAST_UPDATE,
@@ -514,7 +643,7 @@ START_TEST(test_store_tojson)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *filter = NULL;
-		char filter_str[1024];
+		char filter_str[1024] = "<none>";
 		int status;
 
 		sdb_strbuf_clear(buf);
@@ -534,17 +663,19 @@ START_TEST(test_store_tojson)
 			sdb_object_deref(SDB_OBJ(c));
 			fail_unless(filter != NULL,
 					"INTERNAL ERROR: sdb_store_*_matcher() = NULL");
-		}
 
-		if (sdb_store_matcher_tostring(filter, filter_str, sizeof(filter_str)))
-			snprintf(filter_str, sizeof(filter_str), "ERR");
+			if (sdb_store_matcher_tostring(filter,
+						filter_str, sizeof(filter_str)))
+				snprintf(filter_str, sizeof(filter_str), "ERR");
+		}
 
 		status = sdb_store_tojson(buf, filter, golden_data[i].flags);
 		fail_unless(status == 0,
 				"sdb_store_tojson(<buf>, %s, %x) = %d; expected: 0",
 				filter_str, golden_data[i].flags, status);
 
-		verify_json_output(buf, golden_data[i].expected, golden_data[i].flags);
+		verify_json_output(buf, golden_data[i].expected,
+				filter_str, golden_data[i].flags);
 		sdb_object_deref(SDB_OBJ(filter));
 	}
 	sdb_strbuf_destroy(buf);
@@ -743,6 +874,8 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_host);
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
+	tcase_add_test(tc, test_store_metric);
+	tcase_add_test(tc, test_store_metric_attr);
 	tcase_add_test(tc, test_store_service);
 	tcase_add_test(tc, test_store_service_attr);
 	tcase_add_test(tc, test_get_field);

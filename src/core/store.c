@@ -395,7 +395,8 @@ get_host_children(const char *hostname, int type)
 	sdb_host_t *host;
 
 	assert(hostname);
-	assert((type == SDB_SERVICE) || (type == SDB_ATTRIBUTE));
+	assert((type == SDB_SERVICE) || (type == SDB_METRIC)
+			|| (type == SDB_ATTRIBUTE));
 
 	if (! hosts)
 		return NULL;
@@ -456,7 +457,7 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
 } /* store_common_tojson */
 
 /*
- * store_obj_tojson serializes attribute / service objects to JSON.
+ * store_obj_tojson serializes attribute / metric / service objects to JSON.
  *
  * The function never returns an error. Rather, an error message will be part
  * of the serialized data.
@@ -674,6 +675,67 @@ sdb_store_service_attr(const char *hostname, const char *service,
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service_attr */
+
+int
+sdb_store_metric(const char *hostname, const char *name,
+		sdb_time_t last_update)
+{
+	sdb_avltree_t *metrics;
+
+	int status = 0;
+
+	if ((! hostname) || (! name))
+		return -1;
+
+	pthread_rwlock_wrlock(&host_lock);
+	metrics = get_host_children(hostname, SDB_METRIC);
+	if (! metrics) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store metric '%s' - "
+				"host '%s' not found", name, hostname);
+		status = -1;
+	}
+
+	if (! status)
+		status = store_obj(metrics, SDB_METRIC, name, last_update, NULL);
+	pthread_rwlock_unlock(&host_lock);
+	return status;
+} /* sdb_store_metric */
+
+int
+sdb_store_metric_attr(const char *hostname, const char *metric,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+{
+	sdb_avltree_t *metrics;
+	sdb_metric_t *m;
+	int status = 0;
+
+	if ((! hostname) || (! metric) || (! key))
+		return -1;
+
+	pthread_rwlock_wrlock(&host_lock);
+	metrics = get_host_children(hostname, SDB_METRIC);
+	if (! metrics) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
+				"for metric '%s' - host '%ss' not found",
+				key, metric, hostname);
+		pthread_rwlock_unlock(&host_lock);
+		return -1;
+	}
+
+	m = METRIC(sdb_avltree_lookup(metrics, metric));
+	if (! m) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
+				"metric '%s/%s' not found", key, hostname, metric);
+		status = -1;
+	}
+
+	if (! status)
+		status = store_attr(m->attributes, key, value, last_update);
+
+	sdb_object_deref(SDB_OBJ(m));
+	pthread_rwlock_unlock(&host_lock);
+	return status;
+} /* sdb_store_metric_attr */
 
 int
 sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
