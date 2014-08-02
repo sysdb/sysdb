@@ -46,11 +46,13 @@ extern "C" {
 enum {
 	SDB_HOST = 1,
 	SDB_SERVICE,
+	SDB_METRIC,
 	SDB_ATTRIBUTE,
 };
 #define SDB_STORE_TYPE_TO_NAME(t) \
 	(((t) == SDB_HOST) ? "host" \
 		: ((t) == SDB_SERVICE) ? "service" \
+		: ((t) == SDB_METRIC) ? "metric" \
 		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
 
 /*
@@ -400,8 +402,8 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m);
  * of the matcher. Only those objects matching the filter will be considered.
  *
  * Note that the filter is applied to all object types (hosts, service,
- * attribute). Thus, any object-specific matchers are mostly unsuited for this
- * purpose and, if used, may result in unexpected behavior.
+ * metric, attribute). Thus, any object-specific matchers are mostly unsuited
+ * for this purpose and, if used, may result in unexpected behavior.
  *
  * Returns:
  *  - 1 if the object matches
@@ -451,7 +453,8 @@ sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 enum {
 	SDB_SKIP_ATTRIBUTES         = 1 << 0,
 	SDB_SKIP_SERVICES           = 1 << 1,
-	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 2,
+	SDB_SKIP_METRICS            = 1 << 2,
+	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 3,
 
 	SDB_SKIP_ALL                = 0xffff,
 };

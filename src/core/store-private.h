@@ -81,7 +81,15 @@ typedef struct {
 typedef struct {
 	sdb_store_obj_t super;
 
+	sdb_avltree_t *attributes;
+} sdb_metric_t;
+#define METRIC(obj) ((sdb_metric_t *)(obj))
+
+typedef struct {
+	sdb_store_obj_t super;
+
 	sdb_avltree_t *services;
+	sdb_avltree_t *metrics;
 	sdb_avltree_t *attributes;
 } sdb_host_t;
 #define HOST(obj) ((sdb_host_t *)(obj))

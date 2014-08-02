@@ -233,6 +233,9 @@ match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		case SDB_SERVICE:
 			iter = sdb_avltree_get_iter(HOST(obj)->services);
 			break;
+		case SDB_METRIC:
+			iter = sdb_avltree_get_iter(HOST(obj)->metrics);
+			break;
 		case SDB_ATTRIBUTE:
 			iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 			break;
@@ -953,6 +956,8 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		type = SDB_HOST;
 	else if (! strcasecmp(obj_type, "service"))
 		type = SDB_SERVICE;
+	else if (! strcasecmp(obj_type, "metric"))
+		type = SDB_METRIC;
 	else if (! strcasecmp(obj_type, "attribute"))
 		type = SDB_ATTRIBUTE;
 	else

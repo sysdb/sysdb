@@ -58,6 +58,7 @@ static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 static sdb_type_t sdb_host_type;
 static sdb_type_t sdb_service_type;
+static sdb_type_t sdb_metric_type;
 static sdb_type_t sdb_attribute_type;
 
 static int
@@ -105,6 +106,9 @@ sdb_host_init(sdb_object_t *obj, va_list ap)
 	sobj->services = sdb_avltree_create();
 	if (! sobj->services)
 		return -1;
+	sobj->metrics = sdb_avltree_create();
+	if (! sobj->metrics)
+		return -1;
 	sobj->attributes = sdb_avltree_create();
 	if (! sobj->attributes)
 		return -1;
@@ -121,6 +125,8 @@ sdb_host_destroy(sdb_object_t *obj)
 
 	if (sobj->services)
 		sdb_avltree_destroy(sobj->services);
+	if (sobj->metrics)
+		sdb_avltree_destroy(sobj->metrics);
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
 } /* sdb_host_destroy */
@@ -153,6 +159,35 @@ sdb_service_destroy(sdb_object_t *obj)
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
 } /* sdb_service_destroy */
+
+static int
+sdb_metric_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_metric_t *sobj = METRIC(obj);
+	int ret;
+
+	/* this will consume the first argument (type) of ap */
+	ret = store_obj_init(obj, ap);
+	if (ret)
+		return ret;
+
+	sobj->attributes = sdb_avltree_create();
+	if (! sobj->attributes)
+		return -1;
+	return 0;
+} /* sdb_metric_init */
+
+static void
+sdb_metric_destroy(sdb_object_t *obj)
+{
+	sdb_metric_t *sobj = METRIC(obj);
+	assert(obj);
+
+	store_obj_destroy(obj);
+
+	if (sobj->attributes)
+		sdb_avltree_destroy(sobj->attributes);
+} /* sdb_metric_destroy */
 
 static int
 sdb_attr_init(sdb_object_t *obj, va_list ap)
@@ -192,6 +227,12 @@ static sdb_type_t sdb_service_type = {
 	sizeof(sdb_service_t),
 	sdb_service_init,
 	sdb_service_destroy
+};
+
+static sdb_type_t sdb_metric_type = {
+	sizeof(sdb_metric_t),
+	sdb_metric_init,
+	sdb_metric_destroy
 };
 
 static sdb_type_t sdb_attribute_type = {
@@ -290,7 +331,11 @@ store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
 		}
 		else {
 			sdb_type_t t;
-			t = type == SDB_HOST ? sdb_host_type : sdb_service_type;
+			t = type == SDB_HOST
+				? sdb_host_type
+				: type == SDB_SERVICE
+					? sdb_service_type
+					: sdb_metric_type;
 			new = STORE_OBJ(sdb_object_create(name, t, type, last_update));
 		}
 
@@ -369,6 +414,8 @@ get_host_children(const char *hostname, int type)
 	sdb_object_deref(SDB_OBJ(host));
 	if (type == SDB_ATTRIBUTE)
 		return host->attributes;
+	else if (type == SDB_METRIC)
+		return host->metrics;
 	else
 		return host->services;
 } /* get_host_children */
@@ -420,7 +467,9 @@ store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf,
 {
 	sdb_avltree_iter_t *iter;
 
-	assert((type == SDB_ATTRIBUTE) || (type == SDB_SERVICE));
+	assert((type == SDB_ATTRIBUTE)
+			|| (type == SDB_METRIC)
+			|| (type == SDB_SERVICE));
 
 	sdb_strbuf_append(buf, "[");
 	iter = sdb_avltree_get_iter(tree);
@@ -455,6 +504,12 @@ store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf,
 				&& (! (flags & SDB_SKIP_ATTRIBUTES))) {
 			sdb_strbuf_append(buf, ", \"attributes\": ");
 			store_obj_tojson(SVC(sobj)->attributes, SDB_ATTRIBUTE,
+					buf, filter, flags);
+		}
+		else if ((sobj->type == SDB_METRIC)
+				&& (! (flags & SDB_SKIP_ATTRIBUTES))) {
+			sdb_strbuf_append(buf, ", \"attributes\": ");
+			store_obj_tojson(METRIC(sobj)->attributes, SDB_ATTRIBUTE,
 					buf, filter, flags);
 		}
 		sdb_strbuf_append(buf, "}");
@@ -663,6 +718,11 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
 	if (! (flags & SDB_SKIP_ATTRIBUTES)) {
 		sdb_strbuf_append(buf, ", \"attributes\": ");
 		store_obj_tojson(host->attributes, SDB_ATTRIBUTE, buf, filter, flags);
+	}
+
+	if (! (flags & SDB_SKIP_METRICS)) {
+		sdb_strbuf_append(buf, ", \"metrics\": ");
+		store_obj_tojson(host->metrics, SDB_METRIC, buf, filter, flags);
 	}
 
 	if (! (flags & SDB_SKIP_SERVICES)) {
