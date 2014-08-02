@@ -48,12 +48,142 @@
  * private helper functions
  */
 
+/* Calculate the linear function 'd1 + n * d2'. */
+static int
+data_lin(const sdb_data_t *d1, int n, const sdb_data_t *d2, sdb_data_t *res)
+{
+	if (d1->type != d2->type)
+		return -1;
+
+	if (d1->type == SDB_TYPE_INTEGER)
+		res->data.integer = d1->data.integer + (int64_t)n * d2->data.integer;
+	else if (d1->type == SDB_TYPE_DECIMAL)
+		res->data.decimal = d1->data.decimal + (double)n * d2->data.decimal;
+	else if (d1->type ==  SDB_TYPE_DATETIME)
+		res->data.datetime = d1->data.datetime + (sdb_time_t)n * d2->data.datetime;
+	else
+		return -1;
+	res->type = d1->type;
+	return 0;
+} /* data_lin */
+
+/* Multiply d1 with d2. */
+static int
+data_mul(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
+{
+	if (d1->type == SDB_TYPE_INTEGER) {
+		if (d2->type == SDB_TYPE_INTEGER)
+			res->data.integer = d1->data.integer * d2->data.integer;
+		else if (d2->type == SDB_TYPE_DATETIME) {
+			res->data.datetime = (sdb_time_t)d1->data.integer
+				* d2->data.datetime;
+			res->type = SDB_TYPE_DATETIME;
+			return 0;
+		}
+		else
+			return -1;
+	}
+	else if (d1->type == SDB_TYPE_DECIMAL) {
+		if (d2->type == SDB_TYPE_DECIMAL)
+			res->data.decimal = d1->data.decimal * d2->data.decimal;
+		else if (d2->type == SDB_TYPE_DATETIME) {
+			res->data.datetime = (sdb_time_t)(d1->data.decimal
+					* (double)d2->data.datetime);
+			res->type = SDB_TYPE_DATETIME;
+			return 0;
+		}
+		else
+			return -1;
+	}
+	else if (d1->type == SDB_TYPE_DATETIME) {
+		if (d2->type == SDB_TYPE_DATETIME)
+			res->data.datetime = d1->data.datetime
+				* d2->data.datetime;
+		else if (d2->type == SDB_TYPE_INTEGER)
+			res->data.datetime = d1->data.datetime
+				* (sdb_time_t)d2->data.integer;
+		else if (d2->type == SDB_TYPE_DECIMAL)
+			res->data.datetime = (sdb_time_t)((double)d1->data.datetime
+					* d2->data.decimal);
+		else
+			return -1;
+	}
+	else
+		return -1;
+
+	res->type = d1->type;
+	return 0;
+} /* data_mul */
+
+/* Device d1 by d2 and return the result and the remainder. */
+static int
+data_div(const sdb_data_t *d1, const sdb_data_t *d2,
+		sdb_data_t *res, sdb_data_t *rem)
+{
+	if (d1->type == SDB_TYPE_INTEGER) {
+		if (d2->type != SDB_TYPE_INTEGER)
+			return -1;
+		if (res)
+			res->data.integer = d1->data.integer / d2->data.integer;
+		if (rem)
+			rem->data.integer = d1->data.integer % d2->data.integer;
+	}
+	else if (d1->type == SDB_TYPE_DECIMAL) {
+		if (d2->type != SDB_TYPE_DECIMAL)
+			return -1;
+		if (res)
+			res->data.decimal = d1->data.decimal / d2->data.decimal;
+		if (rem)
+			rem->data.decimal = fmod(d1->data.decimal, d2->data.decimal);
+	}
+	else if (d1->type == SDB_TYPE_DATETIME) {
+		if (d2->type == SDB_TYPE_DECIMAL) {
+			if (res)
+				res->data.datetime = (sdb_time_t)((double)d1->data.datetime
+						/ d2->data.decimal);
+			if (rem) {
+				double tmp = fmod((double)d1->data.datetime, d2->data.decimal);
+				rem->data.datetime = (sdb_time_t)tmp;
+			}
+		}
+		else {
+			sdb_time_t a, b;
+			if (d2->type == SDB_TYPE_DATETIME) {
+				a = d1->data.datetime;
+				b = d2->data.datetime;
+			}
+			else if (d2->type == SDB_TYPE_INTEGER) {
+				a = d1->data.datetime;
+				b = (sdb_time_t)d2->data.integer;
+			}
+			else
+				return -1;
+			if (res)
+				res->data.datetime = a / b;
+			if (rem)
+				rem->data.datetime = a % b;
+		}
+	}
+	else
+		return -1;
+
+	if (res)
+		res->type = d1->type;
+	if (rem)
+		rem->type = d1->type;
+	return 0;
+} /* data_div */
+
+/* Concatenate d1 and d2. */
 static int
 data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 {
 	unsigned char *new;
 	unsigned char *s1, *s2;
 	size_t len1, len2;
+
+	if (d1->type != d2->type)
+		return -1;
 
 	if (d1->type == SDB_TYPE_STRING) {
 		s1 = (unsigned char *)d1->data.string;
@@ -214,170 +344,17 @@ sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		case SDB_DATA_CONCAT:
 			return data_concat(d1, d2, res);
 		case SDB_DATA_ADD:
-			if (d1->type != d2->type)
-				return -1;
-			switch (d1->type) {
-				case SDB_TYPE_INTEGER:
-					res->data.integer = d1->data.integer + d2->data.integer;
-					break;
-				case SDB_TYPE_DECIMAL:
-					res->data.decimal = d1->data.decimal + d2->data.decimal;
-					break;
-				case SDB_TYPE_DATETIME:
-					res->data.datetime = d1->data.datetime + d2->data.datetime;
-					break;
-				default:
-					return -1;
-			}
-			break;
+			return data_lin(d1, 1, d2, res);
 		case SDB_DATA_SUB:
-			if (d1->type != d2->type)
-				return -1;
-			switch (d1->type) {
-				case SDB_TYPE_INTEGER:
-					res->data.integer = d1->data.integer - d2->data.integer;
-					break;
-				case SDB_TYPE_DECIMAL:
-					res->data.decimal = d1->data.decimal - d2->data.decimal;
-					break;
-				case SDB_TYPE_DATETIME:
-					res->data.datetime = d1->data.datetime - d2->data.datetime;
-					break;
-				default:
-					return -1;
-			}
-			break;
+			return data_lin(d1, -1, d2, res);
 		case SDB_DATA_MUL:
-			switch (d1->type) {
-				case SDB_TYPE_INTEGER:
-					if (d2->type == SDB_TYPE_INTEGER)
-						res->data.integer = d1->data.integer
-							* d2->data.integer;
-					else if (d2->type == SDB_TYPE_DATETIME) {
-						res->data.datetime = (sdb_time_t)d1->data.integer
-							* d2->data.datetime;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else
-						return -1;
-					break;
-				case SDB_TYPE_DECIMAL:
-					if (d2->type == SDB_TYPE_DECIMAL)
-						res->data.decimal = d1->data.decimal
-							* d2->data.decimal;
-					else if (d2->type == SDB_TYPE_DATETIME) {
-						double tmp = d1->data.decimal
-							* (double)d2->data.datetime;
-						res->data.datetime = (sdb_time_t)tmp;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else
-						return -1;
-					break;
-				case SDB_TYPE_DATETIME:
-					if (d2->type == SDB_TYPE_DATETIME)
-						res->data.datetime = d1->data.datetime
-							* d2->data.datetime;
-					else if (d2->type == SDB_TYPE_INTEGER) {
-						res->data.datetime = d1->data.datetime
-							* (sdb_time_t)d2->data.integer;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else if (d2->type == SDB_TYPE_DECIMAL) {
-						double tmp = (double)d1->data.datetime
-							* d2->data.decimal;
-						res->data.datetime = (sdb_time_t)tmp;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else
-						return -1;
-					break;
-				default:
-					return -1;
-			}
-			break;
+			return data_mul(d1, d2, res);
 		case SDB_DATA_DIV:
-			switch (d1->type) {
-				case SDB_TYPE_INTEGER:
-					if (d2->type != SDB_TYPE_INTEGER)
-						return -1;
-					res->data.integer = d1->data.integer / d2->data.integer;
-					break;
-				case SDB_TYPE_DECIMAL:
-					if (d2->type != SDB_TYPE_DECIMAL)
-						return -1;
-					res->data.decimal = d1->data.decimal / d2->data.decimal;
-					break;
-				case SDB_TYPE_DATETIME:
-					if (d2->type == SDB_TYPE_DATETIME)
-						res->data.datetime = d1->data.datetime
-							/ d2->data.datetime;
-					else if (d2->type == SDB_TYPE_INTEGER) {
-						res->data.datetime = d1->data.datetime
-							/ (sdb_time_t)d2->data.integer;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else if (d2->type == SDB_TYPE_DECIMAL) {
-						double tmp = (double)d1->data.datetime
-							/ d2->data.decimal;
-						res->data.datetime = (sdb_time_t)tmp;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else
-						return -1;
-					break;
-				default:
-					return -1;
-			}
-			break;
+			return data_div(d1, d2, res, NULL);
 		case SDB_DATA_MOD:
-			switch (d1->type) {
-				case SDB_TYPE_INTEGER:
-					if (d2->type != SDB_TYPE_INTEGER)
-						return -1;
-					res->data.integer = d1->data.integer % d2->data.integer;
-					break;
-				case SDB_TYPE_DECIMAL:
-					if (d2->type != SDB_TYPE_DECIMAL)
-						return -1;
-					res->data.decimal = fmod(d1->data.decimal, d2->data.decimal);
-					break;
-				case SDB_TYPE_DATETIME:
-					if (d2->type == SDB_TYPE_DATETIME)
-						res->data.datetime = d1->data.datetime
-							% d2->data.datetime;
-					else if (d2->type == SDB_TYPE_INTEGER) {
-						res->data.datetime = d1->data.datetime
-							% (sdb_time_t)d2->data.integer;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else if (d2->type == SDB_TYPE_DECIMAL) {
-						double tmp = fmod((double)d1->data.datetime,
-							d2->data.decimal);
-						res->data.datetime = (sdb_time_t)tmp;
-						res->type = SDB_TYPE_DATETIME;
-						return 0;
-					}
-					else
-						return -1;
-					break;
-				default:
-					return -1;
-			}
-			break;
-		default:
-			return -1;
+			return data_div(d1, d2, NULL, res);
 	}
-
-	res->type = d1->type;
-	return 0;
+	return -1;
 } /* sdb_data_expr_eval */
 
 size_t
