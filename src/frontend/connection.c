@@ -281,8 +281,11 @@ command_handle(sdb_conn_t *conn)
 			parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
 					(int)conn->cmd_len);
 			if (! parsetree) {
+				char query[conn->cmd_len + 1];
+				strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+				query[sizeof(query) - 1] = '\0';
 				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s'",
-						sdb_strbuf_string(conn->buf));
+						query);
 				status = -1;
 				break;
 			}
@@ -296,12 +299,17 @@ command_handle(sdb_conn_t *conn)
 					break;
 
 				default:
+				{
+					char query[conn->cmd_len + 1];
+					strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+					query[sizeof(query) - 1] = '\0';
 					sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %d command%s "
 							"in multi-statement query '%s'",
 							sdb_llist_len(parsetree) - 1,
 							sdb_llist_len(parsetree) == 2 ? "" : "s",
-							sdb_strbuf_string(conn->buf));
+							query);
 					node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+				}
 			}
 
 			if (node) {
@@ -314,9 +322,13 @@ command_handle(sdb_conn_t *conn)
 		}
 
 		case CONNECTION_FETCH:
-			status = sdb_fe_fetch(conn, sdb_strbuf_string(conn->buf),
-					/* filter = */ NULL);
+		{
+			char hostname[conn->cmd_len + 1];
+			strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
+			hostname[sizeof(hostname) - 1] = '\0';
+			status = sdb_fe_fetch(conn, hostname, /* filter = */ NULL);
 			break;
+		}
 		case CONNECTION_LIST:
 			status = sdb_fe_list(conn, /* filter = */ NULL);
 			break;
@@ -327,8 +339,11 @@ command_handle(sdb_conn_t *conn)
 			m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
 					(int)conn->cmd_len);
 			if (! m) {
-				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse expression '%s'",
-						sdb_strbuf_string(conn->buf));
+				char expr[conn->cmd_len + 1];
+				strncpy(expr, sdb_strbuf_string(conn->buf), conn->cmd_len);
+				expr[sizeof(expr) - 1] = '\0';
+				sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
+						"lookup condition '%s'", expr);
 				status = -1;
 				break;
 			}
