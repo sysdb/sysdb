@@ -145,7 +145,8 @@ enum {
  * sdb_data_expr_eval:
  * Evaluate a simple arithmetic expression on two data points. String and
  * binary data only support concatenation and all other data types only
- * support the other operators.
+ * support the other operators. The result may be allocated dynamically and
+ * has to be freed by the caller (using sdb_data_free_datum).
  *
  * The data-types of d1 and d2 have to be the same, except for the following
  * cases:
