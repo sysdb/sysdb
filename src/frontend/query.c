@@ -74,10 +74,10 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 
 	switch (node->cmd) {
 		case CONNECTION_FETCH:
-			return sdb_fe_fetch(conn, CONN_FETCH(node)->name,
+			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->name,
 					/* filter = */ NULL);
 		case CONNECTION_LIST:
-			return sdb_fe_list(conn, /* filter = */ NULL);
+			return sdb_fe_exec_list(conn, /* filter = */ NULL);
 		case CONNECTION_LOOKUP:
 		{
 			sdb_store_matcher_t *m = NULL, *filter = NULL;
@@ -85,7 +85,7 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 				m = CONN_LOOKUP(node)->matcher->matcher;
 			if (CONN_LOOKUP(node)->filter)
 				filter = CONN_LOOKUP(node)->filter->matcher;
-			return sdb_fe_lookup(conn, m, filter);
+			return sdb_fe_exec_lookup(conn, m, filter);
 		}
 
 		default:
@@ -96,7 +96,8 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 } /* sdb_fe_exec */
 
 int
-sdb_fe_fetch(sdb_conn_t *conn, const char *name, sdb_store_matcher_t *filter)
+sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
+		sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
@@ -137,10 +138,10 @@ sdb_fe_fetch(sdb_conn_t *conn, const char *name, sdb_store_matcher_t *filter)
 	sdb_strbuf_destroy(buf);
 	sdb_object_deref(SDB_OBJ(host));
 	return 0;
-} /* sdb_fe_fetch */
+} /* sdb_fe_exec_fetch */
 
 int
-sdb_fe_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
+sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
 
@@ -168,10 +169,10 @@ sdb_fe_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	return 0;
-} /* sdb_fe_list */
+} /* sdb_fe_exec_list */
 
 int
-sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
+sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		sdb_store_matcher_t *filter)
 {
 	tojson_data_t data = { NULL, filter, 0 };
@@ -207,7 +208,7 @@ sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 			(uint32_t)sdb_strbuf_len(data.buf), sdb_strbuf_string(data.buf));
 	sdb_strbuf_destroy(data.buf);
 	return 0;
-} /* sdb_fe_lookup */
+} /* sdb_fe_exec_lookup */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

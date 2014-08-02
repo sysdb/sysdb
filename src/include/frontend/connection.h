@@ -166,43 +166,44 @@ sdb_fe_session_start(sdb_conn_t *conn);
  */
 
 /*
- * sdb_fe_fetch:
- * Send the named host, serialized as JSON, to the client. If specified, only
- * objects matching the filter will be included. See sdb_store_tojson for
- * details.
+ * sdb_fe_exec_fetch:
+ * Execute the 'FETCH' command. Send the named host, serialized as JSON, to
+ * the client. If specified, only objects matching the filter will be
+ * included. See sdb_store_tojson for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_fetch(sdb_conn_t *conn, const char *name, sdb_store_matcher_t *filter);
+sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
+		sdb_store_matcher_t *filter);
 
 /*
- * sdb_fe_list:
- * Send a complete listing of the store, serialized as JSON, to the client. If
- * specified, only objects matching the filter will be included. See
- * sdb_store_tojson for details.
+ * sdb_fe_exec_list:
+ * Execute the 'LIST' command. Send a complete listing of the store,
+ * serialized as JSON, to the client. If specified, only objects matching the
+ * filter will be included. See sdb_store_tojson for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_list(sdb_conn_t *conn, sdb_store_matcher_t *filter);
+sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter);
 
 /*
- * sdb_fe_lookup:
- * Send a list of hosts matching 'm', serialized as JSON, to the client. If
- * specified, only objects matching the filter will be included. See
- * sdb_store_tojson for details.
+ * sdb_fe_exec_lookup:
+ * Execute the 'LOOKUP' command. Send a list of hosts matching 'm', serialized
+ * as JSON, to the client. If specified, only objects matching the filter will
+ * be included. See sdb_store_tojson for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
+sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		sdb_store_matcher_t *filter);
 
 #ifdef __cplusplus

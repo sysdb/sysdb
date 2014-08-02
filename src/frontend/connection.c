@@ -326,11 +326,11 @@ command_handle(sdb_conn_t *conn)
 			char hostname[conn->cmd_len + 1];
 			strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
 			hostname[sizeof(hostname) - 1] = '\0';
-			status = sdb_fe_fetch(conn, hostname, /* filter = */ NULL);
+			status = sdb_fe_exec_fetch(conn, hostname, /* filter = */ NULL);
 			break;
 		}
 		case CONNECTION_LIST:
-			status = sdb_fe_list(conn, /* filter = */ NULL);
+			status = sdb_fe_exec_list(conn, /* filter = */ NULL);
 			break;
 		case CONNECTION_LOOKUP:
 		{
@@ -348,7 +348,7 @@ command_handle(sdb_conn_t *conn)
 				break;
 			}
 
-			status = sdb_fe_lookup(conn, m, /* filter = */ NULL);
+			status = sdb_fe_exec_lookup(conn, m, /* filter = */ NULL);
 			sdb_object_deref(SDB_OBJ(m));
 			break;
 		}
