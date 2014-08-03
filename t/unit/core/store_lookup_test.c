@@ -40,6 +40,15 @@ populate(void)
 
 	struct {
 		const char *host;
+		const char *metric;
+	} metrics[] = {
+		{ "a", "m1" },
+		{ "b", "m1" },
+		{ "b", "m2" },
+	};
+
+	struct {
+		const char *host;
 		const char *service;
 	} services[] = {
 		{ "a", "s1" },
@@ -64,6 +73,14 @@ populate(void)
 		fail_unless(status == 0,
 				"sdb_store_host(%s, 1) = %d; expected: 0",
 				hosts[i], status);
+	}
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
+		int status = sdb_store_metric(metrics[i].host,
+				metrics[i].metric, 1);
+		fail_unless(status == 0,
+				"sdb_store_metric(%s, %s, 1) = %d; expected: 0",
+				metrics[i].host, metrics[i].metric, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
@@ -104,6 +121,16 @@ START_TEST(test_store_match_name)
 		{ SDB_HOST,      "^b$",  1, 0 },
 		{ SDB_HOST,      "^a$",  0, 0 },
 		{ SDB_HOST,      "^b$",  0, 0 },
+		{ SDB_METRIC,    NULL,   0, 1 },
+		{ SDB_METRIC,    NULL,   1, 1 },
+		{ SDB_METRIC,    "m1",   0, 1 },
+		{ SDB_METRIC,    "m1",   1, 1 },
+		{ SDB_METRIC,    "^m1$", 1, 1 },
+		{ SDB_METRIC,    "m",    1, 1 },
+		{ SDB_METRIC,    "s",    1, 0 },
+		{ SDB_METRIC,    "m2",   0, 0 },
+		{ SDB_METRIC,    "x1",   0, 0 },
+		{ SDB_METRIC,    "x1",   1, 0 },
 		{ SDB_SERVICE,   NULL,   0, 1 },
 		{ SDB_SERVICE,   NULL,   1, 1 },
 		{ SDB_SERVICE,   "s1",   0, 1 },
@@ -505,9 +532,10 @@ END_TEST
 
 START_TEST(test_parse_cmp)
 {
-	sdb_data_t hostname = { SDB_TYPE_STRING, { .string = "hostname" } };
-	sdb_data_t srvname  = { SDB_TYPE_STRING, { .string = "srvname" } };
-	sdb_data_t attrname = { SDB_TYPE_STRING, { .string = "attrname" } };
+	sdb_data_t hostname   = { SDB_TYPE_STRING, { .string = "hostname" } };
+	sdb_data_t metricname = { SDB_TYPE_STRING, { .string = "metricname" } };
+	sdb_data_t srvname    = { SDB_TYPE_STRING, { .string = "srvname" } };
+	sdb_data_t attrname   = { SDB_TYPE_STRING, { .string = "attrname" } };
 
 	sdb_store_matcher_t *check;
 
@@ -520,54 +548,66 @@ START_TEST(test_parse_cmp)
 		const sdb_data_t *value;
 		int expected;
 	} golden_data[] = {
-		{ "host",      NULL,   "=",  &hostname, MATCHER_NAME },
-		{ "host",      NULL,   "!=", &hostname, MATCHER_NOT },
-		{ "host",      NULL,   "=~", &hostname, MATCHER_NAME },
-		{ "host",      NULL,   "!~", &hostname, MATCHER_NOT },
-		{ "host",      "attr", "=",  &hostname, -1 },
-		{ "host",      "attr", "!=", &hostname, -1 },
-		{ "host",      NULL,   "&^", &hostname, -1 },
-		{ "host",      NULL,   "<",  &hostname, -1 },
-		{ "host",      NULL,   "<=", &hostname, -1 },
-		{ "host",      NULL,   ">=", &hostname, -1 },
-		{ "host",      NULL,   ">",  &hostname, -1 },
-		{ "host",      NULL,   "=",  NULL,      -1 },
-		{ "service",   NULL,   "=",  &srvname,  MATCHER_NAME },
-		{ "service",   NULL,   "!=", &srvname,  MATCHER_NOT },
-		{ "service",   NULL,   "=~", &srvname,  MATCHER_NAME },
-		{ "service",   NULL,   "!~", &srvname,  MATCHER_NOT },
-		{ "service",   "attr", "=",  &srvname,  -1 },
-		{ "service",   "attr", "!=", &srvname,  -1 },
-		{ "service",   NULL,   "&^", &srvname,  -1 },
-		{ "service",   NULL,   "<",  &srvname,  -1 },
-		{ "service",   NULL,   "<=", &srvname,  -1 },
-		{ "service",   NULL,   ">=", &srvname,  -1 },
-		{ "service",   NULL,   ">",  &srvname,  -1 },
-		{ "service",   NULL,   "=",  NULL,      -1 },
-		{ "attribute", NULL,   "=",  &attrname, MATCHER_NAME },
-		{ "attribute", NULL,   "!=", &attrname, MATCHER_NOT },
-		{ "attribute", NULL,   "=~", &attrname, MATCHER_NAME },
-		{ "attribute", NULL,   "!~", &attrname, MATCHER_NOT },
-		{ "attribute", NULL,   "<",  &attrname, -1 },
-		{ "attribute", NULL,   "<=", &attrname, -1 },
-		{ "attribute", NULL,   ">=", &attrname, -1 },
-		{ "attribute", NULL,   ">",  &attrname, -1 },
-		{ "attribute", NULL,   "=",  NULL,      -1 },
-		{ "attribute", "attr", "=",  &attrname, MATCHER_ATTR },
-		{ "attribute", "attr", "!=", &attrname, MATCHER_NOT },
-		{ "attribute", "attr", "=~", &attrname, MATCHER_ATTR },
-		{ "attribute", "attr", "!~", &attrname, MATCHER_NOT },
-		{ "attribute", "attr", "&^", &attrname, -1 },
-		{ "attribute", "attr", "<",  NULL,      -1 },
-		{ "attribute", "attr", "<",  &attrname, MATCHER_LT },
-		{ "attribute", "attr", "<=", &attrname, MATCHER_LE },
-/*		{ "attribute", "attr", "=",  &attrname, MATCHER_EQ }, */
-		{ "attribute", "attr", ">=", &attrname, MATCHER_GE },
-		{ "attribute", "attr", ">",  &attrname, MATCHER_GT },
-		{ "attribute", "attr", "IS", NULL,      MATCHER_ISNULL },
-		{ "attribute", "attr", "IS", &attrname, -1 },
-		{ "foo",       NULL,   "=",  &attrname, -1 },
-		{ "foo",       "attr", "=",  &attrname, -1 },
+		{ "host",      NULL,   "=",  &hostname,   MATCHER_NAME },
+		{ "host",      NULL,   "!=", &hostname,   MATCHER_NOT },
+		{ "host",      NULL,   "=~", &hostname,   MATCHER_NAME },
+		{ "host",      NULL,   "!~", &hostname,   MATCHER_NOT },
+		{ "host",      "attr", "=",  &hostname,   -1 },
+		{ "host",      "attr", "!=", &hostname,   -1 },
+		{ "host",      NULL,   "&^", &hostname,   -1 },
+		{ "host",      NULL,   "<",  &hostname,   -1 },
+		{ "host",      NULL,   "<=", &hostname,   -1 },
+		{ "host",      NULL,   ">=", &hostname,   -1 },
+		{ "host",      NULL,   ">",  &hostname,   -1 },
+		{ "host",      NULL,   "=",  NULL,        -1 },
+		{ "metric",    NULL,   "=",  &metricname, MATCHER_NAME },
+		{ "metric",    NULL,   "!=", &metricname, MATCHER_NOT },
+		{ "metric",    NULL,   "=~", &metricname, MATCHER_NAME },
+		{ "metric",    NULL,   "!~", &metricname, MATCHER_NOT },
+		{ "metric",    "attr", "=",  &metricname, -1 },
+		{ "metric",    "attr", "!=", &metricname, -1 },
+		{ "metric",    NULL,   "&^", &metricname, -1 },
+		{ "metric",    NULL,   "<",  &metricname, -1 },
+		{ "metric",    NULL,   "<=", &metricname, -1 },
+		{ "metric",    NULL,   ">=", &metricname, -1 },
+		{ "metric",    NULL,   ">",  &metricname, -1 },
+		{ "metric",    NULL,   "=",  NULL,        -1 },
+		{ "service",   NULL,   "=",  &srvname,    MATCHER_NAME },
+		{ "service",   NULL,   "!=", &srvname,    MATCHER_NOT },
+		{ "service",   NULL,   "=~", &srvname,    MATCHER_NAME },
+		{ "service",   NULL,   "!~", &srvname,    MATCHER_NOT },
+		{ "service",   "attr", "=",  &srvname,    -1 },
+		{ "service",   "attr", "!=", &srvname,    -1 },
+		{ "service",   NULL,   "&^", &srvname,    -1 },
+		{ "service",   NULL,   "<",  &srvname,    -1 },
+		{ "service",   NULL,   "<=", &srvname,    -1 },
+		{ "service",   NULL,   ">=", &srvname,    -1 },
+		{ "service",   NULL,   ">",  &srvname,    -1 },
+		{ "service",   NULL,   "=",  NULL,        -1 },
+		{ "attribute", NULL,   "=",  &attrname,   MATCHER_NAME },
+		{ "attribute", NULL,   "!=", &attrname,   MATCHER_NOT },
+		{ "attribute", NULL,   "=~", &attrname,   MATCHER_NAME },
+		{ "attribute", NULL,   "!~", &attrname,   MATCHER_NOT },
+		{ "attribute", NULL,   "<",  &attrname,   -1 },
+		{ "attribute", NULL,   "<=", &attrname,   -1 },
+		{ "attribute", NULL,   ">=", &attrname,   -1 },
+		{ "attribute", NULL,   ">",  &attrname,   -1 },
+		{ "attribute", NULL,   "=",  NULL,        -1 },
+		{ "attribute", "attr", "=",  &attrname,   MATCHER_ATTR },
+		{ "attribute", "attr", "!=", &attrname,   MATCHER_NOT },
+		{ "attribute", "attr", "=~", &attrname,   MATCHER_ATTR },
+		{ "attribute", "attr", "!~", &attrname,   MATCHER_NOT },
+		{ "attribute", "attr", "&^", &attrname,   -1 },
+		{ "attribute", "attr", "<",  NULL,        -1 },
+		{ "attribute", "attr", "<",  &attrname,   MATCHER_LT },
+		{ "attribute", "attr", "<=", &attrname,   MATCHER_LE },
+/*		{ "attribute", "attr", "=",  &attrname,   MATCHER_EQ }, */
+		{ "attribute", "attr", ">=", &attrname,   MATCHER_GE },
+		{ "attribute", "attr", ">",  &attrname,   MATCHER_GT },
+		{ "attribute", "attr", "IS", NULL,        MATCHER_ISNULL },
+		{ "attribute", "attr", "IS", &attrname,   -1 },
+		{ "foo",       NULL,   "=",  &attrname,   -1 },
+		{ "foo",       "attr", "=",  &attrname,   -1 },
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -732,6 +772,19 @@ START_TEST(test_scan)
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
 		{ "host =~ '.'", NULL,              3,
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
+		{ "metric = 'm1'", NULL,            2,
+			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
+		{ "metric= 'm1'", "host = 'x'",     0, /* filter never matches */
+			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
+		{ "metric = 'm1'",
+			"NOT attribute.x = ''",         2, /* filter always matches */
+			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
+		{ "metric =~ 'm'", NULL,            2,
+			"OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
+		{ "metric !~ 'm'", NULL,            1,
+			"\\(NOT, OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
+		{ "metric =~ 'x'", NULL,            0,
+			"OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
 		{ "service = 's1'", NULL,           2,
 			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
 		{ "service = 's1'", "host = 'x'",   0, /* filter never matches */
