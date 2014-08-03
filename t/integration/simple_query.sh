@@ -89,6 +89,24 @@ output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'does.not.exist'" )" \
 echo "$output" | grep -F 'not found'
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "LOOKUP hosts MATCHING metric = 'foo/bar/qux'" )"
+echo "$output" \
+	| grep -F '"some.host.name"' \
+	| grep -F '"other.host.name"'
+echo "$output" | grep -F 'localhost' && exit 1
+echo "$output" | grep -F 'host1.example.com' && exit 1
+echo "$output" | grep -F 'host2.example.com' && exit 1
+
+output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "LOOKUP hosts MATCHING service = 'mock service'" )"
+echo "$output" \
+	| grep -F '"some.host.name"' \
+	| grep -F '"host1.example.com"' \
+	| grep -F '"host2.example.com"'
+echo "$output" | grep -F 'localhost' && exit 1
+echo "$output" | grep -F 'other.host.name' && exit 1
+
+output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING attribute.architecture = 'x42'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
