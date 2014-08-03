@@ -103,13 +103,13 @@ Testing
   tests will be disabled automatically.
 
   For the latest build status, see:
-  <https://travis-ci.org/tokkee/sysdb>
+  <https://travis-ci.org/sysdb/sysdb>
 
   Code coverage testing using Gcov may be enabled when using the
   ‘--enable-gcov’ configure option.
 
   For the latest coverage report, see:
-  <https://coveralls.io/r/tokkee/sysdb>
+  <https://coveralls.io/r/sysdb/sysdb>
 
 Documentation
 -------------
