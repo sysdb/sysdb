@@ -164,5 +164,9 @@ echo $output | grep -E '^\[\]$'
 run_sysdb -H "$SOCKET_FILE" \
 		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
 
+# Does not work yet since there is no fetcher plugin.
+run_sysdb -H "$SOCKET_FILE" \
+		-c "TIMESERIES 'some.host.name'.'foo/bar/qux'" && exit 1
+
 stop_sysdbd
 
