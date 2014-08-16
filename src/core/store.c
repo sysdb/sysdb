@@ -174,6 +174,8 @@ sdb_metric_init(sdb_object_t *obj, va_list ap)
 	sobj->attributes = sdb_avltree_create();
 	if (! sobj->attributes)
 		return -1;
+
+	sobj->store.type = sobj->store.id = NULL;
 	return 0;
 } /* sdb_metric_init */
 
@@ -187,6 +189,11 @@ sdb_metric_destroy(sdb_object_t *obj)
 
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
+
+	if (sobj->store.type)
+		free(sobj->store.type);
+	if (sobj->store.id)
+		free(sobj->store.id);
 } /* sdb_metric_destroy */
 
 static int
@@ -678,13 +685,18 @@ sdb_store_service_attr(const char *hostname, const char *service,
 
 int
 sdb_store_metric(const char *hostname, const char *name,
-		sdb_time_t last_update)
+		sdb_metric_store_t *store, sdb_time_t last_update)
 {
+	sdb_store_obj_t *obj = NULL;
+	sdb_metric_t *metric;
+
 	sdb_avltree_t *metrics;
 
 	int status = 0;
 
 	if ((! hostname) || (! name))
+		return -1;
+	if (store && ((! store->type) || (! store->id)))
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
@@ -696,7 +708,35 @@ sdb_store_metric(const char *hostname, const char *name,
 	}
 
 	if (! status)
-		status = store_obj(metrics, SDB_METRIC, name, last_update, NULL);
+		status = store_obj(metrics, SDB_METRIC, name, last_update, &obj);
+
+	if (status || (! store)) {
+		pthread_rwlock_unlock(&host_lock);
+		return status;
+	}
+
+	assert(obj);
+	metric = METRIC(obj);
+
+	if ((! metric->store.type) || strcasecmp(metric->store.type, store->type)) {
+		if (metric->store.type)
+			free(metric->store.type);
+		metric->store.type = strdup(store->type);
+	}
+	if ((! metric->store.id) || strcasecmp(metric->store.id, store->id)) {
+		if (metric->store.id)
+			free(metric->store.id);
+		metric->store.id = strdup(store->id);
+	}
+
+	if ((! metric->store.type) || (! metric->store.id)) {
+		if (metric->store.type)
+			free(metric->store.type);
+		if (metric->store.id)
+			free(metric->store.id);
+		metric->store.type = metric->store.id = NULL;
+		status = -1;
+	}
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_metric */

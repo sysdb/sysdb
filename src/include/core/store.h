@@ -175,6 +175,14 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
+ * A metric store describes how to access a metric's data.
+ */
+typedef struct {
+	const char *type;
+	const char *id;
+} sdb_metric_store_t;
+
+/*
  * sdb_store_metric:
  * Add/update a metric in the store. If the metric, identified by its name,
  * already exists for the specified host, it will be updated according to the
@@ -182,6 +190,8 @@ sdb_store_service_attr(const char *hostname, const char *service,
  * will be reported. Else, a new entry will be created in the store. Any
  * memory required for storing the entry will be allocated an managed by the
  * store itself.
+ *
+ * If specified, the metric store describes where to access the metric's data.
  *
  * Returns:
  *  - 0 on success
@@ -191,7 +201,7 @@ sdb_store_service_attr(const char *hostname, const char *service,
  */
 int
 sdb_store_metric(const char *hostname, const char *name,
-		sdb_time_t last_update);
+		sdb_metric_store_t *store, sdb_time_t last_update);
 
 /*
  * sdb_store_metric_attr:

@@ -82,6 +82,10 @@ typedef struct {
 	sdb_store_obj_t super;
 
 	sdb_avltree_t *attributes;
+	struct {
+		char *type;
+		char *id;
+	} store;
 } sdb_metric_t;
 #define METRIC(obj) ((sdb_metric_t *)(obj))
 

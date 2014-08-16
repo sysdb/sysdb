@@ -77,9 +77,9 @@ populate(void)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
 		int status = sdb_store_metric(metrics[i].host,
-				metrics[i].metric, 1);
+				metrics[i].metric, /* store */ NULL, 1);
 		fail_unless(status == 0,
-				"sdb_store_metric(%s, %s, 1) = %d; expected: 0",
+				"sdb_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
 				metrics[i].host, metrics[i].metric, status);
 	}
 

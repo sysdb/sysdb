@@ -54,15 +54,24 @@ static const char *hostnames[] = {
 static struct {
 	const char *hostname;
 	const char *metric;
+	sdb_metric_store_t store;
 } metrics[] = {
-	{ "some.host.name", "foo/bar/qux" },
-	{ "some.host.name", "foo/bar/baz" },
-	{ "some.host.name", "foo2/bar/qux" },
-	{ "some.host.name", "foo2/bar/baz" },
-	{ "other.host.name", "foo/bar/qux" },
-	{ "other.host.name", "foo/bar/baz" },
-	{ "other.host.name", "foo2/bar/qux" },
-	{ "other.host.name", "foo2/bar/baz" },
+	{ "some.host.name", "foo/bar/qux",
+		{ "dummy", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+	{ "some.host.name", "foo/bar/baz",
+		{ "dummy", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+	{ "some.host.name", "foo2/bar/qux",
+		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+	{ "some.host.name", "foo2/bar/baz",
+		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
+	{ "other.host.name", "foo/bar/qux",
+		{ "dummy", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+	{ "other.host.name", "foo/bar/baz",
+		{ "dummy", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+	{ "other.host.name", "foo2/bar/qux",
+		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+	{ "other.host.name", "foo2/bar/baz",
+		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
 };
 
 static struct {
@@ -152,7 +161,8 @@ mock_collect(sdb_object_t *user_data)
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
 		if ((check = sdb_store_metric(metrics[i].hostname,
-						metrics[i].metric, sdb_gettime()))) {
+						metrics[i].metric, &metrics[i].store,
+						sdb_gettime()))) {
 			sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to store metric: "
 					"status %d", check);
 			exit(1);

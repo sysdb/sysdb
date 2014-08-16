@@ -53,8 +53,8 @@ populate(void)
 	sdb_store_attribute("h1", "k2", &datum, 1);
 	sdb_store_attribute("h1", "k3", &datum, 2);
 
-	sdb_store_metric("h1", "m1", 2);
-	sdb_store_metric("h1", "m2", 1);
+	sdb_store_metric("h1", "m1", /* store */ NULL, 2);
+	sdb_store_metric("h1", "m2", /* store */ NULL, 1);
 
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 2);
@@ -228,20 +228,32 @@ END_TEST
 
 START_TEST(test_store_metric)
 {
+	sdb_metric_store_t store1 = { "dummy-type1", "dummy-id1" };
+	sdb_metric_store_t store2 = { "dummy-type2", "dummy-id2" };
+
 	struct {
 		const char *host;
 		const char *metric;
+		sdb_metric_store_t *store;
 		sdb_time_t  last_update;
 		int         expected;
 	} golden_data[] = {
-		{ "k", "m",  1, -1 },
-		{ "k", "m",  1, -1 }, /* retry to ensure the host is not created */
-		{ "l", "m1", 1,  0 },
-		{ "l", "m1", 2,  0 },
-		{ "l", "m1", 2,  1 },
-		{ "l", "m2", 1,  0 },
-		{ "m", "m",  1,  0 },
-		{ "m", "m",  1,  1 },
+		{ "k", "m",  NULL,    1, -1 },
+		{ "k", "m",  NULL,    1, -1 }, /* retry to ensure the host is not created */
+		{ "k", "m",  &store1, 1, -1 },
+		{ "l", "m1", NULL,    1,  0 },
+		{ "l", "m1", &store1, 2,  0 },
+		{ "l", "m1", &store1, 3,  0 },
+		{ "l", "m1", NULL,    3,  1 },
+		{ "l", "m2", &store1, 1,  0 },
+		{ "l", "m2", &store2, 2,  0 },
+		{ "l", "m2", NULL,    3,  0 },
+		{ "m", "m",  &store1, 1,  0 },
+		{ "m", "m",  NULL,    2,  0 },
+		{ "m", "m",  NULL,    2,  1 },
+		{ "m", "m",  &store1, 3,  0 },
+		{ "m", "m",  &store2, 4,  0 },
+		{ "m", "m",  NULL,    5,  0 },
 	};
 
 	size_t i;
@@ -252,11 +264,13 @@ START_TEST(test_store_metric)
 		int status;
 
 		status = sdb_store_metric(golden_data[i].host,
-				golden_data[i].metric, golden_data[i].last_update);
+				golden_data[i].metric, golden_data[i].store,
+				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_metric(%s, %s, %d) = %d; expected: %d",
+				"sdb_store_metric(%s, %s, %p, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].metric,
-				golden_data[i].last_update, status, golden_data[i].expected);
+				golden_data[i].store, golden_data[i].last_update,
+				status, golden_data[i].expected);
 	}
 }
 END_TEST
@@ -290,9 +304,9 @@ START_TEST(test_store_metric_attr)
 
 	sdb_store_host("m", 1);
 	sdb_store_host("l", 1);
-	sdb_store_metric("m", "m1", 1);
-	sdb_store_metric("l", "m1", 1);
-	sdb_store_metric("l", "m2", 1);
+	sdb_store_metric("m", "m1", NULL, 1);
+	sdb_store_metric("l", "m1", NULL, 1);
+	sdb_store_metric("l", "m2", NULL, 1);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
