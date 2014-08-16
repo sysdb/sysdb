@@ -56,8 +56,9 @@ typedef struct {
 	sdb_time_t end;
 
 	sdb_data_point_t **data;
-	char **data_names;
 	size_t data_len;
+	char **data_names;
+	size_t data_names_len;
 } sdb_timeseries_t;
 
 /*
