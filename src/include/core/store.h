@@ -32,6 +32,7 @@
 #include "core/object.h"
 #include "core/data.h"
 #include "core/time.h"
+#include "core/timeseries.h"
 #include "utils/strbuf.h"
 
 #include <stdio.h>
@@ -220,6 +221,19 @@ sdb_store_metric(const char *hostname, const char *name,
 int
 sdb_store_metric_attr(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+
+/*
+ * sdb_store_fetch_timeseries:
+ * Fetch the time-series described by the specified host's metric and
+ * serialize it as JSON into the provided string buffer.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_fetch_timeseries(const char *hostname, const char *metric,
+		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf);
 
 /*
  * sdb_store_get_field:

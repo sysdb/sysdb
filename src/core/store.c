@@ -441,6 +441,7 @@ store_common_tojson(sdb_store_obj_t *obj, sdb_strbuf_t *buf)
 	char interval_str[64];
 	size_t i;
 
+	/* TODO: make time and interval formats configurable */
 	if (! sdb_strftime(time_str, sizeof(time_str),
 				"%F %T %z", obj->last_update))
 		snprintf(time_str, sizeof(time_str), "<error>");
@@ -529,6 +530,60 @@ store_obj_tojson(sdb_avltree_t *tree, int type, sdb_strbuf_t *buf,
 	sdb_avltree_iter_destroy(iter);
 	sdb_strbuf_append(buf, "]");
 } /* store_obj_tojson */
+
+/*
+ * ts_tojson serializes a time-series to JSON.
+ *
+ * The function never returns an error. Rather, an error message will be part
+ * of the serialized data.
+ */
+static void
+ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
+{
+	char start_str[64];
+	char end_str[64];
+
+	size_t i;
+
+	/* TODO: make time format configurable */
+	if (! sdb_strftime(start_str, sizeof(start_str),
+				"%F %T %z", ts->start))
+		snprintf(start_str, sizeof(start_str), "<error>");
+	start_str[sizeof(start_str) - 1] = '\0';
+	if (! sdb_strftime(end_str, sizeof(end_str),
+				"%F %T %z", ts->start))
+		snprintf(end_str, sizeof(end_str), "<error>");
+	end_str[sizeof(end_str) - 1] = '\0';
+
+	sdb_strbuf_append(buf, "{\"start\": \"%s\", \"end\": \"%s\", {",
+			start_str, end_str);
+
+	for (i = 0; i < ts->data_names_len; ++i) {
+		size_t j;
+		sdb_strbuf_append(buf, "\"%s\": [", ts->data_names[i]);
+
+		for (j = 0; j < ts->data_len; ++j) {
+			char time_str[64];
+
+			if (! sdb_strftime(time_str, sizeof(time_str),
+						"%F %T %z", ts->data[i][j].timestamp))
+				snprintf(time_str, sizeof(time_str), "<error>");
+			time_str[sizeof(time_str) - 1] = '\0';
+
+			sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
+					"\"value\": \"%s\"}", time_str, ts->data[i][j].value);
+
+			if (j < ts->data_len - 1)
+				sdb_strbuf_append(buf, ",");
+		}
+
+		if (i < ts->data_names_len - 1)
+			sdb_strbuf_append(buf, "],");
+		else
+			sdb_strbuf_append(buf, "]");
+	}
+	sdb_strbuf_append(buf, "}}");
+} /* ts_tojson */
 
 /*
  * public API
@@ -756,7 +811,7 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 	metrics = get_host_children(hostname, SDB_METRIC);
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
-				"for metric '%s' - host '%ss' not found",
+				"for metric '%s' - host '%s' not found",
 				key, metric, hostname);
 		pthread_rwlock_unlock(&host_lock);
 		return -1;
@@ -776,6 +831,65 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_metric_attr */
+
+int
+sdb_store_fetch_timeseries(const char *hostname, const char *metric,
+		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf)
+{
+	sdb_avltree_t *metrics;
+	sdb_metric_t *m;
+
+	sdb_timeseries_t *ts;
+
+	if ((! hostname) || (! metric) || (! opts) || (! buf))
+		return -1;
+
+	pthread_rwlock_rdlock(&host_lock);
+	metrics = get_host_children(hostname, SDB_METRIC);
+	if (! metrics) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
+				"- host '%s' not found", hostname, metric, hostname);
+		pthread_rwlock_unlock(&host_lock);
+		return -1;
+	}
+
+	m = METRIC(sdb_avltree_lookup(metrics, metric));
+	if (! m) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
+				"- metric '%s' not found", hostname, metric, metric);
+		pthread_rwlock_unlock(&host_lock);
+		return -1;
+	}
+
+	if ((! m->store.type) || (! m->store.id)) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
+				"- no data-store configured for the stored metric",
+				hostname, metric);
+		pthread_rwlock_unlock(&host_lock);
+		return -1;
+	}
+
+	{
+		char type[strlen(m->store.type) + 1];
+		char id[strlen(m->store.id) + 1];
+
+		strncpy(type, m->store.type, sizeof(type));
+		strncpy(id, m->store.id, sizeof(id));
+		pthread_rwlock_unlock(&host_lock);
+
+		ts = sdb_plugin_fetch_timeseries(type, id, opts);
+		if (! ts) {
+			sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
+					"- %s fetcher callback returned no data for '%s'",
+					hostname, metric, type, id);
+			return -1;
+		}
+	}
+
+	ts_tojson(ts, buf);
+	sdb_timeseries_destroy(ts);
+	return 0;
+} /* sdb_store_fetch_timeseries */
 
 int
 sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
