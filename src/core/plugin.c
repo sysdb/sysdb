@@ -1210,5 +1210,33 @@ sdb_plugin_logf(int prio, const char *fmt, ...)
 	return ret;
 } /* sdb_plugin_logf */
 
+sdb_timeseries_t *
+sdb_plugin_fetch_timeseries(const char *type, const char *id,
+		sdb_timeseries_opts_t *opts)
+{
+	sdb_plugin_cb_t *plugin;
+	sdb_plugin_fetch_ts_cb callback;
+	sdb_timeseries_t *ts;
+
+	ctx_t *old_ctx;
+
+	if ((! type) || (! id) || (! opts))
+		return NULL;
+
+	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(ts_fetcher_list, type));
+	if (! plugin) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "
+				"no such plugin loaded");
+		errno = ENOENT;
+		return NULL;
+	}
+
+	old_ctx = ctx_set(plugin->cb_ctx);
+	callback = (sdb_plugin_fetch_ts_cb)plugin->cb_callback;
+	ts = callback(id, opts, plugin->cb_user_data);
+	ctx_set(old_ctx);
+	return ts;
+} /* sdb_plugin_fetch_timeseries */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

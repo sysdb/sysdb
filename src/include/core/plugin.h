@@ -377,6 +377,22 @@ sdb_plugin_vlogf(int prio, const char *fmt, va_list ap);
 int
 sdb_plugin_logf(int prio, const char *fmt, ...);
 
+/*
+ * sdb_plugin_fetch_timeseries:
+ * Fetch the time-series identified by 'id' from a backend data-store of the
+ * specified 'type'. The type has to match an existing time-series fetcher
+ * callback's name. The identifier is passed through to the callback which
+ * then needs to make sense of it. The time-series option specify which data
+ * to fetch.
+ *
+ * Returns:
+ *  - a time-series on success
+ *  - NULL else
+ */
+sdb_timeseries_t *
+sdb_plugin_fetch_timeseries(const char *type, const char *id,
+		sdb_timeseries_opts_t *opts);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
