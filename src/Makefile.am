@@ -74,7 +74,7 @@ libsysdb_la_SOURCES = \
 		core/store_expr.c \
 		core/store_lookup.c \
 		core/data.c include/core/data.h \
-		include/core/timeseries.h \
+		core/timeseries.c include/core/timeseries.h \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
 		frontend/parser.c include/frontend/parser.h \

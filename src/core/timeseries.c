@@ -1,5 +1,5 @@
 /*
- * SysDB - src/include/core/timeseries.h
+ * SysDB - src/core/timeseries.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,62 +25,42 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SDB_CORE_TIMESERIES_H
-#define SDB_CORE_TIMESERIES_H 1
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/time.h"
+#include "core/timeseries.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdlib.h>
 
 /*
- * A data-point describes a datum at a certain point of time.
+ * public API
  */
-typedef struct {
-	sdb_time_t timestamp;
-	double value;
-} sdb_data_point_t;
 
-/*
- * A timeseries describes one or more sequences of data-points. Multiple
- * sequences will have a name each and share the same start and end times and
- * number of data points.
- *
- * Start and end times may diverge slightly from the requested start and end
- * times depending on the resolution available in the backend data-store.
- */
-typedef struct {
-	sdb_time_t start;
-	sdb_time_t end;
-
-	sdb_data_point_t **data;
-	char **data_names;
-	size_t data_len;
-} sdb_timeseries_t;
-
-/*
- * Time-series options specify generic parameters to be used when fetching
- * time-series data from a data-store.
- */
-typedef struct {
-	sdb_time_t start;
-	sdb_time_t end;
-} sdb_timeseries_opts_t;
-
-/*
- * sdb_timeseries_destroy:
- * Destroy a time-series object, freeing all of its memory.
- */
 void
-sdb_timeseries_destroy(sdb_timeseries_t *ts);
+sdb_timeseries_destroy(sdb_timeseries_t *ts)
+{
+	size_t i;
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
+	if (! ts)
+		return;
 
-#endif /* ! SDB_CORE_TIMESERIES_H */
+	if (ts->data)
+		free(ts->data);
+	ts->data = NULL;
+	ts->data_len = 0;
+
+	for (i = 0; i < ts->data_names_len; ++i) {
+		if (ts->data_names[i])
+			free(ts->data_names[i]);
+		ts->data_names[i] = NULL;
+	}
+	if (ts->data_names)
+		free(ts->data_names);
+	ts->data_names = NULL;
+	ts->data_names_len = 0;
+} /* sdb_timeseries_destroy */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
