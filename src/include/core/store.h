@@ -144,8 +144,7 @@ sdb_store_attribute(const char *hostname,
  * specified 'service' object. If the referenced host does not exist, an error
  * will be reported. Else, a new entry will be created in the store. Any
  * memory required for storing the entry will be allocated an managed by the
- * store itself. The specified service-object will not be referenced or
- * further accessed.
+ * store itself.
  *
  * Returns:
  *  - 0 on success
@@ -182,8 +181,7 @@ sdb_store_service_attr(const char *hostname, const char *service,
  * specified 'metric' object. If the referenced host does not exist, an error
  * will be reported. Else, a new entry will be created in the store. Any
  * memory required for storing the entry will be allocated an managed by the
- * store itself. The specified metric-object will not be referenced or
- * further accessed.
+ * store itself.
  *
  * Returns:
  *  - 0 on success
