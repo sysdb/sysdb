@@ -33,6 +33,7 @@
 
 #include "core/store.h"
 #include "core/store-private.h"
+#include "core/time.h"
 
 #include "utils/error.h"
 #include "utils/llist.h"
@@ -70,6 +71,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	char *str;
 
 	sdb_data_t data;
+	sdb_time_t datetime;
 
 	sdb_llist_t     *list;
 	sdb_conn_node_t *node;
@@ -87,14 +89,18 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token CMP_LT CMP_LE CMP_GE CMP_GT
 %token CONCAT
 
+%token START END
+
 /* NULL token */
 %token NULL_T
 
-%token FETCH LIST LOOKUP
+%token FETCH LIST LOOKUP TIMESERIES
 
 %token <str> IDENTIFIER STRING
 
 %token <data> INTEGER FLOAT
+
+%token <datetime> DATE TIME
 
 /* Precedence (lowest first): */
 %left OR
@@ -115,6 +121,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	fetch_statement
 	list_statement
 	lookup_statement
+	timeseries_statement
 	matching_clause
 	filter_clause
 	condition
@@ -128,6 +135,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %type <data> data
 	interval interval_elem
+
+%type <datetime> datetime
+	start_clause end_clause
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m> <expr>
@@ -193,6 +203,8 @@ statement:
 	list_statement
 	|
 	lookup_statement
+	|
+	timeseries_statement
 	|
 	/* empty */
 		{
@@ -294,6 +306,34 @@ filter_clause:
 	FILTER condition { $$ = $2; }
 	|
 	/* empty */ { $$ = NULL; }
+
+/*
+ * TIMESERIES <host>.<metric> [START <datetime>] [END <datetime>];
+ *
+ * Returns a time-series for the specified host's metric.
+ */
+timeseries_statement:
+	TIMESERIES STRING '.' STRING start_clause end_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_ts_t, conn_ts_destroy));
+			CONN_TS($$)->hostname = $2;
+			CONN_TS($$)->metric = $4;
+			CONN_TS($$)->opts.start = $5;
+			CONN_TS($$)->opts.end = $6;
+			$$->cmd = CONNECTION_TIMESERIES;
+		}
+	;
+
+start_clause:
+	START datetime { $$ = $2; }
+	|
+	/* empty */ { $$ = sdb_gettime() - SDB_INTERVAL_HOUR; }
+
+end_clause:
+	END datetime { $$ = $2; }
+	|
+	/* empty */ { $$ = sdb_gettime(); }
 
 /*
  * Basic expressions.
@@ -476,7 +516,17 @@ data:
 	|
 	FLOAT { $$ = $1; }
 	|
+	datetime { $$.type = SDB_TYPE_DATETIME; $$.data.datetime = $1; }
+	|
 	interval { $$ = $1; }
+	;
+
+datetime:
+	DATE TIME { $$ = $1 + $2; }
+	|
+	DATE { $$ = $1; }
+	|
+	TIME { $$ = $1; }
 	;
 
 interval:

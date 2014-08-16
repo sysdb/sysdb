@@ -133,6 +133,13 @@ typedef enum {
 	CONNECTION_LOOKUP,
 
 	/*
+	 * CONNECTION_TIMESERIES:
+	 * Execute the 'TIMESERIES' command in the server. This command is not yet
+	 * supported on the wire. Use CONNECTION_QUERY instead.
+	 */
+	CONNECTION_TIMESERIES,
+
+	/*
 	 * Command subcomponents.
 	 */
 

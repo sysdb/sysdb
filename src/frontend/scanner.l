@@ -37,10 +37,13 @@
 #include "frontend/grammar.h"
 #include "utils/error.h"
 
+#include <assert.h>
 #include <errno.h>
 
 #include <string.h>
 #include <stdlib.h>
+
+#include <time.h>
 
 #define YY_EXTRA_TYPE sdb_fe_yyextra_t *
 
@@ -48,16 +51,19 @@ static struct {
 	const char *name;
 	int id;
 } reserved_words[] = {
-	{ "AND",      AND },
-	{ "FETCH",    FETCH },
-	{ "FILTER",   FILTER },
-	{ "IS",       IS },
-	{ "LIST",     LIST },
-	{ "LOOKUP",   LOOKUP },
-	{ "MATCHING", MATCHING },
-	{ "NOT",      NOT },
-	{ "NULL",     NULL_T },
-	{ "OR",       OR },
+	{ "AND",        AND },
+	{ "END",        END },
+	{ "FETCH",      FETCH },
+	{ "FILTER",     FILTER },
+	{ "IS",         IS },
+	{ "LIST",       LIST },
+	{ "LOOKUP",     LOOKUP },
+	{ "MATCHING",   MATCHING },
+	{ "NOT",        NOT },
+	{ "NULL",       NULL_T },
+	{ "OR",         OR },
+	{ "START",      START },
+	{ "TIMESERIES", TIMESERIES },
 };
 
 void
@@ -111,6 +117,12 @@ float4		([\+\-]?[Ii][Nn][Ff]([Ii][Nn][Ii][Tt][Yy])?)
 float5		([Nn][Aa][Nn])
 float		({float1}|{float2}|{float3}|{float4}|{float5})
 
+/*
+ * Time constants.
+ */
+date		([0-9]{4}-[0-9]{2}-[0-9]{2})
+time		([0-9]{1,2}:[0-9]{1,2}(:[0-9]{1,2}(\.[0-9]{1,9})?)?)
+
 %%
 
 {whitespace} |
@@ -147,6 +159,64 @@ float		({float1}|{float2}|{float3}|{float4}|{float5})
 		yylval->data.data.decimal = strtod(yytext, NULL);
 		yylval->data.type = SDB_TYPE_DECIMAL;
 		return FLOAT;
+	}
+
+{date} {
+		struct tm tm;
+		memset(&tm, 0, sizeof(tm));
+		if (! strptime(yytext, "%Y-%m-%d", &tm)) {
+			char errmsg[1024];
+			snprintf(errmsg, sizeof(errmsg),
+				"Failed to parse '%s' as date", yytext);
+			sdb_fe_yyerror(yylloc, yyscanner, errmsg);
+			return SCANNER_ERROR;
+		}
+		yylval->datetime = SECS_TO_SDB_TIME(mktime(&tm));
+		return DATE;
+	}
+{time} {
+		struct tm tm;
+		char time[9], ns[10];
+		char *tmp;
+
+		memset(&tm, 0, sizeof(tm));
+		memset(time, '\0', sizeof(time));
+		memset(ns, '0', sizeof(ns));
+		ns[sizeof(ns) - 1] = '\0';
+
+		tmp = strchr(yytext, '.');
+		if (tmp) {
+			size_t i;
+			*tmp = '\0';
+			++tmp;
+			strncpy(ns, tmp, sizeof(ns));
+			for (i = strlen(ns); i < 9; ++i)
+				ns[i] = '0';
+		}
+		strncpy(time, yytext, sizeof(time));
+		if (tmp) {
+			/* reset for better error messages */
+			--tmp;
+			*tmp = '.';
+		}
+
+		tmp = strchr(time, ':');
+		assert(tmp);
+		tmp = strchr(tmp + 1, ':');
+		if (! tmp)
+			strncat(time, ":00", sizeof(time));
+
+		if (! strptime(time, "%H:%M:%S", &tm)) {
+			char errmsg[1024];
+			snprintf(errmsg, sizeof(errmsg),
+				"Failed to parse '%s' as time", yytext);
+			sdb_fe_yyerror(yylloc, yyscanner, errmsg);
+			return SCANNER_ERROR;
+		}
+
+		yylval->datetime = SECS_TO_SDB_TIME(mktime(&tm));
+		yylval->datetime += (sdb_time_t)strtoll(ns, NULL, 10);
+		return TIME;
 	}
 
 =	{ return CMP_EQUAL; }

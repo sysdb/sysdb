@@ -97,6 +97,18 @@ START_TEST(test_parse)
 		  "FILTER :age>"
 		  ":interval",           -1,  1, CONNECTION_LOOKUP },
 
+		{ "TIMESERIES 'host'.'metric' "
+		  "START 2014-01-01 "
+		  "END 2014-12-31 "
+		  "23:59:59",            -1,  1, CONNECTION_TIMESERIES },
+		{ "TIMESERIES 'host'.'metric' "
+		  "START 2014-02-02 "
+		  "14:02",               -1,  1, CONNECTION_TIMESERIES },
+		{ "TIMESERIES 'host'.'metric' "
+		  "END 2014-02-02",      -1,  1, CONNECTION_TIMESERIES },
+		{ "TIMESERIES "
+		  "'host'.'metric'",     -1,  1, CONNECTION_TIMESERIES },
+
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
@@ -290,6 +302,21 @@ START_TEST(test_parse_matcher)
 		{ "attribute.foo = 123",       -1,  MATCHER_EQ },
 		{ "attribute.foo >= 123",      -1,  MATCHER_GE },
 		{ "attribute.foo > 123",       -1,  MATCHER_GT },
+		/* datetime expressions */
+		{ "attribute.foo = "
+		  "2014-08-16",                -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "17:23",                     -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "17:23:53",                  -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "17:23:53.123",              -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "17:23:53.123456789",        -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "2014-08-16 17:23",          -1,  MATCHER_EQ },
+		{ "attribute.foo = "
+		  "2014-08-16 17:23:53",       -1,  MATCHER_EQ },
 		/* NULL; while this is an implementation detail,
 		 * IS NULL currently maps to an equality matcher */
 		{ "attribute.foo IS NULL",     -1,  MATCHER_ISNULL },

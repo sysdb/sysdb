@@ -36,6 +36,7 @@
 
 #include "core/object.h"
 #include "core/store.h"
+#include "core/timeseries.h"
 #include "utils/strbuf.h"
 
 #include <inttypes.h>
@@ -105,6 +106,14 @@ typedef struct {
 } conn_lookup_t;
 #define CONN_LOOKUP(obj) ((conn_lookup_t *)(obj))
 
+typedef struct {
+	sdb_conn_node_t super;
+	char *hostname;
+	char *metric;
+	sdb_timeseries_opts_t opts;
+} conn_ts_t;
+#define CONN_TS(obj) ((conn_ts_t *)(obj))
+
 /*
  * type helper functions
  */
@@ -135,6 +144,15 @@ conn_lookup_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
 	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->filter));
 } /* conn_lookup_destroy */
+
+static void __attribute__((unused))
+conn_ts_destroy(sdb_object_t *obj)
+{
+	if (CONN_TS(obj)->hostname)
+		free(CONN_TS(obj)->hostname);
+	if (CONN_TS(obj)->metric)
+		free(CONN_TS(obj)->metric);
+} /* conn_ts_destroy */
 
 #ifdef __cplusplus
 } /* extern "C" */
