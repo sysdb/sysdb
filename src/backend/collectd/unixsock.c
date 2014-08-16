@@ -54,8 +54,8 @@ SDB_PLUGIN_MAGIC;
 typedef struct {
 	char *current_host;
 	sdb_time_t current_timestamp;
-	int svc_updated;
-	int svc_failed;
+	int metrics_updated;
+	int metrics_failed;
 } sdb_collectd_state_t;
 #define SDB_COLLECTD_STATE_INIT { NULL, 0, 0, 0 }
 
@@ -79,10 +79,10 @@ sdb_collectd_store_host(sdb_collectd_state_t *state,
 
 	if (state->current_host) {
 		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-				"%i service%s (%i failed) for host '%s'.",
-				state->svc_updated, state->svc_updated == 1 ? "" : "s",
-				state->svc_failed, state->current_host);
-		state->svc_updated = state->svc_failed = 0;
+				"%i metric%s (%i failed) for host '%s'.",
+				state->metrics_updated, state->metrics_updated == 1 ? "" : "s",
+				state->metrics_failed, state->current_host);
+		state->metrics_updated = state->metrics_failed = 0;
 		free(state->current_host);
 	}
 
@@ -112,7 +112,7 @@ sdb_collectd_store_host(sdb_collectd_state_t *state,
 } /* sdb_collectd_store_host */
 
 static int
-sdb_collectd_add_svc(const char *hostname, char *plugin, char *type,
+sdb_collectd_add_metrics(const char *hostname, char *plugin, char *type,
 		sdb_time_t last_update)
 {
 	char  name[strlen(plugin) + strlen(type) + 2];
@@ -124,10 +124,10 @@ sdb_collectd_add_svc(const char *hostname, char *plugin, char *type,
 
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
 
-	status = sdb_store_service(hostname, name, last_update);
+	status = sdb_store_metric(hostname, name, NULL, last_update);
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update service '%s/%s'.", hostname, name);
+				"store/update metric '%s/%s'.", hostname, name);
 		return -1;
 	}
 
@@ -137,7 +137,7 @@ sdb_collectd_add_svc(const char *hostname, char *plugin, char *type,
 		++plugin_instance;
 
 		data.data.string = plugin_instance;
-		sdb_store_service_attr(hostname, name,
+		sdb_store_metric_attr(hostname, name,
 				"plugin_instance", &data, last_update);
 	}
 
@@ -147,16 +147,16 @@ sdb_collectd_add_svc(const char *hostname, char *plugin, char *type,
 		++type_instance;
 
 		data.data.string = type_instance;
-		sdb_store_service_attr(hostname, name,
+		sdb_store_metric_attr(hostname, name,
 				"type_instance", &data, last_update);
 	}
 
 	data.data.string = plugin;
-	sdb_store_service_attr(hostname, name, "plugin", &data, last_update);
+	sdb_store_metric_attr(hostname, name, "plugin", &data, last_update);
 	data.data.string = type;
-	sdb_store_service_attr(hostname, name, "type", &data, last_update);
+	sdb_store_metric_attr(hostname, name, "type", &data, last_update);
 	return 0;
-} /* sdb_collectd_add_svc */
+} /* sdb_collectd_add_metrics */
 
 static int
 sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
@@ -204,11 +204,11 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 	if (sdb_collectd_store_host(state, hostname, last_update.data.datetime))
 		return -1;
 
-	if (sdb_collectd_add_svc(hostname, plugin, type,
+	if (sdb_collectd_add_metrics(hostname, plugin, type,
 				last_update.data.datetime))
-		++state->svc_failed;
+		++state->metrics_failed;
 	else
-		++state->svc_updated;
+		++state->metrics_updated;
 	return 0;
 } /* sdb_collectd_get_data */
 
@@ -318,9 +318,9 @@ sdb_collectd_collect(sdb_object_t *user_data)
 
 	if (state.current_host) {
 		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-				"%i service%s (%i failed) for host '%s'.",
-				state.svc_updated, state.svc_updated == 1 ? "" : "s",
-				state.svc_failed, state.current_host);
+				"%i metric%s (%i failed) for host '%s'.",
+				state.metrics_updated, state.metrics_updated == 1 ? "" : "s",
+				state.metrics_failed, state.current_host);
 		free(state.current_host);
 	}
 	return 0;
