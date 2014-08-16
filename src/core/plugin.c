@@ -118,6 +118,7 @@ static sdb_llist_t      *collector_list = NULL;
 static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
+static sdb_llist_t      *ts_fetcher_list = NULL;
 
 static struct {
 	const char   *type;
@@ -785,6 +786,14 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 			SDB_TIME_TO_DOUBLE(SDB_PLUGIN_CCB(obj)->ccb_interval));
 	return 0;
 } /* sdb_plugin_register_collector */
+
+int
+sdb_plugin_register_ts_fetcher(const char *name,
+		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data)
+{
+	return plugin_add_callback(&ts_fetcher_list, "time-series fetcher",
+			name, callback, user_data);
+} /* sdb_plugin_register_ts_fetcher */
 
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void)

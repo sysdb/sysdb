@@ -21,7 +21,8 @@ pkgcoreinclude_HEADERS = \
 		include/core/object.h \
 		include/core/plugin.h \
 		include/core/store.h \
-		include/core/time.h
+		include/core/time.h \
+		include/core/timeseries.h
 pkgfeincludedir = $(pkgincludedir)/frontend
 pkgfeinclude_HEADERS = \
 		include/frontend/connection.h \
@@ -73,6 +74,7 @@ libsysdb_la_SOURCES = \
 		core/store_expr.c \
 		core/store_lookup.c \
 		core/data.c include/core/data.h \
+		include/core/timeseries.h \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
 		frontend/parser.c include/frontend/parser.h \

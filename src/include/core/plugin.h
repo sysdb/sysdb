@@ -31,6 +31,7 @@
 #include "sysdb.h"
 #include "core/object.h"
 #include "core/time.h"
+#include "core/timeseries.h"
 
 #include "liboconfig/oconfig.h"
 
@@ -119,6 +120,9 @@ typedef char *(*sdb_plugin_cname_cb)(const char *name,
 typedef int (*sdb_plugin_shutdown_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_log_cb)(int prio, const char *msg,
 		sdb_object_t *user_data);
+
+typedef sdb_timeseries_t *(*sdb_plugin_fetch_ts_cb)(const char *id,
+		sdb_timeseries_opts_t *opts, sdb_object_t *user_data);
 
 /*
  * sdb_plugin_register_config:
@@ -232,6 +236,26 @@ sdb_plugin_register_shutdown(const char *name,
 int
 sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data);
+
+/*
+ * sdb_plugin_register_ts_fetcher:
+ * Register a "time-series fetcher" function to be called whenever retrieving
+ * a time-series from a data-store. The callback will receive an identifier
+ * describing where to retrieve the data from (e.g. a filename or some kind of
+ * URL) and options which further describe the query.
+ *
+ * The name is used literally (without prepending the plugin name) to look up
+ * the appropriate fetcher callback.
+ *
+ * Arguments:
+ *  - user_data: If specified, this will be passed on to each call of the
+ *    callback. The function will take ownership of the object, that is,
+ *    increment the reference count by one. In case the caller does not longer
+ *    use the object for other purposes, it should thus deref it.
+ */
+int
+sdb_plugin_register_ts_fetcher(const char *name,
+		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data);
 
 /*
  * sdb_plugin_get_ctx, sdb_plugin_set_ctx:
