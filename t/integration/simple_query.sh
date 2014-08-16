@@ -161,5 +161,8 @@ output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING attribute.invalid = 'none'" )"
 echo $output | grep -E '^\[\]$'
 
+run_sysdb -H "$SOCKET_FILE" \
+		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
+
 stop_sysdbd
 

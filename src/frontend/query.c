@@ -187,6 +187,10 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 			if (CONN_LOOKUP(node)->filter)
 				filter = CONN_LOOKUP(node)->filter->matcher;
 			return sdb_fe_exec_lookup(conn, m, filter);
+		case CONNECTION_TIMESERIES:
+			return sdb_fe_exec_timeseries(conn,
+					CONN_TS(node)->hostname, CONN_TS(node)->metric,
+					&CONN_TS(node)->opts);
 
 		default:
 			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);
@@ -309,6 +313,37 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 	sdb_strbuf_destroy(data.buf);
 	return 0;
 } /* sdb_fe_exec_lookup */
+
+int
+sdb_fe_exec_timeseries(sdb_conn_t *conn,
+		const char *hostname, const char *metric,
+		sdb_timeseries_opts_t *opts)
+{
+	sdb_strbuf_t *buf;
+
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"buffer to handle TIMESERIES command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		return -1;
+	}
+
+	if (sdb_store_fetch_timeseries(hostname, metric, opts, buf)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series");
+		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch time-series");
+		sdb_strbuf_destroy(buf);
+		return -1;
+	}
+
+	sdb_connection_send(conn, CONNECTION_OK,
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	return 0;
+} /* sdb_fe_exec_timeseries */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
