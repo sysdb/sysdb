@@ -1,5 +1,5 @@
 /*
- * SysDB - src/backend/collectd/unixsock.c
+ * SysDB - src/plugins/backend/collectd/unixsock.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

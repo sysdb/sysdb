@@ -1,5 +1,5 @@
 /*
- * SysDB - src/backend/mk-livestatus.c
+ * SysDB - src/plugins/backend/mk-livestatus.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

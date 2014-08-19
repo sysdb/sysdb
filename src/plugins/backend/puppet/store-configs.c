@@ -1,5 +1,5 @@
 /*
- * SysDB - src/backend/puppet/store-configs.c
+ * SysDB - src/plugins/backend/puppet/store-configs.c
  * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

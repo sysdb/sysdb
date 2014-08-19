@@ -159,27 +159,27 @@ sysdbd_DEPENDENCIES += plugins/cname/dns.la
 endif
 
 if BUILD_PLUGIN_COLLECTD
-pkgbackendcollectdlib_LTLIBRARIES += backend/collectd/unixsock.la
-backend_collectd_unixsock_la_SOURCES = backend/collectd/unixsock.c
-backend_collectd_unixsock_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-sysdbd_LDADD += -dlopen backend/collectd/unixsock.la
-sysdbd_DEPENDENCIES += backend/collectd/unixsock.la
+pkgbackendcollectdlib_LTLIBRARIES += plugins/backend/collectd/unixsock.la
+plugins_backend_collectd_unixsock_la_SOURCES = plugins/backend/collectd/unixsock.c
+plugins_backend_collectd_unixsock_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/backend/collectd/unixsock.la
+sysdbd_DEPENDENCIES += plugins/backend/collectd/unixsock.la
 endif
 
 if BUILD_PLUGIN_MKLIVESTATUS
-pkgbackendlib_LTLIBRARIES += backend/mk-livestatus.la
-backend_mk_livestatus_la_SOURCES = backend/mk-livestatus.c
-backend_mk_livestatus_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-sysdbd_LDADD += -dlopen backend/mk-livestatus.la
-sysdbd_DEPENDENCIES += backend/mk-livestatus.la
+pkgbackendlib_LTLIBRARIES += plugins/backend/mk-livestatus.la
+plugins_backend_mk_livestatus_la_SOURCES = plugins/backend/mk-livestatus.c
+plugins_backend_mk_livestatus_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/backend/mk-livestatus.la
+sysdbd_DEPENDENCIES += plugins/backend/mk-livestatus.la
 endif
 
 if BUILD_PLUGIN_PUPPETSTORECONFIGS
-pkgbackendpuppetlib_LTLIBRARIES += backend/puppet/store-configs.la
-backend_puppet_store_configs_la_SOURCES = backend/puppet/store-configs.c
-backend_puppet_store_configs_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
-sysdbd_LDADD += -dlopen backend/puppet/store-configs.la
-sysdbd_DEPENDENCIES += backend/puppet/store-configs.la
+pkgbackendpuppetlib_LTLIBRARIES += plugins/backend/puppet/store-configs.la
+plugins_backend_puppet_store_configs_la_SOURCES = plugins/backend/puppet/store-configs.c
+plugins_backend_puppet_store_configs_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/backend/puppet/store-configs.la
+sysdbd_DEPENDENCIES += plugins/backend/puppet/store-configs.la
 endif
 
 if BUILD_PLUGIN_SYSLOG
