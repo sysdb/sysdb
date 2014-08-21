@@ -405,6 +405,17 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	}
 
 	if (ud->ts_type) {
+		/* TODO: add support for other backend types
+		 * -> will require different ID generation */
+		if (strcasecmp(ud->ts_type, "rrdtool")) {
+			sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: "
+					"TimeseriesBackend '%s' is not supported - "
+					"use 'rrdtool' instead.", ud->ts_type);
+			ud->ts_type = ud->ts_base = NULL;
+			user_data_destroy(ud);
+			return -1;
+		}
+
 		ud->ts_type = strdup(ud->ts_type);
 		ud->ts_base = strdup(ud->ts_base);
 		if ((! ud->ts_type) || (! ud->ts_base)) {
