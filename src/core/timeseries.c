@@ -46,18 +46,25 @@ sdb_timeseries_destroy(sdb_timeseries_t *ts)
 	if (! ts)
 		return;
 
-	if (ts->data)
+	if (ts->data) {
+		for (i = 0; i < ts->data_names_len; ++i) {
+			if (ts->data[i])
+				free(ts->data[i]);
+			ts->data[i] = NULL;
+		}
 		free(ts->data);
+	}
 	ts->data = NULL;
 	ts->data_len = 0;
 
-	for (i = 0; i < ts->data_names_len; ++i) {
-		if (ts->data_names[i])
-			free(ts->data_names[i]);
-		ts->data_names[i] = NULL;
-	}
-	if (ts->data_names)
+	if (ts->data_names) {
+		for (i = 0; i < ts->data_names_len; ++i) {
+			if (ts->data_names[i])
+				free(ts->data_names[i]);
+			ts->data_names[i] = NULL;
+		}
 		free(ts->data_names);
+	}
 	ts->data_names = NULL;
 	ts->data_names_len = 0;
 } /* sdb_timeseries_destroy */
