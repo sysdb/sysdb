@@ -71,6 +71,19 @@ typedef struct {
 } sdb_timeseries_opts_t;
 
 /*
+ * sdb_timeseries_create:
+ * Allocate a time-series object, pre-populating the data_names information
+ * and allocating the data field.
+ *
+ * Returns:
+ *  - a newly allocated time-series object on success
+ *  - NULL else
+ */
+sdb_timeseries_t *
+sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
+		size_t data_len);
+
+/*
  * sdb_timeseries_destroy:
  * Destroy a time-series object, freeing all of its memory.
  */
