@@ -109,6 +109,7 @@ sdb_timeseries_destroy(sdb_timeseries_t *ts)
 	}
 	ts->data_names = NULL;
 	ts->data_names_len = 0;
+	free(ts);
 } /* sdb_timeseries_destroy */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
