@@ -53,6 +53,8 @@ LoadBackend "puppet::store-configs"
 <Backend "collectd::unixsock">
 	<Instance "central-collector">
 		Socket "/var/run/collectd-unixsock"
+		TimeseriesBackend "rrdtool"
+		TimeseriesBaseURL "/var/lib/collectd/rrd"
 	</Instance>
 </Backend>
 

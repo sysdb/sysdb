@@ -1,6 +1,6 @@
 /*
  * SysDB - src/plugins/backend/collectd/unixsock.c
- * Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2012-2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,21 +52,49 @@ SDB_PLUGIN_MAGIC;
  */
 
 typedef struct {
+	sdb_unixsock_client_t *client;
+
+	char *ts_type;
+	char *ts_base;
+} user_data_t;
+#define UD(obj) ((user_data_t *)(obj))
+
+typedef struct {
 	char *current_host;
 	sdb_time_t current_timestamp;
 	int metrics_updated;
 	int metrics_failed;
-} sdb_collectd_state_t;
-#define SDB_COLLECTD_STATE_INIT { NULL, 0, 0, 0 }
+
+	user_data_t *ud;
+} state_t;
+#define STATE_INIT { NULL, 0, 0, 0, NULL }
 
 /*
  * private helper functions
  */
 
+static void
+user_data_destroy(void *obj)
+{
+	user_data_t *ud = UD(obj);
+
+	if (! obj)
+		return;
+
+	if (ud->client)
+		sdb_unixsock_client_destroy(ud->client);
+	ud->client = NULL;
+
+	if (ud->ts_type)
+		free(ud->ts_type);
+	if (ud->ts_base)
+		free(ud->ts_base);
+	ud->ts_type = ud->ts_base = NULL;
+} /* user_data_destroy */
+
 /* store the specified host-name (once per iteration) */
 static int
-sdb_collectd_store_host(sdb_collectd_state_t *state,
-		const char *hostname, sdb_time_t last_update)
+store_host(state_t *state, const char *hostname, sdb_time_t last_update)
 {
 	int status;
 
@@ -109,22 +137,32 @@ sdb_collectd_store_host(sdb_collectd_state_t *state,
 			"host '%s' (last update timestamp = %"PRIsdbTIME").",
 			hostname, last_update);
 	return 0;
-} /* sdb_collectd_store_host */
+} /* store_host */
 
 static int
-sdb_collectd_add_metrics(const char *hostname, char *plugin, char *type,
-		sdb_time_t last_update)
+add_metrics(const char *hostname, char *plugin, char *type,
+		sdb_time_t last_update, user_data_t *ud)
 {
 	char  name[strlen(plugin) + strlen(type) + 2];
 	char *plugin_instance, *type_instance;
 
+	char metric_id[(ud->ts_base ? strlen(ud->ts_base) : 0)
+		+ strlen(hostname) + sizeof(name) + 7];
+	sdb_metric_store_t store = { ud->ts_type, metric_id };
+
 	sdb_data_t data = { SDB_TYPE_STRING, { .string = NULL } };
 
-	int  status;
+	int status;
 
 	snprintf(name, sizeof(name), "%s/%s", plugin, type);
 
-	status = sdb_store_metric(hostname, name, NULL, last_update);
+	if (ud->ts_base) {
+		snprintf(metric_id, sizeof(metric_id), "%s/%s/%s.rrd",
+				ud->ts_base, hostname, name);
+		status = sdb_store_metric(hostname, name, &store, last_update);
+	}
+	else
+		status = sdb_store_metric(hostname, name, NULL, last_update);
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
 				"store/update metric '%s/%s'.", hostname, name);
@@ -156,13 +194,13 @@ sdb_collectd_add_metrics(const char *hostname, char *plugin, char *type,
 	data.data.string = type;
 	sdb_store_metric_attr(hostname, name, "type", &data, last_update);
 	return 0;
-} /* sdb_collectd_add_metrics */
+} /* add_metrics */
 
 static int
-sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
+get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 		size_t n, sdb_data_t *data, sdb_object_t *user_data)
 {
-	sdb_collectd_state_t *state;
+	state_t *state;
 	sdb_data_t last_update;
 
 	char *hostname;
@@ -201,16 +239,16 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 	}
 
 	state = SDB_OBJ_WRAPPER(user_data)->data;
-	if (sdb_collectd_store_host(state, hostname, last_update.data.datetime))
+	if (store_host(state, hostname, last_update.data.datetime))
 		return -1;
 
-	if (sdb_collectd_add_metrics(hostname, plugin, type,
-				last_update.data.datetime))
+	if (add_metrics(hostname, plugin, type,
+				last_update.data.datetime, state->ud))
 		++state->metrics_failed;
 	else
 		++state->metrics_updated;
 	return 0;
-} /* sdb_collectd_get_data */
+} /* get_data */
 
 /*
  * plugin API
@@ -219,13 +257,13 @@ sdb_collectd_get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 static int
 sdb_collectd_init(sdb_object_t *user_data)
 {
-	sdb_unixsock_client_t *client;
+	user_data_t *ud;
 
 	if (! user_data)
 		return -1;
 
-	client = SDB_OBJ_WRAPPER(user_data)->data;
-	if (sdb_unixsock_client_connect(client)) {
+	ud = SDB_OBJ_WRAPPER(user_data)->data;
+	if (sdb_unixsock_client_connect(ud->client)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: "
 				"Failed to connect to collectd.");
 		return -1;
@@ -233,25 +271,14 @@ sdb_collectd_init(sdb_object_t *user_data)
 
 	sdb_log(SDB_LOG_INFO, "collectd::unixsock backend: Successfully "
 			"connected to collectd @ %s.",
-			sdb_unixsock_client_path(client));
+			sdb_unixsock_client_path(ud->client));
 	return 0;
 } /* sdb_collectd_init */
 
 static int
-sdb_collectd_shutdown(__attribute__((unused)) sdb_object_t *user_data)
-{
-	if (! user_data)
-		return -1;
-
-	sdb_unixsock_client_destroy(SDB_OBJ_WRAPPER(user_data)->data);
-	SDB_OBJ_WRAPPER(user_data)->data = NULL;
-	return 0;
-} /* sdb_collectd_shutdown */
-
-static int
 sdb_collectd_collect(sdb_object_t *user_data)
 {
-	sdb_unixsock_client_t *client;
+	user_data_t *ud;
 
 	char  buffer[1024];
 	char *line;
@@ -260,26 +287,27 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	char *endptr = NULL;
 	long int count;
 
-	sdb_collectd_state_t state = SDB_COLLECTD_STATE_INIT;
+	state_t state = STATE_INIT;
 	sdb_object_wrapper_t state_obj = SDB_OBJECT_WRAPPER_STATIC(&state);
 
 	if (! user_data)
 		return -1;
 
-	client = SDB_OBJ_WRAPPER(user_data)->data;
+	ud = SDB_OBJ_WRAPPER(user_data)->data;
+	state.ud = ud;
 
-	if (sdb_unixsock_client_send(client, "LISTVAL") <= 0) {
+	if (sdb_unixsock_client_send(ud->client, "LISTVAL") <= 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to send "
 				"LISTVAL command to collectd @ %s.",
-				sdb_unixsock_client_path(client));
+				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
-	line = sdb_unixsock_client_recv(client, buffer, sizeof(buffer));
+	line = sdb_unixsock_client_recv(ud->client, buffer, sizeof(buffer));
 	if (! line) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to read "
 				"status of LISTVAL command from collectd @ %s.",
-				sdb_unixsock_client_path(client));
+				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
@@ -294,25 +322,25 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	if (errno || (line == endptr)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to parse "
 				"status of LISTVAL command from collectd @ %s.",
-				sdb_unixsock_client_path(client));
+				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
 	if (count < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to get "
 				"value list from collectd @ %s: %s",
-				sdb_unixsock_client_path(client),
+				sdb_unixsock_client_path(ud->client),
 				msg ? msg : line);
 		return -1;
 	}
 
-	if (sdb_unixsock_client_process_lines(client, sdb_collectd_get_data,
+	if (sdb_unixsock_client_process_lines(ud->client, get_data,
 				SDB_OBJ(&state_obj), count, /* delim */ "/",
 				/* column count = */ 3,
 				SDB_TYPE_STRING, SDB_TYPE_STRING, SDB_TYPE_STRING)) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
 				"to read response from collectd @ %s.",
-				sdb_unixsock_client_path(client));
+				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
@@ -324,7 +352,7 @@ sdb_collectd_collect(sdb_object_t *user_data)
 		free(state.current_host);
 	}
 	return 0;
-} /* sdb_collectd_collect */
+} /* collect */
 
 static int
 sdb_collectd_config_instance(oconfig_item_t *ci)
@@ -333,7 +361,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	char *socket_path = NULL;
 
 	sdb_object_t *user_data;
-	sdb_unixsock_client_t *client;
+	user_data_t *ud;
 
 	int i;
 
@@ -343,44 +371,77 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 		return -1;
 	}
 
+	ud = calloc(1, sizeof(*ud));
+	if (! ud) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
+				"allocate user-data object: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;
 
 		if (! strcasecmp(child->key, "Socket"))
 			oconfig_get_string(child, &socket_path);
+		else if (! strcasecmp(child->key, "TimeseriesBackend"))
+			oconfig_get_string(child, &ud->ts_type);
+		else if (! strcasecmp(child->key, "TimeseriesBaseURL"))
+			oconfig_get_string(child, &ud->ts_base);
 		else
 			sdb_log(SDB_LOG_WARNING, "collectd::unixsock backend: Ignoring "
 					"unknown config option '%s' inside <Instance %s>.",
 					child->key, name);
 	}
 
-	if (! socket_path) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance '%s' "
-				"missing the 'Socket' option.", name);
+	if ((ud->ts_type == NULL) != (ud->ts_base == NULL)) {
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Both options, "
+				"TimeseriesBackend and TimeseriesBaseURL, have to be "
+				"specified.");
+		ud->ts_type = ud->ts_base = NULL;
+		user_data_destroy(ud);
 		return -1;
 	}
 
-	client = sdb_unixsock_client_create(socket_path);
-	if (! client) {
+	if (ud->ts_type) {
+		ud->ts_type = strdup(ud->ts_type);
+		ud->ts_base = strdup(ud->ts_base);
+		if ((! ud->ts_type) || (! ud->ts_base)) {
+			sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
+					"to duplicate a string");
+			user_data_destroy(ud);
+			return -1;
+		}
+	}
+
+	if (! socket_path) {
+		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance '%s' "
+				"missing the 'Socket' option.", name);
+		user_data_destroy(ud);
+		return -1;
+	}
+
+	ud->client = sdb_unixsock_client_create(socket_path);
+	if (! ud->client) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to create "
 				"unixsock client: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		user_data_destroy(ud);
 		return -1;
 	}
 
-	user_data = sdb_object_create_wrapper("unixsock-client", client,
-			(void (*)(void *))sdb_unixsock_client_destroy);
+	user_data = sdb_object_create_wrapper("collectd-userdata", ud,
+			user_data_destroy);
 	if (! user_data) {
-		sdb_unixsock_client_destroy(client);
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"sdb_object_t");
+				"user-data wrapper object");
+		user_data_destroy(ud);
 		return -1;
 	}
 
 	sdb_plugin_register_init(name, sdb_collectd_init, user_data);
-	sdb_plugin_register_shutdown(name, sdb_collectd_shutdown, user_data);
-
 	sdb_plugin_register_collector(name, sdb_collectd_collect,
 			/* interval */ NULL, user_data);
 
