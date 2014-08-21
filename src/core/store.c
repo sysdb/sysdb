@@ -551,7 +551,7 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 		snprintf(start_str, sizeof(start_str), "<error>");
 	start_str[sizeof(start_str) - 1] = '\0';
 	if (! sdb_strftime(end_str, sizeof(end_str),
-				"%F %T %z", ts->start))
+				"%F %T %z", ts->end))
 		snprintf(end_str, sizeof(end_str), "<error>");
 	end_str[sizeof(end_str) - 1] = '\0';
 
@@ -571,7 +571,7 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 			time_str[sizeof(time_str) - 1] = '\0';
 
 			sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
-					"\"value\": \"%s\"}", time_str, ts->data[i][j].value);
+					"\"value\": \"%f\"}", time_str, ts->data[i][j].value);
 
 			if (j < ts->data_len - 1)
 				sdb_strbuf_append(buf, ",");
