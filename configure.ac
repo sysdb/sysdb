@@ -409,6 +409,19 @@ AC_SUBST([READLINE_LIBS])
 AC_SUBST([READLINE_CFLAGS])
 AM_CONDITIONAL([BUILD_CLIENT], test "x$readline_support" != "no")
 
+AC_ARG_WITH([librrd],
+		[AS_HELP_STRING([--with-librrd], [librrd support (default: auto)])],
+		[with_librrd="$withval"],
+		[with_librrd="yes"])
+if test "x$with_librrd" = "xyes" || test "x$with_librrd" = "xauto"; then
+	PKG_CHECK_MODULES([RRD], [librrd],
+			[have_librrd="yes"], [have_librrd="no"])
+else if test "x$with_librrd" = "xno"; then
+	have_librrd="$with_librrd (disabled on command-line)"
+else
+	AC_MSG_ERROR([Invalid value for option --with-librrd=$with_librrd (expected "yes", "no", or "auto")])
+fi; fi
+
 dnl Feature checks.
 build_documentation="yes"
 
@@ -455,6 +468,11 @@ AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 		[backend accessing the Puppet stored configuration database])
 
 m4_divert_once([HELP_ENABLE], [
+Time-series fetchers:])
+AC_SDB_PLUGIN([rrdtool], [$have_librrd],
+		[fetch time-series data from RRD files])
+
+m4_divert_once([HELP_ENABLE], [
 Plugins:])
 
 AC_SDB_PLUGIN([cname-dns], [yes],
@@ -498,11 +516,15 @@ AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])
 AC_MSG_RESULT([    libedit:  . . . . . . . . . $have_libedit])
 AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
+AC_MSG_RESULT([    librrd: . . . . . . . . . . $have_librrd])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])
 AC_MSG_RESULT([    mk-livestatus:  . . . . . . $enable_mk_livestatus])
 AC_MSG_RESULT([    puppet-storeconfigs:  . . . $enable_puppet_storeconfigs])
+AC_MSG_RESULT()
+AC_MSG_RESULT([  Time-series fetchers:])
+AC_MSG_RESULT([    rrdtool:  . . . . . . . . . $enable_rrdtool])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Plugins:])
 AC_MSG_RESULT([    cname::dns: . . . . . . . . $enable_cname_dns])

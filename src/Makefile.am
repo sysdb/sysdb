@@ -143,12 +143,14 @@ pkgbackendlibdir = $(pkglibdir)/backend
 pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
 pkgbackendpuppetlibdir = $(pkgbackendlibdir)/puppet
 pkgcnamelibdir = $(pkglibdir)/cname
+pkgtimeserieslibdir = $(pkglibdir)/timeseries
 
 pkglib_LTLIBRARIES =
 pkgbackendlib_LTLIBRARIES =
 pkgbackendcollectdlib_LTLIBRARIES =
 pkgbackendpuppetlib_LTLIBRARIES =
 pkgcnamelib_LTLIBRARIES =
+pkgtimeserieslib_LTLIBRARIES =
 
 if BUILD_PLUGIN_CNAMEDNS
 pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
@@ -180,6 +182,15 @@ plugins_backend_puppet_store_configs_la_SOURCES = plugins/backend/puppet/store-c
 plugins_backend_puppet_store_configs_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
 sysdbd_LDADD += -dlopen plugins/backend/puppet/store-configs.la
 sysdbd_DEPENDENCIES += plugins/backend/puppet/store-configs.la
+endif
+
+if BUILD_PLUGIN_RRDTOOL
+pkgtimeserieslib_LTLIBRARIES += plugins/timeseries/rrdtool.la
+plugins_timeseries_rrdtool_la_SOURCES = plugins/timeseries/rrdtool.c
+plugins_timeseries_rrdtool_la_CFLAGS = $(AM_CFLAGS) @RRD_CFLAGS@
+plugins_timeseries_rrdtool_la_LDFLAGS = $(AM_LDFLAGS) @RRD_LIBS@ -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/timeseries/rrdtool.la
+sysdbd_DEPENDENCIES += plugins/timeseries/rrdtool.la
 endif
 
 if BUILD_PLUGIN_SYSLOG
