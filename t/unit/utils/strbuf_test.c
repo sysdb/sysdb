@@ -177,7 +177,7 @@ START_TEST(test_append)
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		n = sdb_strbuf_append(buf, golden_data[i].input);
+		n = sdb_strbuf_append(buf, "%s", golden_data[i].input);
 		fail_unless((size_t)n == strlen(golden_data[i].input),
 				"sdb_strbuf_append() appended %zi bytes; expected: %zu",
 				n, strlen(golden_data[i].input));
@@ -198,7 +198,7 @@ START_TEST(test_append)
 				test, golden_data[i].result);
 	}
 
-	n = sdb_strbuf_append(buf, "%zu; %5.4f", 42, 4.2);
+	n = sdb_strbuf_append(buf, "%zu; %5.4f", (size_t)42, 4.2);
 	fail_unless(n == 10,
 			"sdb_strbuf_append() appended %zi bytes; expected: 10", n);
 	total += n;
@@ -234,7 +234,7 @@ START_TEST(test_sprintf)
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		n = sdb_strbuf_sprintf(buf, golden_data[i]);
+		n = sdb_strbuf_sprintf(buf, "%s", golden_data[i]);
 		fail_unless((size_t)n == strlen(golden_data[i]),
 				"sdb_strbuf_sprintf() wrote %zi bytes; expected: %zu",
 				n, strlen(golden_data[i]));
@@ -258,7 +258,7 @@ START_TEST(test_sprintf)
 					check, n, n / 3);
 	}
 
-	n = sdb_strbuf_sprintf(buf, "%zu; %5.4f", 42, 4.2);
+	n = sdb_strbuf_sprintf(buf, "%zu; %5.4f", (size_t)42, 4.2);
 	fail_unless(n == 10,
 			"sdb_strbuf_sprintf() wrote %zi bytes; expected: 10", n);
 	check = sdb_strbuf_len(buf);
@@ -449,7 +449,7 @@ START_TEST(test_chomp)
 		const char *check;
 
 		if (golden_data[i].input)
-			sdb_strbuf_sprintf(buf, golden_data[i].input);
+			sdb_strbuf_sprintf(buf, "%s", golden_data[i].input);
 
 		/* empty buffer */
 		n = sdb_strbuf_chomp(buf);
@@ -511,7 +511,7 @@ START_TEST(test_skip)
 		const char *check;
 		size_t n;
 
-		sdb_strbuf_sprintf(buf, input);
+		sdb_strbuf_sprintf(buf, "%s", input);
 		sdb_strbuf_skip(buf, golden_data[i].offset,
 				golden_data[i].n);
 
@@ -573,7 +573,7 @@ START_TEST(test_string)
 		const char *check;
 
 		if (golden_data[i].input)
-			sdb_strbuf_sprintf(buf, golden_data[i].input);
+			sdb_strbuf_sprintf(buf, "%s", golden_data[i].input);
 		check = sdb_strbuf_string(buf);
 		fail_unless(!strcmp(check, golden_data[i].expected),
 				"sdb_strbuf_string() = '%s'; expected: '%s'",
@@ -599,7 +599,7 @@ START_TEST(test_len)
 		size_t check;
 
 		if (golden_data[i].input)
-			sdb_strbuf_sprintf(buf, golden_data[i].input);
+			sdb_strbuf_sprintf(buf, "%s", golden_data[i].input);
 		check = sdb_strbuf_len(buf);
 		fail_unless(check == golden_data[i].expected,
 				"sdb_strbuf_len() = %zu; expected: %zu",

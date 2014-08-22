@@ -102,7 +102,7 @@ sdb_fe_query(sdb_conn_t *conn)
 				char query[conn->cmd_len + 1];
 				strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
 				query[sizeof(query) - 1] = '\0';
-				sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %d command%s "
+				sdb_log(SDB_LOG_WARNING, "frontend: Ignoring %zu command%s "
 						"in multi-statement query '%s'",
 						sdb_llist_len(parsetree) - 1,
 						sdb_llist_len(parsetree) == 2 ? "" : "s",

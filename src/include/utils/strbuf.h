@@ -74,9 +74,11 @@ sdb_strbuf_destroy(sdb_strbuf_t *strbuf);
  *  - a negative value on error
  */
 ssize_t
-sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap);
+sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
+		__attribute__((format(printf, 2, 0)));
 ssize_t
-sdb_strbuf_append(sdb_strbuf_t *strbuf, const char *fmt, ...);
+sdb_strbuf_append(sdb_strbuf_t *strbuf, const char *fmt, ...)
+		__attribute__((format(printf, 2, 3)));
 
 /*
  * sdb_strbuf_vsprintf, sdb_strbuf_sprintf:
@@ -90,9 +92,11 @@ sdb_strbuf_append(sdb_strbuf_t *strbuf, const char *fmt, ...);
  *  - a negative value on error
  */
 ssize_t
-sdb_strbuf_vsprintf(sdb_strbuf_t *strbuf, const char *fmt, va_list ap);
+sdb_strbuf_vsprintf(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
+		__attribute__((format(printf, 2, 0)));
 ssize_t
-sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...);
+sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
+		__attribute__((format(printf, 2, 3)));
 
 /*
  * sdb_strbuf_memcpy, sdb_strbuf_memappend:

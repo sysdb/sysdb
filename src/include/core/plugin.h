@@ -373,9 +373,11 @@ sdb_plugin_log(int prio, const char *msg);
  * Log a formatted message. See sdb_plugin_log for more information.
  */
 int
-sdb_plugin_vlogf(int prio, const char *fmt, va_list ap);
+sdb_plugin_vlogf(int prio, const char *fmt, va_list ap)
+		__attribute__((format(printf, 2, 0)));
 int
-sdb_plugin_logf(int prio, const char *fmt, ...);
+sdb_plugin_logf(int prio, const char *fmt, ...)
+		__attribute__((format(printf, 2, 3)));
 
 /*
  * sdb_plugin_fetch_timeseries:

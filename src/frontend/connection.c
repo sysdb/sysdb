@@ -302,7 +302,7 @@ command_init(sdb_conn_t *conn)
 		return -1;
 
 	/* reset */
-	sdb_strbuf_sprintf(conn->errbuf, "");
+	sdb_strbuf_clear(conn->errbuf);
 
 	conn->cmd = connection_get_int32(conn, 0);
 	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
@@ -317,7 +317,7 @@ command_init(sdb_conn_t *conn)
 	if (errmsg) {
 		size_t len = sdb_strbuf_len(conn->buf);
 
-		sdb_strbuf_sprintf(conn->errbuf, errmsg);
+		sdb_strbuf_sprintf(conn->errbuf, "%s", errmsg);
 		sdb_connection_send(conn, CONNECTION_ERROR,
 				(uint32_t)strlen(errmsg), errmsg);
 		conn->skip_len += conn->cmd_len;

@@ -129,8 +129,7 @@ handle_input(char *line)
 		return;
 	}
 
-	sdb_strbuf_append(sysdb_input->input, line);
-	sdb_strbuf_append(sysdb_input->input, "\n");
+	sdb_strbuf_append(sysdb_input->input, "%s\n", line);
 	free(line);
 
 	if (sysdb_input->interactive)

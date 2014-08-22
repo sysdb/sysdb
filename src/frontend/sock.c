@@ -543,8 +543,8 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		return -1;
 	}
 
-	sdb_log(SDB_LOG_INFO, "frontend: Starting %d connection "
-			"handler thread%s managing %d listener%s",
+	sdb_log(SDB_LOG_INFO, "frontend: Starting %zu connection "
+			"handler thread%s managing %zu listener%s",
 			loop->num_threads, loop->num_threads == 1 ? "" : "s",
 			sock->listeners_num, sock->listeners_num == 1 ? "" : "s");
 

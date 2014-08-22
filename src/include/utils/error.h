@@ -80,7 +80,8 @@ sdb_error_set_logger(int (*f)(int, const char *));
  * on configuration, try a clean shut-down of the process.
  */
 int
-sdb_log(int prio, const char *fmt, ...);
+sdb_log(int prio, const char *fmt, ...)
+		__attribute__((format(printf, 2, 3)));
 
 /*
  * sdb_error_set, sdb_error_append:
@@ -89,9 +90,11 @@ sdb_log(int prio, const char *fmt, ...);
  * be done.
  */
 int
-sdb_error_set(const char *fmt, ...);
+sdb_error_set(const char *fmt, ...)
+		__attribute__((format(printf, 1, 2)));
 int
-sdb_error_append(const char *fmt, ...);
+sdb_error_append(const char *fmt, ...)
+		__attribute__((format(printf, 1, 2)));
 
 /*
  * sdb_error_chomp:
