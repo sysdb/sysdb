@@ -1226,7 +1226,7 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(ts_fetcher_list, type));
 	if (! plugin) {
 		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "
-				"no such plugin loaded");
+				"no such plugin loaded", type);
 		errno = ENOENT;
 		return NULL;
 	}
