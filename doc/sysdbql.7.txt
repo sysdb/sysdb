@@ -58,6 +58,14 @@ matching that filter will be included in the reply. See the sections "MATCHING
 clause" and "FILTER clause" for more details about how to specify the search
 and filter conditions.
 
+*TIMESERIES* '<hostname>'.'<metric>' [START '<datetime>'] [END '<datetime>']::
+Retrieve a time-series for the specified host's metric. The data is retrieved
+from a backend data-store based on information provided by the respective
+query plugin. The return value includes the actual start and end time of the
+time-series and one or multiple sequences of time-stamp / value pairs. If the
+metric does not exist or if the backend data-store is not supported, an error
+is returned.
+
 MATCHING clause
 ~~~~~~~~~~~~~~~
 The *MATCHING* clause in a query specifies a boolean expression which is used
