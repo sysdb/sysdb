@@ -18,6 +18,8 @@ SYNOPSIS
   LoadBackend "collectd::unixsock"
   LoadBackend "mk-livestatus"
 
+  LoadPlugin "timeseries::rrdtool"
+
   <LoadBackend "puppet::store-configs">
       Interval 1800
   </LoadBackend>
@@ -123,6 +125,14 @@ facter facts information storing the latter as host attributes.
 See also: http://puppetlabs.com/puppet,
 http://puppetlabs.com/puppet/related-projects/facter/
 
+Time-series fetcher:
+~~~~~~~~~~~~~~~~~~~~
+
+*timeseries::rrdtool*::
+This plugin adds support for fetching time-series data from RRD files.
++
+See also: http://oss.oetiker.ch/rrdtool
+
 Plugins:
 ~~~~~~~~
 
@@ -144,6 +154,11 @@ Backend documentation:
 
 manpage:sysdbd-collectd-unixsock[5], manpage:sysdbd-mk-livestatus[5],
 manpage:sysdbd-puppet-store-configs[5]
+
+Time-series fetcher documentation:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+manpage:sysdbd-timeseries-rrdtool[5]
 
 Plugin documentation:
 ~~~~~~~~~~~~~~~~~~~~~

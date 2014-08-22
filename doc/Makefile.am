@@ -15,6 +15,7 @@ EXTRA_DIST = \
 		sysdbd-mk-livestatus.5.txt \
 		sysdbd-puppet-store-configs.5.txt \
 		sysdbd-syslog.5.txt \
+		sysdbd-timeseries-rrdtool.5.txt \
 		sysdb.7.txt \
 		sysdbql.7.txt
 CLEANFILES = \
@@ -26,6 +27,7 @@ CLEANFILES = \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
+		sysdbd-timeseries-rrdtool.5 \
 		sysdb.7 \
 		sysdbql.7 \
 		sysdb.1.html \
@@ -36,6 +38,7 @@ CLEANFILES = \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
+		sysdbd-timeseries-rrdtool.5.html \
 		sysdb.7.html \
 		sysdbql.7.html \
 		sysdb.1.xml \
@@ -46,6 +49,7 @@ CLEANFILES = \
 		sysdbd-mk-livestatus.5.xml \
 		sysdbd-puppet-store-configs.5.xml \
 		sysdbd-syslog.5.xml \
+		sysdbd-timeseries-rrdtool.5.xml \
 		sysdb.7.xml \
 		sysdbql.7.xml
 
@@ -58,6 +62,7 @@ man_MANS = \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
+		sysdbd-timeseries-rrdtool.5 \
 		sysdb.7 \
 		sysdbql.7
 
@@ -70,6 +75,7 @@ html_DATA = \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
+		sysdbd-timeseries-rrdtool.5.html \
 		sysdb.7.html \
 		sysdbql.7.html
 
@@ -89,6 +95,7 @@ sysdbd-collectd-unixsock.5.xml: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.xml: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.xml: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.xml: sysdbd-syslog.5.txt $(MAN_DEPS)
+sysdbd-timeseries-rrdtool.5.xml: sysdbd-timeseries-rrdtool.5.txt $(MAN_DEPS)
 sysdb.7.xml: sysdb.7.txt sysdb-description.txt $(MAN_DEPS)
 sysdbql.7.xml: sysdbql.7.txt sysdb-description.txt $(MAN_DEPS)
 
@@ -100,6 +107,7 @@ sysdbd-collectd-unixsock.5: sysdbd-collectd-unixsock.5.xml
 sysdbd-mk-livestatus.5: sysdbd-mk-livestatus.5.xml
 sysdbd-puppet-store-configs.5: sysdbd-puppet-store-configs.5.xml
 sysdbd-syslog.5: sysdbd-syslog.5.xml
+sysdbd-timeseries-rrdtool.5: sysdbd-timeseries-rrdtool.5.xml
 sysdb.7: sysdb.7.xml
 sysdbql.7: sysdbql.7.xml
 
@@ -111,6 +119,7 @@ sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt $(MAN_DEPS)
+sysdbd-timeseries-rrdtool.5.html: sysdbd-timeseries-rrdtool.5.txt $(MAN_DEPS)
 sysdb.7.html: sysdb.7.txt sysdb-description.txt $(MAN_DEPS)
 sysdbql.7.html: sysdbql.7.txt sysdb-description.txt $(MAN_DEPS)
 
