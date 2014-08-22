@@ -16,8 +16,10 @@
   like a software system. Both, hosts and services, may reference a list of
   attributes which represent further information about the respective host or
   service object. For example, attributes may specify static information like
-  a host's architecture or the software version or reference performance data
-  like the current memory utilization or much more.
+  a host's architecture or the software version. A host may also reference a
+  list of metrics which are references to performance data stored about the
+  host. SysDB supports querying the respective time-series from a backend's
+  data store.
 
   SysDB is free and open source software, licensed under the 2-clause BSD
   license. See COPYING for details. Changes between all SysDB releases can be
