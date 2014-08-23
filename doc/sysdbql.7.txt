@@ -105,7 +105,8 @@ The following fields may be queried:
 '<value>' may either be a string (when matching by object names) or match the
 type of the attribute's value (when matching attribute values). Attribute
 values may either be a string, integer, decimal number, or a date-time value
-(booleans and binary data are not supported by the frontend yet).
+(booleans and binary data are not supported by the frontend yet). See the
+section "DATA TYPES" for more details about how specify each data-type.
 
 When comparing an attribute's value using a regular expression matcher, the
 value will be cast to a string before doing so. No other casts are supported
@@ -171,6 +172,41 @@ used to compare the date-time fields (but not regular expression or *IS NULL*
 operators). The backend field may only be matched by (in)equality. Each object
 may be provided by multiple backends. The filter matches if the specified
 value matches any of them.
+
+DATA TYPES
+----------
+The SysDB query language natively supports various data-types. Constants of
+all types may be used in any place where a value is expected.
+
+*String constants*::
+	A string constant is an arbitrary sequence of characters enclosed in
+	single quotes ('''). Single quotes may be included in a string constant by
+	specifying two adjacent single quotes.
+
+*Integer constants*::
+	An integer constant may be specified either as a sequence of digits or in
+	scientific notation written in the form "'a' E 'b'" (without spaces) where
+	'a' and 'b' are integers. A leading plus or minus sign specifies the sign
+	of the constant.
+
+*Floating-point constants*::
+	A floating-point constant is a sequence of digits containing a decimal
+	point. Digits before or after the decimal point (but not both) are
+	optional. Floating-point constants may also be specified in scientific
+	notation by appending the letter "E" and a positive or negative integer
+	exponent. A leading plus or minus sign specifies the sign of the constant.
+
+*Date and time constants*::
+	A date constant may be specified as 'YYYY-MM-DD' and time constants may be
+	specified as 'HH:MM:SS.nnnnnnnnn' where seconds and nanoseconds are
+	optional.
+
+*Interval constants*::
+	An interval may be specified by one or multiple quantity and unit pairs.
+	The quantity may be any integer constant and the unit may be any of the
+	following: *Y* (years), *M* (months), *D* (days), *h* (hours), *m*
+	(minutes), *s* (seconds), *ms* (milliseconds), *us* (microseconds), or
+	*ns* (nanoseconds). Note that years and months are approximations.
 
 RESPONSE FORMAT
 ---------------
