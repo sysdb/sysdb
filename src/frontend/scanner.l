@@ -102,7 +102,7 @@ csc_end		\*\/
  */
 identifier	([A-Za-z_][A-Za-z_0-9$]*)
 /* TODO: fully support SQL strings */
-string		('[^']*')
+string		('([^']|'')*')
 
 /*
  * Numeric constants.
@@ -146,8 +146,21 @@ time		([0-9]{1,2}:[0-9]{1,2}(:[0-9]{1,2}(\.[0-9]{1,9})?)?)
 		return IDENTIFIER;
 	}
 {string} {
+		char *quot;
+		size_t len;
+
+		/* remove the leading and trailing quote */
 		yytext[yyleng - 1] = '\0';
 		yylval->str = strdup(yytext + 1);
+
+		quot = yylval->str;
+		len = yyleng - 2;
+		while ((quot = strstr(quot, "''")) != NULL) {
+			memmove(quot, quot + 1, len - (quot - yylval->str) - 1);
+			yylval->str[len - 1] = '\0';
+			--len;
+			++quot;
+		}
 		return STRING;
 	}
 {integer} {

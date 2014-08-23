@@ -109,6 +109,18 @@ START_TEST(test_parse)
 		{ "TIMESERIES "
 		  "'host'.'metric'",     -1,  1, CONNECTION_TIMESERIES },
 
+		/* string constants */
+		{ "LOOKUP hosts MATCHING "
+		  "host = ''''",         -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host = '''foo'",      -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host = 'f''oo'",      -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host = 'foo'''",      -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host = '''",          -1, -1, 0 },
+
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute.foo = "
