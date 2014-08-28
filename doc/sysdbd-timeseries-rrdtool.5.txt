@@ -17,7 +17,8 @@ data from RRD files.
 
 CONFIGURATION
 -------------
-*timeseries::rrdtool* does not currently accept any configuration options.
+*timeseries::rrdtool* does not currently accept any configuration options. It
+registers a time-series fetcher callback called *rrdtool*.
 
 SEE ALSO
 --------
