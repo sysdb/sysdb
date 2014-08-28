@@ -422,6 +422,10 @@ else
 	AC_MSG_ERROR([Invalid value for option --with-librrd=$with_librrd (expected "yes", "no", or "auto")])
 fi; fi
 
+if test "x$have_librrd" = "xyes"; then
+	AC_CHECK_HEADERS([rrd_client.h])
+fi
+
 dnl Feature checks.
 build_documentation="yes"
 

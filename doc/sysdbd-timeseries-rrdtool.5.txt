@@ -17,8 +17,15 @@ data from RRD files.
 
 CONFIGURATION
 -------------
-*timeseries::rrdtool* does not currently accept any configuration options. It
-registers a time-series fetcher callback called *rrdtool*.
+*timeseries::rrdtool* accepts the following configuration options. In addition
+to any configuration, the plugin always registers a time-series fetcher
+callback called *rrdtool* which may be used to access RRD files on local disk.
+
+*RRDCacheD* '<addr>'::
+	Enable support for RRDCacheD. When using this option, an additional
+	time-series fetcher callback called *rrdcached* is made available. It will
+	flush cached updates for an RRD file before fetching data from it.
+	Currently, local connections through a UNIX socket are supported only.
 
 SEE ALSO
 --------
