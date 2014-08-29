@@ -459,12 +459,16 @@ puppet_storeconfigs_default=$with_libdbi
 if test "x$puppet_storeconfigs_default" != "xyes"; then
 	puppet_storeconfigs_default="no (requires libdbi)"
 fi
+rrdtool_default=$have_librrd
+if test "x$rrdtool_default" != "xyes"; then
+	rrdtool_default="no (required librrd)"
+fi
 
 m4_divert_once([HELP_ENABLE], [
 Backends:])
 
 AC_SDB_PLUGIN_INIT
-AC_SDB_PLUGIN([collectd], [yes],
+AC_SDB_PLUGIN([collectd-unixsock], [yes],
 		[backend accessing the system statistics collection daemon])
 AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
@@ -473,7 +477,7 @@ AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
 
 m4_divert_once([HELP_ENABLE], [
 Time-series fetchers:])
-AC_SDB_PLUGIN([rrdtool], [$have_librrd],
+AC_SDB_PLUGIN([timeseries-rrdtool], [$rrdtool_default],
 		[fetch time-series data from RRD files])
 
 m4_divert_once([HELP_ENABLE], [
@@ -523,12 +527,12 @@ AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
 AC_MSG_RESULT([    librrd: . . . . . . . . . . $have_librrd])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
-AC_MSG_RESULT([    collectd: . . . . . . . . . $enable_collectd])
+AC_MSG_RESULT([    collectd::unixsock: . . . . $enable_collectd_unixsock])
 AC_MSG_RESULT([    mk-livestatus:  . . . . . . $enable_mk_livestatus])
-AC_MSG_RESULT([    puppet-storeconfigs:  . . . $enable_puppet_storeconfigs])
+AC_MSG_RESULT([    puppet::storeconfigs: . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Time-series fetchers:])
-AC_MSG_RESULT([    rrdtool:  . . . . . . . . . $enable_rrdtool])
+AC_MSG_RESULT([    rrdtool:  . . . . . . . . . $enable_timeseries_rrdtool])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Plugins:])
 AC_MSG_RESULT([    cname::dns: . . . . . . . . $enable_cname_dns])
