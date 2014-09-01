@@ -38,6 +38,57 @@ For details about the SysDB client, see its manual page manpage:sysdb[1]. For
 details about how to query the database, see the specification of the SysDB
 query language in manpage:sysdbql[7].
 
+CONCEPTS
+--------
+SysDB's features are build around a set of concepts which are explained in
+this section.
+
+Hosts and Services
+~~~~~~~~~~~~~~~~~~
+The basic building block of SysDB's store are host and service objects
+representing physical and logical resources. Each host is identified by a
+unique name and each service is identified by a unique pair of a hostname and
+a service name. All services are assigned to the respective host which is
+usually interpreted as the service running on that host. In addition, hosts
+and services may have a list of attributes assigned to them. These are
+arbitrary key-value pairs providing additional information about the
+respective object and they may be used to further categorize and identify an
+object. For example, the *mk-livestatus* and *puppet::store-configs* backend
+plugins provide a list of all hosts and services known to the monitoring
+system queried through the Check_MK livestatus interface and all hosts will be
+attributed with all "fact" values known to Puppet. This allows to query hosts
+based on facts like architecture or LSB information using query commands like
+*LOOKUP* (see manpage:sysdbql[7]).
+
+Host and service objects are managed by backend plugins and queried from other
+systems, like inventory databases or monitoring systems.
+
+Hostname Canonicalization
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Before storing an object in SysDB's store, any hostname used to identify the
+object is canonicalized. This is done by so called "cname" plugins and may be
+based on arbitrary information derived from the original hostname. This way,
+hosts provided by different backends may be mapped to the same host in SysDB
+even if, for example, one backend uses short hostnames while another uses
+fully qualified domain names (FQDNs). For example, the *cname::dns* plugin
+uses reverse DNS queries to resolve a name to its canonical hostname as
+provided by DNS.
+
+Metrics and Time-Series
+~~~~~~~~~~~~~~~~~~~~~~~
+A metric identifies performance data about a host. SysDB does not collect or
+store the actual data but collects information about which metrics are
+available from backends. It then provides a generic way to fetch time-series
+data directly from a backend's data-store. In some cases, this requires
+additional configuration. For example, the *collectd::unixsock* plugin
+provides information about which metrics are available from a collectd
+instance. Using the *TimeseriesBackend* and *TimeseriesBaseURL* configuration
+options (see manpage:sysdbd-collectd-unixsock[5]), SysDB may be told where to
+fetch time-series data from. The details are automatically managed by the
+plugin and the *timeseries::rrdtool* plugin may be used to fetch the data from
+RRD files managed by collectd. Fetching the data may be done using the
+*TIMESERIES* query command (see manpage:sysdbql[7]).
+
 SEE ALSO
 --------
 manpage:sysdb[1], manpage:sysdbd[1], manpage:sysdbql[7]
