@@ -93,7 +93,7 @@ SEE ALSO
 --------
 manpage:sysdb[1], manpage:sysdbd[1], manpage:sysdbql[7]
 
-The SysDB homepage: http://sysdb.io/
+The SysDB homepage: https://sysdb.io/
 
 AUTHOR
 ------

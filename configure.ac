@@ -29,7 +29,7 @@ dnl ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 AC_INIT([System DataBase],[m4_esyscmd(./version-gen.sh)],
 		[sysdb@sysdb.io],
 		[sysdb],
-		[http://sysdb.io/])
+		[https://sysdb.io/])
 PACKAGE_MAINTAINER="Sebastian 'tokkee' Harl <tokkee@sysdb.io>"
 AC_DEFINE_UNQUOTED([PACKAGE_MAINTAINER], ["$PACKAGE_MAINTAINER"],
 		[Define to the name of the maintainer of this package.])

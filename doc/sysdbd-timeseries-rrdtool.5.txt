@@ -32,7 +32,7 @@ SEE ALSO
 manpage:sysdbd[1], manpage:sysdbd.conf[5],
 http://oss.oetiker.ch/rrdtool
 
-The SysDB homepage: http://sysdb.io/
+The SysDB homepage: https://sysdb.io/
 
 AUTHOR
 ------

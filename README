@@ -25,7 +25,7 @@
   license. See COPYING for details. Changes between all SysDB releases can be
   found in the file ReleaseNotes.
 
-  <http://sysdb.io/>
+  <https://sysdb.io/>
 
 Configure and install SysDB
 ---------------------------
@@ -118,13 +118,13 @@ Documentation
 
   All documentation for SysDB is available as manual pages (in roff and HTML
   formats) and shipped alongside the source code in the doc/ subdirectory.
-  Also, it is available online at <http://sysdb.io/documentation/>.
+  Also, it is available online at <https://sysdb.io/documentation/>.
 
 Getting Help
 ------------
 
   Various channels for asynchronous and real-time communication with
-  developers and users are available. See <http://sysdb.io/contact/> for
+  developers and users are available. See <https://sysdb.io/contact/> for
   details about the mailing list, IRC channel, and social media.
 
 Author
@@ -134,5 +134,5 @@ Author
 
   See the file THANKS for credits and inspiration.
 
-  Want to contribute? Check out the website <http://sysdb.io> for details.
+  Want to contribute? Check out the website <https://sysdb.io> for details.
 

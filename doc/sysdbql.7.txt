@@ -277,7 +277,7 @@ SEE ALSO
 --------
 manpage:sysdb[1], manpage:sysdb[7]
 
-The SysDB homepage: http://sysdb.io/
+The SysDB homepage: https://sysdb.io/
 
 AUTHOR
 ------
