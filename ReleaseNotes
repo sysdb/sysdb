@@ -19,6 +19,60 @@
 
   <https://sysdb.io/>
 
+Version 0.4.0, Release Date: 2014-09-01
+---------------------------------------
+
+  This release features support for metrics and transparent access to a
+  backend's time-series data. Some backward-incompatible changes were applied
+  to some query commands for more consistency.
+
+   * build system:
+     - Added checks for format strings and arguments.
+     - Changed configure option for collectd::unixsock to
+       --enable-collectd-unixsock.
+   * core:
+     - Added support for “metric” objects which may be assigned to a host.
+     - Introduced support for handling time-series data: added new data
+       structures describing time-series data and a new type of plugins called
+       “time-series fetchers” which are used to access time-series
+       information.
+   * store:
+     - Fixed a memory leak.
+     - Apply (very) simple optimizations to lookup expressions.
+     - Added support for metrics and their “data-stores” (describing how to
+       access the actual data references by a metric).
+     - Added support for querying time-series data through the newly
+       introduced “time-series fetcher” plugins.
+   * frontend:
+     - Fixed a bug that might have caused reading too much data from the
+       connection buffer in certain situations.
+   * query language:
+     - The ‘MATCHING’ clause is now optional in ‘LOOKUP’ queries.
+     - The ‘LIST’ and ‘FETCH’ commands support ‘FILTER’ clauses as well.
+     - ‘LIST’ / ‘FETCH’ were changed to ‘LIST hosts’ / ‘FETCH host’.
+     - Added the ‘TIMESERIES’ command to query arbitrary time-series which
+       fetches time-series data from a backend's data-store for a given period
+       of time.
+     - Added support for date/time values.
+     - Added support for single quotes in string values: two adjacent single
+       quotes may be used to specify a single quote.
+   * documentation:
+     - Documented the frontend protocol in frontend/proto.h.
+     - Documented changes to the query language and new / updated plugins.
+     - Documented all supported data types.
+
+  Backends:
+   * collectd::unixsock:
+     - The plugin now uses metrics in place of services.
+     - New config options ‘TimeseriesBackend’ and ‘TimeseriesBaseURL’ to
+       specify access to time-series, currently limited to ‘rrdtool’ and
+       ‘rrdcached’ access.
+
+  Plugins:
+   * timeseries::rrdtool:
+     - New plugin adding support to fetch time-series from local RRD files.
+     - Supports flushing of values in RRDCacheD.
+
 Version 0.3.0, Release Date: 2014-08-01
 ---------------------------------------
 
