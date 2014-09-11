@@ -96,7 +96,8 @@ typedef enum {
 	 * further requests to the client for authentication (not implemented
 	 * yet). Once the setup and authentication was successful, the server
 	 * replies with CONNECTION_OK. No other messages may be sent to the server
-	 * before this.
+	 * before this. Also, the server does not send any asynchronous messages
+	 * before startup is complete.
 	 */
 	CONNECTION_STARTUP,
 

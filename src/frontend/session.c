@@ -63,6 +63,7 @@ sdb_fe_session_start(sdb_conn_t *conn)
 		return -1;
 	}
 	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
+	conn->ready = 1;
 	return 0;
 } /* sdb_fe_session_start */
 

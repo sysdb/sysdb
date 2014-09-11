@@ -133,6 +133,8 @@ connection_destroy(sdb_object_t *obj)
 	assert(obj);
 	conn = CONN(obj);
 
+	conn->ready = 0;
+
 	if (conn->buf) {
 		len = sdb_strbuf_len(conn->buf);
 		if (len)
@@ -224,8 +226,8 @@ connection_log(int prio, const char *msg,
 
 	conn = sdb_conn_get_ctx();
 	/* no connection associated to this thread
-	 * or user not authenticated yet => don't leak any information */
-	if ((! conn) || (! conn->username))
+	 * or startup not done yet => don't leak any information */
+	if ((! conn) || (! conn->ready))
 		return 0;
 
 	/* XXX: make the log-level configurable by the client at runtime */
@@ -309,7 +311,7 @@ command_init(sdb_conn_t *conn)
 
 	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
-	if ((! conn->username) && (conn->cmd != CONNECTION_STARTUP))
+	if ((! conn->ready) && (conn->cmd != CONNECTION_STARTUP))
 		errmsg = "Authentication required";
 	else if (conn->cmd == CONNECTION_IDLE)
 		errmsg = "Invalid command 0";
@@ -464,6 +466,7 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 		 * make sure we don't try to send further logs to the connection */
 		close(conn->fd);
 		conn->fd = -1;
+		conn->ready = 0;
 
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
 				"(code: %u, len: %u) to client: %s", code, msg_len,
