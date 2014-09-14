@@ -205,6 +205,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 {
 	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
+	uint32_t type = htonl(CONNECTION_FETCH);
 
 	host = sdb_store_get_host(name);
 	if (! host) {
@@ -228,6 +229,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
 	if (sdb_store_host_tojson(host, buf, filter, /* flags = */ 0)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"host '%s' to JSON", name);
@@ -237,7 +239,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 		return -1;
 	}
 
-	sdb_connection_send(conn, CONNECTION_OK,
+	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	sdb_object_deref(SDB_OBJ(host));
@@ -248,6 +250,7 @@ int
 sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
+	uint32_t type = htonl(CONNECTION_LIST);
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -261,6 +264,7 @@ sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
 	if (sdb_store_tojson(buf, filter, /* flags = */ SDB_SKIP_ALL)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
@@ -269,7 +273,7 @@ sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 		return -1;
 	}
 
-	sdb_connection_send(conn, CONNECTION_OK,
+	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	return 0;
@@ -280,6 +284,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		sdb_store_matcher_t *filter)
 {
 	tojson_data_t data = { NULL, filter, 0 };
+	uint32_t type = htonl(CONNECTION_LOOKUP);
 
 	data.buf = sdb_strbuf_create(1024);
 	if (! data.buf) {
@@ -293,6 +298,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(data.buf, &type, sizeof(uint32_t));
 	sdb_strbuf_append(data.buf, "[");
 
 	/* Let the JSON serializer handle the filter instead of the scanner. Else,
@@ -308,7 +314,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 
 	sdb_strbuf_append(data.buf, "]");
 
-	sdb_connection_send(conn, CONNECTION_OK,
+	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(data.buf), sdb_strbuf_string(data.buf));
 	sdb_strbuf_destroy(data.buf);
 	return 0;
@@ -320,6 +326,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		sdb_timeseries_opts_t *opts)
 {
 	sdb_strbuf_t *buf;
+	uint32_t type = htonl(CONNECTION_TIMESERIES);
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -332,6 +339,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
 	if (sdb_store_fetch_timeseries(hostname, metric, opts, buf)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch time-series");
@@ -339,7 +347,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		return -1;
 	}
 
-	sdb_connection_send(conn, CONNECTION_OK,
+	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	return 0;

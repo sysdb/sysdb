@@ -194,7 +194,7 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 		}
 
 		/* Wait for server replies. We might get any number of log messages
-		 * but eventually see the reply to the query, which is either OK or
+		 * but eventually see the reply to the query, which is either DATA or
 		 * ERROR. */
 		while (42) {
 			status = sdb_command_print_reply(client);
@@ -203,12 +203,19 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 				break;
 			}
 
-			if ((status == CONNECTION_OK) || (status == CONNECTION_ERROR))
+			if ((status == CONNECTION_DATA) || (status == CONNECTION_ERROR))
 				break;
+			if (status == CONNECTION_OK) {
+				/* pre 0.4 versions used OK instead of DATA */
+				sdb_log(SDB_LOG_WARNING, "Received unexpected OK status from "
+						"server in response to a QUERY (expected DATA); "
+						"assuming we're talking to an old server");
+				break;
+			}
 		}
 
-		if (status)
-			break;
+		if ((status != CONNECTION_OK) && (status != CONNECTION_DATA))
+			break; /* error */
 	}
 
 	sdb_llist_iter_destroy(iter);
@@ -302,7 +309,9 @@ main(int argc, char **argv)
 		int status = execute_commands(input.client, commands);
 		sdb_llist_destroy(commands);
 		sdb_client_destroy(input.client);
-		exit(status);
+		if ((status != CONNECTION_OK) && (status != CONNECTION_DATA))
+			exit(1);
+		exit(0);
 	}
 
 	sdb_log(SDB_LOG_INFO, "SysDB client "SDB_CLIENT_VERSION_STRING

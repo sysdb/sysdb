@@ -53,15 +53,46 @@ extern "C" {
 typedef enum {
 	/*
 	 * CONNECTION_OK:
-	 * Indicates that a command was successful. The message body will contain
-	 * the result of the command (if any) encoded as a JSON string.
+	 * Indicates that a command was successful. The message body will usually
+	 * be empty but may contain a string providing unformatted information
+	 * providing more details.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | message type  | length        |
+	 * +---------------+---------------+
+	 * | optional status message ...   |
 	 */
 	CONNECTION_OK = 0,
+
+	/*
+	 * CONNECTION_DATA:
+	 * Indicates that a data query was successful. The message body will
+	 * contain the type of the data and the result encoded as a JSON string.
+	 * The type is the same as the command code of the respective command (see
+	 * below) and is stored as an unsigned 32bit integer in network
+	 * byte-order. The result may be empty (but the type is still included).
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | message type  | length        |
+	 * +---------------+---------------+
+	 * | result type   | result ...    |
+	 * +---------------+               |
+	 * | ...                           |
+	 */
+	CONNECTION_DATA,
 
 	/*
 	 * CONNECTION_ERROR:
 	 * Indicates that a command has failed. The message body will contain a
 	 * string describing the error.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | message type  | length        |
+	 * +---------------+---------------+
+	 * | error message ...             |
 	 */
 	CONNECTION_ERROR,
 
@@ -70,6 +101,12 @@ typedef enum {
 	 * Indicates an asynchronous log message. The message body will contain
 	 * the message string providing informational or warning logs. Log
 	 * messages may be sent to the client any time.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | message type  | length        |
+	 * +---------------+---------------+
+	 * | log message ...               |
 	 */
 	CONNECTION_LOG,
 } sdb_conn_status_t;
@@ -103,7 +140,12 @@ typedef enum {
 	CONNECTION_STARTUP,
 
 	/*
-	 * Querying the server.
+	 * Querying the server. On success, the server replies with
+	 * CONNECTION_DATA.
+	 *
+	 * The command codes listed here are used, both, for sending a query to
+	 * the server and to indicate the response type from a query in a DATA
+	 * message.
 	 */
 
 	/*

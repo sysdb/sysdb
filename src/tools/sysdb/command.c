@@ -75,6 +75,10 @@ sdb_command_print_reply(sdb_client_t *client)
 		status = (int)rcode;
 
 	result = sdb_strbuf_string(recv_buf);
+	/* At the moment, we don't care about the result type. We simply print the
+	 * result without further parsing it. */
+	if (status == CONNECTION_DATA)
+		result += sizeof(uint32_t);
 	if (result && *result)
 		printf("%s\n", result);
 	else if (rcode == UINT32_MAX) {
