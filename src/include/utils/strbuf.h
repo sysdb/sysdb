@@ -104,8 +104,8 @@ sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
  * interpret any information in the data pointer (including \0 bytes).
  *
  * These functions may be used to handle arbitrary byte arrays. Mixing these
- * function calls with any of the printf-style function works but will usually
- * lead to arbitrary behavior.
+ * function calls with any of the printf-style function works fine but the
+ * entire buffer content should then be treated as arbitrary bytes.
  *
  * Returns:
  *  - the number of bytes written
