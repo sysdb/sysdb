@@ -6,6 +6,14 @@
   and very detailed list of changes can be obtained from the Git logs for each
   release.
 
+ Compatibility Note:
+ ~~~~~~~~~~~~~~~~~~~
+
+  All pre 1.0 development snapshots are not considered stable yet. That is,
+  all interfaces, including the plugin API, the network protocol, or the query
+  language, may change in an incompatible way at any time. All changes are
+  documented here.
+
  About SysDB:
  ~~~~~~~~~~~~
   “System DataBase” (SysDB) is a multi-backend system management and inventory
