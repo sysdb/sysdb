@@ -193,8 +193,13 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 		sdb_log(SDB_LOG_ERR, "Encountered end-of-file while waiting "
 				"for server response");
 
-	if (rstatus != CONNECTION_OK) {
+	if (rstatus == CONNECTION_ERROR) {
 		sdb_log(SDB_LOG_ERR, "Access denied for user '%s'", username);
+		status = -((int)rstatus);
+	}
+	else if (rstatus != CONNECTION_OK) {
+		sdb_log(SDB_LOG_ERR, "Received unsupported authentication request "
+				"(status %d) during startup", (int)rstatus);
 		status = -((int)rstatus);
 	}
 

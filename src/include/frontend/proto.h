@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /*
- * The SysDB frontend protocol is based messages being passed between the
+ * The SysDB frontend protocol is based on messages being passed between the
  * client and the server. Each message includes a header containing the
  * message type which is usually a status or command code, the length of the
  * message not including the header, and the message body. The content of the
@@ -95,9 +95,10 @@ typedef enum {
 	 * username of the user contacting the server. The server may then send
 	 * further requests to the client for authentication (not implemented
 	 * yet). Once the setup and authentication was successful, the server
-	 * replies with CONNECTION_OK. No other messages may be sent to the server
-	 * before this. Also, the server does not send any asynchronous messages
-	 * before startup is complete.
+	 * replies with CONNECTION_OK. Further information may be requested from
+	 * the server using special messages specific to the authentication
+	 * method. The server does not send any asynchronous messages before
+	 * startup is complete.
 	 */
 	CONNECTION_STARTUP,
 
