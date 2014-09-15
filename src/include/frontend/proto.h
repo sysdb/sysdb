@@ -52,6 +52,10 @@ extern "C" {
 /* status codes returned to a client */
 typedef enum {
 	/*
+	 * Generic status and log messages.
+	 */
+
+	/*
 	 * CONNECTION_OK:
 	 * Indicates that a command was successful. The message body will usually
 	 * be empty but may contain a string providing unformatted information
@@ -64,24 +68,6 @@ typedef enum {
 	 * | optional status message ...   |
 	 */
 	CONNECTION_OK = 0,
-
-	/*
-	 * CONNECTION_DATA:
-	 * Indicates that a data query was successful. The message body will
-	 * contain the type of the data and the result encoded as a JSON string.
-	 * The type is the same as the command code of the respective command (see
-	 * below) and is stored as an unsigned 32bit integer in network
-	 * byte-order. The result may be empty (but the type is still included).
-	 *
-	 * 0               32              64
-	 * +---------------+---------------+
-	 * | message type  | length        |
-	 * +---------------+---------------+
-	 * | result type   | result ...    |
-	 * +---------------+               |
-	 * | ...                           |
-	 */
-	CONNECTION_DATA,
 
 	/*
 	 * CONNECTION_ERROR:
@@ -109,6 +95,28 @@ typedef enum {
 	 * | log message ...               |
 	 */
 	CONNECTION_LOG,
+
+	/*
+	 * Query-result specific messages.
+	 */
+
+	/*
+	 * CONNECTION_DATA:
+	 * Indicates that a data query was successful. The message body will
+	 * contain the type of the data and the result encoded as a JSON string.
+	 * The type is the same as the command code of the respective command (see
+	 * below) and is stored as an unsigned 32bit integer in network
+	 * byte-order. The result may be empty (but the type is still included).
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | message type  | length        |
+	 * +---------------+---------------+
+	 * | result type   | result ...    |
+	 * +---------------+               |
+	 * | ...                           |
+	 */
+	CONNECTION_DATA = 100,
 } sdb_conn_status_t;
 
 /* accepted commands / state of the connection */
@@ -191,7 +199,7 @@ typedef enum {
 	 * CONNECTION_EXPR:
 	 * A parsed expression. Only used internally.
 	 */
-	CONNECTION_EXPR,
+	CONNECTION_EXPR = 100,
 } sdb_conn_state_t;
 
 #ifdef __cplusplus
