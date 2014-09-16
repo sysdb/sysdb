@@ -108,7 +108,9 @@ typedef enum {
 	 * contain the type of the data and the result encoded as a JSON string.
 	 * The type is the same as the command code of the respective command (see
 	 * below) and is stored as an unsigned 32bit integer in network
-	 * byte-order. The result may be empty (but the type is still included).
+	 * byte-order. The result may be empty (but the type is still included) if
+	 * the query did not return any result. The type and the result message
+	 * are empty on empty commands.
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+

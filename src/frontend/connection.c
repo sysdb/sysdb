@@ -290,10 +290,13 @@ command_handle(sdb_conn_t *conn)
 		status = -1;
 	}
 
-	if (status)
+	if (status) {
+		if (! sdb_strbuf_len(conn->errbuf))
+			sdb_strbuf_sprintf(conn->errbuf, "Failed to execute command");
 		sdb_connection_send(conn, CONNECTION_ERROR,
 				(uint32_t)sdb_strbuf_len(conn->errbuf),
 				sdb_strbuf_string(conn->errbuf));
+	}
 	return status;
 } /* command_handle */
 

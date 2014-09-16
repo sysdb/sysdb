@@ -65,7 +65,13 @@ log_printer(sdb_strbuf_t *buf)
 static void
 data_printer(sdb_strbuf_t *buf)
 {
-	if (sdb_strbuf_len(buf) <= sizeof(uint32_t)) {
+	size_t len = sdb_strbuf_len(buf);
+
+	if ((! len) || (len == sizeof(uint32_t))) {
+		/* empty command or empty reply */
+		return;
+	}
+	else if (len < sizeof(uint32_t)) {
 		printf("ERROR: Received a DATA message with invalid "
 				"or missing data-type\n");
 		return;

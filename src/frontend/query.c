@@ -91,7 +91,8 @@ sdb_fe_query(sdb_conn_t *conn)
 
 	switch (sdb_llist_len(parsetree)) {
 		case 0:
-			/* skipping empty command */
+			/* skipping empty command; send back an empty reply */
+			sdb_connection_send(conn, CONNECTION_DATA, 0, NULL);
 			break;
 		case 1:
 			node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
