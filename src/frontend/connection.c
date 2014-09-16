@@ -222,6 +222,10 @@ static int
 connection_log(int prio, const char *msg,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
+	uint32_t len = (uint32_t)sizeof(uint32_t) + (uint32_t)strlen(msg);
+	uint32_t p = htonl((uint32_t)prio);
+	char tmp[len + 1];
+
 	sdb_conn_t *conn;
 
 	conn = sdb_conn_get_ctx();
@@ -234,9 +238,10 @@ connection_log(int prio, const char *msg,
 	if (prio >= SDB_LOG_DEBUG)
 		return 0;
 
-	/* TODO: Use CONNECTION_LOG_<prio>? */
-	if (sdb_connection_send(conn, CONNECTION_LOG,
-				(uint32_t)strlen(msg), msg) < 0)
+	memcpy(tmp, &p, sizeof(p));
+	strcpy(tmp + sizeof(p), msg);
+
+	if (sdb_connection_send(conn, CONNECTION_LOG, len, tmp) < 0)
 		return -1;
 	return 0;
 } /* connection_log */

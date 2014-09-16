@@ -85,14 +85,16 @@ typedef enum {
 	/*
 	 * CONNECTION_LOG:
 	 * Indicates an asynchronous log message. The message body will contain
-	 * the message string providing informational or warning logs. Log
-	 * messages may be sent to the client any time.
+	 * the log priority (see utils/error.h) and message. Log messages may be
+	 * sent to the client any time.
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
 	 * | message type  | length        |
 	 * +---------------+---------------+
-	 * | log message ...               |
+	 * | log priority  | log message   |
+	 * +---------------+               |
+	 * | ...                           |
 	 */
 	CONNECTION_LOG,
 

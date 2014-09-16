@@ -29,11 +29,14 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "sysdb.h"
+
 #include "tools/sysdb/command.h"
 #include "tools/sysdb/input.h"
 
 #include "frontend/proto.h"
 #include "utils/error.h"
+#include "utils/proto.h"
 #include "utils/strbuf.h"
 
 #include <errno.h>
@@ -42,6 +45,45 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void
+log_printer(sdb_strbuf_t *buf)
+{
+	uint32_t prio = sdb_proto_get_int(buf, 0);
+
+	if (prio == UINT32_MAX) {
+		printf("ERROR: Received a LOG message with invalid "
+				"or missing priority\n");
+		return;
+	}
+	sdb_strbuf_skip(buf, 0, sizeof(prio));
+
+	printf("%s: %s\n", SDB_LOG_PRIO_TO_STRING((int)prio),
+			sdb_strbuf_string(buf));
+} /* log_printer */
+
+static void
+data_printer(sdb_strbuf_t *buf)
+{
+	if (sdb_strbuf_len(buf) <= sizeof(uint32_t)) {
+		printf("ERROR: Received a DATA message with invalid "
+				"or missing data-type\n");
+		return;
+	}
+
+	/* At the moment, we don't care about the result type. We simply print the
+	 * result without further parsing it. */
+	sdb_strbuf_skip(buf, 0, sizeof(uint32_t));
+	printf("%s\n", sdb_strbuf_string(buf));
+} /* data_printer */
+
+static struct {
+	int status;
+	void (*printer)(sdb_strbuf_t *);
+} response_printers[] = {
+	{ CONNECTION_LOG,  log_printer },
+	{ CONNECTION_DATA, data_printer },
+};
 
 /*
  * public API
@@ -53,7 +95,9 @@ sdb_command_print_reply(sdb_client_t *client)
 	sdb_strbuf_t *recv_buf;
 	const char *result;
 	uint32_t rcode = 0;
+
 	int status = 0;
+	size_t i;
 
 	recv_buf = sdb_strbuf_create(1024);
 	if (! recv_buf)
@@ -74,11 +118,15 @@ sdb_command_print_reply(sdb_client_t *client)
 	else
 		status = (int)rcode;
 
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(response_printers); ++i) {
+		if (status == response_printers[i].status) {
+			response_printers[i].printer(recv_buf);
+			sdb_strbuf_destroy(recv_buf);
+			return status;
+		}
+	}
+
 	result = sdb_strbuf_string(recv_buf);
-	/* At the moment, we don't care about the result type. We simply print the
-	 * result without further parsing it. */
-	if (status == CONNECTION_DATA)
-		result += sizeof(uint32_t);
 	if (result && *result)
 		printf("%s\n", result);
 	else if (rcode == UINT32_MAX) {
