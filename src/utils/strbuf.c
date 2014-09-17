@@ -25,6 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sysdb.h"
 #include "utils/strbuf.h"
 
 #include <assert.h>
@@ -65,10 +66,17 @@ struct sdb_strbuf {
 static int
 strbuf_resize(sdb_strbuf_t *buf, size_t new_size)
 {
+	size_t tmp_size;
 	char *tmp;
 
 	if (new_size <= buf->pos)
 		return -1;
+
+	tmp_size = SDB_MAX(buf->size, buf->min_size);
+	if (! tmp_size)
+		tmp_size = 64;
+	while (tmp_size < new_size)
+		tmp_size *= 2;
 
 	tmp = realloc(buf->string, new_size);
 	if (! tmp)
@@ -231,15 +239,8 @@ sdb_strbuf_memappend(sdb_strbuf_t *buf, const void *data, size_t n)
 
 	assert((buf->size == 0) || (buf->string[buf->pos] == '\0'));
 
-	if (buf->pos + n + 1 >= buf->size) {
-		size_t newsize = buf->size * 2;
-
-		if (! newsize)
-			newsize = 64;
-		while (buf->pos + n + 1 >= newsize)
-			newsize *= 2;
-
-		if (strbuf_resize(buf, newsize))
+	if (buf->pos + n + 1 > buf->size) {
+		if (strbuf_resize(buf, buf->pos + n + 1))
 			return -1;
 	}
 
