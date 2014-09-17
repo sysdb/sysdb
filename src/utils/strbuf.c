@@ -37,11 +37,11 @@
 #include <unistd.h>
 
 /* free memory if most of the buffer is unused */
-#define CHECK_SHRINK(strbuf) \
+#define CHECK_SHRINK(buf) \
 	do { \
-		if ((strbuf)->pos < (strbuf)->size / 3) \
+		if ((buf)->pos < (buf)->size / 3) \
 			/* don't free all memory to avoid churn */ \
-			strbuf_resize((strbuf), 2 * (strbuf)->pos); \
+			strbuf_resize((buf), 2 * (buf)->pos); \
 	} while (0)
 
 /*
@@ -59,22 +59,22 @@ struct sdb_strbuf {
  */
 
 static int
-strbuf_resize(sdb_strbuf_t *strbuf, size_t new_size)
+strbuf_resize(sdb_strbuf_t *buf, size_t new_size)
 {
 	char *tmp;
 
-	if (new_size <= strbuf->pos)
+	if (new_size <= buf->pos)
 		return -1;
 
-	tmp = realloc(strbuf->string, new_size);
+	tmp = realloc(buf->string, new_size);
 	if (! tmp)
 		return -1;
 
 	if (new_size)
-		strbuf->string = tmp;
+		buf->string = tmp;
 	else
-		strbuf->string = NULL;
-	strbuf->size = new_size;
+		buf->string = NULL;
+	buf->size = new_size;
 	return 0;
 } /* strbuf_resize */
 
@@ -85,68 +85,68 @@ strbuf_resize(sdb_strbuf_t *strbuf, size_t new_size)
 sdb_strbuf_t *
 sdb_strbuf_create(size_t size)
 {
-	sdb_strbuf_t *strbuf;
+	sdb_strbuf_t *buf;
 
-	strbuf = calloc(1, sizeof(*strbuf));
-	if (! strbuf)
+	buf = calloc(1, sizeof(*buf));
+	if (! buf)
 		return NULL;
 
-	strbuf->string = NULL;
+	buf->string = NULL;
 	if (size) {
-		strbuf->string = malloc(size);
-		if (! strbuf->string) {
-			free(strbuf);
+		buf->string = malloc(size);
+		if (! buf->string) {
+			free(buf);
 			return NULL;
 		}
 
-		strbuf->string[0] = '\0';
+		buf->string[0] = '\0';
 	}
 
-	strbuf->size = size;
-	strbuf->pos  = 0;
+	buf->size = size;
+	buf->pos  = 0;
 
-	return strbuf;
+	return buf;
 } /* sdb_strbuf_create */
 
 void
-sdb_strbuf_destroy(sdb_strbuf_t *strbuf)
+sdb_strbuf_destroy(sdb_strbuf_t *buf)
 {
-	if (! strbuf)
+	if (! buf)
 		return;
 
-	if (strbuf->string)
-		free(strbuf->string);
-	free(strbuf);
+	if (buf->string)
+		free(buf->string);
+	free(buf);
 } /* sdb_strbuf_destroy */
 
 ssize_t
-sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
+sdb_strbuf_vappend(sdb_strbuf_t *buf, const char *fmt, va_list ap)
 {
 	va_list aq;
 	int status;
 
-	if ((! strbuf) || (! fmt))
+	if ((! buf) || (! fmt))
 		return -1;
 
-	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
+	assert((buf->size == 0) || (buf->string[buf->pos] == '\0'));
 
-	if (! strbuf->size) {
+	if (! buf->size) {
 		/* use some arbitrary but somewhat reasonable default */
-		if (strbuf_resize(strbuf, 64))
+		if (strbuf_resize(buf, 64))
 			return -1;
 	}
 	/* make sure to reserve space for the nul-byte */
-	else if (strbuf->pos >= strbuf->size - 1)
-		if (strbuf_resize(strbuf, 2 * strbuf->size))
+	else if (buf->pos >= buf->size - 1)
+		if (strbuf_resize(buf, 2 * buf->size))
 			return -1;
 
-	assert(strbuf->size && strbuf->string);
-	assert(strbuf->pos < strbuf->size);
+	assert(buf->size && buf->string);
+	assert(buf->pos < buf->size);
 
 	/* 'ap' is invalid after calling vsnprintf; thus copy before using it */
 	va_copy(aq, ap);
-	status = vsnprintf(strbuf->string + strbuf->pos,
-			strbuf->size - strbuf->pos, fmt, ap);
+	status = vsnprintf(buf->string + buf->pos,
+			buf->size - buf->pos, fmt, ap);
 
 	if (status < 0) {
 		va_end(aq);
@@ -154,149 +154,149 @@ sdb_strbuf_vappend(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
 	}
 
 	/* 'status' does not include nul-byte */
-	if ((size_t)status >= strbuf->size - strbuf->pos) {
-		if (strbuf_resize(strbuf, strbuf->pos + (size_t)status + 1)) {
+	if ((size_t)status >= buf->size - buf->pos) {
+		if (strbuf_resize(buf, buf->pos + (size_t)status + 1)) {
 			va_end(aq);
 			return -1;
 		}
 
 		/* reset string and try again */
-		strbuf->string[strbuf->pos] = '\0';
-		status = (int)sdb_strbuf_vappend(strbuf, fmt, aq);
+		buf->string[buf->pos] = '\0';
+		status = (int)sdb_strbuf_vappend(buf, fmt, aq);
 	}
 	else
-		strbuf->pos += (size_t)status;
+		buf->pos += (size_t)status;
 
 	va_end(aq);
 
 	/* even though this function always appends to the existing buffer, the
 	 * size might have previously been reset */
-	CHECK_SHRINK(strbuf);
+	CHECK_SHRINK(buf);
 
 	return (ssize_t)status;
 } /* sdb_strbuf_vappend */
 
 ssize_t
-sdb_strbuf_append(sdb_strbuf_t *strbuf, const char *fmt, ...)
+sdb_strbuf_append(sdb_strbuf_t *buf, const char *fmt, ...)
 {
 	va_list ap;
 	ssize_t status;
 
 	va_start(ap, fmt);
-	status = sdb_strbuf_vappend(strbuf, fmt, ap);
+	status = sdb_strbuf_vappend(buf, fmt, ap);
 	va_end(ap);
 
 	return status;
 } /* sdb_strbuf_append */
 
 ssize_t
-sdb_strbuf_vsprintf(sdb_strbuf_t *strbuf, const char *fmt, va_list ap)
+sdb_strbuf_vsprintf(sdb_strbuf_t *buf, const char *fmt, va_list ap)
 {
-	if (! strbuf)
+	if (! buf)
 		return -1;
 
-	if (strbuf->size) {
-		strbuf->string[0] = '\0';
-		strbuf->pos = 0;
+	if (buf->size) {
+		buf->string[0] = '\0';
+		buf->pos = 0;
 	}
 
-	return sdb_strbuf_vappend(strbuf, fmt, ap);
+	return sdb_strbuf_vappend(buf, fmt, ap);
 } /* sdb_strbuf_vsprintf */
 
 ssize_t
-sdb_strbuf_sprintf(sdb_strbuf_t *strbuf, const char *fmt, ...)
+sdb_strbuf_sprintf(sdb_strbuf_t *buf, const char *fmt, ...)
 {
 	va_list ap;
 	ssize_t status;
 
 	va_start(ap, fmt);
-	status = sdb_strbuf_vsprintf(strbuf, fmt, ap);
+	status = sdb_strbuf_vsprintf(buf, fmt, ap);
 	va_end(ap);
 
 	return status;
 } /* sdb_strbuf_sprintf */
 
 ssize_t
-sdb_strbuf_memappend(sdb_strbuf_t *strbuf, const void *data, size_t n)
+sdb_strbuf_memappend(sdb_strbuf_t *buf, const void *data, size_t n)
 {
-	if ((! strbuf) || (! data))
+	if ((! buf) || (! data))
 		return -1;
 
-	assert((strbuf->size == 0) || (strbuf->string[strbuf->pos] == '\0'));
+	assert((buf->size == 0) || (buf->string[buf->pos] == '\0'));
 
-	if (strbuf->pos + n + 1 >= strbuf->size) {
-		size_t newsize = strbuf->size * 2;
+	if (buf->pos + n + 1 >= buf->size) {
+		size_t newsize = buf->size * 2;
 
 		if (! newsize)
 			newsize = 64;
-		while (strbuf->pos + n + 1 >= newsize)
+		while (buf->pos + n + 1 >= newsize)
 			newsize *= 2;
 
-		if (strbuf_resize(strbuf, newsize))
+		if (strbuf_resize(buf, newsize))
 			return -1;
 	}
 
-	assert(strbuf->size && strbuf->string);
-	assert(strbuf->pos < strbuf->size);
+	assert(buf->size && buf->string);
+	assert(buf->pos < buf->size);
 
-	memcpy((void *)(strbuf->string + strbuf->pos), data, n);
-	strbuf->pos += n;
-	strbuf->string[strbuf->pos] = '\0';
+	memcpy((void *)(buf->string + buf->pos), data, n);
+	buf->pos += n;
+	buf->string[buf->pos] = '\0';
 
 	/* even though this function always appends to the existing buffer, the
 	 * size might have previously been reset */
-	CHECK_SHRINK(strbuf);
+	CHECK_SHRINK(buf);
 
 	return (ssize_t)n;
 } /* sdb_strbuf_memappend */
 
 ssize_t
-sdb_strbuf_memcpy(sdb_strbuf_t *strbuf, const void *data, size_t n)
+sdb_strbuf_memcpy(sdb_strbuf_t *buf, const void *data, size_t n)
 {
-	if ((! strbuf) || (! data))
+	if ((! buf) || (! data))
 		return -1;
 
-	if (strbuf->size) {
-		strbuf->string[0] = '\0';
-		strbuf->pos = 0;
+	if (buf->size) {
+		buf->string[0] = '\0';
+		buf->pos = 0;
 	}
 
-	return sdb_strbuf_memappend(strbuf, data, n);
+	return sdb_strbuf_memappend(buf, data, n);
 } /* sdb_strbuf_memcpy */
 
 ssize_t
-sdb_strbuf_read(sdb_strbuf_t *strbuf, int fd, size_t n)
+sdb_strbuf_read(sdb_strbuf_t *buf, int fd, size_t n)
 {
 	ssize_t ret;
 
-	if (! strbuf)
+	if (! buf)
 		return -1;
 
-	if (strbuf->pos + n + 1 >= strbuf->size)
-		if (strbuf_resize(strbuf, strbuf->pos + n + 1))
+	if (buf->pos + n + 1 >= buf->size)
+		if (strbuf_resize(buf, buf->pos + n + 1))
 			return -1;
 
-	ret = read(fd, strbuf->string + strbuf->pos, n);
+	ret = read(fd, buf->string + buf->pos, n);
 	if (ret > 0)
-		strbuf->pos += (size_t)ret;
+		buf->pos += (size_t)ret;
 	return ret;
 } /* sdb_strbuf_read */
 
 ssize_t
-sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
+sdb_strbuf_chomp(sdb_strbuf_t *buf)
 {
 	ssize_t ret = 0;
 
-	if (! strbuf)
+	if (! buf)
 		return -1;
 
-	assert((!strbuf->size) || (strbuf->pos < strbuf->size));
-	assert(strbuf->pos <= strbuf->size);
+	assert((!buf->size) || (buf->pos < buf->size));
+	assert(buf->pos <= buf->size);
 
-	while ((strbuf->pos > 0)
-			&& (strbuf->string[strbuf->pos - 1] == '\n')) {
-		--strbuf->pos;
-		strbuf->string[strbuf->pos] = '\0';
+	while ((buf->pos > 0)
+			&& (buf->string[buf->pos - 1] == '\n')) {
+		--buf->pos;
+		buf->string[buf->pos] = '\0';
 		++ret;
 	}
 
@@ -304,72 +304,72 @@ sdb_strbuf_chomp(sdb_strbuf_t *strbuf)
 } /* sdb_strbuf_chomp */
 
 void
-sdb_strbuf_skip(sdb_strbuf_t *strbuf, size_t offset, size_t n)
+sdb_strbuf_skip(sdb_strbuf_t *buf, size_t offset, size_t n)
 {
 	char *start;
 	size_t len;
 
-	if ((! strbuf) || (! n))
+	if ((! buf) || (! n))
 		return;
 
-	if (offset >= strbuf->pos)
+	if (offset >= buf->pos)
 		return;
 
-	len = strbuf->pos - offset;
+	len = buf->pos - offset;
 
 	if (n >= len) {
-		strbuf->string[offset] = '\0';
-		strbuf->pos = offset;
+		buf->string[offset] = '\0';
+		buf->pos = offset;
 		return;
 	}
 
-	assert(offset + n < strbuf->pos);
-	assert(offset < strbuf->pos);
+	assert(offset + n < buf->pos);
+	assert(offset < buf->pos);
 
-	start = strbuf->string + offset;
+	start = buf->string + offset;
 	memmove(start, start + n, len - n);
-	strbuf->pos -= n;
-	strbuf->string[strbuf->pos] = '\0';
+	buf->pos -= n;
+	buf->string[buf->pos] = '\0';
 
 	/* don't resize now but wait for the next write to avoid churn */
 } /* sdb_strbuf_skip */
 
 void
-sdb_strbuf_clear(sdb_strbuf_t *strbuf)
+sdb_strbuf_clear(sdb_strbuf_t *buf)
 {
-	if ((! strbuf) || (! strbuf->size))
+	if ((! buf) || (! buf->size))
 		return;
 
-	strbuf->string[0] = '\0';
-	strbuf->pos = 0;
+	buf->string[0] = '\0';
+	buf->pos = 0;
 
 	/* don't resize now but wait for the next write to avoid churn */
 } /* sdb_strbuf_clear */
 
 const char *
-sdb_strbuf_string(sdb_strbuf_t *strbuf)
+sdb_strbuf_string(sdb_strbuf_t *buf)
 {
-	if (! strbuf)
+	if (! buf)
 		return NULL;
-	if (! strbuf->size)
+	if (! buf->size)
 		return "";
-	return strbuf->string;
+	return buf->string;
 } /* sdb_strbuf_string */
 
 size_t
-sdb_strbuf_len(sdb_strbuf_t *strbuf)
+sdb_strbuf_len(sdb_strbuf_t *buf)
 {
-	if (! strbuf)
+	if (! buf)
 		return 0;
-	return strbuf->pos;
+	return buf->pos;
 } /* sdb_strbuf_string */
 
 size_t
-sdb_strbuf_cap(sdb_strbuf_t *strbuf)
+sdb_strbuf_cap(sdb_strbuf_t *buf)
 {
-	if (! strbuf)
+	if (! buf)
 		return 0;
-	return strbuf->size;
+	return buf->size;
 } /* sdb_strbuf_cap */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
