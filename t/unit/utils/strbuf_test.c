@@ -233,6 +233,9 @@ START_TEST(test_sprintf)
 
 	size_t i;
 
+	sdb_strbuf_destroy(buf);
+	buf = sdb_strbuf_create(1); /* -> min_size = 1 */
+
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		n = sdb_strbuf_sprintf(buf, "%s", golden_data[i]);
 		fail_unless((size_t)n == strlen(golden_data[i]),
@@ -251,7 +254,9 @@ START_TEST(test_sprintf)
 				"got: %s; expected: %s", test, golden_data[i]);
 
 		check = sdb_strbuf_cap(buf);
-		if (n) /* 3 times the current len is the threshold for shrinking */
+		/* 3 times the current len is the threshold for shrinking,
+		 * but it's capped to the initial size (or 64) */
+		if (n)
 			fail_unless(((size_t)n < check) && (check < (size_t)n * 3),
 					"sdb_strbuf_sprintf() did not resize the buffer "
 					"correctly (got size %zu; expected %zi < <size> < %d)",

@@ -39,7 +39,8 @@
 /* free memory if most of the buffer is unused */
 #define CHECK_SHRINK(buf) \
 	do { \
-		if ((buf)->pos < (buf)->size / 3) \
+		if (((buf)->pos < (buf)->size / 3) \
+				&& (2 * (buf)->pos > (buf)->min_size)) \
 			/* don't free all memory to avoid churn */ \
 			strbuf_resize((buf), 2 * (buf)->pos); \
 	} while (0)
@@ -52,6 +53,9 @@ struct sdb_strbuf {
 	char  *string;
 	size_t size;
 	size_t pos;
+
+	/* min size to shrink the buffer to */
+	size_t min_size;
 };
 
 /*
@@ -100,7 +104,10 @@ sdb_strbuf_create(size_t size)
 		}
 
 		buf->string[0] = '\0';
+		buf->min_size = size;
 	}
+	else
+		buf->min_size = 64;
 
 	buf->size = size;
 	buf->pos  = 0;
