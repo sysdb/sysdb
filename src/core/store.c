@@ -555,7 +555,7 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 		snprintf(end_str, sizeof(end_str), "<error>");
 	end_str[sizeof(end_str) - 1] = '\0';
 
-	sdb_strbuf_append(buf, "{\"start\": \"%s\", \"end\": \"%s\", {",
+	sdb_strbuf_append(buf, "{\"start\": \"%s\", \"end\": \"%s\", \"data\": {",
 			start_str, end_str);
 
 	for (i = 0; i < ts->data_names_len; ++i) {
