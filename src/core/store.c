@@ -967,7 +967,7 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 		return -1;
 	}
 
-	sdb_strbuf_append(buf, "{\"hosts\":[");
+	sdb_strbuf_append(buf, "[");
 
 	len = sdb_strbuf_len(buf);
 	while (sdb_avltree_iter_has_next(host_iter)) {
@@ -987,7 +987,7 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 			return -1;
 	}
 
-	sdb_strbuf_append(buf, "]}");
+	sdb_strbuf_append(buf, "]");
 
 	sdb_avltree_iter_destroy(host_iter);
 	pthread_rwlock_unlock(&host_lock);
