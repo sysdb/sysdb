@@ -48,7 +48,7 @@ Version 0.4.0, Release Date: 2014-09-01
      - Fixed a memory leak.
      - Apply (very) simple optimizations to lookup expressions.
      - Added support for metrics and their “data-stores” (describing how to
-       access the actual data references by a metric).
+       access the actual data referenced by a metric).
      - Added support for querying time-series data through the newly
        introduced “time-series fetcher” plugins.
    * frontend:
