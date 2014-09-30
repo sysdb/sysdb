@@ -10,6 +10,7 @@ SYNOPSIS
 --------
 
   LIST hosts;
+  LIST services;
 
   FETCH host 'some.host.name';
 
@@ -30,11 +31,13 @@ QUERY COMMANDS
 Each command is terminated by a semicolon. The following commands are
 available to retrieve information from SysDB:
 
-*LIST* hosts [*FILTER* '<filter_condition>']::
-Retrieve a sorted (by name) list of all hosts currently stored in SysDB. The
-return value is a list of hosts where each host specification includes its
-name, the timestamp of the last update of the object known to SysDB and an
-approximation of the interval with which the host was updated. If a filter
+*LIST* hosts|services|metrics [*FILTER* '<filter_condition>']::
+Retrieve a sorted (by name) list of all hosts currently stored in SysDB along
+with their services or metrics if requested. The return value is a list of
+hosts where each host specification includes its name, the timestamp of the
+last update of the object known to SysDB and an approximation of the interval
+with which the host was updated. When listing services or metrics, the
+respective objects will be included for each host as well. If a filter
 condition is specified, only objects matching that filter will be included in
 the reply. See the section "FILTER clause" for more details about how to
 specify the search and filter conditions.
