@@ -4,7 +4,7 @@ sysdbql(7)
 
 NAME
 ----
-sysdbql - the SysDB query language
+sysdbql - the SysDB query language (SysQL)
 
 SYNOPSIS
 --------
@@ -21,9 +21,9 @@ DESCRIPTION
 -----------
 include::sysdb-description.txt[]
 
-The SysDB query language is a human-readable format for describing a request
-to retrieve data from a SysDB daemon. It is very remotely similar to the
-Standard Query Language (SQL) supported by relational database management
+The SysDB query language (SysQL) is a human-readable format for describing a
+request to retrieve data from a SysDB daemon. It is very remotely similar to
+the Standard Query Language (SQL) supported by relational database management
 systems (RDBMS) but specialized for SysDB's use-case.
 
 QUERY COMMANDS
