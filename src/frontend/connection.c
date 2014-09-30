@@ -246,20 +246,6 @@ connection_log(int prio, const char *msg,
 	return 0;
 } /* connection_log */
 
-static uint32_t
-connection_get_int32(sdb_conn_t *conn, size_t offset)
-{
-	const char *data;
-	uint32_t n;
-
-	assert(conn && (sdb_strbuf_len(conn->buf) >= offset + sizeof(uint32_t)));
-
-	data = sdb_strbuf_string(conn->buf);
-	memcpy(&n, data + offset, sizeof(n));
-	n = ntohl(n);
-	return n;
-} /* connection_get_int32 */
-
 static int
 command_handle(sdb_conn_t *conn)
 {
@@ -314,8 +300,8 @@ command_init(sdb_conn_t *conn)
 	/* reset */
 	sdb_strbuf_clear(conn->errbuf);
 
-	conn->cmd = connection_get_int32(conn, 0);
-	conn->cmd_len = connection_get_int32(conn, sizeof(uint32_t));
+	conn->cmd = sdb_proto_get_int(conn->buf, 0);
+	conn->cmd_len = sdb_proto_get_int(conn->buf, sizeof(uint32_t));
 
 	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
