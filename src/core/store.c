@@ -928,6 +928,10 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
 	if ((! h) || (h->type != SDB_HOST) || (! buf))
 		return -1;
 
+	/* This function ignores SKIP_EMPTY flags given that the current
+	 * implementation sucks and it's nut currently used when calling this
+	 * function directly. */
+
 	sdb_strbuf_append(buf, "{\"name\": \"%s\", ", SDB_OBJ(host)->name);
 	store_common_tojson(h, buf);
 
@@ -949,6 +953,26 @@ sdb_store_host_tojson(sdb_store_obj_t *h, sdb_strbuf_t *buf,
 	sdb_strbuf_append(buf, "}");
 	return 0;
 } /* sdb_store_host_tojson */
+
+static _Bool
+has_children(sdb_avltree_t *tree, sdb_store_matcher_t *filter)
+{
+	sdb_avltree_iter_t *iter;
+
+	if (! filter)
+		return sdb_avltree_size(tree) > 0;
+
+	iter = sdb_avltree_get_iter(tree);
+	while (sdb_avltree_iter_has_next(iter)) {
+		sdb_store_obj_t *sobj = STORE_OBJ(sdb_avltree_iter_get_next(iter));
+		if (sdb_store_matcher_matches(filter, sobj, NULL)) {
+			sdb_avltree_iter_destroy(iter);
+			return 1;
+		}
+	}
+	sdb_avltree_iter_destroy(iter);
+	return 0;
+} /* has_children */
 
 int
 sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
@@ -977,6 +1001,19 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 		assert(host);
 
 		if (filter && (! sdb_store_matcher_matches(filter, host, NULL)))
+			continue;
+
+		/*
+		 * XXX: This approach sucks but it's the best we can do at the moment.
+		 * In the future, all store lookups should be split into multiple
+		 * steps instead: first, retrieve all relevant objects and apply all
+		 * pre-processing operations and then format it for the wire.
+		 */
+		if ((flags & SDB_SKIP_EMPTY_SERVICES)
+				&& (! has_children(HOST(host)->services, filter)))
+			continue;
+		if ((flags & SDB_SKIP_EMPTY_METRICS)
+				&& (! has_children(HOST(host)->metrics, filter)))
 			continue;
 
 		if (sdb_strbuf_len(buf) > len)

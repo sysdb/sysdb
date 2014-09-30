@@ -271,9 +271,11 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 	if (type == SDB_HOST)
 		flags = SDB_SKIP_ALL;
 	else if (type == SDB_SERVICE)
-		flags = SDB_SKIP_ALL & (~SDB_SKIP_SERVICES);
+		flags = (SDB_SKIP_ALL & (~SDB_SKIP_SERVICES))
+			| SDB_SKIP_EMPTY_SERVICES;
 	else if (type == SDB_METRIC)
-		flags = SDB_SKIP_ALL & (~SDB_SKIP_METRICS);
+		flags = (SDB_SKIP_ALL & (~SDB_SKIP_METRICS))
+			| SDB_SKIP_EMPTY_METRICS;
 	else {
 		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
 				"for LIST command", type);

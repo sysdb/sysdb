@@ -518,8 +518,9 @@ sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 /*
  * Flags for serialization functions.
  *
- * By default, the full object will be included in the serialized output. When
- * specifying any of the flags, the respective information will be left out.
+ * By default, the full host object will be included in the serialized output.
+ * When specifying any of the flags, the respective information will be left
+ * out. The SKIP_EMPTY flags may be used to skip host objects entirely.
  */
 enum {
 	SDB_SKIP_ATTRIBUTES         = 1 << 0,
@@ -527,7 +528,11 @@ enum {
 	SDB_SKIP_METRICS            = 1 << 2,
 	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 3,
 
-	SDB_SKIP_ALL                = 0xffff,
+	SDB_SKIP_ALL                = (1 << 8) - 1,
+
+	/* skip hosts if they do not reference any services/metrics */
+	SDB_SKIP_EMPTY_SERVICES     = 1 << 8,
+	SDB_SKIP_EMPTY_METRICS      = 1 << 9,
 };
 
 /*
