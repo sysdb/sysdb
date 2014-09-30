@@ -858,6 +858,18 @@ sdb_store_isnull_matcher(const char *attr_name)
 } /* sdb_store_isnull_matcher */
 
 int
+sdb_store_parse_object_type_plural(const char *name)
+{
+	if (! strcasecmp(name, "hosts"))
+		return SDB_HOST;
+	else if (! strcasecmp(name, "services"))
+		return SDB_SERVICE;
+	else if (! strcasecmp(name, "metrics"))
+		return SDB_METRIC;
+	return -1;
+} /* sdb_store_parse_object_type_plural */
+
+int
 sdb_store_parse_field_name(const char *name)
 {
 	if (! strcasecmp(name, "last_update"))

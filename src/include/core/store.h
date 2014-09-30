@@ -398,6 +398,17 @@ sdb_store_matcher_t *
 sdb_store_gt_matcher(sdb_store_cond_t *cond);
 
 /*
+ * sdb_store_parse_object_type_plural:
+ * Parse the type name (plural) of a stored object.
+ *
+ * Returns:
+ *  - the object type on success
+ *  - a negative value else
+ */
+int
+sdb_store_parse_object_type_plural(const char *name);
+
+/*
  * sdb_store_parse_field_name:
  * Parse the name of a stored object's queryable field.
  *
