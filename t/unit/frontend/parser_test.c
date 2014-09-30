@@ -62,6 +62,12 @@ START_TEST(test_parse)
 		{ "LIST hosts; INVALID", 11,  1, CONNECTION_LIST   },
 		{ "LIST hosts FILTER "
 		  "host = 'host'",       -1,  1, CONNECTION_LIST   },
+		{ "LIST services",       -1,  1, CONNECTION_LIST   },
+		{ "LIST services FILTER "
+		  "service = 'svc'",     -1,  1, CONNECTION_LIST   },
+		{ "LIST metrics",        -1,  1, CONNECTION_LIST   },
+		{ "LIST metrics FILTER "
+		  "metric = 'metric'",   -1,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "

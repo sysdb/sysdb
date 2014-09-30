@@ -70,6 +70,20 @@ echo "$output" \
 	| grep -F '"other.host.name"' \
 	| grep -F '"some.host.name"'
 
+output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST services' )"
+echo "$output" \
+	| grep -F '"host1.example.com"' \
+	| grep -F '"host2.example.com"' \
+	| grep -F '"localhost"' \
+	| grep -F '"other.host.name"' \
+	| grep -F '"some.host.name"' \
+	| grep -F '"mock service"' \
+	| grep -F '"other service"' \
+	| grep -F '"database"' \
+	| grep -F '"example service one"' \
+	| grep -F '"example service two"' \
+	| grep -F '"example service three"'
+
 output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'host1.example.com'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \

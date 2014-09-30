@@ -249,8 +249,8 @@ fetch_statement:
 list_statement:
 	LIST IDENTIFIER filter_clause
 		{
-			/* TODO: support other types as well */
-			if (strcasecmp($2, "hosts")) {
+			int type = sdb_store_parse_object_type_plural($2);
+			if (type < 0) {
 				char errmsg[strlen($2) + 32];
 				snprintf(errmsg, sizeof(errmsg),
 						YY_("unknown data-source %s"), $2);
@@ -262,7 +262,7 @@ list_statement:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_list_t, conn_list_destroy));
-			CONN_LIST($$)->type = SDB_HOST;
+			CONN_LIST($$)->type = type;
 			CONN_LIST($$)->filter = CONN_MATCHER($3);
 			$$->cmd = CONNECTION_LIST;
 			free($2); $2 = NULL;
