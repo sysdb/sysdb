@@ -262,6 +262,7 @@ list_statement:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_list_t, conn_list_destroy));
+			CONN_LIST($$)->type = SDB_HOST;
 			CONN_LIST($$)->filter = CONN_MATCHER($3);
 			$$->cmd = CONNECTION_LIST;
 			free($2); $2 = NULL;

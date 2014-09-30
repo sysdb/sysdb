@@ -89,6 +89,7 @@ typedef struct {
 
 typedef struct {
 	sdb_conn_node_t super;
+	int type;
 	conn_matcher_t *filter;
 } conn_list_t;
 #define CONN_LIST(obj) ((conn_list_t *)(obj))

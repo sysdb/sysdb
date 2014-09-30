@@ -177,7 +177,9 @@ typedef enum {
 
 	/*
 	 * CONNECTION_LIST:
-	 * Execute the 'LIST' command in the server.
+	 * Execute the 'LIST' command in the server. The message body may include
+	 * the type of the objects to be included in addition to all hosts,
+	 * encoded as a 32bit integer in network byte-order.
 	 */
 	CONNECTION_LIST,
 

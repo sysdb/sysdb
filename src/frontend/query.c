@@ -31,6 +31,7 @@
 #include "frontend/connection-private.h"
 #include "frontend/parser.h"
 #include "utils/error.h"
+#include "utils/proto.h"
 #include "utils/strbuf.h"
 
 #include <errno.h>
@@ -135,9 +136,21 @@ sdb_fe_fetch(sdb_conn_t *conn)
 int
 sdb_fe_list(sdb_conn_t *conn)
 {
+	int type = SDB_HOST;
+
 	if ((! conn) || (conn->cmd != CONNECTION_LIST))
 		return -1;
-	return sdb_fe_exec_list(conn, /* filter = */ NULL);
+
+	if (conn->cmd_len == sizeof(uint32_t))
+		type = sdb_proto_get_int(conn->buf, 0);
+	else if (conn->cmd_len) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
+				"LIST command", conn->cmd_len);
+		sdb_strbuf_sprintf(conn->errbuf, "LIST: Invalid command length %d",
+				conn->cmd_len);
+		return -1;
+	}
+	return sdb_fe_exec_list(conn, type, /* filter = */ NULL);
 } /* sdb_fe_list */
 
 int
@@ -181,7 +194,7 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 		case CONNECTION_LIST:
 			if (CONN_LIST(node)->filter)
 				filter = CONN_LIST(node)->filter->matcher;
-			return sdb_fe_exec_list(conn, filter);
+			return sdb_fe_exec_list(conn, CONN_LIST(node)->type, filter);
 		case CONNECTION_LOOKUP:
 			if (CONN_LOOKUP(node)->matcher)
 				m = CONN_LOOKUP(node)->matcher->matcher;
@@ -206,7 +219,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 {
 	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
-	uint32_t type = htonl(CONNECTION_FETCH);
+	uint32_t res_type = htonl(CONNECTION_FETCH);
 
 	host = sdb_store_get_host(name);
 	if (! host) {
@@ -230,7 +243,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 		return -1;
 	}
 
-	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
 	if (sdb_store_host_tojson(host, buf, filter, /* flags = */ 0)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"host '%s' to JSON", name);
@@ -248,10 +261,26 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
 } /* sdb_fe_exec_fetch */
 
 int
-sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
+sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
-	uint32_t type = htonl(CONNECTION_LIST);
+	uint32_t res_type = htonl(CONNECTION_LIST);
+
+	int flags;
+
+	if (type == SDB_HOST)
+		flags = SDB_SKIP_ALL;
+	else if (type == SDB_SERVICE)
+		flags = SDB_SKIP_ALL & (~SDB_SKIP_SERVICES);
+	else if (type == SDB_METRIC)
+		flags = SDB_SKIP_ALL & (~SDB_SKIP_METRICS);
+	else {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
+				"for LIST command", type);
+		sdb_strbuf_sprintf(conn->errbuf,
+				"LIST: Invalid object type %d", type);
+		return -1;
+	}
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -265,8 +294,8 @@ sdb_fe_exec_list(sdb_conn_t *conn, sdb_store_matcher_t *filter)
 		return -1;
 	}
 
-	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
-	if (sdb_store_tojson(buf, filter, /* flags = */ SDB_SKIP_ALL)) {
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
+	if (sdb_store_tojson(buf, filter, flags)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
@@ -285,7 +314,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		sdb_store_matcher_t *filter)
 {
 	tojson_data_t data = { NULL, filter, 0 };
-	uint32_t type = htonl(CONNECTION_LOOKUP);
+	uint32_t res_type = htonl(CONNECTION_LOOKUP);
 
 	data.buf = sdb_strbuf_create(1024);
 	if (! data.buf) {
@@ -299,7 +328,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
 		return -1;
 	}
 
-	sdb_strbuf_memcpy(data.buf, &type, sizeof(uint32_t));
+	sdb_strbuf_memcpy(data.buf, &res_type, sizeof(uint32_t));
 	sdb_strbuf_append(data.buf, "[");
 
 	/* Let the JSON serializer handle the filter instead of the scanner. Else,
@@ -327,7 +356,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		sdb_timeseries_opts_t *opts)
 {
 	sdb_strbuf_t *buf;
-	uint32_t type = htonl(CONNECTION_TIMESERIES);
+	uint32_t res_type = htonl(CONNECTION_TIMESERIES);
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -340,7 +369,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		return -1;
 	}
 
-	sdb_strbuf_memcpy(buf, &type, sizeof(uint32_t));
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
 	if (sdb_store_fetch_timeseries(hostname, metric, opts, buf)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch time-series");
