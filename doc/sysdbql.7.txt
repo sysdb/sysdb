@@ -222,7 +222,7 @@ The following examples illustrate the use of the commands and what their
 replies look like. The replies are pretty-printed to more easily follow them.
 
   LIST hosts;
-  {"hosts":[{
+  [{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
       "update_interval": "5m4s"
@@ -230,7 +230,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
       "name": "host2.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
       "update_interval": "5m4s"
-    }]}
+    }]
 
   FETCH host 'host1.example.com';
   {
