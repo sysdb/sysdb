@@ -186,16 +186,16 @@ sdb_fe_lookup(sdb_conn_t *conn);
 
 /*
  * sdb_fe_exec_fetch:
- * Execute the 'FETCH' command. Send the named host, serialized as JSON, to
- * the client. If specified, only objects matching the filter will be
- * included. See sdb_store_tojson for details.
+ * Execute the 'FETCH' command. Send the named object of the specified type,
+ * serialized as JSON, to the client. If specified, only objects matching the
+ * filter will be included. See sdb_store_tojson for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
+sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 		sdb_store_matcher_t *filter);
 
 /*
@@ -214,17 +214,17 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter);
 
 /*
  * sdb_fe_exec_lookup:
- * Execute the 'LOOKUP' command. Send a list of hosts matching 'm', serialized
- * as JSON, to the client. If specified, only objects matching the filter will
- * be included. See sdb_store_tojson for details.
+ * Execute the 'LOOKUP' command. Send a list of objects of the specified type
+ * matching 'm', serialized as JSON, to the client. If specified, only objects
+ * matching the filter will be included. See sdb_store_tojson for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
-		sdb_store_matcher_t *filter);
+sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
+		sdb_store_matcher_t *m, sdb_store_matcher_t *filter);
 
 /*
  * sdb_fe_exec_timeseries:

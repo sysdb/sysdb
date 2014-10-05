@@ -171,22 +171,27 @@ typedef enum {
 	/*
 	 * CONNECTION_FETCH:
 	 * Execute the 'FETCH' command in the server. The message body shall
-	 * include the hostname of the host to be retrieved.
+	 * include the type and the identifier of the object to be retrieved.
+	 * Hosts are identified by their name. Other types are not supported yet.
+	 * The type is encoded as a 32bit integer in network byte-order.
 	 */
 	CONNECTION_FETCH,
 
 	/*
 	 * CONNECTION_LIST:
 	 * Execute the 'LIST' command in the server. The message body may include
-	 * the type of the objects to be included in addition to all hosts,
-	 * encoded as a 32bit integer in network byte-order.
+	 * the type of the objects to be listed, encoded as a 32bit integer in
+	 * network byte-order. The response includes all hosts and the respective
+	 * child objects. By default, all hosts are listed.
 	 */
 	CONNECTION_LIST,
 
 	/*
 	 * CONNECTION_LOOKUP:
 	 * Execute the 'LOOKUP' command in the server. The message body shall
-	 * include the conditional expression of the 'MATCHING' clause.
+	 * include the type of the objects to look up and a string representing
+	 * the conditional expression of the 'MATCHING' clause. The type is
+	 * encoded as a 32bit integer in network byte-order.
 	 */
 	CONNECTION_LOOKUP,
 

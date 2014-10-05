@@ -125,12 +125,25 @@ sdb_fe_query(sdb_conn_t *conn)
 int
 sdb_fe_fetch(sdb_conn_t *conn)
 {
-	char hostname[conn->cmd_len + 1];
+	char name[conn->cmd_len + 1];
+	int type;
+
 	if ((! conn) || (conn->cmd != CONNECTION_FETCH))
 		return -1;
-	strncpy(hostname, sdb_strbuf_string(conn->buf), conn->cmd_len);
-	hostname[sizeof(hostname) - 1] = '\0';
-	return sdb_fe_exec_fetch(conn, hostname, /* filter = */ NULL);
+
+	if (conn->cmd_len < sizeof(type)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
+				"FETCH command", conn->cmd_len);
+		sdb_strbuf_sprintf(conn->errbuf, "FETCH: Invalid command length %d",
+				conn->cmd_len);
+		return -1;
+	}
+
+	type = sdb_proto_get_int(conn->buf, 0);
+	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(type),
+			conn->cmd_len - sizeof(type));
+	name[sizeof(name) - 1] = '\0';
+	return sdb_fe_exec_fetch(conn, type, name, /* filter = */ NULL);
 } /* sdb_fe_fetch */
 
 int
@@ -157,23 +170,37 @@ int
 sdb_fe_lookup(sdb_conn_t *conn)
 {
 	sdb_store_matcher_t *m;
+	const char *matcher;
+	size_t matcher_len;
+
+	uint32_t type;
 	int status;
 
 	if ((! conn) || (conn->cmd != CONNECTION_LOOKUP))
 		return -1;
 
-	m = sdb_fe_parse_matcher(sdb_strbuf_string(conn->buf),
-			(int)conn->cmd_len);
+	if (conn->cmd_len < sizeof(type)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
+				"LOOKUP command", conn->cmd_len);
+		sdb_strbuf_sprintf(conn->errbuf, "LOOKUP: Invalid command length %d",
+				conn->cmd_len);
+		return -1;
+	}
+	type = sdb_proto_get_int(conn->buf, 0);
+
+	matcher = sdb_strbuf_string(conn->buf) + sizeof(type);
+	matcher_len = conn->cmd_len - sizeof(type);
+	m = sdb_fe_parse_matcher(matcher, (int)matcher_len);
 	if (! m) {
-		char expr[conn->cmd_len + 1];
-		strncpy(expr, sdb_strbuf_string(conn->buf), conn->cmd_len);
+		char expr[matcher_len + 1];
+		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
 				"lookup condition '%s'", expr);
 		return -1;
 	}
 
-	status = sdb_fe_exec_lookup(conn, m, /* filter = */ NULL);
+	status = sdb_fe_exec_lookup(conn, type, m, /* filter = */ NULL);
 	sdb_object_deref(SDB_OBJ(m));
 	return status;
 } /* sdb_fe_lookup */
@@ -190,7 +217,8 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 		case CONNECTION_FETCH:
 			if (CONN_FETCH(node)->filter)
 				filter = CONN_FETCH(node)->filter->matcher;
-			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->name, filter);
+			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->type,
+					CONN_FETCH(node)->name, filter);
 		case CONNECTION_LIST:
 			if (CONN_LIST(node)->filter)
 				filter = CONN_LIST(node)->filter->matcher;
@@ -200,7 +228,8 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 				m = CONN_LOOKUP(node)->matcher->matcher;
 			if (CONN_LOOKUP(node)->filter)
 				filter = CONN_LOOKUP(node)->filter->matcher;
-			return sdb_fe_exec_lookup(conn, m, filter);
+			return sdb_fe_exec_lookup(conn,
+					CONN_LOOKUP(node)->type, m, filter);
 		case CONNECTION_TIMESERIES:
 			return sdb_fe_exec_timeseries(conn,
 					CONN_TS(node)->hostname, CONN_TS(node)->metric,
@@ -214,12 +243,21 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 } /* sdb_fe_exec */
 
 int
-sdb_fe_exec_fetch(sdb_conn_t *conn, const char *name,
+sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 		sdb_store_matcher_t *filter)
 {
 	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
 	uint32_t res_type = htonl(CONNECTION_FETCH);
+
+	/* XXX: support other types */
+	if (type != SDB_HOST) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
+				"in FETCH command", type);
+		sdb_strbuf_sprintf(conn->errbuf,
+				"FETCH: Invalid object type %d", type);
+		return -1;
+	}
 
 	host = sdb_store_get_host(name);
 	if (! host) {
@@ -312,11 +350,20 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 } /* sdb_fe_exec_list */
 
 int
-sdb_fe_exec_lookup(sdb_conn_t *conn, sdb_store_matcher_t *m,
-		sdb_store_matcher_t *filter)
+sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
+		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
 	tojson_data_t data = { NULL, filter, 0 };
 	uint32_t res_type = htonl(CONNECTION_LOOKUP);
+
+	/* XXX: support other types */
+	if (type != SDB_HOST) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
+				"in LOOKUP command", type);
+		sdb_strbuf_sprintf(conn->errbuf,
+				"LOOKUP: Invalid object type %d", type);
+		return -1;
+	}
 
 	data.buf = sdb_strbuf_create(1024);
 	if (! data.buf) {

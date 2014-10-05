@@ -234,6 +234,7 @@ fetch_statement:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
+			CONN_FETCH($$)->type = SDB_HOST;
 			CONN_FETCH($$)->name = $3;
 			CONN_FETCH($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_FETCH;
@@ -291,6 +292,7 @@ lookup_statement:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_lookup_t, conn_lookup_destroy));
+			CONN_LOOKUP($$)->type = SDB_HOST;
 			CONN_LOOKUP($$)->matcher = CONN_MATCHER($3);
 			CONN_LOOKUP($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_LOOKUP;

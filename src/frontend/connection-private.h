@@ -96,6 +96,7 @@ typedef struct {
 
 typedef struct {
 	sdb_conn_node_t super;
+	int type;
 	char *name;
 	conn_matcher_t *filter;
 } conn_fetch_t;
@@ -103,6 +104,7 @@ typedef struct {
 
 typedef struct {
 	sdb_conn_node_t super;
+	int type;
 	conn_matcher_t *matcher;
 	conn_matcher_t *filter;
 } conn_lookup_t;
