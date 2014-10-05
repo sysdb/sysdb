@@ -380,7 +380,7 @@ sdb_data_strlen(const sdb_data_t *datum)
 			/* log(64) */
 			return 20;
 		case SDB_TYPE_DECIMAL:
-			/* XXX: -0xN.NNNNNNp+NNN */
+			/* XXX: -d.dddddde+dd or -ddddd.dddddd */
 			return 42;
 		case SDB_TYPE_STRING:
 			if (! datum->data.string)
@@ -416,7 +416,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 			ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
 			break;
 		case SDB_TYPE_DECIMAL:
-			ret = snprintf(buf, buflen, "%a", datum->data.decimal);
+			ret = snprintf(buf, buflen, "%g", datum->data.decimal);
 			break;
 		case SDB_TYPE_STRING:
 			if (! datum->data.string)

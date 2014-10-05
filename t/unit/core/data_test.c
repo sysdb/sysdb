@@ -533,7 +533,11 @@ START_TEST(test_format)
 		},
 		{
 			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
-			"0x1p+16",
+			"65536",
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 12.3 } },
+			"12.3",
 		},
 		{
 			{ SDB_TYPE_STRING, { .string = NULL } },
