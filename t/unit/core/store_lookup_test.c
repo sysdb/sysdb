@@ -287,6 +287,7 @@ START_TEST(test_attr_cond)
 		{ "k1", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 1, 1, 1, 0 },
 		{ "k1", { SDB_TYPE_STRING,  { .string  = "v2" } },  1, 1, 0, 0, 0 },
 		{ "k1", { SDB_TYPE_STRING,  { .string  = "v0" } },  0, 0, 0, 1, 1 },
+		{ "k1", { SDB_TYPE_STRING,  { .string  = "0" } },   0, 0, 0, 1, 1 },
 		{ "k2", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 1, 1, 1, 0 },
 		{ "k2", { SDB_TYPE_INTEGER, { .integer = 124 } },   1, 1, 0, 0, 0 },
 		{ "k2", { SDB_TYPE_INTEGER, { .integer = 122 } },   0, 0, 0, 1, 1 },
@@ -295,8 +296,8 @@ START_TEST(test_attr_cond)
 		{ "k3", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
 		{ "k3", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 0, 0, 0, 0 },
 		/* type mismatch */
-		{ "k1", { SDB_TYPE_INTEGER, { .integer = 0 } },     0, 0, 0, 0, 0 },
-		{ "k2", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
+		{ "k1", { SDB_TYPE_INTEGER, { .integer = 0 } },     0, 0, 0, 1, 1 },
+		{ "k2", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 1, 1, 1, 0 },
 	};
 
 	int status;

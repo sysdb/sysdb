@@ -121,7 +121,7 @@ attr_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 	if (! attr)
 		status = INT_MAX;
 	else if (attr->value.type != value.type)
-		status = INT_MAX;
+		status = sdb_data_strcmp(&attr->value, &value);
 	else
 		status = sdb_data_cmp(&attr->value, &value);
 	sdb_data_free_datum(&value);
