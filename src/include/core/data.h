@@ -105,7 +105,7 @@ sdb_data_free_datum(sdb_data_t *datum);
 /*
  * sdb_data_cmp:
  * Compare two data points. A NULL datum is considered less than any non-NULL
- * datum. On data-type mismatch, the function always returns a negative value.
+ * datum. On data-type mismatch, the function always returns a non-zero value.
  *
  * Returns:
  *  - a value less than zero if d1 compares less than d2

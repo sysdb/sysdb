@@ -293,7 +293,7 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	CMP_NULL(d1, d2);
 
 	if (d1->type != d2->type)
-		return -1;
+		return SDB_CMP(d1->type, d2->type);
 
 	switch (d1->type) {
 		case SDB_TYPE_INTEGER:
