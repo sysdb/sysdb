@@ -40,6 +40,8 @@ extern "C" {
  * message body depends on the message type. Both, the message type and length
  * are stored in an unsigned 32bit integer in network byte-order.
  *
+ * Any strings in the message body may not include a zero byte.
+ *
  *                  1               3               4               6
  *  0               6               2               8               4
  * +-------------------------------+-------------------------------+
@@ -63,7 +65,7 @@ typedef enum {
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
-	 * | message type  | length        |
+	 * | OK            | len(msg)      |
 	 * +---------------+---------------+
 	 * | optional status message ...   |
 	 */
@@ -76,7 +78,7 @@ typedef enum {
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
-	 * | message type  | length        |
+	 * | ERROR         | len(msg)      |
 	 * +---------------+---------------+
 	 * | error message ...             |
 	 */
@@ -90,7 +92,7 @@ typedef enum {
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
-	 * | message type  | length        |
+	 * | LOG           | length        |
 	 * +---------------+---------------+
 	 * | log priority  | log message   |
 	 * +---------------+               |
@@ -114,7 +116,7 @@ typedef enum {
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
-	 * | message type  | length        |
+	 * | DATA          | length        |
 	 * +---------------+---------------+
 	 * | result type   | result ...    |
 	 * +---------------+               |
@@ -134,7 +136,13 @@ typedef enum {
 	/*
 	 * CONNECTION_PING:
 	 * Check if the current connection is still alive. The server will reply
-	 * with CONNECTION_OK if it was able to handle the command.
+	 * with CONNECTION_OK and an empty message body if it was able to handle
+	 * the command.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | PING          | 0             |
+	 * +---------------+---------------+
 	 */
 	CONNECTION_PING,
 
@@ -148,6 +156,12 @@ typedef enum {
 	 * the server using special messages specific to the authentication
 	 * method. The server does not send any asynchronous messages before
 	 * startup is complete.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | STARTUP       | len(username) |
+	 * +---------------+---------------+
+	 * | username ...                  |
 	 */
 	CONNECTION_STARTUP,
 
@@ -164,7 +178,13 @@ typedef enum {
 	 * CONNECTION_QUERY:
 	 * Execute a query in the server. The message body shall include a single
 	 * query command as a text string. Multiple commands are ignored by the
-	 * server entirely.
+	 * server entirely to protect against injection attacks.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | QUERY         | len(query)    |
+	 * +---------------+---------------+
+	 * | query string ...              |
 	 */
 	CONNECTION_QUERY,
 
@@ -174,6 +194,14 @@ typedef enum {
 	 * include the type and the identifier of the object to be retrieved.
 	 * Hosts are identified by their name. Other types are not supported yet.
 	 * The type is encoded as a 32bit integer in network byte-order.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | FETCH         | length        |
+	 * +---------------+---------------+
+	 * | object type   | identifier    |
+	 * +---------------+               |
+	 * | ...                           |
 	 */
 	CONNECTION_FETCH,
 
@@ -183,6 +211,13 @@ typedef enum {
 	 * the type of the objects to be listed, encoded as a 32bit integer in
 	 * network byte-order. The response includes all hosts and the respective
 	 * child objects. By default, all hosts are listed.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | LIST          | length        |
+	 * +---------------+---------------+
+	 * | [object type] |
+	 * +---------------+
 	 */
 	CONNECTION_LIST,
 
@@ -192,6 +227,14 @@ typedef enum {
 	 * include the type of the objects to look up and a string representing
 	 * the conditional expression of the 'MATCHING' clause. The type is
 	 * encoded as a 32bit integer in network byte-order.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | LOOKUP        | length        |
+	 * +---------------+---------------+
+	 * | object type   | matching      |
+	 * +---------------+               |
+	 * | clause ...                    |
 	 */
 	CONNECTION_LOOKUP,
 
