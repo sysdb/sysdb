@@ -328,11 +328,31 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 
 			return diff;
 		}
-		default:
-			return -1;
 	}
-#undef CMP_NULL
+	return -1;
 } /* sdb_data_cmp */
+
+int
+sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2)
+{
+	char d1_str[sdb_data_strlen(d1) + 1];
+	char d2_str[sdb_data_strlen(d2) + 1];
+
+	if (sdb_data_isnull(d1))
+		d1 = NULL;
+	if (sdb_data_isnull(d2))
+		d2 = NULL;
+
+	CMP_NULL(d1, d2);
+
+	if (sdb_data_format(d1, d1_str, sizeof(d1_str), SDB_UNQUOTED) < 0)
+		return SDB_CMP(sizeof(d1_str), sizeof(d2_str));
+	if (sdb_data_format(d2, d2_str, sizeof(d2_str), SDB_UNQUOTED) < 0)
+		return SDB_CMP(sizeof(d1_str), sizeof(d2_str));
+
+	return strcasecmp(d1_str, d2_str);
+#undef CMP_NULL
+} /* sdb_data_strcmp */
 
 _Bool
 sdb_data_isnull(const sdb_data_t *datum)

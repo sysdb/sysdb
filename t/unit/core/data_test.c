@@ -115,6 +115,222 @@ START_TEST(test_cmp)
 		sdb_data_t d2;
 		int expected;
 	} golden_data[] = {
+		/* same data as for the sdb_data_cmp test; in case the types match,
+		 * both functions should behave the same (except for some loss in
+		 * precision, e.g. when formatting datetime values) */
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 47 } },
+			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
+			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
+			0,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
+			{ SDB_TYPE_INTEGER, { .integer = 47 } },
+			1,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 65535.9 } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
+			0,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 65536.0 } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 65535.9 } },
+			1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = NULL } },
+			{ SDB_TYPE_STRING, { .string = "" } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = NULL } },
+			{ SDB_TYPE_STRING, { .string = NULL } },
+			0,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "" } },
+			{ SDB_TYPE_STRING, { .string = NULL } },
+			1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			{ SDB_TYPE_STRING, { .string = "b" } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			{ SDB_TYPE_STRING, { .string = "ab" } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			0,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "b" } },
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "ab" } },
+			{ SDB_TYPE_STRING, { .string = "a" } },
+			1,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 471047114711471100 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 471147114711471100 } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 471147114711471100 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 471147114711471100 } },
+			0,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 471147114711471100 } },
+			{ SDB_TYPE_DATETIME, { .datetime = 471047114711471100 } },
+			1,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
+			{ SDB_TYPE_BINARY, { .binary = { 1, (unsigned char *)"a" } } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
+			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
+			0,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 1, (unsigned char *)"a" } } },
+			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
+			1,
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0a" } },
+			},
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0b" } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 1, (unsigned char *)"a" } },
+			},
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0\0" } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0a" } },
+			},
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0a" } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0b" } },
+			},
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0a" } },
+			},
+			1,
+		},
+		{
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 3, (unsigned char *)"a\0\0" } },
+			},
+			{
+				SDB_TYPE_BINARY,
+				{ .binary = { 1, (unsigned char *)"a" } },
+			},
+			1,
+		},
+		/* type mismatches */
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 123 } },
+			{ SDB_TYPE_STRING, { .string = "123" } },
+			0,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 120 } },
+			{ SDB_TYPE_STRING, { .string = "123" } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "123" } },
+			{ SDB_TYPE_INTEGER, { .integer = 120 } },
+			1,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "12.3" } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 12.3 } },
+			0,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "12.0" } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 12.3 } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 12.3 } },
+			{ SDB_TYPE_STRING, { .string = "12.0" } },
+			1,
+		},
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		int check = sdb_data_strcmp(&golden_data[i].d1, &golden_data[i].d2);
+		check = check < 0 ? -1 : check > 0 ? 1 : 0;
+		if (check != golden_data[i].expected) {
+			char d1_str[64] = "", d2_str[64] = "";
+			sdb_data_format(&golden_data[i].d1, d1_str, sizeof(d1_str),
+					SDB_DOUBLE_QUOTED);
+			sdb_data_format(&golden_data[i].d2, d2_str, sizeof(d2_str),
+					SDB_DOUBLE_QUOTED);
+			fail("sdb_data_strcmp(%s, %s) = %d; expected: %d",
+					d1_str, d2_str, check, golden_data[i].expected);
+		}
+	}
+}
+END_TEST
+
+START_TEST(test_strcmp)
+{
+	struct {
+		sdb_data_t d1;
+		sdb_data_t d2;
+		int expected;
+	} golden_data[] = {
 		{
 			{ SDB_TYPE_INTEGER, { .integer = 47 } },
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
@@ -663,6 +879,7 @@ core_data_suite(void)
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_data);
 	tcase_add_test(tc, test_cmp);
+	tcase_add_test(tc, test_strcmp);
 	tcase_add_test(tc, test_expr_eval);
 	tcase_add_test(tc, test_format);
 	tcase_add_test(tc, test_parse);

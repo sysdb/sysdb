@@ -116,6 +116,20 @@ int
 sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2);
 
 /*
+ * sdb_data_strcmp:
+ * Compare the string values of two data points. A NULL datum is considered
+ * less than any non-NULL. This function works for arbitrary combination of
+ * data-types.
+ *
+ * Returns:
+ *  - a value less than zero if d1 compares less than d2
+ *  - zero if d1 compares equal to d2
+ *  - a value greater than zero if d1 compares greater than d2
+ */
+int
+sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2);
+
+/*
  * sdb_data_isnull:
  * Determine whether a datum is NULL. A datum is considered to be NULL if
  * either datum is NULL or if the string or binary datum is NULL.
