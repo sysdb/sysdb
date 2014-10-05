@@ -116,6 +116,14 @@ int
 sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2);
 
 /*
+ * sdb_data_isnull:
+ * Determine whether a datum is NULL. A datum is considered to be NULL if
+ * either datum is NULL or if the string or binary datum is NULL.
+ */
+_Bool
+sdb_data_isnull(const sdb_data_t *datum);
+
+/*
  * Operators supported by sdb_data_eval_expr.
  */
 enum {

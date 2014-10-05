@@ -334,6 +334,18 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 #undef CMP_NULL
 } /* sdb_data_cmp */
 
+_Bool
+sdb_data_isnull(const sdb_data_t *datum)
+{
+	if (! datum)
+		return 1;
+	if ((datum->type == SDB_TYPE_STRING) && (! datum->data.string))
+		return 1;
+	if ((datum->type == SDB_TYPE_BINARY) && (! datum->data.binary.datum))
+		return 1;
+	return 0;
+} /* sdb_data_isnull */
+
 int
 sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		sdb_data_t *res)
