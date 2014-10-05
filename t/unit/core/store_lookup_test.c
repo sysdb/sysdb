@@ -394,6 +394,12 @@ START_TEST(test_obj_cond)
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
 		{ "a", SDB_FIELD_BACKEND,
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+		{ "a", SDB_FIELD_BACKEND,
+			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+		/* (64bit) integer value without zero-bytes */
+		{ "a", SDB_FIELD_BACKEND,
+			{ SDB_TYPE_INTEGER, { .integer = 0xffffffffffffffffL } },
+			0, 0, 0, 0, 0 },
 	};
 
 	int status;

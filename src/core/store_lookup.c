@@ -136,19 +136,17 @@ obj_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 	sdb_data_t value = SDB_DATA_INIT;
 	int status;
 
-	if (sdb_store_get_field(obj, OBJ_C(cond)->field, &obj_value))
-		return INT_MAX;
 	if (sdb_store_expr_eval(OBJ_C(cond)->expr, obj, &value))
 		return INT_MAX;
 
-	if (obj_value.type != value.type) {
-		sdb_data_free_datum(&value);
-		return INT_MAX;
-	}
-	else if (OBJ_C(cond)->field == SDB_FIELD_BACKEND) {
+	if (OBJ_C(cond)->field == SDB_FIELD_BACKEND) {
 		/* this implementation is not actually a conditional but rather checks
 		 * for equality (or rather, existence) only */
 		size_t i;
+
+		if (value.type != SDB_TYPE_STRING)
+			return INT_MAX;
+
 		status = INT_MAX;
 		for (i = 0; i < obj->backends_num; ++i) {
 			if (! strcasecmp(obj->backends[i], value.data.string)) {
@@ -156,10 +154,20 @@ obj_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 				break;
 			}
 		}
+		sdb_data_free_datum(&value);
+		return status;
 	}
-	else {
-		status = sdb_data_cmp(&obj_value, &value);
+
+	if (sdb_store_get_field(obj, OBJ_C(cond)->field, &obj_value))
+		return INT_MAX;
+	if (obj_value.type != value.type) {
+		sdb_data_free_datum(&obj_value);
+		sdb_data_free_datum(&value);
+		return INT_MAX;
 	}
+
+	status = sdb_data_cmp(&obj_value, &value);
+	sdb_data_free_datum(&obj_value);
 	sdb_data_free_datum(&value);
 	return status;
 } /* obj_cmp */
