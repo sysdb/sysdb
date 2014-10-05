@@ -532,10 +532,11 @@ END_TEST
 
 START_TEST(test_parse_cmp)
 {
-	sdb_data_t hostname   = { SDB_TYPE_STRING, { .string = "hostname" } };
-	sdb_data_t metricname = { SDB_TYPE_STRING, { .string = "metricname" } };
-	sdb_data_t srvname    = { SDB_TYPE_STRING, { .string = "srvname" } };
-	sdb_data_t attrname   = { SDB_TYPE_STRING, { .string = "attrname" } };
+	sdb_data_t hostname   = { SDB_TYPE_STRING,  { .string  = "hostname" } };
+	sdb_data_t metricname = { SDB_TYPE_STRING,  { .string  = "metricname" } };
+	sdb_data_t srvname    = { SDB_TYPE_STRING,  { .string  = "srvname" } };
+	sdb_data_t attrname   = { SDB_TYPE_STRING,  { .string  = "attrname" } };
+	sdb_data_t attrvalue  = { SDB_TYPE_INTEGER, { .integer = 4711 } };
 
 	sdb_store_matcher_t *check;
 
@@ -554,6 +555,8 @@ START_TEST(test_parse_cmp)
 		{ "host",      NULL,   "!~", &hostname,   MATCHER_NOT },
 		{ "host",      "attr", "=",  &hostname,   -1 },
 		{ "host",      "attr", "!=", &hostname,   -1 },
+		{ "host",      "attr", "!=", &attrvalue,  -1 },
+		{ "host",      "attr", "<=", &attrvalue,  -1 },
 		{ "host",      NULL,   "&^", &hostname,   -1 },
 		{ "host",      NULL,   "<",  &hostname,   -1 },
 		{ "host",      NULL,   "<=", &hostname,   -1 },
@@ -566,6 +569,8 @@ START_TEST(test_parse_cmp)
 		{ "metric",    NULL,   "!~", &metricname, MATCHER_NOT },
 		{ "metric",    "attr", "=",  &metricname, -1 },
 		{ "metric",    "attr", "!=", &metricname, -1 },
+		{ "metric",    "attr", "!=", &attrvalue,  -1 },
+		{ "metric",    "attr", "<=", &attrvalue,  -1 },
 		{ "metric",    NULL,   "&^", &metricname, -1 },
 		{ "metric",    NULL,   "<",  &metricname, -1 },
 		{ "metric",    NULL,   "<=", &metricname, -1 },
@@ -578,6 +583,8 @@ START_TEST(test_parse_cmp)
 		{ "service",   NULL,   "!~", &srvname,    MATCHER_NOT },
 		{ "service",   "attr", "=",  &srvname,    -1 },
 		{ "service",   "attr", "!=", &srvname,    -1 },
+		{ "service",   "attr", "!=", &attrvalue,  -1 },
+		{ "service",   "attr", "<=", &attrvalue,  -1 },
 		{ "service",   NULL,   "&^", &srvname,    -1 },
 		{ "service",   NULL,   "<",  &srvname,    -1 },
 		{ "service",   NULL,   "<=", &srvname,    -1 },

@@ -1001,6 +1001,8 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		return NULL;
 	if (value.type != SDB_TYPE_STRING) {
 		sdb_data_free_datum(&value);
+		if (type != SDB_ATTRIBUTE)
+			return NULL;
 		return parse_attr_cmp(attr, op, expr);
 	}
 
