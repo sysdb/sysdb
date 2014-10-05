@@ -379,8 +379,7 @@ sdb_dbi_client_connect(sdb_dbi_client_t *client)
 
 	client->conn = dbi_conn_open(driver);
 	if (! client->conn) {
-		sdb_log(SDB_LOG_ERR, "dbi: failed to open connection "
-				"object.");
+		sdb_log(SDB_LOG_ERR, "dbi: failed to open connection object.");
 		return -1;
 	}
 
@@ -546,7 +545,9 @@ sdb_dbi_client_destroy(sdb_dbi_client_t *client)
 		dbi_conn_close(client->conn);
 	client->conn = NULL;
 
-	dbi_shutdown_r(client->inst);
+	if (client->inst)
+		dbi_shutdown_r(client->inst);
+	client->inst = NULL;
 
 	if (client->options)
 		sdb_dbi_options_destroy(client->options);
