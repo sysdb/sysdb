@@ -137,7 +137,7 @@ Version 0.3.0, Release Date: 2014-08-01
      - Store plugin identifier (host, plugin, plugin_instance, type,
        type_instance) as service attributes.
 
-Version 0.2.0, Release Date: 2014-07-01
+Version 0.2.0, Release Date: 2014-07-02
 ---------------------------------------
 
   This is another development snapshot of SysDB. The main focus of this
