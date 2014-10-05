@@ -537,7 +537,7 @@ START_TEST(test_format)
 		},
 		{
 			{ SDB_TYPE_STRING, { .string = NULL } },
-			"\"NULL\"",
+			"\"<NULL>\"",
 		},
 		{
 			{ SDB_TYPE_STRING, { .string = "this is a test" } },
@@ -553,7 +553,7 @@ START_TEST(test_format)
 		},
 		{
 			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
-			"\"\"",
+			"\"<NULL>\"",
 		},
 		{
 			{
