@@ -275,8 +275,7 @@ START_TEST(test_obj_ref)
 			"%d time%s; expected: 0", destroy_noop_called == 1 ? "" : "2",
 			destroy_noop_called);
 
-	/* test_obj_create already checks the ref_cnt == 1 case */
-	obj->ref_cnt = 0;
+	obj->ref_cnt = 1;
 	sdb_object_deref(obj);
 	fail_unless(init_noop_called == 1,
 			"after some sdb_object_{de,}ref(); object's init called %d times; "

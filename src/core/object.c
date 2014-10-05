@@ -149,6 +149,9 @@ sdb_object_deref(sdb_object_t *obj)
 	if (obj->ref_cnt > 0)
 		return;
 
+	/* we'd access free'd memory in case ref_cnt < 0 */
+	assert(! obj->ref_cnt);
+
 	if (obj->type.destroy)
 		obj->type.destroy(obj);
 
