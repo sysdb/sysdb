@@ -14,8 +14,8 @@ SYNOPSIS
 
   FETCH host 'some.host.name';
 
-  LOOKUP hosts MATCHING attribute.architecture = 'amd64'
-               FILTER :age < 5 * :interval;
+  LOOKUP hosts MATCHING attribute[architecture] = 'amd64'
+               FILTER .age < 5 * .interval;
 
 DESCRIPTION
 -----------
@@ -99,7 +99,7 @@ The following fields may be queried:
 *attribute*::
 	The full name of a host attribute.
 
-*attribute.*'<name>'::
+*attribute[*'<name>'*]*::
 	The value of the named host attribute. If an attribute of the specified
 	does not exist, each comparison is treated as if the value does not match.
 	See the documentation for the *IS NULL* and *IS NOT NULL* operators for
@@ -153,20 +153,20 @@ above).
 
 The following fields (core properties) of stored objects may be queried:
 
-*:last_update*::
+*.last_update*::
 	The timestamp of the last update of the object. This value is based on
 	information provided by the queried backend if possible.
 
-*:age*::
+*.age*::
 	The amount of time since the last update of the object.
 
-*:interval*::
+*.interval*::
 	The interval with which the object gets updated. This value is determined
 	automatically based on a moving average determined from the update
 	timestamps of an object. It depends on the update timestamps as provided
 	by the backend (if available) and SysDB's query interval.
 
-*:backend*::
+*.backend*::
 	The name of the backend (plugin) providing the data.
 
 The type of the *last_update*, *age*, and *interval* fields is date-time and
@@ -253,7 +253,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
           ...
         }]}
 
-  LOOKUP hosts MATCHING attribute.architecture = 'amd64';
+  LOOKUP hosts MATCHING attribute[architecture] = 'amd64';
   [{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
