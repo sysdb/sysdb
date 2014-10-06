@@ -398,7 +398,7 @@ matcher:
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
-	':' IDENTIFIER op expression
+	'.' IDENTIFIER op expression
 		{
 			$$ = sdb_store_matcher_parse_field_cmp($2, $3, $4);
 			free($2); $2 = NULL;
@@ -481,7 +481,7 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
-	':' IDENTIFIER
+	'.' IDENTIFIER
 		{
 			int field = sdb_store_parse_field_name($2);
 			free($2); $2 = NULL;

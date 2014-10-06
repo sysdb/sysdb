@@ -695,7 +695,7 @@ START_TEST(test_parse_field_cmp)
 		{ "interval",    "!=", &datetime, MATCHER_NOT },
 		{ "backend",     "=",  &string,   MATCHER_EQ },
 		{ "backend",     "!=", &string,   MATCHER_NOT },
-		/* the behavior for other operators on :backend
+		/* the behavior for other operators on .backend
 		 * is currently unspecified */
 		{ "last_update", "=",  NULL,      -1 },
 		{ "last_update", "IS", NULL,      -1 },

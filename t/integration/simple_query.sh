@@ -139,7 +139,7 @@ echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING attribute != 'architecture' 
-		FILTER :age >= 0s" )"
+		FILTER .age >= 0s" )"
 echo "$output" \
 	| grep -F '"some.host.name"' \
 	| grep -F '"localhost"'
@@ -149,11 +149,11 @@ echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING attribute != 'architecture' 
-		FILTER :last_update < 2Y" )"
+		FILTER .last_update < 2Y" )"
 echo $output | grep -E '^\[\]$'
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER :backend = 'backend::mock_plugin'" )"
+	-c "LOOKUP hosts FILTER .backend = 'backend::mock_plugin'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"' \
@@ -161,7 +161,7 @@ echo "$output" \
 	| grep -F '"other.host.name"' \
 	| grep -F '"some.host.name"'
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER :backend = 'invalid'" )"
+	-c "LOOKUP hosts FILTER .backend = 'invalid'" )"
 echo $output | grep -E '^\[\]$'
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
