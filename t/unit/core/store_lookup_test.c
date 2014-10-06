@@ -773,80 +773,80 @@ START_TEST(test_scan)
 		int expected;
 		const char *tostring_re;
 	} golden_data[] = {
-		{ "host = 'a'", NULL,               1,
+		{ "host = 'a'", NULL,                1,
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
-		{ "host = 'a'", "host = 'x'",       0, /* filter never matches */
+		{ "host = 'a'", "host = 'x'",        0, /* filter never matches */
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
 		{ "host = 'a'",
-			"NOT attribute.x = ''",         1, /* filter always matches */
+			"NOT attribute[x] = ''",         1, /* filter always matches */
 			"OBJ\\[host\\]\\{ NAME\\{ 'a', \\(nil\\) \\} \\}" },
-		{ "host =~ 'a|b'", NULL,            2,
+		{ "host =~ 'a|b'", NULL,             2,
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
-		{ "host =~ 'host'", NULL,           0,
+		{ "host =~ 'host'", NULL,            0,
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
-		{ "host =~ '.'", NULL,              3,
+		{ "host =~ '.'", NULL,               3,
 			"OBJ\\[host\\]\\{ NAME\\{ NULL, "PTR_RE" \\} \\}" },
-		{ "metric = 'm1'", NULL,            2,
+		{ "metric = 'm1'", NULL,             2,
 			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
-		{ "metric= 'm1'", "host = 'x'",     0, /* filter never matches */
+		{ "metric= 'm1'", "host = 'x'",      0, /* filter never matches */
 			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
 		{ "metric = 'm1'",
-			"NOT attribute.x = ''",         2, /* filter always matches */
+			"NOT attribute[x] = ''",         2, /* filter always matches */
 			"OBJ\\[metric\\]\\{ NAME\\{ 'm1', \\(nil\\) } \\}" },
-		{ "metric =~ 'm'", NULL,            2,
+		{ "metric =~ 'm'", NULL,             2,
 			"OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
-		{ "metric !~ 'm'", NULL,            1,
+		{ "metric !~ 'm'", NULL,             1,
 			"\\(NOT, OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
-		{ "metric =~ 'x'", NULL,            0,
+		{ "metric =~ 'x'", NULL,             0,
 			"OBJ\\[metric\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
-		{ "service = 's1'", NULL,           2,
+		{ "service = 's1'", NULL,            2,
 			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
-		{ "service = 's1'", "host = 'x'",   0, /* filter never matches */
+		{ "service = 's1'", "host = 'x'",    0, /* filter never matches */
 			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
 		{ "service = 's1'",
-			"NOT attribute.x = ''",         2, /* filter always matches */
+			"NOT attribute[x] = ''",         2, /* filter always matches */
 			"OBJ\\[service\\]\\{ NAME\\{ 's1', \\(nil\\) } \\}" },
-		{ "service =~ 's'", NULL,           2,
+		{ "service =~ 's'", NULL,            2,
 			"OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
-		{ "service !~ 's'", NULL,           1,
+		{ "service !~ 's'", NULL,            1,
 			"\\(NOT, OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
-		{ "attribute = 'k1'", NULL,         1,
+		{ "attribute = 'k1'", NULL,          1,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
-		{ "attribute = 'k1'", "host = 'x'", 0, /* filter never matches */
+		{ "attribute = 'k1'", "host = 'x'",  0, /* filter never matches */
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute = 'k1'",
-			"NOT attribute.x = ''",         1, /* filter always matches */
+			"NOT attribute[x] = ''",         1, /* filter always matches */
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
-		{ "attribute = 'x'", NULL,          0,
+		{ "attribute = 'x'", NULL,           0,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
-		{ "attribute.k1 = 'v1'", NULL,      1,
+		{ "attribute[k1] = 'v1'", NULL,      1,
 			"ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}" },
-		{ "attribute.k1 IS NULL", NULL,     2,
+		{ "attribute[k1] IS NULL", NULL,     2,
 			"\\(IS NULL, ATTR\\[k1\\]\\)" },
-		{ "attribute.x1 IS NULL", NULL,     3,
+		{ "attribute[x1] IS NULL", NULL,     3,
 			"\\(IS NULL, ATTR\\[x1\\]\\)" },
-		{ "attribute.k1 IS NOT NULL", NULL, 1,
+		{ "attribute[k1] IS NOT NULL", NULL, 1,
 			"\\(NOT, \\(IS NULL, ATTR\\[k1\\]\\)\\)" },
-		{ "attribute.x1 IS NOT NULL", NULL, 0,
+		{ "attribute[x1] IS NOT NULL", NULL, 0,
 			"\\(NOT, \\(IS NULL, ATTR\\[x1\\]\\)\\)" },
-		{ "attribute.k2 < 123", NULL,       0,
+		{ "attribute[k2] < 123", NULL,       0,
 			"ATTR\\[k2\\]\\{ < 123 \\}" },
-		{ "attribute.k2 <= 123", NULL,      1,
+		{ "attribute[k2] <= 123", NULL,      1,
 			"ATTR\\[k2\\]\\{ <= 123 \\}" },
-		{ "attribute.k2 >= 123", NULL,      1,
+		{ "attribute[k2] >= 123", NULL,      1,
 			"ATTR\\[k2\\]\\{ >= 123 \\}" },
-		{ "attribute.k2 > 123", NULL,       0,
+		{ "attribute[k2] > 123", NULL,       0,
 			"ATTR\\[k2\\]\\{ > 123 \\}" },
-		{ "attribute.k2 = 123", NULL,       1,
+		{ "attribute[k2] = 123", NULL,       1,
 			"ATTR\\[k2\\]\\{ = 123 \\}" },
-		{ "attribute.k2 != 123", NULL,      2,
+		{ "attribute[k2] != 123", NULL,      2,
 			"\\(NOT, ATTR\\[k2\\]\\{ = 123 \\}\\)" },
-		{ "attribute.k1 != 'v1'", NULL,     2,
+		{ "attribute[k1] != 'v1'", NULL,     2,
 			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}\\)" },
-		{ "attribute.k1 != 'v2'", NULL,     3,
+		{ "attribute[k1] != 'v2'", NULL,     3,
 			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v2', \\(nil\\) \\} \\}\\)" },
 		{ "attribute != 'x' "
-		  "AND attribute.y !~ 'x'", NULL,   3,
+		  "AND attribute[y] !~ 'x'", NULL,   3,
 			"\\(AND, "
 				"\\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} \\}\\), "
 				"\\(NOT, ATTR\\[y\\]\\{ VALUE\\{ NULL, "PTR_RE" \\} \\}\\)\\)" },

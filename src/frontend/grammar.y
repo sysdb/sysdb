@@ -113,6 +113,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %nonassoc IS
 %left '+' '-'
 %left '*' '/' '%'
+%left '[' ']'
 %left '(' ')'
 %left '.'
 
@@ -411,22 +412,22 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	IDENTIFIER '.' IDENTIFIER op expression
+	IDENTIFIER '[' IDENTIFIER ']' op expression
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $4, $5);
+			$$ = sdb_store_matcher_parse_cmp($1, $3, $5, $6);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
-			sdb_object_deref(SDB_OBJ($5));
+			sdb_object_deref(SDB_OBJ($6));
 		}
 	|
-	IDENTIFIER '.' IDENTIFIER IS NULL_T
+	IDENTIFIER '[' IDENTIFIER ']' IS NULL_T
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 		}
 	|
-	IDENTIFIER '.' IDENTIFIER IS NOT NULL_T
+	IDENTIFIER '[' IDENTIFIER ']' IS NOT NULL_T
 		{
 			sdb_store_matcher_t *m;
 			m = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);

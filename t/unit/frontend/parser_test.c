@@ -129,58 +129,58 @@ START_TEST(test_parse)
 
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "1234",                -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo != "
+		  "attribute[foo] != "
 		  "+234",                -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo < "
+		  "attribute[foo] < "
 		  "-234",                -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo > "
+		  "attribute[foo] > "
 		  "12.4",                -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo <= "
+		  "attribute[foo] <= "
 		  "12. + .3",            -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo >= "
+		  "attribute[foo] >= "
 		  ".4",                  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "+12e3",               -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "+12e-3",              -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
 
 		/* date, time, interval constants */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "1 Y 42D",             -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "1s 42D",              -1,  1, CONNECTION_LOOKUP },
 		/*
 		 * TODO: Something like 1Y42D should work as well but it doesn't since
 		 * the scanner will tokenize it into {digit}{identifier} :-/
 		 *
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "1Y42D",               -1,  1, CONNECTION_LOOKUP },
 		 */
 
 		/* NULL */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo "
+		  "attribute[foo] "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo "
+		  "attribute[foo] "
 		  "IS NOT NULL",         -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "NOT attribute.foo "
+		  "NOT attribute[foo] "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host IS NULL",        -1, -1, 0 },
@@ -189,25 +189,25 @@ START_TEST(test_parse)
 
 		/* invalid numeric constants */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "+-12e+3",             -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "-12e-+3",             -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "e+3",                 -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "3e",                  -1, -1, 0 },
 		/* following SQL standard, we don't support hex numbers */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "0x12",                -1, -1, 0 },
 
 		/* invalid expressions */
 		{ "LOOKUP hosts MATCHING "
-		  "attribute.foo = "
+		  "attribute[foo] = "
 		  "1.23 + 'foo'",        -1, -1, 0 },
 
 		/* comments */
@@ -288,95 +288,95 @@ START_TEST(test_parse_matcher)
 		int expected;
 	} golden_data[] = {
 		/* empty expressions */
-		{ NULL,                        -1, -1 },
-		{ "",                          -1, -1 },
+		{ NULL,                         -1, -1 },
+		{ "",                           -1, -1 },
 
 		/* valid expressions */
-		{ "host = 'localhost'",        -1,  MATCHER_NAME },
-		{ "host != 'localhost'",       -1,  MATCHER_NOT },
-		{ "host =~ 'host'",            -1,  MATCHER_NAME },
-		{ "host !~ 'host'",            -1,  MATCHER_NOT },
-		{ "host = 'localhost' -- foo", -1,  MATCHER_NAME },
-		{ "host = 'host' <garbage>",   13,  MATCHER_NAME },
+		{ "host = 'localhost'",         -1,  MATCHER_NAME },
+		{ "host != 'localhost'",        -1,  MATCHER_NOT },
+		{ "host =~ 'host'",             -1,  MATCHER_NAME },
+		{ "host !~ 'host'",             -1,  MATCHER_NOT },
+		{ "host = 'localhost' -- foo",  -1,  MATCHER_NAME },
+		{ "host = 'host' <garbage>",    13,  MATCHER_NAME },
 		/* match hosts by service */
-		{ "service = 'name'",          -1,  MATCHER_NAME },
-		{ "service != 'name'",         -1,  MATCHER_NOT },
-		{ "service =~ 'pattern'",      -1,  MATCHER_NAME },
-		{ "service !~ 'pattern'",      -1,  MATCHER_NOT },
+		{ "service = 'name'",           -1,  MATCHER_NAME },
+		{ "service != 'name'",          -1,  MATCHER_NOT },
+		{ "service =~ 'pattern'",       -1,  MATCHER_NAME },
+		{ "service !~ 'pattern'",       -1,  MATCHER_NOT },
 		/* match hosts by attribute */
-		{ "attribute = 'name'",        -1,  MATCHER_NAME },
-		{ "attribute != 'name'",       -1,  MATCHER_NOT },
-		{ "attribute =~ 'pattern'",    -1,  MATCHER_NAME },
-		{ "attribute !~ 'pattern'",    -1,  MATCHER_NOT },
+		{ "attribute = 'name'",         -1,  MATCHER_NAME },
+		{ "attribute != 'name'",        -1,  MATCHER_NOT },
+		{ "attribute =~ 'pattern'",     -1,  MATCHER_NAME },
+		{ "attribute !~ 'pattern'",     -1,  MATCHER_NOT },
 		/* composite expressions */
 		{ "host =~ 'pattern' AND "
-		  "service =~ 'pattern'",      -1,  MATCHER_AND },
+		  "service =~ 'pattern'",       -1,  MATCHER_AND },
 		{ "host =~ 'pattern' OR "
-		  "service =~ 'pattern'",      -1,  MATCHER_OR },
-		{ "NOT host = 'host'",         -1,  MATCHER_NOT },
+		  "service =~ 'pattern'",       -1,  MATCHER_OR },
+		{ "NOT host = 'host'",          -1,  MATCHER_NOT },
 		/* numeric expressions */
-		{ "attribute.foo < 123",       -1,  MATCHER_LT },
-		{ "attribute.foo <= 123",      -1,  MATCHER_LE },
-		{ "attribute.foo = 123",       -1,  MATCHER_EQ },
-		{ "attribute.foo >= 123",      -1,  MATCHER_GE },
-		{ "attribute.foo > 123",       -1,  MATCHER_GT },
+		{ "attribute[foo] < 123",       -1,  MATCHER_LT },
+		{ "attribute[foo] <= 123",      -1,  MATCHER_LE },
+		{ "attribute[foo] = 123",       -1,  MATCHER_EQ },
+		{ "attribute[foo] >= 123",      -1,  MATCHER_GE },
+		{ "attribute[foo] > 123",       -1,  MATCHER_GT },
 		/* datetime expressions */
-		{ "attribute.foo = "
-		  "2014-08-16",                -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "17:23",                     -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "17:23:53",                  -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "17:23:53.123",              -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "17:23:53.123456789",        -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "2014-08-16 17:23",          -1,  MATCHER_EQ },
-		{ "attribute.foo = "
-		  "2014-08-16 17:23:53",       -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "2014-08-16",                 -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "17:23",                      -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "17:23:53",                   -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "17:23:53.123",               -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "17:23:53.123456789",         -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "2014-08-16 17:23",           -1,  MATCHER_EQ },
+		{ "attribute[foo] = "
+		  "2014-08-16 17:23:53",        -1,  MATCHER_EQ },
 		/* NULL; while this is an implementation detail,
 		 * IS NULL currently maps to an equality matcher */
-		{ "attribute.foo IS NULL",     -1,  MATCHER_ISNULL },
-		{ "attribute.foo IS NOT NULL", -1,  MATCHER_NOT },
+		{ "attribute[foo] IS NULL",     -1,  MATCHER_ISNULL },
+		{ "attribute[foo] IS NOT NULL", -1,  MATCHER_NOT },
 
 		/* object field matchers */
-		{ ":last_update < 10s",        -1,  MATCHER_LT },
-		{ ":AGE <= 1m",                -1,  MATCHER_LE },
-		{ ":interval = 10h",           -1,  MATCHER_EQ },
-		{ ":Last_Update >= 24D",       -1,  MATCHER_GE },
-		{ ":age > 1M",                 -1,  MATCHER_GT },
-		{ ":age != 20Y",               -1,  MATCHER_NOT },
-		{ ":backend != 'be'",          -1,  MATCHER_NOT },
-		{ ":age <= 2 * :interval",     -1,  MATCHER_LE },
+		{ ":last_update < 10s",         -1,  MATCHER_LT },
+		{ ":AGE <= 1m",                 -1,  MATCHER_LE },
+		{ ":interval = 10h",            -1,  MATCHER_EQ },
+		{ ":Last_Update >= 24D",        -1,  MATCHER_GE },
+		{ ":age > 1M",                  -1,  MATCHER_GT },
+		{ ":age != 20Y",                -1,  MATCHER_NOT },
+		{ ":backend != 'be'",           -1,  MATCHER_NOT },
+		{ ":age <= 2 * :interval",      -1,  MATCHER_LE },
 
 		/* check operator precedence */
 		{ "host = 'name' OR "
 		  "service = 'name' AND "
 		  "attribute = 'name' OR "
-		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		  "attribute[foo] = 'bar'",     -1,  MATCHER_OR },
 		{ "host = 'name' AND "
 		  "service = 'name' AND "
 		  "attribute = 'name' OR "
-		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		  "attribute[foo] = 'bar'",     -1,  MATCHER_OR },
 		{ "host = 'name' AND "
 		  "service = 'name' OR "
 		  "attribute = 'name' AND "
-		  "attribute.foo = 'bar'",     -1,  MATCHER_OR },
+		  "attribute[foo] = 'bar'",     -1,  MATCHER_OR },
 		{ "(host = 'name' OR "
 		  "service = 'name') AND "
 		  "(attribute = 'name' OR "
-		  "attribute.foo = 'bar')",    -1,  MATCHER_AND },
+		  "attribute[foo] = 'bar')",    -1,  MATCHER_AND },
 		{ "NOT host = 'name' OR "
-		  "service = 'name'",          -1,  MATCHER_OR },
+		  "service = 'name'",           -1,  MATCHER_OR },
 		{ "NOT host = 'name' OR "
-		  "NOT service = 'name'",      -1,  MATCHER_OR },
+		  "NOT service = 'name'",       -1,  MATCHER_OR },
 		{ "NOT (host = 'name' OR "
-		  "NOT service = 'name')",     -1,  MATCHER_NOT },
+		  "NOT service = 'name')",      -1,  MATCHER_NOT },
 
 		/* syntax errors */
-		{ "LIST",                      -1, -1 },
-		{ "foo &^ bar",                -1, -1 },
+		{ "LIST",                       -1, -1 },
+		{ "foo &^ bar",                 -1, -1 },
 	};
 
 	size_t i;
