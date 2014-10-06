@@ -101,9 +101,9 @@ The following fields may be queried:
 
 *attribute[*'<name>'*]*::
 	The value of the named host attribute. If an attribute of the specified
-	does not exist, each comparison is treated as if the value does not match.
-	See the documentation for the *IS NULL* and *IS NOT NULL* operators for
-	ways to check if an attribute exists.
+	name does not exist, each comparison is treated as if the value does not
+	match. See the documentation for the *IS NULL* and *IS NOT NULL* operators
+	for ways to check if an attribute exists.
 
 '<value>' may either be a string (when matching by object names) or match the
 type of the attribute's value (when matching attribute values). Attribute
