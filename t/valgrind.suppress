@@ -1,7 +1,7 @@
 {
    <insert_a_suppression_name_here>
    Memcheck:Cond
-   fun:gcov_exit
+   fun:gcov_exit*
    fun:__run_exit_handlers
    fun:exit
    fun:srunner_run_all
@@ -10,7 +10,7 @@
 {
    <insert_a_suppression_name_here>
    Memcheck:Cond
-   fun:gcov_exit
+   fun:gcov_exit*
    fun:__run_exit_handlers
    fun:exit
    fun:srunner_run
