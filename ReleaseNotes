@@ -27,6 +27,40 @@
 
   <https://sysdb.io/>
 
+Version 0.5.0, Release Date: 2014-10-06
+---------------------------------------
+
+  This release focuses on simplifications and more flexibility in the frontend
+  and the query language. Most of those changes are not backward-compatible
+  but easy client implementations.
+
+   * sysdb:
+     - Include priority when printing log messages.
+     - Fixed handling of empty queries.
+   * store:
+     - When serializing the entire store (LIST command), return an array of
+       host objects (rather than wrapping it into another object).
+     - Fixed JSON format of time-series data.
+     - Fixed error checks of invalid compare expressions and reject them.
+     - Fixed lookups by back-end name.
+     - Added support for comparing attributes with different types by
+       comparing their string values.
+   * frontend:
+     - Clarified details about asynchronous messages and authentication
+       options and made client implementation more robust.
+     - Introduced a new message type encoding the JSON serialized response of
+       a query and its data type.
+     - Include the priority in log messages.
+     - Include object types in FETCH, LIST, and LOOKUP messages.
+     - Added support for including services and metrics in LIST responses and
+       skip hosts without the respective children.
+   * query language:
+     - Added support for services and metrics to LIST command.
+     - Changed syntax for attribute lookup to 'attributes[<name>]'.
+     - Changed syntax for accessing queryable fields to '.<field>'.
+   * utils:
+     - strbuf: Improved memory management.
+
 Version 0.4.0, Release Date: 2014-09-01
 ---------------------------------------
 
