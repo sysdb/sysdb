@@ -1,6 +1,6 @@
 #! /bin/sh
 
-DEFAULT_VERSION="0.4.0.git"
+DEFAULT_VERSION="0.5.0"
 
 VERSION="$( git describe --tags 2> /dev/null \
 	| sed -e 's/sysdb-//' || true )"
