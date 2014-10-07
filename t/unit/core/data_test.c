@@ -73,6 +73,22 @@ START_TEST(test_data)
 	fail_unless(d1.data.string == NULL,
 			"sdb_data_free_datum() didn't free string data");
 
+	d1.type = 0;
+	d2.type = SDB_TYPE_STRING;
+	d2.data.string = NULL;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.string == d2.data.string,
+			"sdb_data_copy() didn't copy string data: got: %s; expected: %s",
+			d1.data.string, d2.data.string);
+
+	sdb_data_free_datum(&d1);
+	fail_unless(d1.data.string == NULL,
+			"sdb_data_free_datum() didn't free string data");
+
 	d2.type = SDB_TYPE_DATETIME;
 	d2.data.datetime = 4711;
 	check = sdb_data_copy(&d1, &d2);
@@ -97,6 +113,28 @@ START_TEST(test_data)
 			d1.data.binary.length, d2.data.binary.length);
 	fail_unless(!memcmp(d1.data.binary.datum, d2.data.binary.datum,
 				d2.data.binary.length),
+			"sdb_data_copy() didn't copy binary data: got: %s; expected: %s",
+			d1.data.string, d2.data.string);
+
+	sdb_data_free_datum(&d1);
+	fail_unless(d1.data.binary.length == 0,
+			"sdb_data_free_datum() didn't reset binary datum length");
+	fail_unless(d1.data.binary.datum == NULL,
+			"sdb_data_free_datum() didn't free binary datum");
+
+	d1.type = 0;
+	d2.type = SDB_TYPE_BINARY;
+	d2.data.binary.datum = NULL;
+	d2.data.binary.length = 0;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.binary.length == d2.data.binary.length,
+			"sdb_data_copy() didn't copy length; got: %d; expected: 5d",
+			d1.data.binary.length, d2.data.binary.length);
+	fail_unless(d1.data.binary.datum == d2.data.binary.datum,
 			"sdb_data_copy() didn't copy binary data: got: %s; expected: %s",
 			d1.data.string, d2.data.string);
 

@@ -241,16 +241,20 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
 	tmp = *src;
 	switch (src->type) {
 		case SDB_TYPE_STRING:
-			tmp.data.string = strdup(src->data.string);
-			if (! tmp.data.string)
-				return -1;
+			if (src->data.string) {
+				tmp.data.string = strdup(src->data.string);
+				if (! tmp.data.string)
+					return -1;
+			}
 			break;
 		case SDB_TYPE_BINARY:
-			tmp.data.binary.datum = malloc(src->data.binary.length);
-			if (! tmp.data.binary.datum)
-				return -1;
-			memcpy(tmp.data.binary.datum, src->data.binary.datum,
-					src->data.binary.length);
+			if (src->data.binary.datum) {
+				tmp.data.binary.datum = malloc(src->data.binary.length);
+				if (! tmp.data.binary.datum)
+					return -1;
+				memcpy(tmp.data.binary.datum, src->data.binary.datum,
+						src->data.binary.length);
+			}
 			break;
 	}
 
