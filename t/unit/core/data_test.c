@@ -28,7 +28,10 @@
 #include "core/data.h"
 #include "libsysdb_test.h"
 
+#include <assert.h>
 #include <check.h>
+
+static regex_t empty_re;
 
 START_TEST(test_data)
 {
@@ -143,6 +146,41 @@ START_TEST(test_data)
 			"sdb_data_free_datum() didn't reset binary datum length");
 	fail_unless(d1.data.binary.datum == NULL,
 			"sdb_data_free_datum() didn't free binary datum");
+
+	check = sdb_data_parse(".", SDB_TYPE_REGEX, &d2);
+	fail_unless(check == 0,
+			"INTERNAL ERROR: Failed to parse regex '.'");
+	assert(d2.type == SDB_TYPE_REGEX);
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.re.raw != d2.data.re.raw,
+			"sdb_data_copy() copy string pointer");
+	fail_unless(!strcmp(d1.data.re.raw, d2.data.re.raw),
+			"sdb_data_copy() didn't copy raw regex: got: %s; expected: %s",
+			d1.data.re.raw, d2.data.re.raw);
+	sdb_data_free_datum(&d2);
+
+	sdb_data_free_datum(&d1);
+	fail_unless(d1.data.re.raw == NULL,
+			"sdb_data_free_datum() didn't reset raw regex");
+
+	d2.type = SDB_TYPE_REGEX;
+	d2.data.re.raw = NULL;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.re.raw == d2.data.re.raw,
+			"sdb_data_copy() didn't copy raw regex: got: %s; expected: %s",
+			d1.data.re.raw, d2.data.re.raw);
+
+	sdb_data_free_datum(&d1);
+	fail_unless(d1.data.re.raw == NULL,
+			"sdb_data_free_datum() didn't reset raw regex");
 }
 END_TEST
 
@@ -306,6 +344,21 @@ START_TEST(test_cmp)
 				SDB_TYPE_BINARY,
 				{ .binary = { 1, (unsigned char *)"a" } },
 			},
+			1,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			0,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
 			1,
 		},
 	};
@@ -493,6 +546,21 @@ START_TEST(test_strcmp)
 			},
 			1,
 		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			0,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			1,
+		},
 		/* type mismatches */
 		{
 			{ SDB_TYPE_INTEGER, { .integer = 123 } },
@@ -523,6 +591,11 @@ START_TEST(test_strcmp)
 			{ SDB_TYPE_DECIMAL, { .decimal = 12.3 } },
 			{ SDB_TYPE_STRING, { .string = "12.0" } },
 			1,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "regex", empty_re } } },
+			{ SDB_TYPE_STRING, { .string = "/regex/" } },
+			0,
 		},
 	};
 
@@ -675,6 +748,16 @@ START_TEST(test_expr_eval)
 				{ .binary = { 6, (unsigned char *)"a\0ab\0b" } },
 			},
 		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+			SDB_DATA_INIT,
+		},
 		/* supported type-mismatches */
 		{
 			/* int * datetime */
@@ -820,6 +903,10 @@ START_TEST(test_format)
 			},
 			"\"\\x62\\x69\\x6e\\x61\\x72\\x79\\x0\\x63\\x72\\x61\\x70\\x42\"",
 		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { "some regex", empty_re } } },
+			"\"/some regex/\"",
+		},
 	};
 
 	size_t i;
@@ -862,18 +949,20 @@ START_TEST(test_parse)
 		sdb_data_t result;
 		int expected;
 	} golden_data[] = {
-		{ "4711",    { SDB_TYPE_INTEGER,  { .integer  = 4711 } },       0 },
-		{ "0x10",    { SDB_TYPE_INTEGER,  { .integer  = 16 } },         0 },
-		{ "010",     { SDB_TYPE_INTEGER,  { .integer  = 8 } },          0 },
-		{ "abc",     { SDB_TYPE_INTEGER,  { .integer  = 0 } },         -1 },
-		{ "1.2",     { SDB_TYPE_DECIMAL,  { .decimal  = 1.2 } },        0 },
-		{ "0x1p+16", { SDB_TYPE_DECIMAL,  { .decimal  = 65536.0 } },    0 },
-		{ "abc",     { SDB_TYPE_DECIMAL,  { .decimal  = 0.0 } },       -1 },
-		{ "abc",     { SDB_TYPE_STRING,   { .string   = "abc" } },      0 },
-		{ ".4",      { SDB_TYPE_DATETIME, { .datetime = 400000000 } },  0 },
-		{ "abc",     { SDB_TYPE_DATETIME, { .datetime = 0 } },         -1 },
+		{ "4711",    { SDB_TYPE_INTEGER,  { .integer  = 4711 } },          0 },
+		{ "0x10",    { SDB_TYPE_INTEGER,  { .integer  = 16 } },            0 },
+		{ "010",     { SDB_TYPE_INTEGER,  { .integer  = 8 } },             0 },
+		{ "abc",     { SDB_TYPE_INTEGER,  { .integer  = 0 } },            -1 },
+		{ "1.2",     { SDB_TYPE_DECIMAL,  { .decimal  = 1.2 } },           0 },
+		{ "0x1p+16", { SDB_TYPE_DECIMAL,  { .decimal  = 65536.0 } },       0 },
+		{ "abc",     { SDB_TYPE_DECIMAL,  { .decimal  = 0.0 } },          -1 },
+		{ "abc",     { SDB_TYPE_STRING,   { .string   = "abc" } },         0 },
+		{ ".4",      { SDB_TYPE_DATETIME, { .datetime = 400000000 } },     0 },
+		{ "abc",     { SDB_TYPE_DATETIME, { .datetime = 0 } },            -1 },
 		{ "abc",     { SDB_TYPE_BINARY,
 					 { .binary = { 3, (unsigned char *)"abc" } } }, 0 },
+		{ "abc",     { SDB_TYPE_REGEX,    { .re = { "abc", empty_re } } }, 0 },
+		{ "(|",      { SDB_TYPE_REGEX,    { .re = { "", empty_re } } },   -1 },
 	};
 
 	size_t i;
@@ -904,6 +993,12 @@ START_TEST(test_parse)
 			fail_unless(golden_data[i].input == (char *)result.data.binary.datum,
 					"sdb_data_parse(%s, %d, <d>) modified input string",
 					golden_data[i].input, type);
+		if (type == SDB_TYPE_REGEX) {
+			fail_unless(golden_data[i].input != result.data.re.raw,
+					"sdb_data_parse(%s, %d, <d>) copied input string",
+					golden_data[i].input, type);
+			sdb_data_free_datum(&result);
+		}
 	}
 }
 END_TEST

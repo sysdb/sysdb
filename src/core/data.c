@@ -256,6 +256,22 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
 						src->data.binary.length);
 			}
 			break;
+		case SDB_TYPE_REGEX:
+			if (src->data.re.raw) {
+				tmp.data.re.raw = strdup(src->data.re.raw);
+				if (! tmp.data.re.raw)
+					return -1;
+				/* we need to recompile because the regex might point to
+				 * dynamically allocated memory */
+				if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
+							REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
+					free(tmp.data.re.raw);
+					return -1;
+				}
+			}
+			else
+				memset(&tmp.data.re.regex, 0, sizeof(tmp.data.re.regex));
+			break;
 	}
 
 	sdb_data_free_datum(dst);
@@ -280,6 +296,14 @@ sdb_data_free_datum(sdb_data_t *datum)
 				free(datum->data.binary.datum);
 			datum->data.binary.datum = NULL;
 			datum->data.binary.length = 0;
+			break;
+		case SDB_TYPE_REGEX:
+			if (datum->data.re.raw) {
+				free(datum->data.re.raw);
+				regfree(&datum->data.re.regex);
+			}
+			datum->data.re.raw = NULL;
+			memset(&datum->data.re.regex, 0, sizeof(datum->data.re.regex));
 			break;
 	}
 } /* sdb_data_free_datum */
@@ -332,6 +356,9 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 
 			return diff;
 		}
+		case SDB_TYPE_REGEX:
+			CMP_NULL(d1->data.re.raw, d2->data.re.raw);
+			return strcmp(d1->data.re.raw, d2->data.re.raw);
 	}
 	return -1;
 } /* sdb_data_cmp */
@@ -366,6 +393,8 @@ sdb_data_isnull(const sdb_data_t *datum)
 	if ((datum->type == SDB_TYPE_STRING) && (! datum->data.string))
 		return 1;
 	if ((datum->type == SDB_TYPE_BINARY) && (! datum->data.binary.datum))
+		return 1;
+	if ((datum->type == SDB_TYPE_REGEX) && (! datum->data.re.raw))
 		return 1;
 	return 0;
 } /* sdb_data_isnull */
@@ -419,6 +448,11 @@ sdb_data_strlen(const sdb_data_t *datum)
 				return 8; /* "<NULL>" */
 			/* "\xNN" */
 			return 4 * datum->data.binary.length + 2;
+		case SDB_TYPE_REGEX:
+			if (! datum->data.re.raw)
+				return 8; /* "<NULL>" */
+			/* "/.../" */
+			return strlen(datum->data.re.raw) + 4;
 	}
 	return 0;
 } /* sdb_data_strlen */
@@ -493,6 +527,14 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 			else
 				data = "<NULL>";
 			break;
+		case SDB_TYPE_REGEX:
+			if (! datum->data.re.raw)
+				data = "<NULL>";
+			else {
+				snprintf(tmp, sizeof(tmp), "/%s/", datum->data.re.raw);
+				data = tmp;
+			}
+			break;
 	}
 
 	if (data) {
@@ -535,6 +577,22 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 			/* we don't support any binary information containing 0-bytes */
 			tmp.data.binary.length = strlen(str);
 			tmp.data.binary.datum = (unsigned char *)str;
+			break;
+		case SDB_TYPE_REGEX:
+			tmp.data.re.raw = strdup(str);
+			if (! tmp.data.re.raw)
+				return -1;
+			if (regcomp(&tmp.data.re.regex, str,
+						REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
+				free(tmp.data.re.raw);
+				sdb_log(SDB_LOG_ERR, "core: Failed to compile regular "
+						"expression '%s'", str);
+				return -1;
+			}
+			if (! data) {
+				tmp.type = SDB_TYPE_REGEX;
+				sdb_data_free_datum(&tmp);
+			}
 			break;
 		default:
 			errno = EINVAL;

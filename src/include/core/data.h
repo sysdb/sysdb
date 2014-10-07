@@ -33,6 +33,9 @@
 #include <inttypes.h>
 #include <stddef.h>
 
+#include <sys/types.h>
+#include <regex.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,20 +46,16 @@ enum {
 	SDB_TYPE_STRING,
 	SDB_TYPE_DATETIME,
 	SDB_TYPE_BINARY,
+	SDB_TYPE_REGEX,
 };
 
 #define SDB_TYPE_TO_STRING(t) \
-	(((t) == SDB_TYPE_INTEGER) \
-		? "INTEGER" \
-		: ((t) == SDB_TYPE_DECIMAL) \
-			? "DECIMAL" \
-			: ((t) == SDB_TYPE_STRING) \
-				? "STRING" \
-				: ((t) == SDB_TYPE_DATETIME) \
-					? "DATETIME" \
-					: ((t) == SDB_TYPE_BINARY) \
-						? "BINARY" \
-						: "UNKNOWN")
+	(((t) == SDB_TYPE_INTEGER) ? "INTEGER" \
+		: ((t) == SDB_TYPE_DECIMAL) ? "DECIMAL" \
+		: ((t) == SDB_TYPE_STRING) ? "STRING" \
+		: ((t) == SDB_TYPE_DATETIME) ? "DATETIME" \
+		: ((t) == SDB_TYPE_BINARY) ? "BINARY" \
+		: ((t) == SDB_TYPE_REGEX) ? "REGEX" : "UNKNOWN")
 
 /*
  * sdb_data_t:
@@ -73,6 +72,10 @@ typedef struct {
 			size_t length;
 			unsigned char *datum;
 		} binary;             /* SDB_TYPE_BINARY */
+		struct {
+			char *raw;
+			regex_t regex;
+		} re;                 /* SDB_TYPE_REGEX */
 	} data;
 } sdb_data_t;
 #define SDB_DATA_INIT { 0, { .integer = 0 } }
@@ -226,7 +229,9 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
  * specified as (floating point) number of seconds since the epoch. For string
  * and binary data, the input string is passed to the datum. The function does
  * not allocate new memory for that purpose. Use sdb_data_copy() if you want
- * to do that.
+ * to do that. For regex data, the input string is copied to newly allocated
+ * memory and also compiled to a regex. Use sdb_data_free_datum() to free the
+ * dynamically allocated memory.
  *
  * Returns:
  *  - 0 on success
