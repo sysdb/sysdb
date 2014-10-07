@@ -114,7 +114,7 @@ START_TEST(test_data)
 	fail_unless(!memcmp(d1.data.binary.datum, d2.data.binary.datum,
 				d2.data.binary.length),
 			"sdb_data_copy() didn't copy binary data: got: %s; expected: %s",
-			d1.data.string, d2.data.string);
+			d1.data.binary.datum, d2.data.binary.datum);
 
 	sdb_data_free_datum(&d1);
 	fail_unless(d1.data.binary.length == 0,
@@ -136,7 +136,7 @@ START_TEST(test_data)
 			d1.data.binary.length, d2.data.binary.length);
 	fail_unless(d1.data.binary.datum == d2.data.binary.datum,
 			"sdb_data_copy() didn't copy binary data: got: %s; expected: %s",
-			d1.data.string, d2.data.string);
+			d1.data.binary.datum, d2.data.binary.datum);
 
 	sdb_data_free_datum(&d1);
 	fail_unless(d1.data.binary.length == 0,
