@@ -68,14 +68,16 @@ typedef struct sdb_store_obj sdb_store_obj_t;
  * Queryable fields of a stored object.
  */
 enum {
-	SDB_FIELD_LAST_UPDATE = 1, /* datetime */
-	SDB_FIELD_AGE,             /* datetime */
-	SDB_FIELD_INTERVAL,        /* datetime */
-	SDB_FIELD_BACKEND,         /* string */
+	SDB_FIELD_NAME = 1,    /* string */
+	SDB_FIELD_LAST_UPDATE, /* datetime */
+	SDB_FIELD_AGE,         /* datetime */
+	SDB_FIELD_INTERVAL,    /* datetime */
+	SDB_FIELD_BACKEND,     /* string */
 };
 
 #define SDB_FIELD_TO_NAME(f) \
-	(((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
+	(((f) == SDB_FIELD_NAME) ? "name" \
+		: ((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
 		: ((f) == SDB_FIELD_AGE) ? "age" \
 		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
 		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")

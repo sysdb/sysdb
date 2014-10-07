@@ -371,6 +371,12 @@ START_TEST(test_obj_cond)
 		const sdb_data_t value;
 		int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
 	} golden_data[] = {
+		{ "b", SDB_FIELD_NAME,
+			{ SDB_TYPE_STRING, { .string = "a" } },   0, 0, 0, 1, 1 },
+		{ "b", SDB_FIELD_NAME,
+			{ SDB_TYPE_STRING, { .string = "b" } },   0, 1, 1, 1, 0 },
+		{ "b", SDB_FIELD_NAME,
+			{ SDB_TYPE_STRING, { .string = "c" } },   1, 1, 0, 0, 0 },
 		/* last-update = 1 for all objects */
 		{ "a", SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 0, 1, 1, 1, 0 },
@@ -453,7 +459,7 @@ START_TEST(test_obj_cond)
 
 			status = sdb_store_matcher_matches(m, obj, /* filter */ NULL);
 			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(%s, <obj>, NULL) = %d; "
+					"sdb_store_matcher_matches(%s, <host '%s'>, NULL) = %d; "
 					"expected: %d",
 					sdb_store_matcher_tostring(m, m_str, sizeof(m_str)),
 					status, tests[j].expected);
@@ -675,6 +681,12 @@ START_TEST(test_parse_field_cmp)
 		const sdb_data_t *value;
 		int expected;
 	} golden_data[] = {
+		{ "name",        "<",  &string,   MATCHER_LT },
+		{ "name",        "<=", &string,   MATCHER_LE },
+		{ "name",        "=",  &string,   MATCHER_EQ },
+		{ "name",        ">=", &string,   MATCHER_GE },
+		{ "name",        ">",  &string,   MATCHER_GT },
+		{ "name",        "!=", &string,   MATCHER_NOT },
 		{ "last_update", "<",  &datetime, MATCHER_LT },
 		{ "last_update", "<=", &datetime, MATCHER_LE },
 		{ "last_update", "=",  &datetime, MATCHER_EQ },

@@ -880,7 +880,9 @@ sdb_store_parse_object_type_plural(const char *name)
 int
 sdb_store_parse_field_name(const char *name)
 {
-	if (! strcasecmp(name, "last_update"))
+	if (! strcasecmp(name, "name"))
+		return SDB_FIELD_NAME;
+	else if (! strcasecmp(name, "last_update"))
 		return SDB_FIELD_LAST_UPDATE;
 	else if (! strcasecmp(name, "age"))
 		return SDB_FIELD_AGE;

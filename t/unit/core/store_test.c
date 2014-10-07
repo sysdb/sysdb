@@ -604,6 +604,13 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
+		{ { sdb_store_eq_matcher, SDB_FIELD_NAME,
+				{ SDB_TYPE_STRING, { .string = "h1" } } }, 0,
+			"["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"attributes\": [], \"metrics\": [], \"services\": []}"
+			"]" },
 		{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, 0,
 			"["
@@ -724,6 +731,17 @@ START_TEST(test_get_field)
 	fail_unless(check < 0,
 			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, <value>) = %d; "
 			"expected: <0");
+
+	check = sdb_store_get_field(host, SDB_FIELD_NAME, &value);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_NAME, <value>) = "
+			"%d; expected: 0");
+	fail_unless((value.type == SDB_TYPE_STRING)
+			&& (! strcmp(value.data.string, "host")),
+			"sdb_store_get_field(<host>, SDB_FIELD_NAME, <value>) "
+			"returned value {%d, %s}; expected {%d, host}",
+			value.type, value.data.string, SDB_TYPE_STRING);
+	sdb_data_free_datum(&value);
 
 	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, &value);
 	fail_unless(check == 0,
