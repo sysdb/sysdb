@@ -46,7 +46,7 @@ enum {
 	SDB_TYPE_STRING,
 	SDB_TYPE_DATETIME,
 	SDB_TYPE_BINARY,
-	SDB_TYPE_REGEX,
+	SDB_TYPE_REGEX, /* extended, case-insensitive POSIX regex */
 };
 
 #define SDB_TYPE_TO_STRING(t) \
