@@ -132,7 +132,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %type <expr> expression
 
-%type <sstr> op
+%type <sstr> cmp
 
 %type <data> data
 	interval interval_elem
@@ -393,26 +393,26 @@ matcher:
 	;
 
 /*
- * <object_type>.<object_attr> <op> <value>
+ * <object_type>.<object_attr> <cmp> <value>
  *
  * Parse matchers comparing object attributes with a value.
  */
 compare_matcher:
-	'.' IDENTIFIER op expression
+	'.' IDENTIFIER cmp expression
 		{
 			$$ = sdb_store_matcher_parse_field_cmp($2, $3, $4);
 			free($2); $2 = NULL;
 			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
-	IDENTIFIER op expression
+	IDENTIFIER cmp expression
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, $3);
 			free($1); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	IDENTIFIER '[' IDENTIFIER ']' op expression
+	IDENTIFIER '[' IDENTIFIER ']' cmp expression
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, $3, $5, $6);
 			free($1); $1 = NULL;
@@ -495,7 +495,7 @@ expression:
 		}
 	;
 
-op:
+cmp:
 	CMP_EQUAL { $$ = "="; }
 	|
 	CMP_NEQUAL { $$ = "!="; }
