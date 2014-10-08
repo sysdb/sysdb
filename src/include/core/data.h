@@ -153,18 +153,24 @@ enum {
 };
 
 #define SDB_DATA_OP_TO_STRING(op) \
-	(((op) == SDB_DATA_ADD) \
-		? "+" \
-		: ((op) == SDB_DATA_SUB) \
-			? "-" \
-			: ((op) == SDB_DATA_MUL) \
-				? "*" \
-				: ((op) == SDB_DATA_DIV) \
-					? "/" \
-					: ((op) == SDB_DATA_MOD) \
-						? "%" \
-						: ((op) == SDB_DATA_CONCAT) \
-							? "||" : "UNKNOWN")
+	(((op) == SDB_DATA_ADD) ? "+" \
+		: ((op) == SDB_DATA_SUB) ? "-" \
+		: ((op) == SDB_DATA_MUL) ? "*" \
+		: ((op) == SDB_DATA_DIV) ? "/" \
+		: ((op) == SDB_DATA_MOD) ? "%" \
+		: ((op) == SDB_DATA_CONCAT) ? "||" : "UNKNOWN")
+
+/*
+ * sdb_data_parse_op:
+ * Parse the string representation of an operator supported by
+ * sdb_data_expr_eval.
+ *
+ * Returns:
+ *  - the ID of the operator
+ *  - a negative value in case the operator does not exist
+ */
+int
+sdb_data_parse_op(const char *op);
 
 /*
  * sdb_data_expr_eval:

@@ -400,6 +400,24 @@ sdb_data_isnull(const sdb_data_t *datum)
 } /* sdb_data_isnull */
 
 int
+sdb_data_parse_op(const char *op)
+{
+	if (! strcmp(op, "+"))
+		return SDB_DATA_ADD;
+	else if (! strcmp(op, "-"))
+		return SDB_DATA_SUB;
+	else if (! strcmp(op, "*"))
+		return SDB_DATA_MUL;
+	else if (! strcmp(op, "/"))
+		return SDB_DATA_DIV;
+	else if (! strcmp(op, "%"))
+		return SDB_DATA_MOD;
+	else if (! strcmp(op, "||"))
+		return SDB_DATA_CONCAT;
+	return -1;
+} /* sdb_data_parse_op */
+
+int
 sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		sdb_data_t *res)
 {

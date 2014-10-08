@@ -617,6 +617,43 @@ START_TEST(test_strcmp)
 }
 END_TEST
 
+START_TEST(test_parse_op)
+{
+	struct {
+		const char *op;
+		int id;
+	} golden_data[] = {
+		{ "+",  SDB_DATA_ADD },
+		{ "-",  SDB_DATA_SUB },
+		{ "*",  SDB_DATA_MUL },
+		{ "/",  SDB_DATA_DIV },
+		{ "%",  SDB_DATA_MOD },
+		{ "||", SDB_DATA_CONCAT },
+		{ "&&", -1 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		const char *op;
+		int id;
+
+		id = sdb_data_parse_op(golden_data[i].op);
+		fail_unless(id == golden_data[i].id,
+				"sdb_data_parse_op(%s) = %d; expected: %d",
+				golden_data[i].op, id, golden_data[i].id);
+
+		if (id <= 0)
+			continue;
+
+		op = SDB_DATA_OP_TO_STRING(id);
+		fail_unless(!strcmp(op, golden_data[i].op),
+				"SDB_DATA_OP_TO_STRING(%d) = '%s'; expected: '%s'",
+				id, op, golden_data[i].op);
+	}
+}
+END_TEST
+
 START_TEST(test_expr_eval)
 {
 	struct {
@@ -1013,6 +1050,7 @@ core_data_suite(void)
 	tcase_add_test(tc, test_data);
 	tcase_add_test(tc, test_cmp);
 	tcase_add_test(tc, test_strcmp);
+	tcase_add_test(tc, test_parse_op);
 	tcase_add_test(tc, test_expr_eval);
 	tcase_add_test(tc, test_format);
 	tcase_add_test(tc, test_parse);
