@@ -481,6 +481,13 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
+	expression CONCAT expression
+		{
+			$$ = sdb_store_expr_create(SDB_DATA_CONCAT, $1, $3);
+			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
+			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
+		}
+	|
 	'.' IDENTIFIER
 		{
 			int field = sdb_store_parse_field_name($2);

@@ -144,6 +144,9 @@ START_TEST(test_parse)
 		  "attribute[foo] <= "
 		  "12. + .3",            -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
+		  "attribute[foo] <= "
+		  "'f' || 'oo'",         -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
 		  "attribute[foo] >= "
 		  ".4",                  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
@@ -241,6 +244,12 @@ START_TEST(test_parse)
 		{ "LOOKUP foo MATCHING "
 		  "host = 'host' FILTER "
 		  "host = 'host'",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "attribute[foo] <= "
+		  "f || 'oo'",           -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "attribute[foo] <= "
+		  "'f' || oo",           -1, -1, 0 },
 	};
 
 	size_t i;
