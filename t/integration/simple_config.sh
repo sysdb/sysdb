@@ -82,11 +82,12 @@ run_sysdbd -D -C "$SYSDBD_CONF"
 wait_for_sysdbd
 
 # reconfigure
+SOCKET_FILE="$SOCKET_FILE-2"
 cat <<EOF > "$SYSDBD_CONF"
-Listen "${SOCKET_FILE}-2"
+Listen "${SOCKET_FILE}"
 EOF
 kill -HUP $SYSDBD_PID
-wait_for_sysdbd "${SOCKET_FILE}-2"
+wait_for_sysdbd
 
 stop_sysdbd
 

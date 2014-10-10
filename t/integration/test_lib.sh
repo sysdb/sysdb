@@ -76,9 +76,6 @@ function stop_sysdbd() {
 function wait_for_sysdbd() {
 	local socket="$SOCKET_FILE"
 	local i
-	if test -n "$1"; then
-		socket="$1"
-	fi
 	for (( i=0; i<10; i++ )); do
 		if test -e "$socket"; then
 			break
