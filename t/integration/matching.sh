@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# SysDB -- t/integration/simple_query.sh
+# SysDB -- t/integration/basic_matching.sh
 # Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
 # All rights reserved.
 #
@@ -26,7 +26,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #
-# Integration tests using simple queries.
+# Integration tests for matching clauses.
 #
 
 set -ex
@@ -47,59 +47,6 @@ run_sysdbd -D -C "$SYSDBD_CONF"
 
 wait_for_sysdbd
 sleep 3
-
-# On parse errors, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID )" && exit 1
-echo "$output" | grep "Failed to parse query 'INVALID'"
-echo "$output" | grep "parse error: syntax error"
-
-# Simple, successful commands.
-output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST hosts' )"
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"host2.example.com"' \
-	| grep -F '"localhost"' \
-	| grep -F '"other.host.name"' \
-	| grep -F '"some.host.name"'
-
-output="$( echo 'LIST hosts;' | run_sysdb -H "$SOCKET_FILE" )" || echo $?
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"host2.example.com"' \
-	| grep -F '"localhost"' \
-	| grep -F '"other.host.name"' \
-	| grep -F '"some.host.name"'
-
-output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST services' )"
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"host2.example.com"' \
-	| grep -F '"localhost"' \
-	| grep -F '"some.host.name"' \
-	| grep -F '"mock service"' \
-	| grep -F '"other service"' \
-	| grep -F '"database"' \
-	| grep -F '"example service one"' \
-	| grep -F '"example service two"' \
-	| grep -F '"example service three"'
-
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'host1.example.com'" )"
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"mock service"' \
-	| grep -E '"other attribute".*"special value"'
-echo "$output" | grep -F 'host2.example.com' && exit 1
-echo "$output" | grep -F 'localhost' && exit 1
-echo "$output" | grep -F 'other.host.name' && exit 1
-echo "$output" | grep -F 'some.host.name' && exit 1
-
-(echo 'LIST hosts;'; sleep 1; echo "FETCH host 'host1.example.com'") \
-	| run_sysdb -H "$SOCKET_FILE"
-
-# When requesting information for unknown hosts, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'does.not.exist'" )" \
-	&& exit 1
-echo "$output" | grep -F 'not found'
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING metric = 'foo/bar/qux'" )"
@@ -138,33 +85,6 @@ echo "$output" | grep -F 'host1.example.com' && exit 1
 echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING attribute != 'architecture' 
-		FILTER .age >= 0s" )"
-echo "$output" \
-	| grep -F '"some.host.name"' \
-	| grep -F '"localhost"'
-echo "$output" | grep -F 'other.host.name' && exit 1
-echo "$output" | grep -F 'host1.example.com' && exit 1
-echo "$output" | grep -F 'host2.example.com' && exit 1
-
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING attribute != 'architecture' 
-		FILTER .last_update < 2Y" )"
-echo $output | grep -E '^\[\]$'
-
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER .backend = 'backend::mock_plugin'" )"
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"host2.example.com"' \
-	| grep -F '"localhost"' \
-	| grep -F '"other.host.name"' \
-	| grep -F '"some.host.name"'
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER .backend = 'invalid'" )"
-echo $output | grep -E '^\[\]$'
-
-output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING service = 'sysdbd'" )"
 echo "$output" | grep -F '"localhost"'
 echo "$output" | grep -F 'some.host.name' && exit 1
@@ -185,13 +105,6 @@ echo "$output" | grep -F 'localhost' && exit 1
 output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "LOOKUP hosts MATCHING attribute[invalid] = 'none'" )"
 echo $output | grep -E '^\[\]$'
-
-run_sysdb -H "$SOCKET_FILE" \
-		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
-
-# Does not work yet since there is no fetcher plugin.
-run_sysdb -H "$SOCKET_FILE" \
-		-c "TIMESERIES 'some.host.name'.'foo/bar/qux'" && exit 1
 
 stop_sysdbd
 

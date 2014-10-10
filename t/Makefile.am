@@ -1,8 +1,10 @@
 EXTRA_DIST = \
 		coverage.sh \
 		testwrapper.sh \
-		integration/simple_config.sh \
-		integration/simple_query.sh \
+		integration/config.sh \
+		integration/query.sh \
+		integration/matching.sh \
+		integration/filter.sh \
 		integration/test_lib.sh \
 		valgrind.suppress
 
@@ -60,7 +62,11 @@ unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 #
 
 if INTEGRATION_TESTING
-TESTS += integration/simple_config.sh integration/simple_query.sh
+TESTS += \
+		integration/config.sh \
+		integration/query.sh \
+		integration/matching.sh \
+		integration/filter.sh
 endif
 
 check_LTLIBRARIES += integration/mock_plugin.la
