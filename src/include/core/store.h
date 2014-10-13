@@ -254,6 +254,20 @@ int
 sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
 
 /*
+ * sdb_store_get_attr:
+ * Get the value of a stored object's attribute. The caller is responsible for
+ * freeing any dynamically allocated memory possibly stored in the returned
+ * value.If 'res' is NULL, the function will return whether the attribute
+ * exists.
+ *
+ * Returns:
+ *  - 0 if the attribute exists
+ *  - a negative value else
+ */
+int
+sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res);
+
+/*
  * Expressions specify arithmetic expressions.
  *
  * A expression object inherits from sdb_object_t and, thus, may safely be
