@@ -241,7 +241,8 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
  * sdb_store_get_field:
  * Get the value of a stored object's queryable field. The caller is
  * responsible for freeing any dynamically allocated memory possibly stored in
- * the returned value.
+ * the returned value. If 'res' is NULL, the function will return whether the
+ * field exists.
  *
  * Note: Retrieving the backend this way is not currently supported.
  *

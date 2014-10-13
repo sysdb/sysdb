@@ -896,7 +896,7 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 {
 	sdb_data_t tmp;
 
-	if ((! obj) || (! res))
+	if (! obj)
 		return -1;
 
 	switch (field) {
@@ -905,19 +905,18 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 			tmp.data.string = strdup(SDB_OBJ(obj)->name);
 			if (! tmp.data.string)
 				return -1;
-			*res = tmp;
 			break;
 		case SDB_FIELD_LAST_UPDATE:
-			res->type = SDB_TYPE_DATETIME;
-			res->data.datetime = obj->last_update;
+			tmp.type = SDB_TYPE_DATETIME;
+			tmp.data.datetime = obj->last_update;
 			break;
 		case SDB_FIELD_AGE:
-			res->type = SDB_TYPE_DATETIME;
-			res->data.datetime = sdb_gettime() - obj->last_update;
+			tmp.type = SDB_TYPE_DATETIME;
+			tmp.data.datetime = sdb_gettime() - obj->last_update;
 			break;
 		case SDB_FIELD_INTERVAL:
-			res->type = SDB_TYPE_DATETIME;
-			res->data.datetime = obj->interval;
+			tmp.type = SDB_TYPE_DATETIME;
+			tmp.data.datetime = obj->interval;
 			break;
 		case SDB_FIELD_BACKEND:
 			/* TODO: add support for storing array values in a data object
@@ -925,6 +924,10 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 		default:
 			return -1;
 	}
+	if (res)
+		*res = tmp;
+	else
+		sdb_data_free_datum(&tmp);
 	return 0;
 } /* sdb_store_get_field */
 

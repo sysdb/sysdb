@@ -723,14 +723,21 @@ START_TEST(test_get_field)
 	fail_unless(check < 0,
 			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
 			"expected: <0");
-	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, NULL);
-	fail_unless(check < 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
-			"expected: <0");
 	check = sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, &value);
 	fail_unless(check < 0,
 			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, <value>) = %d; "
 			"expected: <0");
+
+	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, NULL);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
+			"expected: 0");
+	/* 'name' is dynamically allocated; make sure it's not leaked even
+	 * if there is no result parameter */
+	check = sdb_store_get_field(host, SDB_FIELD_NAME, NULL);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
+			"expected: 0");
 
 	check = sdb_store_get_field(host, SDB_FIELD_NAME, &value);
 	fail_unless(check == 0,
