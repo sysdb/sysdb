@@ -302,6 +302,18 @@ sdb_store_expr_t *
 sdb_store_expr_fieldvalue(int field);
 
 /*
+ * sdb_store_expr_attrvalue:
+ * Creates an expression which evaluates to the value of the specified
+ * attribute of a stored object.
+ *
+ * Returns:
+ *  - an expression object on success
+ *  - NULL else
+ */
+sdb_store_expr_t *
+sdb_store_expr_attrvalue(const char *name);
+
+/*
  * sdb_store_expr_constvalue:
  * Creates an expression which evaluates to the specified constant value.
  *

@@ -39,21 +39,27 @@
 #include "core/object.h"
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * private data types
  */
 
+/*
+ * expression types:
+ */
+enum {
+	ATTR_VALUE  = -2, /* attr name stored in data.data.string */
+	FIELD_VALUE = -1, /* field type stored in data.data.integer */
+	/*  0: const value (stored in data) */
+	/* >0: operator id */
+};
+
 struct sdb_store_expr {
 	sdb_object_t super;
 
-	/*
-	 * type:
-	 * -1: field value (field type store in data.data.integer)
-	 *  0: const value (stored in data)
-	 * >0: operator id
-	 */
-	int type;
+	int type; /* see above */
 
 	sdb_store_expr_t *left;
 	sdb_store_expr_t *right;
@@ -144,8 +150,25 @@ sdb_store_expr_fieldvalue(int field)
 	if ((field < 0) || (SDB_FIELD_BACKEND < field))
 		return NULL;
 	return SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
-				-1, NULL, NULL, &value));
+				FIELD_VALUE, NULL, NULL, &value));
 } /* sdb_store_expr_fieldvalue */
+
+sdb_store_expr_t *
+sdb_store_expr_attrvalue(const char *name)
+{
+	sdb_data_t value = { SDB_TYPE_STRING, { .string = NULL} };
+	sdb_store_expr_t *expr;
+
+	value.data.string = strdup(name);
+	if (! value.data.string)
+		return NULL;
+
+	expr = SDB_STORE_EXPR(sdb_object_create("store-attrvalue", expr_type,
+				ATTR_VALUE, NULL, NULL, &value));
+	if (! expr)
+		free(value.data.string);
+	return expr;
+} /* sdb_store_expr_attrvalue */
 
 sdb_store_expr_t *
 sdb_store_expr_constvalue(const sdb_data_t *value)
@@ -169,8 +192,10 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 
 	if (! expr->type)
 		return sdb_data_copy(res, &expr->data);
-	else if (expr->type < 0)
+	else if (expr->type == FIELD_VALUE)
 		return sdb_store_get_field(obj, (int)expr->data.data.integer, res);
+	else if (expr->type == ATTR_VALUE)
+		return sdb_store_get_attr(obj, expr->data.data.string, res);
 
 	if (sdb_store_expr_eval(expr->left, obj, &v1))
 		return -1;
