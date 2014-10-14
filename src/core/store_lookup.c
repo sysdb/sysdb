@@ -287,6 +287,43 @@ match_attr(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_attr */
 
 static int
+match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	sdb_avltree_iter_t *iter = NULL;
+	int status = 0;
+
+	assert((m->type == MATCHER_SERVICE)
+			|| (m->type == MATCHER_METRIC)
+			|| (m->type == MATCHER_ATTRIBUTE));
+
+	/* TODO: support all object types */
+	if (obj->type != SDB_HOST)
+		return 0;
+
+	if (m->type == MATCHER_SERVICE)
+		iter = sdb_avltree_get_iter(HOST(obj)->services);
+	else if (m->type == MATCHER_METRIC)
+		iter = sdb_avltree_get_iter(HOST(obj)->metrics);
+	else if (m->type == SDB_ATTRIBUTE)
+		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
+
+	while (sdb_avltree_iter_has_next(iter)) {
+		sdb_object_t *child = sdb_avltree_iter_get_next(iter);
+		if (filter && (! sdb_store_matcher_matches(filter,
+						STORE_OBJ(child), NULL)))
+			continue;
+
+		if (sdb_store_matcher_matches(CHILD_M(m)->m, obj, filter)) {
+			status = 1;
+			break;
+		}
+	}
+	sdb_avltree_iter_destroy(iter);
+	return status;
+} /* match_child */
+
+static int
 match_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -440,6 +477,9 @@ matchers[] = {
 	match_unary,
 	match_name,
 	match_attr,
+	match_child,
+	match_child,
+	match_child,
 	match_lt,
 	match_le,
 	match_eq,
@@ -732,6 +772,35 @@ op_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 } /* op_tostring */
 
 static int
+child_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	M(obj)->type = va_arg(ap, int);
+	CHILD_M(obj)->m = va_arg(ap, sdb_store_matcher_t *);
+
+	if (! CHILD_M(obj)->m)
+		return -1;
+
+	sdb_object_ref(SDB_OBJ(CHILD_M(obj)->m));
+	return 0;
+} /* child_matcher_init */
+
+static void
+child_matcher_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(CHILD_M(obj)->m));
+} /* child_matcher_destroy */
+
+static char *
+child_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	snprintf(buf, buflen, "%s:", MATCHER_SYM(m->type));
+	buf[buflen - 1] = '\0';
+	sdb_store_matcher_tostring(CHILD_M(m)->m,
+			buf + strlen(buf), buflen - strlen(buf));
+	return buf;
+} /* child_tostring */
+
+static int
 cmp_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
@@ -869,6 +938,12 @@ static sdb_type_t uop_type = {
 	/* destroy = */ uop_matcher_destroy,
 };
 
+static sdb_type_t child_type = {
+	/* size = */ sizeof(child_matcher_t),
+	/* init = */ child_matcher_init,
+	/* destroy = */ child_matcher_destroy,
+};
+
 static sdb_type_t cmp_type = {
 	/* size = */ sizeof(cmp_matcher_t),
 	/* init = */ cmp_matcher_init,
@@ -892,6 +967,9 @@ matchers_tostring[] = {
 	uop_tostring,
 	name_tostring,
 	attr_tostring,
+	child_tostring,
+	child_tostring,
+	child_tostring,
 	cond_tostring,
 	cond_tostring,
 	cond_tostring,
@@ -956,6 +1034,20 @@ sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
 					name, value, NULL));
 	return m;
 } /* sdb_store_attr_matcher */
+
+sdb_store_matcher_t *
+sdb_store_child_matcher(int type, sdb_store_matcher_t *m)
+{
+	if (type == SDB_SERVICE)
+		type = MATCHER_SERVICE;
+	else if (type == SDB_METRIC)
+		type = MATCHER_METRIC;
+	else if (type == SDB_ATTRIBUTE)
+		type = MATCHER_ATTRIBUTE;
+	else
+		return NULL;
+	return M(sdb_object_create("any-matcher", child_type, type, m));
+} /* sdb_store_child_matcher */
 
 sdb_store_matcher_t *
 sdb_store_lt_matcher(sdb_store_cond_t *cond)
