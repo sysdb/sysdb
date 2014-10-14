@@ -182,7 +182,7 @@ sdb_store_expr_constvalue(const sdb_data_t *value)
 
 int
 sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_data_t *res)
+		sdb_data_t *res, sdb_store_matcher_t *filter)
 {
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
 	int status = 0;
@@ -190,16 +190,19 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	if ((! expr) || (! res))
 		return -1;
 
+	if (filter && obj && (! sdb_store_matcher_matches(filter, obj, NULL)))
+		obj = NULL; /* this object does not exist */
+
 	if (! expr->type)
 		return sdb_data_copy(res, &expr->data);
 	else if (expr->type == FIELD_VALUE)
 		return sdb_store_get_field(obj, (int)expr->data.data.integer, res);
 	else if (expr->type == ATTR_VALUE)
-		return sdb_store_get_attr(obj, expr->data.data.string, res);
+		return sdb_store_get_attr(obj, expr->data.data.string, res, filter);
 
-	if (sdb_store_expr_eval(expr->left, obj, &v1))
+	if (sdb_store_expr_eval(expr->left, obj, &v1, filter))
 		return -1;
-	if (sdb_store_expr_eval(expr->right, obj, &v2)) {
+	if (sdb_store_expr_eval(expr->right, obj, &v2, filter)) {
 		sdb_data_free_datum(&v1);
 		return -1;
 	}

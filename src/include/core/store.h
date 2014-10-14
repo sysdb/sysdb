@@ -65,6 +65,30 @@ struct sdb_store_obj;
 typedef struct sdb_store_obj sdb_store_obj_t;
 
 /*
+ * Expressions represent arithmetic expressions based on stored objects and
+ * their various attributes.
+ *
+ * An expression object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
+ */
+struct sdb_store_expr;
+typedef struct sdb_store_expr sdb_store_expr_t;
+#define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
+
+/*
+ * Store matchers may be used to lookup hosts from the store based on their
+ * various attributes. Service and attribute matchers are applied to a host's
+ * services and attributes and evaluate to true if *any* service or attribute
+ * matches.
+ *
+ * A store matcher object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
+ */
+struct sdb_store_matcher;
+typedef struct sdb_store_matcher sdb_store_matcher_t;
+#define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
+
+/*
  * Queryable fields of a stored object.
  */
 enum {
@@ -257,25 +281,17 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
  * sdb_store_get_attr:
  * Get the value of a stored object's attribute. The caller is responsible for
  * freeing any dynamically allocated memory possibly stored in the returned
- * value.If 'res' is NULL, the function will return whether the attribute
- * exists.
+ * value. If 'res' is NULL, the function will return whether the attribute
+ * exists. If specified, only attributes matching the filter will be
+ * considered.
  *
  * Returns:
  *  - 0 if the attribute exists
  *  - a negative value else
  */
 int
-sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res);
-
-/*
- * Expressions specify arithmetic expressions.
- *
- * A expression object inherits from sdb_object_t and, thus, may safely be
- * cast to a generic object.
- */
-struct sdb_store_expr;
-typedef struct sdb_store_expr sdb_store_expr_t;
-#define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
+sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
+		sdb_store_matcher_t *filter);
 
 /*
  * sdb_store_expr_create:
@@ -330,7 +346,8 @@ sdb_store_expr_constvalue(const sdb_data_t *value);
  * result in 'res'. The result's value will be allocated dynamically if
  * necessary and, thus, should be free'd by the caller (e.g. using
  * sdb_data_free_datum). The object may be NULL, in which case the expression
- * needs to evaluate to a constant value.
+ * needs to evaluate to a constant value. If specified, only objects matching
+ * the filter will be used during the evaluation.
  *
  * Returns:
  *  - 0 on success
@@ -338,7 +355,7 @@ sdb_store_expr_constvalue(const sdb_data_t *value);
  */
 int
 sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_data_t *res);
+		sdb_data_t *res, sdb_store_matcher_t *filter);
 
 /*
  * Conditionals may be used to lookup hosts from the store based on a
@@ -368,19 +385,6 @@ sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr);
  */
 sdb_store_cond_t *
 sdb_store_obj_cond(int field, sdb_store_expr_t *expr);
-
-/*
- * Store matchers may be used to lookup hosts from the store based on their
- * various attributes. Service and attribute matchers are applied to a host's
- * services and attributes and evaluate to true if *any* service or attribute
- * matches.
- *
- * A store matcher object inherits from sdb_object_t and, thus, may safely be
- * cast to a generic object.
- */
-struct sdb_store_matcher;
-typedef struct sdb_store_matcher sdb_store_matcher_t;
-#define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
 
 /*
  * sdb_store_name_matcher:

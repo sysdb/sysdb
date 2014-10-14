@@ -932,7 +932,8 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 } /* sdb_store_get_field */
 
 int
-sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res)
+sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
+		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_t *tree = NULL;
 	sdb_avltree_iter_t *iter = NULL;
@@ -956,6 +957,10 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res)
 
 		if (strcasecmp(SDB_OBJ(attr)->name, name))
 			continue;
+
+		if (filter&& (! sdb_store_matcher_matches(filter,
+						STORE_OBJ(attr), NULL)))
+			break; /* found it but it's filtered */
 
 		assert(STORE_OBJ(attr)->type == SDB_ATTRIBUTE);
 		if (res)
