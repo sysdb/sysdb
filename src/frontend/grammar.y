@@ -495,6 +495,13 @@ expression:
 			$$ = sdb_store_expr_fieldvalue(field);
 		}
 	|
+	IDENTIFIER '[' IDENTIFIER ']'
+		{
+			$$ = sdb_store_expr_attrvalue($3);
+			free($1); $1 = NULL;
+			free($3); $3 = NULL;
+		}
+	|
 	data
 		{
 			$$ = sdb_store_expr_constvalue(&$1);

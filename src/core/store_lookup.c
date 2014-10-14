@@ -1007,9 +1007,8 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	if (! expr)
 		return NULL;
 
-	if (sdb_store_expr_eval(expr, NULL, &value))
-		return NULL;
-	if (value.type != SDB_TYPE_STRING) {
+	if (sdb_store_expr_eval(expr, NULL, &value) ||
+			(value.type != SDB_TYPE_STRING)) {
 		sdb_data_free_datum(&value);
 		if (type != SDB_ATTRIBUTE)
 			return NULL;
