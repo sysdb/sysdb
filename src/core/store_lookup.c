@@ -336,6 +336,88 @@ match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return (status != INT_MAX) && (status > 0);
 } /* match_gt */
 
+/*
+ * cmp_expr:
+ * Compare the values of two expressions when evaluating them using the
+ * specified stored object and filter. Returns a value less than, equal to, or
+ * greater than zero if the value of the first expression compares less than,
+ * equal to, or greater than the value of the second expression. Returns
+ * INT_MAX if any of the expressions could not be evaluated.
+ */
+static int
+cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
+		sdb_store_obj_t *obj, sdb_store_matcher_t *filter)
+{
+	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
+	int status;
+
+	if (sdb_store_expr_eval(e1, obj, &v1, filter))
+		return INT_MAX;
+	if (sdb_store_expr_eval(e2, obj, &v2, filter)) {
+		sdb_data_free_datum(&v1);
+		return INT_MAX;
+	}
+
+	if (v1.type == v2.type)
+		status = sdb_data_cmp(&v1, &v2);
+	else
+		status = sdb_data_strcmp(&v1, &v2);
+
+	sdb_data_free_datum(&v1);
+	sdb_data_free_datum(&v2);
+	return status;
+} /* cmp_expr */
+
+static int
+match_cmp_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_LT);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && (status < 0);
+} /* match_cmp_lt */
+
+static int
+match_cmp_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_LE);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && (status <= 0);
+} /* match_cmp_le */
+
+static int
+match_cmp_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_EQ);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && (! status);
+} /* match_cmp_eq */
+
+static int
+match_cmp_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_GE);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && (status >= 0);
+} /* match_cmp_ge */
+
+static int
+match_cmp_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_GT);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && (status > 0);
+} /* match_cmp_gt */
+
 static int
 match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
@@ -363,6 +445,11 @@ matchers[] = {
 	match_eq,
 	match_ge,
 	match_gt,
+	match_cmp_lt,
+	match_cmp_le,
+	match_cmp_eq,
+	match_cmp_ge,
+	match_cmp_gt,
 	match_isnull,
 };
 
@@ -645,6 +732,42 @@ op_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 } /* op_tostring */
 
 static int
+cmp_matcher_init(sdb_object_t *obj, va_list ap)
+{
+	M(obj)->type = va_arg(ap, int);
+
+	CMP_M(obj)->left = va_arg(ap, sdb_store_expr_t *);
+	sdb_object_ref(SDB_OBJ(CMP_M(obj)->left));
+	CMP_M(obj)->right = va_arg(ap, sdb_store_expr_t *);
+	sdb_object_ref(SDB_OBJ(CMP_M(obj)->right));
+
+	if ((! CMP_M(obj)->left) || (! CMP_M(obj)->right))
+		return -1;
+	return 0;
+} /* cmp_matcher_init */
+
+static void
+cmp_matcher_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(CMP_M(obj)->left));
+	sdb_object_deref(SDB_OBJ(CMP_M(obj)->right));
+} /* cmp_matcher_destroy */
+
+static char *
+cmp_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
+{
+	if (! m) {
+		/* this should not happen */
+		snprintf(buf, buflen, "()");
+		return buf;
+	}
+
+	/* TODO */
+	snprintf(buf, buflen, "CMP_MATCHER(%d)", m->type);
+	return buf;
+} /* cmp_tostring */
+
+static int
 uop_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
@@ -746,6 +869,12 @@ static sdb_type_t uop_type = {
 	/* destroy = */ uop_matcher_destroy,
 };
 
+static sdb_type_t cmp_type = {
+	/* size = */ sizeof(cmp_matcher_t),
+	/* init = */ cmp_matcher_init,
+	/* destroy = */ cmp_matcher_destroy,
+};
+
 static sdb_type_t isnull_type = {
 	/* size = */ sizeof(isnull_matcher_t),
 	/* init = */ isnull_matcher_init,
@@ -768,6 +897,11 @@ matchers_tostring[] = {
 	cond_tostring,
 	cond_tostring,
 	cond_tostring,
+	cmp_tostring,
+	cmp_tostring,
+	cmp_tostring,
+	cmp_tostring,
+	cmp_tostring,
 	isnull_tostring,
 };
 
@@ -857,6 +991,46 @@ sdb_store_gt_matcher(sdb_store_cond_t *cond)
 	return M(sdb_object_create("gt-matcher", cond_type,
 				MATCHER_GT, cond));
 } /* sdb_store_gt_matcher */
+
+/*
+ * TODO: Rename sdb_store_cmp_* to sdb_store_* once the old code is unused and
+ * has been removed.
+ */
+
+sdb_store_matcher_t *
+sdb_store_cmp_lt(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("lt-matcher", cmp_type,
+				MATCHER_CMP_LT, left, right));
+} /* sdb_store_cmp_lt */
+
+sdb_store_matcher_t *
+sdb_store_cmp_le(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("le-matcher", cmp_type,
+				MATCHER_CMP_LE, left, right));
+} /* sdb_store_cmp_le */
+
+sdb_store_matcher_t *
+sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("eq-matcher", cmp_type,
+				MATCHER_CMP_EQ, left, right));
+} /* sdb_store_cmp_eq */
+
+sdb_store_matcher_t *
+sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("ge-matcher", cmp_type,
+				MATCHER_CMP_GE, left, right));
+} /* sdb_store_cmp_ge */
+
+sdb_store_matcher_t *
+sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("gt-matcher", cmp_type,
+				MATCHER_CMP_GT, left, right));
+} /* sdb_store_cmp_gt */
 
 sdb_store_matcher_t *
 sdb_store_isnull_matcher(const char *attr_name)

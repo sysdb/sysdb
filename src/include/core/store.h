@@ -430,6 +430,17 @@ sdb_store_ge_matcher(sdb_store_cond_t *cond);
 sdb_store_matcher_t *
 sdb_store_gt_matcher(sdb_store_cond_t *cond);
 
+sdb_store_matcher_t *
+sdb_store_cmp_lt(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_matcher_t *
+sdb_store_cmp_le(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_matcher_t *
+sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_matcher_t *
+sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_matcher_t *
+sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
+
 /*
  * sdb_store_parse_object_type_plural:
  * Parse the type name (plural) of a stored object.

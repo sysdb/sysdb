@@ -148,6 +148,11 @@ enum {
 	MATCHER_EQ,
 	MATCHER_GE,
 	MATCHER_GT,
+	MATCHER_CMP_LT,
+	MATCHER_CMP_LE,
+	MATCHER_CMP_EQ,
+	MATCHER_CMP_GE,
+	MATCHER_CMP_GT,
 	MATCHER_ISNULL,
 };
 
@@ -197,6 +202,16 @@ typedef struct {
 	sdb_store_matcher_t *op;
 } uop_matcher_t;
 #define UOP_M(m) ((uop_matcher_t *)(m))
+
+/* compare operator matcher */
+typedef struct {
+	sdb_store_matcher_t super;
+
+	/* left and right hand expressions */
+	sdb_store_expr_t *left;
+	sdb_store_expr_t *right;
+} cmp_matcher_t;
+#define CMP_M(m) ((cmp_matcher_t *)(m))
 
 /* match any type of object by it's name */
 typedef struct {
