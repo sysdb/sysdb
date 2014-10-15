@@ -239,6 +239,11 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
  * memory and also compiled to a regex. Use sdb_data_free_datum() to free the
  * dynamically allocated memory.
  *
+ * The input string may be stored in 'data', that is, the function may be used
+ * to do an inline cast from a string to any other type. It is the callers
+ * responsibility to free the memory used by the string in case the target
+ * type does not keep a reference to it.
+ *
  * Returns:
  *  - 0 on success
  *  - a negative value else

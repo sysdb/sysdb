@@ -600,11 +600,11 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 			tmp.data.re.raw = strdup(str);
 			if (! tmp.data.re.raw)
 				return -1;
-			if (regcomp(&tmp.data.re.regex, str,
+			if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
 						REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
 				free(tmp.data.re.raw);
 				sdb_log(SDB_LOG_ERR, "core: Failed to compile regular "
-						"expression '%s'", str);
+						"expression '%s'", tmp.data.re.raw);
 				return -1;
 			}
 			if (! data) {
