@@ -46,31 +46,6 @@
  * private data types
  */
 
-/*
- * expression types:
- */
-enum {
-	ATTR_VALUE  = -2, /* attr name stored in data.data.string */
-	FIELD_VALUE = -1, /* field type stored in data.data.integer */
-	/*  0: const value (stored in data) */
-	/* >0: operator id */
-};
-
-struct sdb_store_expr {
-	sdb_object_t super;
-
-	int type; /* see above */
-
-	sdb_store_expr_t *left;
-	sdb_store_expr_t *right;
-
-	sdb_data_t data;
-};
-
-/*
- * private data types
- */
-
 static int
 expr_init(sdb_object_t *obj, va_list ap)
 {

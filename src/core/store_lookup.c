@@ -456,6 +456,62 @@ match_cmp_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_cmp_gt */
 
 static int
+match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	sdb_data_t v = SDB_DATA_INIT;
+	int status = 0;
+
+	regex_t regex;
+	_Bool free_regex = 0;
+
+	assert(m->type == MATCHER_REGEX);
+
+	if (! CMP_M(m)->right->type) {
+		assert(CMP_M(m)->right->data.type == SDB_TYPE_REGEX);
+		regex = CMP_M(m)->right->data.data.re.regex;
+	}
+	else {
+		sdb_data_t tmp = SDB_DATA_INIT;
+		char *raw;
+
+		if (sdb_store_expr_eval(CMP_M(m)->right, obj, &tmp, filter))
+			return 0;
+
+		if (tmp.type != SDB_TYPE_STRING) {
+			sdb_data_free_datum(&tmp);
+			return 0;
+		}
+
+		raw = tmp.data.string;
+		if (sdb_data_parse(raw, SDB_TYPE_REGEX, &tmp)) {
+			free(raw);
+			return 0;
+		}
+
+		regex = tmp.data.re.regex;
+		free_regex = 1;
+		free(tmp.data.re.raw);
+		free(raw);
+	}
+
+	if (sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
+		status = 0;
+	else {
+		char value[sdb_data_strlen(&v) + 1];
+		if (sdb_data_format(&v, value, sizeof(value), SDB_UNQUOTED) < 0)
+			status = 0;
+		else if (! regexec(&regex, value, 0, NULL, 0))
+			status = 1;
+	}
+
+	if (free_regex)
+		regfree(&regex);
+	sdb_data_free_datum(&v);
+	return status;
+} /* match_regex */
+
+static int
 match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -490,6 +546,7 @@ matchers[] = {
 	match_cmp_eq,
 	match_cmp_ge,
 	match_cmp_gt,
+	match_regex,
 	match_isnull,
 };
 
@@ -980,6 +1037,7 @@ matchers_tostring[] = {
 	cmp_tostring,
 	cmp_tostring,
 	cmp_tostring,
+	cmp_tostring,
 	isnull_tostring,
 };
 
@@ -1123,6 +1181,25 @@ sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right)
 	return M(sdb_object_create("gt-matcher", cmp_type,
 				MATCHER_CMP_GT, left, right));
 } /* sdb_store_cmp_gt */
+
+sdb_store_matcher_t *
+sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	if (! right->type) {
+		if ((right->data.type != SDB_TYPE_STRING)
+				&& (right->data.type != SDB_TYPE_REGEX))
+			return NULL;
+
+		if (right->data.type == SDB_TYPE_STRING) {
+			char *raw = right->data.data.string;
+			if (sdb_data_parse(raw, SDB_TYPE_REGEX, &right->data))
+				return NULL;
+			free(raw);
+		}
+	}
+	return M(sdb_object_create("regex-matcher", cmp_type,
+				MATCHER_REGEX, left, right));
+} /* sdb_store_regex_matcher */
 
 sdb_store_matcher_t *
 sdb_store_isnull_matcher(const char *attr_name)

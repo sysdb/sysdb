@@ -450,6 +450,17 @@ sdb_store_matcher_t *
 sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
+ * sdb_store_regex_matcher:
+ * Creates a matcher which matches the string value the left expression
+ * evaluates to against the regular expression the right expression evaluates
+ * to. The right expression may either be a constant value regular expression
+ * or string or a dynamic value evaluating to a string. In the latter case,
+ * the string is compiled to a regex every time the matcher is executed.
+ */
+sdb_store_matcher_t *
+sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+
+/*
  * sdb_store_parse_object_type_plural:
  * Parse the type name (plural) of a stored object.
  *

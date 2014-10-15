@@ -104,6 +104,27 @@ typedef struct {
 #define _interval super.interval
 
 /*
+ * expressions
+ */
+enum {
+	ATTR_VALUE  = -2, /* attr name stored in data.data.string */
+	FIELD_VALUE = -1, /* field type stored in data.data.integer */
+	/*  0: const value (stored in data) */
+	/* >0: operator id */
+};
+
+struct sdb_store_expr {
+	sdb_object_t super;
+
+	int type; /* see above */
+
+	sdb_store_expr_t *left;
+	sdb_store_expr_t *right;
+
+	sdb_data_t data;
+};
+
+/*
  * conditionals
  */
 
@@ -135,8 +156,8 @@ typedef struct {
  * matchers
  */
 
-/* when adding to this, also update 'matchers' and 'matchers_tostring'
- * in store_lookup.c */
+/* when adding to this, also update 'MATCHER_SYM' below as well as 'matchers'
+ * and 'matchers_tostring' in store_lookup.c */
 enum {
 	MATCHER_OR,
 	MATCHER_AND,
@@ -156,6 +177,7 @@ enum {
 	MATCHER_CMP_EQ,
 	MATCHER_CMP_GE,
 	MATCHER_CMP_GT,
+	MATCHER_REGEX,
 	MATCHER_ISNULL,
 };
 
@@ -173,6 +195,7 @@ enum {
 		: ((t) == MATCHER_EQ) ? "=" \
 		: ((t) == MATCHER_GE) ? ">=" \
 		: ((t) == MATCHER_GT) ? ">" \
+		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
 		: "UNKNOWN")
 
