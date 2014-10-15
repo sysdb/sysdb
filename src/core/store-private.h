@@ -175,9 +175,11 @@ enum {
 	MATCHER_CMP_LT,
 	MATCHER_CMP_LE,
 	MATCHER_CMP_EQ,
+	MATCHER_CMP_NE,
 	MATCHER_CMP_GE,
 	MATCHER_CMP_GT,
 	MATCHER_REGEX,
+	MATCHER_NREGEX,
 	MATCHER_ISNULL,
 };
 
@@ -193,9 +195,11 @@ enum {
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \
+		: ((t) == MATCHER_CMP_NE) ? "!=" \
 		: ((t) == MATCHER_GE) ? ">=" \
 		: ((t) == MATCHER_GT) ? ">" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
+		: ((t) == MATCHER_NREGEX) ? "!~" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
 		: "UNKNOWN")
 

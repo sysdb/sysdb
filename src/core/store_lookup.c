@@ -436,6 +436,16 @@ match_cmp_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_cmp_eq */
 
 static int
+match_cmp_ne(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	int status;
+	assert(m->type == MATCHER_CMP_NE);
+	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
+	return (status != INT_MAX) && status;
+} /* match_cmp_ne */
+
+static int
 match_cmp_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -465,7 +475,8 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	regex_t regex;
 	_Bool free_regex = 0;
 
-	assert(m->type == MATCHER_REGEX);
+	assert((m->type == MATCHER_REGEX)
+			|| (m->type == MATCHER_NREGEX));
 
 	if (! CMP_M(m)->right->type) {
 		assert(CMP_M(m)->right->data.type == SDB_TYPE_REGEX);
@@ -508,6 +519,8 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (free_regex)
 		regfree(&regex);
 	sdb_data_free_datum(&v);
+	if (m->type == MATCHER_NREGEX)
+		return !status;
 	return status;
 } /* match_regex */
 
@@ -544,8 +557,10 @@ matchers[] = {
 	match_cmp_lt,
 	match_cmp_le,
 	match_cmp_eq,
+	match_cmp_ne,
 	match_cmp_ge,
 	match_cmp_gt,
+	match_regex,
 	match_regex,
 	match_isnull,
 };
@@ -1038,6 +1053,8 @@ matchers_tostring[] = {
 	cmp_tostring,
 	cmp_tostring,
 	cmp_tostring,
+	cmp_tostring,
+	cmp_tostring,
 	isnull_tostring,
 };
 
@@ -1169,6 +1186,13 @@ sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right)
 } /* sdb_store_cmp_eq */
 
 sdb_store_matcher_t *
+sdb_store_cmp_ne(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("ne-matcher", cmp_type,
+				MATCHER_CMP_NE, left, right));
+} /* sdb_store_cmp_ne */
+
+sdb_store_matcher_t *
 sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("ge-matcher", cmp_type,
@@ -1200,6 +1224,16 @@ sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 	return M(sdb_object_create("regex-matcher", cmp_type,
 				MATCHER_REGEX, left, right));
 } /* sdb_store_regex_matcher */
+
+sdb_store_matcher_t *
+sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	sdb_store_matcher_t *m = sdb_store_regex_matcher(left, right);
+	if (! m)
+		return NULL;
+	m->type = MATCHER_NREGEX;
+	return m;
+} /* sdb_store_nregex_matcher */
 
 sdb_store_matcher_t *
 sdb_store_isnull_matcher(const char *attr_name)

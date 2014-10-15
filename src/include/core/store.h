@@ -445,6 +445,8 @@ sdb_store_cmp_le(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
 sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
+sdb_store_cmp_ne(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_matcher_t *
 sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
 sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
@@ -459,6 +461,14 @@ sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
  */
 sdb_store_matcher_t *
 sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+
+/*
+ * sdb_store_nregex_matcher:
+ * Creates a regex matcher just like sdb_store_regex_matcher except that it
+ * matches in case the regular expression does not match.
+ */
+sdb_store_matcher_t *
+sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
  * sdb_store_parse_object_type_plural:
