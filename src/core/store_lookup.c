@@ -528,10 +528,23 @@ static int
 match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
-	assert(m->type == MATCHER_ISNULL);
-	if (obj->type != SDB_HOST)
-		return 0;
-	return attr_get(HOST(obj), ISNULL_M(m)->attr_name, filter) == NULL;
+	sdb_data_t v = SDB_DATA_INIT;
+	int status;
+
+	assert((m->type == MATCHER_ISNULL) || (m->type == MATCHER_ISNNULL));
+
+	/* TODO: this might hide real errors;
+	 * improve error reporting and propagation */
+	if (sdb_store_expr_eval(ISNULL_M(m)->expr, obj, &v, filter)
+			|| sdb_data_isnull(&v))
+		status = 1;
+	else
+		status = 0;
+
+	sdb_data_free_datum(&v);
+	if (m->type == MATCHER_ISNNULL)
+		return !status;
+	return status;
 } /* match_isnull */
 
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_obj_t *,
@@ -562,6 +575,7 @@ matchers[] = {
 	match_cmp_gt,
 	match_regex,
 	match_regex,
+	match_isnull,
 	match_isnull,
 };
 
@@ -950,33 +964,30 @@ uop_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 static int
 isnull_matcher_init(sdb_object_t *obj, va_list ap)
 {
-	const char *name;
-
 	M(obj)->type = va_arg(ap, int);
-	if (M(obj)->type != MATCHER_ISNULL)
+	if ((M(obj)->type != MATCHER_ISNULL) && (M(obj)->type != MATCHER_ISNNULL))
 		return -1;
 
-	name = va_arg(ap, const char *);
-	if (! name)
-		return -1;
-	ISNULL_M(obj)->attr_name = strdup(name);
-	if (! ISNULL_M(obj)->attr_name)
-		return -1;
+	ISNULL_M(obj)->expr = va_arg(ap, sdb_store_expr_t *);
+	sdb_object_ref(SDB_OBJ(ISNULL_M(obj)->expr));
 	return 0;
 } /* isnull_matcher_init */
 
 static void
 isnull_matcher_destroy(sdb_object_t *obj)
 {
-	if (ISNULL_M(obj)->attr_name)
-		free(ISNULL_M(obj)->attr_name);
-	ISNULL_M(obj)->attr_name = NULL;
+	sdb_object_deref(SDB_OBJ(ISNULL_M(obj)->expr));
+	ISNULL_M(obj)->expr = NULL;
 } /* isnull_matcher_destroy */
 
 static char *
 isnull_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
 {
-	snprintf(buf, buflen, "(IS NULL, ATTR[%s])", ISNULL_M(m)->attr_name);
+	/* XXX */
+	if (m->type == MATCHER_ISNULL)
+		strncpy(buf, "(IS NULL)", buflen);
+	else
+		strncpy(buf, "(IS NOT NULL)", buflen);
 	return buf;
 } /* isnull_tostring */
 
@@ -1055,6 +1066,7 @@ matchers_tostring[] = {
 	cmp_tostring,
 	cmp_tostring,
 	cmp_tostring,
+	isnull_tostring,
 	isnull_tostring,
 };
 
@@ -1236,11 +1248,18 @@ sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 } /* sdb_store_nregex_matcher */
 
 sdb_store_matcher_t *
-sdb_store_isnull_matcher(const char *attr_name)
+sdb_store_isnull_matcher(sdb_store_expr_t *expr)
 {
 	return M(sdb_object_create("isnull-matcher", isnull_type,
-				MATCHER_ISNULL, attr_name));
+				MATCHER_ISNULL, expr));
 } /* sdb_store_isnull_matcher */
+
+sdb_store_matcher_t *
+sdb_store_isnnull_matcher(sdb_store_expr_t *expr)
+{
+	return M(sdb_object_create("isnull-matcher", isnull_type,
+				MATCHER_ISNNULL, expr));
+} /* sdb_store_isnnull_matcher */
 
 sdb_store_matcher_op_cb
 sdb_store_parse_matcher_op(const char *op)
@@ -1341,13 +1360,7 @@ parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
 	if (! attr)
 		return NULL;
 
-	if (! strcasecmp(op, "IS")) {
-		if (! expr)
-			return sdb_store_isnull_matcher(attr);
-		else
-			return NULL;
-	}
-	else if (! expr)
+	if (! expr)
 		return NULL;
 	else if (parse_cond_op(op, &matcher, &inv))
 		return NULL;

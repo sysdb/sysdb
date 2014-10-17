@@ -348,7 +348,7 @@ START_TEST(test_parse_matcher)
 		/* NULL; while this is an implementation detail,
 		 * IS NULL currently maps to an equality matcher */
 		{ "attribute[foo] IS NULL",     -1,  MATCHER_ISNULL },
-		{ "attribute[foo] IS NOT NULL", -1,  MATCHER_NOT },
+		{ "attribute[foo] IS NOT NULL", -1,  MATCHER_ISNNULL },
 
 		/* object field matchers */
 		{ ".last_update < 10s",         -1,  MATCHER_LT },

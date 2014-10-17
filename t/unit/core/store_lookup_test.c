@@ -624,8 +624,6 @@ START_TEST(test_parse_cmp)
 /*		{ "attribute", "attr", "=",  &attrname,   MATCHER_EQ }, */
 		{ "attribute", "attr", ">=", &attrname,   MATCHER_GE },
 		{ "attribute", "attr", ">",  &attrname,   MATCHER_GT },
-		{ "attribute", "attr", "IS", NULL,        MATCHER_ISNULL },
-		{ "attribute", "attr", "IS", &attrname,   -1 },
 		{ "foo",       NULL,   "=",  &attrname,   -1 },
 		{ "foo",       "attr", "=",  &attrname,   -1 },
 	};
@@ -657,7 +655,7 @@ START_TEST(test_parse_cmp)
 
 		fail_unless(check != NULL,
 				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) = %p; "
-				"expected: NULL", golden_data[i].obj_type,
+				"expected: <expr>", golden_data[i].obj_type,
 				golden_data[i].attr, golden_data[i].op, buf, check);
 		fail_unless(M(check)->type == golden_data[i].expected,
 				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) returned matcher "
@@ -834,13 +832,13 @@ START_TEST(test_scan)
 		{ "attribute[k1] = 'v1'", NULL,      1,
 			"ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}" },
 		{ "attribute[k1] IS NULL", NULL,     2,
-			"\\(IS NULL, ATTR\\[k1\\]\\)" },
+			"\\(IS NULL\\)" },
 		{ "attribute[x1] IS NULL", NULL,     3,
-			"\\(IS NULL, ATTR\\[x1\\]\\)" },
+			"\\(IS NULL\\)" },
 		{ "attribute[k1] IS NOT NULL", NULL, 1,
-			"\\(NOT, \\(IS NULL, ATTR\\[k1\\]\\)\\)" },
+			"\\(IS NOT NULL\\)" },
 		{ "attribute[x1] IS NOT NULL", NULL, 0,
-			"\\(NOT, \\(IS NULL, ATTR\\[x1\\]\\)\\)" },
+			"\\(IS NOT NULL\\)" },
 		{ "attribute[k2] < 123", NULL,       0,
 			"ATTR\\[k2\\]\\{ < 123 \\}" },
 		{ "attribute[k2] <= 123", NULL,      1,

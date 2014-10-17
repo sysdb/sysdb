@@ -406,10 +406,17 @@ sdb_store_attr_matcher(const char *name, const char *value, _Bool re);
 
 /*
  * sdb_store_isnull_matcher:
- * Creates a matcher matching "missing" attributes.
+ * Creates a matcher matching NULL values.
  */
 sdb_store_matcher_t *
-sdb_store_isnull_matcher(const char *attr_name);
+sdb_store_isnull_matcher(sdb_store_expr_t *expr);
+
+/*
+ * sdb_store_isnnull_matcher:
+ * Creates a matcher matching non-NULL values.
+ */
+sdb_store_matcher_t *
+sdb_store_isnnull_matcher(sdb_store_expr_t *expr);
 
 /*
  * sdb_store_child_matcher:

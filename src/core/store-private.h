@@ -181,6 +181,7 @@ enum {
 	MATCHER_REGEX,
 	MATCHER_NREGEX,
 	MATCHER_ISNULL,
+	MATCHER_ISNNULL,
 };
 
 #define MATCHER_SYM(t) \
@@ -201,6 +202,7 @@ enum {
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
+		: ((t) == MATCHER_ISNNULL) ? "IS NOT NULL" \
 		: "UNKNOWN")
 
 /* match the name of something */
@@ -272,7 +274,7 @@ typedef struct {
 
 typedef struct {
 	sdb_store_matcher_t super;
-	char *attr_name; /* we only support matching attributes */
+	sdb_store_expr_t *expr;
 } isnull_matcher_t;
 #define ISNULL_M(m) ((isnull_matcher_t *)(m))
 

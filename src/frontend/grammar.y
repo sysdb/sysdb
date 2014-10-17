@@ -460,21 +460,44 @@ compare_matcher:
 	|
 	IDENTIFIER '[' IDENTIFIER ']' IS NULL_T
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);
+			sdb_store_expr_t *expr;
+
+			if (strcasecmp($1, "attribute")) {
+				char errmsg[strlen($1) + strlen($3) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown value %s[%s]"), $1);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($1); $1 = NULL;
+				free($3); $3 = NULL;
+				YYABORT;
+			}
+
+			expr = sdb_store_expr_attrvalue($3);
+			$$ = sdb_store_isnull_matcher(expr);
+			sdb_object_deref(SDB_OBJ(expr));
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 		}
 	|
 	IDENTIFIER '[' IDENTIFIER ']' IS NOT NULL_T
 		{
-			sdb_store_matcher_t *m;
-			m = sdb_store_matcher_parse_cmp($1, $3, "IS", NULL);
+			sdb_store_expr_t *expr;
+
+			if (strcasecmp($1, "attribute")) {
+				char errmsg[strlen($1) + strlen($3) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown value %s[%s]"), $1);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($1); $1 = NULL;
+				free($3); $3 = NULL;
+				YYABORT;
+			}
+
+			expr = sdb_store_expr_attrvalue($3);
+			$$ = sdb_store_isnnull_matcher(expr);
+			sdb_object_deref(SDB_OBJ(expr));
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
-
-			/* sdb_store_inv_matcher return NULL if m==NULL */
-			$$ = sdb_store_inv_matcher(m);
-			sdb_object_deref(SDB_OBJ(m));
 		}
 	;
 
