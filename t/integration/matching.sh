@@ -67,7 +67,7 @@ echo "$output" | grep -F 'localhost' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING attribute[architecture] = 'x42'" )"
+	-c "LOOKUP hosts MATCHING attribute['architecture'] = 'x42'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"'
@@ -103,7 +103,7 @@ echo "$output" | grep -F 'localhost' && exit 1
 
 # When querying hosts that don't exist, expect a zero exit code.
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING attribute[invalid] = 'none'" )"
+	-c "LOOKUP hosts MATCHING attribute['invalid'] = 'none'" )"
 echo $output | grep -E '^\[\]$'
 
 stop_sysdbd

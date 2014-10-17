@@ -450,7 +450,7 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	IDENTIFIER '[' IDENTIFIER ']' cmp expression
+	IDENTIFIER '[' STRING ']' cmp expression
 		{
 			$$ = sdb_store_matcher_parse_cmp($1, $3, $5, $6);
 			free($1); $1 = NULL;
@@ -458,7 +458,7 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($6));
 		}
 	|
-	IDENTIFIER '[' IDENTIFIER ']' IS NULL_T
+	IDENTIFIER '[' STRING ']' IS NULL_T
 		{
 			sdb_store_expr_t *expr;
 
@@ -479,7 +479,7 @@ compare_matcher:
 			free($3); $3 = NULL;
 		}
 	|
-	IDENTIFIER '[' IDENTIFIER ']' IS NOT NULL_T
+	IDENTIFIER '[' STRING ']' IS NOT NULL_T
 		{
 			sdb_store_expr_t *expr;
 
@@ -556,7 +556,7 @@ expression:
 			$$ = sdb_store_expr_fieldvalue(field);
 		}
 	|
-	IDENTIFIER '[' IDENTIFIER ']'
+	IDENTIFIER '[' STRING ']'
 		{
 			$$ = sdb_store_expr_attrvalue($3);
 			free($1); $1 = NULL;
