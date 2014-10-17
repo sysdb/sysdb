@@ -32,6 +32,7 @@
 #include "libsysdb_test.h"
 
 #include <check.h>
+#include <limits.h>
 
 /*
  * tests
@@ -386,6 +387,7 @@ START_TEST(test_parse_matcher)
 		/* syntax errors */
 		{ "LIST",                       -1, -1 },
 		{ "foo &^ bar",                 -1, -1 },
+		{ ".invalid",                   -1, -1 },
 	};
 
 	size_t i;
@@ -413,6 +415,72 @@ START_TEST(test_parse_matcher)
 }
 END_TEST
 
+START_TEST(test_parse_expr)
+{
+	struct {
+		const char *expr;
+		int len;
+		int expected;
+	} golden_data[] = {
+		/* empty expressions */
+		{ NULL,                  -1, INT_MAX },
+		{ "",                    -1, INT_MAX },
+
+		/* constant expressions */
+		{ "'localhost'",         -1, 0 },
+		{ "123",                 -1, 0 },
+		{ "2014-08-16",          -1, 0 },
+		{ "17:23",               -1, 0 },
+		{ "17:23:53",            -1, 0 },
+		{ "17:23:53.123",        -1, 0 },
+		{ "17:23:53.123456789",  -1, 0 },
+		{ "2014-08-16 17:23",    -1, 0 },
+		{ "2014-08-16 17:23:53", -1, 0 },
+		{ "10s",                 -1, 0 },
+		{ "60m",                 -1, 0 },
+		{ "10Y 24D 1h",          -1, 0 },
+
+		/* queryable fields */
+		{ ".last_update",        -1, FIELD_VALUE },
+		{ ".AGE",                -1, FIELD_VALUE },
+		{ ".interval",           -1, FIELD_VALUE },
+		{ ".Last_Update",        -1, FIELD_VALUE },
+		{ ".backend",            -1, FIELD_VALUE },
+
+		/* attributes */
+		{ "attribute[foo]",      -1, ATTR_VALUE },
+
+		/* syntax errors */
+		{ "LIST",                -1, INT_MAX },
+		{ "foo &^ bar",          -1, INT_MAX },
+		{ ".invalid",            -1, INT_MAX },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_expr_t *e;
+		e = sdb_fe_parse_expr(golden_data[i].expr, golden_data[i].len);
+
+		if (golden_data[i].expected == INT_MAX) {
+			fail_unless(e == NULL,
+					"sdb_fe_parse_expr(%s) = %p; expected: NULL",
+					golden_data[i].expr, e);
+			continue;
+		}
+
+		fail_unless(e != NULL, "sdb_fe_parse_expr(%s) = NULL; "
+				"expected: <expr>", golden_data[i].expr);
+		fail_unless(e->type == golden_data[i].expected,
+				"sdb_fe_parse_expr(%s) returned expression of type %d; "
+				"expected: %d", golden_data[i].expr, e->type,
+				golden_data[i].expected);
+
+		sdb_object_deref(SDB_OBJ(e));
+	}
+}
+END_TEST
+
 Suite *
 fe_parser_suite(void)
 {
@@ -422,6 +490,7 @@ fe_parser_suite(void)
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_parse);
 	tcase_add_test(tc, test_parse_matcher);
+	tcase_add_test(tc, test_parse_expr);
 	suite_add_tcase(s, tc);
 
 	return s;

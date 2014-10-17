@@ -228,7 +228,7 @@ statements:
 				n = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 							conn_expr_t, conn_expr_destroy));
 				n->cmd = CONNECTION_EXPR;
-				CONN_EXPR($$)->expr = $1;
+				CONN_EXPR(n)->expr = $1;
 
 				sdb_llist_append(pt, SDB_OBJ(n));
 				sdb_object_deref(SDB_OBJ(n));
