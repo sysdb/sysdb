@@ -126,5 +126,44 @@ sdb_fe_parse_matcher(const char *cond, int len)
 	return m;
 } /* sdb_fe_parse_matcher */
 
+sdb_store_expr_t *
+sdb_fe_parse_expr(const char *expr, int len)
+{
+	sdb_fe_yyscan_t scanner;
+	sdb_fe_yyextra_t yyextra;
+
+	sdb_conn_node_t *node;
+	sdb_store_expr_t *e;
+
+	int yyres;
+
+	if (scanner_init(expr, len, &scanner, &yyextra))
+		return NULL;
+
+	yyextra.mode = SDB_PARSE_EXPR;
+
+	yyres = sdb_fe_yyparse(scanner);
+	sdb_fe_scanner_destroy(scanner);
+
+	if (yyres) {
+		sdb_llist_destroy(yyextra.parsetree);
+		return NULL;
+	}
+
+	node = SDB_CONN_NODE(sdb_llist_get(yyextra.parsetree, 0));
+	if (! node)
+		return NULL;
+
+	if (node->cmd == CONNECTION_EXPR)
+		e = CONN_EXPR(node)->expr;
+	else
+		e = NULL;
+
+	CONN_EXPR(node)->expr = NULL;
+	sdb_llist_destroy(yyextra.parsetree);
+	sdb_object_deref(SDB_OBJ(node));
+	return e;
+} /* sdb_fe_parse_expr */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

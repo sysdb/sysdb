@@ -254,6 +254,12 @@ typedef enum {
 	 * A parsed matcher. Only used internally.
 	 */
 	CONNECTION_MATCHER = 100,
+
+	/*
+	 * CONNECTION_EXPR:
+	 * A parsed expression. Only used internally.
+	 */
+	CONNECTION_EXPR,
 } sdb_conn_state_t;
 
 #ifdef __cplusplus

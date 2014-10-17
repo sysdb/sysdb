@@ -56,6 +56,12 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 /* quick access to the parser mode */
 #define parser_mode sdb_fe_yyget_extra(scanner)->mode
 
+#define MODE_TO_STRING(m) \
+	(((m) == SDB_PARSE_DEFAULT) ? "statement" \
+		: ((m) == SDB_PARSE_COND) ? "condition" \
+		: ((m) == SDB_PARSE_EXPR) ? "expression" \
+		: "UNKNOWN")
+
 %}
 
 %pure-parser
@@ -148,11 +154,13 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 statements:
 	statements ';' statement
 		{
-			/* only accept this in default parse mode */
+			/* only accepted in default parse mode */
 			if (parser_mode != SDB_PARSE_DEFAULT) {
-				sdb_fe_yyerror(&yylloc, scanner,
+				char errmsg[1024];
+				snprintf(errmsg, sizeof(errmsg),
 						YY_("syntax error, unexpected statement, "
-							"expecting condition"));
+							"expecting %s"), MODE_TO_STRING(parser_mode));
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($3));
 				YYABORT;
 			}
@@ -165,11 +173,13 @@ statements:
 	|
 	statement
 		{
-			/* only accept this in default parse mode */
+			/* only accepted in default parse mode */
 			if (parser_mode != SDB_PARSE_DEFAULT) {
-				sdb_fe_yyerror(&yylloc, scanner,
+				char errmsg[1024];
+				snprintf(errmsg, sizeof(errmsg),
 						YY_("syntax error, unexpected statement, "
-							"expecting condition"));
+							"expecting %s"), MODE_TO_STRING(parser_mode));
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -182,11 +192,13 @@ statements:
 	|
 	condition
 		{
-			/* only accept this in condition parse mode */
+			/* only accepted in condition parse mode */
 			if (! (parser_mode & SDB_PARSE_COND)) {
-				sdb_fe_yyerror(&yylloc, scanner,
+				char errmsg[1024];
+				snprintf(errmsg, sizeof(errmsg),
 						YY_("syntax error, unexpected condition, "
-							"expecting statement"));
+							"expecting %s"), MODE_TO_STRING(parser_mode));
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -194,6 +206,31 @@ statements:
 			if ($1) {
 				sdb_llist_append(pt, SDB_OBJ($1));
 				sdb_object_deref(SDB_OBJ($1));
+			}
+		}
+	|
+	expression
+		{
+			/* only accepted in expression parse mode */
+			if (! (parser_mode & SDB_PARSE_EXPR)) {
+				char errmsg[1024];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("syntax error, unexpected expression, "
+							"expecting %s"), MODE_TO_STRING(parser_mode));
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				sdb_object_deref(SDB_OBJ($1));
+				YYABORT;
+			}
+
+			if ($1) {
+				sdb_conn_node_t *n;
+				n = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+							conn_expr_t, conn_expr_destroy));
+				n->cmd = CONNECTION_EXPR;
+				CONN_EXPR($$)->expr = $1;
+
+				sdb_llist_append(pt, SDB_OBJ(n));
+				sdb_object_deref(SDB_OBJ(n));
 			}
 		}
 	;

@@ -39,6 +39,7 @@ extern "C" {
 enum {
 	SDB_PARSE_DEFAULT = 0,
 	SDB_PARSE_COND,
+	SDB_PARSE_EXPR,
 };
 
 /* YY_EXTRA data */
@@ -64,6 +65,9 @@ sdb_fe_yyparse(sdb_fe_yyscan_t scanner);
 
 sdb_store_matcher_t *
 sdb_fe_parse_matcher(const char *cond, int len);
+
+sdb_store_expr_t *
+sdb_fe_parse_expr(const char *expr, int len);
 
 #ifdef __cplusplus
 } /* extern "C" */

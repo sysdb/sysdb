@@ -83,6 +83,12 @@ struct sdb_conn {
 
 typedef struct {
 	sdb_conn_node_t super;
+	sdb_store_expr_t *expr;
+} conn_expr_t;
+#define CONN_EXPR(obj) ((conn_expr_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
 	sdb_store_matcher_t *matcher;
 } conn_matcher_t;
 #define CONN_MATCHER(obj) ((conn_matcher_t *)(obj))
@@ -121,6 +127,12 @@ typedef struct {
 /*
  * type helper functions
  */
+
+static void __attribute__((unused))
+conn_expr_destroy(sdb_object_t *obj)
+{
+	sdb_object_deref(SDB_OBJ(CONN_EXPR(obj)->expr));
+} /* conn_expr_destroy */
 
 static void __attribute__((unused))
 conn_matcher_destroy(sdb_object_t *obj)
