@@ -148,6 +148,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m> <expr>
+%destructor { sdb_data_free_datum(&$$); } <data>
 
 %%
 
