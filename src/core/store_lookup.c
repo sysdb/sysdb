@@ -1242,6 +1242,28 @@ sdb_store_isnull_matcher(const char *attr_name)
 				MATCHER_ISNULL, attr_name));
 } /* sdb_store_isnull_matcher */
 
+sdb_store_matcher_op_cb
+sdb_store_parse_matcher_op(const char *op)
+{
+	if (! strcasecmp(op, "<"))
+		return sdb_store_cmp_lt;
+	else if (! strcasecmp(op, "<="))
+		return sdb_store_cmp_le;
+	else if (! strcasecmp(op, "="))
+		return sdb_store_cmp_eq;
+	else if (! strcasecmp(op, "!="))
+		return sdb_store_cmp_ne;
+	else if (! strcasecmp(op, ">="))
+		return sdb_store_cmp_ge;
+	else if (! strcasecmp(op, ">"))
+		return sdb_store_cmp_gt;
+	else if (! strcasecmp(op, "=~"))
+		return sdb_store_regex_matcher;
+	else if (! strcasecmp(op, "!~"))
+		return sdb_store_nregex_matcher;
+	return NULL;
+} /* sdb_store_parse_matcher_op */
+
 int
 sdb_store_parse_object_type_plural(const char *name)
 {

@@ -471,6 +471,25 @@ sdb_store_matcher_t *
 sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
+ * sdb_store_matcher_op_cb:
+ * Callback constructing a matcher operator.
+ */
+typedef sdb_store_matcher_t *(*sdb_store_matcher_op_cb)
+	(sdb_store_expr_t *, sdb_store_expr_t *);
+
+/*
+ * sdb_store_parse_matcher_op:
+ * Parse a matcher operator and return a constructor for the respective
+ * matcher.
+ *
+ * Returns:
+ *  - matcher operator constructor on success
+ *  - NULL else
+ */
+sdb_store_matcher_op_cb
+sdb_store_parse_matcher_op(const char *op);
+
+/*
  * sdb_store_parse_object_type_plural:
  * Parse the type name (plural) of a stored object.
  *
