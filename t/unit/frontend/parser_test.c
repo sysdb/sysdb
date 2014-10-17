@@ -423,37 +423,60 @@ START_TEST(test_parse_expr)
 		int expected;
 	} golden_data[] = {
 		/* empty expressions */
-		{ NULL,                  -1, INT_MAX },
-		{ "",                    -1, INT_MAX },
+		{ NULL,                   -1, INT_MAX },
+		{ "",                     -1, INT_MAX },
 
 		/* constant expressions */
-		{ "'localhost'",         -1, 0 },
-		{ "123",                 -1, 0 },
-		{ "2014-08-16",          -1, 0 },
-		{ "17:23",               -1, 0 },
-		{ "17:23:53",            -1, 0 },
-		{ "17:23:53.123",        -1, 0 },
-		{ "17:23:53.123456789",  -1, 0 },
-		{ "2014-08-16 17:23",    -1, 0 },
-		{ "2014-08-16 17:23:53", -1, 0 },
-		{ "10s",                 -1, 0 },
-		{ "60m",                 -1, 0 },
-		{ "10Y 24D 1h",          -1, 0 },
+		{ "'localhost'",          -1, 0 },
+		{ "123",                  -1, 0 },
+		{ "2014-08-16",           -1, 0 },
+		{ "17:23",                -1, 0 },
+		{ "17:23:53",             -1, 0 },
+		{ "17:23:53.123",         -1, 0 },
+		{ "17:23:53.123456789",   -1, 0 },
+		{ "2014-08-16 17:23",     -1, 0 },
+		{ "2014-08-16 17:23:53",  -1, 0 },
+		{ "10s",                  -1, 0 },
+		{ "60m",                  -1, 0 },
+		{ "10Y 24D 1h",           -1, 0 },
+
+		{ "123 + 456",            -1, 0 },
+		{ "'foo' || 'bar'",       -1, 0 },
+		{ "456 - 123",            -1, 0 },
+		{ "1.2 * 3.4",            -1, 0 },
+		{ "1.2 / 3.4",            -1, 0 },
+		{ "5 % 2",                -1, 0 },
 
 		/* queryable fields */
-		{ ".last_update",        -1, FIELD_VALUE },
-		{ ".AGE",                -1, FIELD_VALUE },
-		{ ".interval",           -1, FIELD_VALUE },
-		{ ".Last_Update",        -1, FIELD_VALUE },
-		{ ".backend",            -1, FIELD_VALUE },
+		{ ".last_update",         -1, FIELD_VALUE },
+		{ ".AGE",                 -1, FIELD_VALUE },
+		{ ".interval",            -1, FIELD_VALUE },
+		{ ".Last_Update",         -1, FIELD_VALUE },
+		{ ".backend",             -1, FIELD_VALUE },
 
 		/* attributes */
-		{ "attribute[foo]",      -1, ATTR_VALUE },
+		{ "attribute[foo]",       -1, ATTR_VALUE },
+
+		/* arithmetic expressions */
+		{ ".age + .age",          -1, SDB_DATA_ADD },
+		{ ".age - .age",          -1, SDB_DATA_SUB },
+		{ ".age * .age",          -1, SDB_DATA_MUL },
+		{ ".age / .age",          -1, SDB_DATA_DIV },
+		{ ".age % .age",          -1, SDB_DATA_MOD },
+		{ ".age || .age",         -1, SDB_DATA_CONCAT },
+
+		/* operator precedence */
+		{ ".age + .age * .age",   -1, SDB_DATA_ADD },
+		{ ".age * .age + .age",   -1, SDB_DATA_ADD },
+		{ ".age + .age - .age",   -1, SDB_DATA_SUB },
+		{ ".age - .age + .age",   -1, SDB_DATA_ADD },
+		{ "(.age + .age) * .age", -1, SDB_DATA_MUL },
+		{ ".age + (.age * .age)", -1, SDB_DATA_ADD },
 
 		/* syntax errors */
-		{ "LIST",                -1, INT_MAX },
-		{ "foo &^ bar",          -1, INT_MAX },
-		{ ".invalid",            -1, INT_MAX },
+		{ "LIST",                 -1, INT_MAX },
+		{ "foo &^ bar",           -1, INT_MAX },
+		{ ".invalid",             -1, INT_MAX },
 	};
 
 	size_t i;
