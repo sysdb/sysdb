@@ -355,7 +355,7 @@ condition:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_matcher_t, conn_matcher_destroy));
-			$$->cmd = CONNECTION_EXPR;
+			$$->cmd = CONNECTION_MATCHER;
 			CONN_MATCHER($$)->matcher = $1;
 		}
 	;

@@ -115,7 +115,7 @@ sdb_fe_parse_matcher(const char *cond, int len)
 	if (! node)
 		return NULL;
 
-	if (node->cmd == CONNECTION_EXPR)
+	if (node->cmd == CONNECTION_MATCHER)
 		m = CONN_MATCHER(node)->matcher;
 	else
 		m = NULL;
