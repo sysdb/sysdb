@@ -115,12 +115,13 @@ sdb_fe_parse_matcher(const char *cond, int len)
 	if (! node)
 		return NULL;
 
-	if (node->cmd == CONNECTION_MATCHER)
+	if (node->cmd == CONNECTION_MATCHER) {
 		m = CONN_MATCHER(node)->matcher;
+		CONN_MATCHER(node)->matcher = NULL;
+	}
 	else
 		m = NULL;
 
-	CONN_MATCHER(node)->matcher = NULL;
 	sdb_llist_destroy(yyextra.parsetree);
 	sdb_object_deref(SDB_OBJ(node));
 	return m;
@@ -154,12 +155,13 @@ sdb_fe_parse_expr(const char *expr, int len)
 	if (! node)
 		return NULL;
 
-	if (node->cmd == CONNECTION_EXPR)
+	if (node->cmd == CONNECTION_EXPR) {
 		e = CONN_EXPR(node)->expr;
+		CONN_EXPR(node)->expr = NULL;
+	}
 	else
 		e = NULL;
 
-	CONN_EXPR(node)->expr = NULL;
 	sdb_llist_destroy(yyextra.parsetree);
 	sdb_object_deref(SDB_OBJ(node));
 	return e;
