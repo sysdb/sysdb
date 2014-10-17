@@ -38,8 +38,8 @@ extern "C" {
 /* parser modes */
 enum {
 	SDB_PARSE_DEFAULT = 0,
-	SDB_PARSE_COND,
-	SDB_PARSE_EXPR,
+	SDB_PARSE_COND    = 1 << 1,
+	SDB_PARSE_EXPR    = 1 << 2,
 };
 
 /* YY_EXTRA data */
