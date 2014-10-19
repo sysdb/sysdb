@@ -213,6 +213,10 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
 		  "1.23 + 'foo'",        -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "attr['foo'] = 1.23",  -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "attr['foo'] IS NULL", -1, -1, 0 },
 
 		/* comments */
 		{ "/* some comment */",  -1,  0, 0 },

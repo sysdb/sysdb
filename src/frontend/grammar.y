@@ -528,6 +528,15 @@ expression:
 	|
 	IDENTIFIER '[' STRING ']'
 		{
+			if (strcasecmp($1, "attribute")) {
+				char errmsg[strlen($1) + strlen($3) + 32];
+				snprintf(errmsg, sizeof(errmsg),
+						YY_("unknown value %s[%s]"), $1, $3);
+				sdb_fe_yyerror(&yylloc, scanner, errmsg);
+				free($1); $1 = NULL;
+				free($3); $3 = NULL;
+				YYABORT;
+			}
 			$$ = sdb_store_expr_attrvalue($3);
 			free($1); $1 = NULL;
 			free($3); $3 = NULL;
