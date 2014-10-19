@@ -320,7 +320,8 @@ sdb_store_expr_fieldvalue(int field);
 /*
  * sdb_store_expr_attrvalue:
  * Creates an expression which evaluates to the value of the specified
- * attribute of a stored object.
+ * attribute of a stored object. Evaluates to a NULL value if the attribute
+ * does not exist.
  *
  * Returns:
  *  - an expression object on success
