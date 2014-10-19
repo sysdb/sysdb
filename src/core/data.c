@@ -646,5 +646,24 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 	return 0;
 } /* sdb_data_parse */
 
+size_t
+sdb_data_sizeof(int type)
+{
+	sdb_data_t v;
+	if (type == SDB_TYPE_INTEGER)
+		return sizeof(v.data.integer);
+	else if (type == SDB_TYPE_DECIMAL)
+		return sizeof(v.data.decimal);
+	else if (type == SDB_TYPE_STRING)
+		return sizeof(v.data.string);
+	else if (type == SDB_TYPE_DATETIME)
+		return sizeof(v.data.datetime);
+	else if (type == SDB_TYPE_BINARY)
+		return sizeof(v.data.binary);
+	else if (type == SDB_TYPE_REGEX)
+		return sizeof(v.data.re);
+	return 0;
+} /* sdb_data_sizeof */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

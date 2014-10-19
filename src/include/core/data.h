@@ -257,6 +257,17 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
 int
 sdb_data_parse(char *str, int type, sdb_data_t *data);
 
+/*
+ * sdb_data_sizeof:
+ * Return the size of the data-type identified by the specified type.
+ *
+ * Returns:
+ *  - the size of the data-type on success
+ *  - 0 else
+ */
+size_t
+sdb_data_sizeof(int type);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
