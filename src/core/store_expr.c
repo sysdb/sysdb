@@ -172,8 +172,16 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		return sdb_data_copy(res, &expr->data);
 	else if (expr->type == FIELD_VALUE)
 		return sdb_store_get_field(obj, (int)expr->data.data.integer, res);
-	else if (expr->type == ATTR_VALUE)
-		return sdb_store_get_attr(obj, expr->data.data.string, res, filter);
+	else if (expr->type == ATTR_VALUE) {
+		status = sdb_store_get_attr(obj, expr->data.data.string, res, filter);
+		if ((status < 0) && obj) {
+			/* attribute does not exist => NULL */
+			status = 0;
+			res->type = SDB_TYPE_STRING;
+			res->data.string = NULL;
+		}
+		return status;
+	}
 
 	if (sdb_store_expr_eval(expr->left, obj, &v1, filter))
 		return -1;
