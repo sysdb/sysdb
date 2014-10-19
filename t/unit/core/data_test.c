@@ -174,13 +174,6 @@ START_TEST(test_data)
 	fail_unless(d1.type == d2.type,
 			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
 			d1.type, d2.type);
-	fail_unless(d1.data.re.raw == d2.data.re.raw,
-			"sdb_data_copy() didn't copy raw regex: got: %s; expected: %s",
-			d1.data.re.raw, d2.data.re.raw);
-
-	sdb_data_free_datum(&d1);
-	fail_unless(d1.data.re.raw == NULL,
-			"sdb_data_free_datum() didn't reset raw regex");
 }
 END_TEST
 
