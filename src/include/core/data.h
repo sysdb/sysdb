@@ -41,7 +41,8 @@ extern "C" {
 #endif
 
 enum {
-	SDB_TYPE_INTEGER = 1,
+	SDB_TYPE_NULL = 0,
+	SDB_TYPE_INTEGER,
 	SDB_TYPE_DECIMAL,
 	SDB_TYPE_STRING,
 	SDB_TYPE_DATETIME,
@@ -78,7 +79,9 @@ typedef struct {
 		} re;                 /* SDB_TYPE_REGEX */
 	} data;
 } sdb_data_t;
-#define SDB_DATA_INIT { 0, { .integer = 0 } }
+#define SDB_DATA_INIT { SDB_TYPE_NULL, { .integer = 0 } }
+
+extern const sdb_data_t SDB_DATA_NULL;
 
 /*
  * sdb_data_copy:
@@ -135,7 +138,8 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2);
 /*
  * sdb_data_isnull:
  * Determine whether a datum is NULL. A datum is considered to be NULL if
- * either datum is NULL or if the string or binary datum is NULL.
+ * either datum is NULL or if the type is SDB_TYPE_NULL or if the string or
+ * binary datum is NULL.
  */
 _Bool
 sdb_data_isnull(const sdb_data_t *datum);
@@ -178,6 +182,8 @@ sdb_data_parse_op(const char *op);
  * binary data only support concatenation and all other data types only
  * support the other operators. The result may be allocated dynamically and
  * has to be freed by the caller (using sdb_data_free_datum).
+ *
+ * If any of the data points is a NULL value, the result is also NULL.
  *
  * The data-types of d1 and d2 have to be the same, except for the following
  * cases:

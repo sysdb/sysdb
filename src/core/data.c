@@ -34,6 +34,8 @@
 #include "core/data.h"
 #include "utils/error.h"
 
+#include <assert.h>
+
 #include <errno.h>
 
 #include <inttypes.h>
@@ -200,21 +202,17 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	else
 		return -1;
 
-	if (s1 && s2) {
-		new = malloc(len1 + len2 + 1);
-		if (! new)
-			return -1;
+	assert(s1 && s2);
 
-		if (len1)
-			memcpy(new, s1, len1);
-		if (len2)
-			memcpy(new + len1, s2, len2);
-		new[len1 + len2] = '\0';
-	}
-	else {
-		len1 = len2 = 0;
-		new = NULL;
-	}
+	new = malloc(len1 + len2 + 1);
+	if (! new)
+		return -1;
+
+	if (len1)
+		memcpy(new, s1, len1);
+	if (len2)
+		memcpy(new + len1, s2, len2);
+	new[len1 + len2] = '\0';
 
 	res->type = d1->type;
 	if (res->type == SDB_TYPE_STRING) {
@@ -230,6 +228,8 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 /*
  * public API
  */
+
+const sdb_data_t SDB_DATA_NULL = SDB_DATA_INIT;
 
 int
 sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
@@ -391,6 +391,8 @@ sdb_data_isnull(const sdb_data_t *datum)
 {
 	if (! datum)
 		return 1;
+	if (datum->type == SDB_TYPE_NULL)
+		return 1;
 	if ((datum->type == SDB_TYPE_STRING) && (! datum->data.string))
 		return 1;
 	if ((datum->type == SDB_TYPE_BINARY) && (! datum->data.binary.datum))
@@ -424,6 +426,10 @@ sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 {
 	if ((! d1) || (! d2) || (! res))
 		return -1;
+	if (sdb_data_isnull(d1) || sdb_data_isnull(d2)) {
+		*res = SDB_DATA_NULL;
+		return 0;
+	}
 	switch (op) {
 		case SDB_DATA_CONCAT:
 			return data_concat(d1, d2, res);
