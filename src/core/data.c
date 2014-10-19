@@ -200,20 +200,21 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	else
 		return -1;
 
-	if (s1 || s2) {
+	if (s1 && s2) {
 		new = malloc(len1 + len2 + 1);
 		if (! new)
 			return -1;
-	}
-	else
-		new = NULL;
 
-	if (len1)
-		memcpy(new, s1, len1);
-	if (len2)
-		memcpy(new + len1, s2, len2);
-	if (new)
+		if (len1)
+			memcpy(new, s1, len1);
+		if (len2)
+			memcpy(new + len1, s2, len2);
 		new[len1 + len2] = '\0';
+	}
+	else {
+		len1 = len2 = 0;
+		new = NULL;
+	}
 
 	res->type = d1->type;
 	if (res->type == SDB_TYPE_STRING) {
