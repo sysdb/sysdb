@@ -240,39 +240,37 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
 		return -1;
 
 	tmp = *src;
-	switch (src->type) {
-		case SDB_TYPE_STRING:
-			if (src->data.string) {
-				tmp.data.string = strdup(src->data.string);
-				if (! tmp.data.string)
-					return -1;
+	if (src->type == SDB_TYPE_STRING) {
+		if (src->data.string) {
+			tmp.data.string = strdup(src->data.string);
+			if (! tmp.data.string)
+				return -1;
+		}
+	}
+	else if (src->type == SDB_TYPE_BINARY) {
+		if (src->data.binary.datum) {
+			tmp.data.binary.datum = malloc(src->data.binary.length);
+			if (! tmp.data.binary.datum)
+				return -1;
+			memcpy(tmp.data.binary.datum, src->data.binary.datum,
+					src->data.binary.length);
+		}
+	}
+	else if (src->type == SDB_TYPE_REGEX) {
+		if (src->data.re.raw) {
+			tmp.data.re.raw = strdup(src->data.re.raw);
+			if (! tmp.data.re.raw)
+				return -1;
+			/* we need to recompile because the regex might point to
+			 * dynamically allocated memory */
+			if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
+						REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
+				free(tmp.data.re.raw);
+				return -1;
 			}
-			break;
-		case SDB_TYPE_BINARY:
-			if (src->data.binary.datum) {
-				tmp.data.binary.datum = malloc(src->data.binary.length);
-				if (! tmp.data.binary.datum)
-					return -1;
-				memcpy(tmp.data.binary.datum, src->data.binary.datum,
-						src->data.binary.length);
-			}
-			break;
-		case SDB_TYPE_REGEX:
-			if (src->data.re.raw) {
-				tmp.data.re.raw = strdup(src->data.re.raw);
-				if (! tmp.data.re.raw)
-					return -1;
-				/* we need to recompile because the regex might point to
-				 * dynamically allocated memory */
-				if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
-							REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
-					free(tmp.data.re.raw);
-					return -1;
-				}
-			}
-			else
-				memset(&tmp.data.re.regex, 0, sizeof(tmp.data.re.regex));
-			break;
+		}
+		else
+			memset(&tmp.data.re.regex, 0, sizeof(tmp.data.re.regex));
 	}
 
 	sdb_data_free_datum(dst);
@@ -286,26 +284,24 @@ sdb_data_free_datum(sdb_data_t *datum)
 	if (! datum)
 		return;
 
-	switch (datum->type) {
-		case SDB_TYPE_STRING:
-			if (datum->data.string)
-				free(datum->data.string);
-			datum->data.string = NULL;
-			break;
-		case SDB_TYPE_BINARY:
-			if (datum->data.binary.datum)
-				free(datum->data.binary.datum);
-			datum->data.binary.datum = NULL;
-			datum->data.binary.length = 0;
-			break;
-		case SDB_TYPE_REGEX:
-			if (datum->data.re.raw) {
-				free(datum->data.re.raw);
-				regfree(&datum->data.re.regex);
-			}
-			datum->data.re.raw = NULL;
-			memset(&datum->data.re.regex, 0, sizeof(datum->data.re.regex));
-			break;
+	if (datum->type == SDB_TYPE_STRING) {
+		if (datum->data.string)
+			free(datum->data.string);
+		datum->data.string = NULL;
+	}
+	else if (datum->type == SDB_TYPE_BINARY) {
+		if (datum->data.binary.datum)
+			free(datum->data.binary.datum);
+		datum->data.binary.datum = NULL;
+		datum->data.binary.length = 0;
+	}
+	else if (datum->type == SDB_TYPE_REGEX) {
+		if (datum->data.re.raw) {
+			free(datum->data.re.raw);
+			regfree(&datum->data.re.regex);
+		}
+		datum->data.re.raw = NULL;
+		memset(&datum->data.re.regex, 0, sizeof(datum->data.re.regex));
 	}
 } /* sdb_data_free_datum */
 
@@ -324,42 +320,41 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	if (d1->type != d2->type)
 		return SDB_CMP(d1->type, d2->type);
 
-	switch (d1->type) {
-		case SDB_TYPE_INTEGER:
-			return SDB_CMP(d1->data.integer, d2->data.integer);
-		case SDB_TYPE_DECIMAL:
-			return SDB_CMP(d1->data.decimal, d2->data.decimal);
-		case SDB_TYPE_STRING:
-			CMP_NULL(d1->data.string, d2->data.string);
-			return strcasecmp(d1->data.string, d2->data.string);
-		case SDB_TYPE_DATETIME:
-			return SDB_CMP(d1->data.datetime, d2->data.datetime);
-		case SDB_TYPE_BINARY:
-		{
-			int diff;
+	if (d1->type == SDB_TYPE_INTEGER)
+		return SDB_CMP(d1->data.integer, d2->data.integer);
+	else if (d1->type == SDB_TYPE_DECIMAL)
+		return SDB_CMP(d1->data.decimal, d2->data.decimal);
+	else if (d1->type == SDB_TYPE_STRING) {
+		CMP_NULL(d1->data.string, d2->data.string);
+		return strcasecmp(d1->data.string, d2->data.string);
+	}
+	else if (d1->type == SDB_TYPE_DATETIME)
+		return SDB_CMP(d1->data.datetime, d2->data.datetime);
+	else if (d1->type == SDB_TYPE_BINARY) {
+		int diff;
 
-			CMP_NULL(d1->data.binary.datum, d2->data.binary.datum);
+		CMP_NULL(d1->data.binary.datum, d2->data.binary.datum);
 
-			/* on a common prefix, the shorter datum sorts less */
-			if (d1->data.binary.length < d2->data.binary.length) {
-				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
-						d1->data.binary.length);
-				diff = diff ? diff : -1;
-			}
-			else if (d1->data.binary.length > d2->data.binary.length) {
-				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
-						d2->data.binary.length);
-				diff = diff ? diff : 1;
-			}
-			else
-				diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
-						d1->data.binary.length);
-
-			return diff;
+		/* on a common prefix, the shorter datum sorts less */
+		if (d1->data.binary.length < d2->data.binary.length) {
+			diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+					d1->data.binary.length);
+			diff = diff ? diff : -1;
 		}
-		case SDB_TYPE_REGEX:
-			CMP_NULL(d1->data.re.raw, d2->data.re.raw);
-			return strcmp(d1->data.re.raw, d2->data.re.raw);
+		else if (d1->data.binary.length > d2->data.binary.length) {
+			diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+					d2->data.binary.length);
+			diff = diff ? diff : 1;
+		}
+		else
+			diff = memcmp(d1->data.binary.datum, d2->data.binary.datum,
+					d1->data.binary.length);
+
+		return diff;
+	}
+	else if (d1->type == SDB_TYPE_REGEX) {
+		CMP_NULL(d1->data.re.raw, d2->data.re.raw);
+		return strcmp(d1->data.re.raw, d2->data.re.raw);
 	}
 	return -1;
 } /* sdb_data_cmp */
@@ -453,31 +448,35 @@ sdb_data_strlen(const sdb_data_t *datum)
 	if (! datum)
 		return 0;
 
-	switch (datum->type) {
-		case SDB_TYPE_INTEGER:
-			/* log(64) */
-			return 20;
-		case SDB_TYPE_DECIMAL:
-			/* XXX: -d.dddddde+dd or -ddddd.dddddd */
-			return 42;
-		case SDB_TYPE_STRING:
-			if (! datum->data.string)
-				return 8; /* "<NULL>" */
-			/* in the worst case, each character needs to be escaped */
-			return 2 * strlen(datum->data.string) + 2;
-		case SDB_TYPE_DATETIME:
-			/* "YYYY-MM-DD HH:MM:SS +zzzz" */
-			return 27;
-		case SDB_TYPE_BINARY:
-			if (! datum->data.binary.datum)
-				return 8; /* "<NULL>" */
-			/* "\xNN" */
-			return 4 * datum->data.binary.length + 2;
-		case SDB_TYPE_REGEX:
-			if (! datum->data.re.raw)
-				return 8; /* "<NULL>" */
-			/* "/.../" */
-			return strlen(datum->data.re.raw) + 4;
+	if (datum->type == SDB_TYPE_INTEGER) {
+		/* log(64) */
+		return 20;
+	}
+	else if (datum->type == SDB_TYPE_DECIMAL) {
+		/* XXX: -d.dddddde+dd or -ddddd.dddddd */
+		return 42;
+	}
+	else if (datum->type == SDB_TYPE_STRING) {
+		if (! datum->data.string)
+			return 8; /* "<NULL>" */
+		/* in the worst case, each character needs to be escaped */
+		return 2 * strlen(datum->data.string) + 2;
+	}
+	else if (datum->type == SDB_TYPE_DATETIME) {
+		/* "YYYY-MM-DD HH:MM:SS +zzzz" */
+		return 27;
+	}
+	else if (datum->type == SDB_TYPE_BINARY) {
+		if (! datum->data.binary.datum)
+			return 8; /* "<NULL>" */
+		/* "\xNN" */
+		return 4 * datum->data.binary.length + 2;
+	}
+	else if (datum->type == SDB_TYPE_REGEX) {
+		if (! datum->data.re.raw)
+			return 8; /* "<NULL>" */
+		/* "/.../" */
+		return strlen(datum->data.re.raw) + 4;
 	}
 	return 0;
 } /* sdb_data_strlen */
@@ -494,72 +493,70 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	if ((! datum) || (! buf))
 		return -1;
 
-	switch (datum->type) {
-		case SDB_TYPE_INTEGER:
-			ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
-			break;
-		case SDB_TYPE_DECIMAL:
-			ret = snprintf(buf, buflen, "%g", datum->data.decimal);
-			break;
-		case SDB_TYPE_STRING:
-			if (! datum->data.string)
-				data = "<NULL>";
-			else {
-				pos = 0;
-				for (i = 0; i < strlen(datum->data.string); ++i) {
-					char byte = datum->data.string[i];
-
-					if ((byte == '\\') || (byte == '"')) {
-						tmp[pos] = '\\';
-						++pos;
-					}
-					tmp[pos] = byte;
-					++pos;
-				}
-				tmp[pos] = '\0';
-				data = tmp;
-			}
-			break;
-		case SDB_TYPE_DATETIME:
-			if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
-						datum->data.datetime))
-				return -1;
-			tmp[sizeof(tmp) - 1] = '\0';
-			data = tmp;
-			break;
-		case SDB_TYPE_BINARY:
+	if (datum->type == SDB_TYPE_INTEGER) {
+		ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
+	}
+	else if (datum->type == SDB_TYPE_DECIMAL) {
+		ret = snprintf(buf, buflen, "%g", datum->data.decimal);
+	}
+	else if (datum->type == SDB_TYPE_STRING) {
+		if (! datum->data.string)
+			data = "<NULL>";
+		else {
 			pos = 0;
-			for (i = 0; i < datum->data.binary.length; ++i) {
-				int byte = (int)datum->data.binary.datum[i];
-				char hex[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-					'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+			for (i = 0; i < strlen(datum->data.string); ++i) {
+				char byte = datum->data.string[i];
 
-				tmp[pos] = '\\';
-				tmp[pos + 1] = 'x';
-				pos += 2;
-
-				if (byte > 0xf) {
-					tmp[pos] = hex[byte >> 4];
+				if ((byte == '\\') || (byte == '"')) {
+					tmp[pos] = '\\';
 					++pos;
 				}
-				tmp[pos] = hex[byte & 0xf];
+				tmp[pos] = byte;
 				++pos;
 			}
-			if (datum->data.binary.datum) {
-				tmp[pos] = '\0';
-				data = tmp;
+			tmp[pos] = '\0';
+			data = tmp;
+		}
+	}
+	else if (datum->type == SDB_TYPE_DATETIME) {
+		if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
+					datum->data.datetime))
+			return -1;
+		tmp[sizeof(tmp) - 1] = '\0';
+		data = tmp;
+	}
+	else if (datum->type == SDB_TYPE_BINARY) {
+		pos = 0;
+		for (i = 0; i < datum->data.binary.length; ++i) {
+			int byte = (int)datum->data.binary.datum[i];
+			char hex[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+				'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+			tmp[pos] = '\\';
+			tmp[pos + 1] = 'x';
+			pos += 2;
+
+			if (byte > 0xf) {
+				tmp[pos] = hex[byte >> 4];
+				++pos;
 			}
-			else
-				data = "<NULL>";
-			break;
-		case SDB_TYPE_REGEX:
-			if (! datum->data.re.raw)
-				data = "<NULL>";
-			else {
-				snprintf(tmp, sizeof(tmp), "/%s/", datum->data.re.raw);
-				data = tmp;
-			}
-			break;
+			tmp[pos] = hex[byte & 0xf];
+			++pos;
+		}
+		if (datum->data.binary.datum) {
+			tmp[pos] = '\0';
+			data = tmp;
+		}
+		else
+			data = "<NULL>";
+	}
+	else if (datum->type == SDB_TYPE_REGEX) {
+		if (! datum->data.re.raw)
+			data = "<NULL>";
+		else {
+			snprintf(tmp, sizeof(tmp), "/%s/", datum->data.re.raw);
+			data = tmp;
+		}
 	}
 
 	if (data) {
@@ -582,46 +579,43 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 	char *endptr = NULL;
 
 	errno = 0;
-	switch (type) {
-		case SDB_TYPE_INTEGER:
-			tmp.data.integer = strtoll(str, &endptr, 0);
-			break;
-		case SDB_TYPE_DECIMAL:
-			tmp.data.decimal = strtod(str, &endptr);
-			break;
-		case SDB_TYPE_STRING:
-			tmp.data.string = str;
-			break;
-		case SDB_TYPE_DATETIME:
-			{
-				double datetime = strtod(str, &endptr);
-				tmp.data.datetime = DOUBLE_TO_SDB_TIME(datetime);
-			}
-			break;
-		case SDB_TYPE_BINARY:
-			/* we don't support any binary information containing 0-bytes */
-			tmp.data.binary.length = strlen(str);
-			tmp.data.binary.datum = (unsigned char *)str;
-			break;
-		case SDB_TYPE_REGEX:
-			tmp.data.re.raw = strdup(str);
-			if (! tmp.data.re.raw)
-				return -1;
-			if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
-						REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
-				sdb_log(SDB_LOG_ERR, "core: Failed to compile regular "
-						"expression '%s'", tmp.data.re.raw);
-				free(tmp.data.re.raw);
-				return -1;
-			}
-			if (! data) {
-				tmp.type = SDB_TYPE_REGEX;
-				sdb_data_free_datum(&tmp);
-			}
-			break;
-		default:
-			errno = EINVAL;
+	if (type == SDB_TYPE_INTEGER) {
+		tmp.data.integer = strtoll(str, &endptr, 0);
+	}
+	else if (type == SDB_TYPE_DECIMAL) {
+		tmp.data.decimal = strtod(str, &endptr);
+	}
+	else if (type == SDB_TYPE_STRING) {
+		tmp.data.string = str;
+	}
+	else if (type == SDB_TYPE_DATETIME) {
+		double datetime = strtod(str, &endptr);
+		tmp.data.datetime = DOUBLE_TO_SDB_TIME(datetime);
+	}
+	else if (type == SDB_TYPE_BINARY) {
+		/* we don't support any binary information containing 0-bytes */
+		tmp.data.binary.length = strlen(str);
+		tmp.data.binary.datum = (unsigned char *)str;
+	}
+	else if (type == SDB_TYPE_REGEX) {
+		tmp.data.re.raw = strdup(str);
+		if (! tmp.data.re.raw)
 			return -1;
+		if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
+					REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
+			sdb_log(SDB_LOG_ERR, "core: Failed to compile regular "
+					"expression '%s'", tmp.data.re.raw);
+			free(tmp.data.re.raw);
+			return -1;
+		}
+		if (! data) {
+			tmp.type = SDB_TYPE_REGEX;
+			sdb_data_free_datum(&tmp);
+		}
+	}
+	else {
+		errno = EINVAL;
+		return -1;
 	}
 
 	if ((type == SDB_TYPE_INTEGER) || (type == SDB_TYPE_DECIMAL)
