@@ -225,6 +225,11 @@ END_TEST
 
 START_TEST(test_cmp)
 {
+	int64_t int_values1[] = { 1, 2, 3 };
+	int64_t int_values2[] = { 1, 3, 2 };
+	char *string_values1[] = { "a", "b", "c" };
+	char *string_values2[] = { "a", "c", "b" };
+
 	struct {
 		sdb_data_t d1;
 		sdb_data_t d2;
@@ -398,6 +403,72 @@ START_TEST(test_cmp)
 		{
 			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
 			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values2), int_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values2), int_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values2), string_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values2), string_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
 			1,
 		},
 	};
@@ -697,6 +768,12 @@ START_TEST(test_expr_eval)
 {
 	sdb_data_t err = { -1, { .integer = 0 } };
 
+	int64_t int_values[] = { 47, 11, 23 };
+	int64_t expected_int_concat[] = { 47, 11, 23, 47, 11, 23 };
+	char *string_values[] = { "foo", "bar", "qux" "baz" };
+	char *expected_string_concat[] =
+		{ "foo", "bar", "qux" "baz", "foo", "bar", "qux" "baz" };
+
 	struct {
 		sdb_data_t d1;
 		sdb_data_t d2;
@@ -835,6 +912,50 @@ START_TEST(test_expr_eval)
 			err,
 			err,
 			err,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_int_concat),
+						expected_int_concat
+				} },
+			},
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_string_concat),
+						expected_string_concat
+				} },
+			},
 		},
 		{
 			{ SDB_TYPE_NULL, { .integer = 0 } },

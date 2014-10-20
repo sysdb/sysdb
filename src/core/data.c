@@ -97,6 +97,52 @@ free_array_values(sdb_data_t *datum)
 	}
 } /* free_array_values */
 
+/* compare two arrays element-by-element returning how the first non-equal
+ * elements compare to each other */
+static int
+array_cmp(const sdb_data_t *a1, const sdb_data_t *a2)
+{
+	int type = a1->type & 0xff;
+	size_t len, i;
+
+	assert((a1->type == a2->type) && (a1->type & SDB_TYPE_ARRAY));
+
+	len = SDB_MIN(a1->data.array.length, a2->data.array.length);
+
+	if (type == SDB_TYPE_INTEGER) {
+		int64_t *v1 = a1->data.array.values;
+		int64_t *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i)
+			if (v1[i] != v2[i])
+				return SDB_CMP(v1[i], v2[i]);
+	}
+	else if (type == SDB_TYPE_DECIMAL) {
+		double *v1 = a1->data.array.values;
+		double *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i)
+			if (v1[i] != v2[i])
+				return SDB_CMP(v1[i], v2[i]);
+	}
+	else if (type == SDB_TYPE_STRING) {
+		char **v1 = a1->data.array.values;
+		char **v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i) {
+			int diff = strcasecmp(v1[i], v2[i]);
+			if (diff)
+				return diff;
+		}
+	}
+	else {
+		/* TODO */
+		errno = ENOTSUP;
+		/* but fall through to ensure stable sorting: */
+	}
+	return SDB_CMP(a1->data.array.length, a2->data.array.length);
+} /* array_cmp */
+
 /* Calculate the linear function 'd1 + n * d2'. */
 static int
 data_lin(const sdb_data_t *d1, int n, const sdb_data_t *d2, sdb_data_t *res)
@@ -443,9 +489,8 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 		return strcmp(d1->data.re.raw, d2->data.re.raw);
 	}
 	else if (d1->type & SDB_TYPE_ARRAY) {
-		/* TODO */
-		errno = ENOTSUP;
-		return -1;
+		CMP_NULL(d1->data.array.values, d2->data.array.values);
+		return array_cmp(d1, d2);
 	}
 	return -1;
 } /* sdb_data_cmp */
