@@ -919,8 +919,13 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 			tmp.data.datetime = obj->interval;
 			break;
 		case SDB_FIELD_BACKEND:
-			/* TODO: add support for storing array values in a data object
-			 * for now, fall thru to the error case */
+		{
+			tmp.type = SDB_TYPE_ARRAY | SDB_TYPE_STRING;
+			tmp.data.array.length = obj->backends_num;
+			tmp.data.array.values = obj->backends;
+			return sdb_data_copy(res, &tmp);
+			break;
+		}
 		default:
 			return -1;
 	}

@@ -781,6 +781,19 @@ START_TEST(test_get_field)
 			"sdb_store_get_field(<host>, SDB_FIELD_INTERVAL, <value>) "
 			"returned value {%d, %lu}; expected {%d, 10}",
 			value.type, value.data.datetime, SDB_TYPE_DATETIME);
+
+	check = sdb_store_get_field(host, SDB_FIELD_BACKEND, &value);
+	fail_unless(check == 0,
+			"sdb_store_get_field(<host>, SDB_FIELD_BACKEND, <value>) = "
+			"%d; expected: 0");
+	/* there are no backends in this test */
+	fail_unless((value.type == (SDB_TYPE_ARRAY | SDB_TYPE_STRING))
+			&& (value.data.array.length == 0)
+			&& (value.data.array.values == NULL),
+			"sdb_store_get_field(<host>, SDB_FIELD_BACKEND, <value>) "
+			"returned value {%d, %lu, %p}; expected {%d, 0, NULL}",
+			value.type, value.data.array.length, value.data.array.values,
+			SDB_TYPE_ARRAY | SDB_TYPE_STRING);
 }
 END_TEST
 
