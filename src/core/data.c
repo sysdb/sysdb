@@ -279,7 +279,7 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	}
 	else if (d1->type & SDB_TYPE_ARRAY) {
 		res->data.array.values = new;
-		res->data.array.length = len1 + len2;
+		res->data.array.length = d1->data.array.length + d2->data.array.length;
 		if (copy_array_values(res, res, sdb_data_sizeof(res->type & 0xff))) {
 			/* this leaks already copied values but there's not much we can
 			 * do and this should only happen if we're in trouble anyway */
