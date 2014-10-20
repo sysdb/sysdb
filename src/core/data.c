@@ -50,6 +50,53 @@
  * private helper functions
  */
 
+/* this function supports in-place copies */
+static int
+copy_array_values(sdb_data_t *dst, const sdb_data_t *src, size_t elem_size)
+{
+	int type = src->type & 0xff;
+
+	if ((type == SDB_TYPE_INTEGER) || (type == SDB_TYPE_DECIMAL)) {
+		if (dst != src)
+			memcpy(dst->data.array.values, src->data.array.values,
+					src->data.array.length * elem_size);
+	}
+	else if (type == SDB_TYPE_STRING) {
+		char **s = src->data.array.values;
+		char **d = dst->data.array.values;
+		size_t i;
+
+		for (i = 0; i < src->data.array.length; ++i) {
+			d[i] = strdup(s[i]);
+			if (! d[i])
+				return -1;
+		}
+	}
+	else {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
+	}
+	return 0;
+} /* copy_array_values */
+
+static void
+free_array_values(sdb_data_t *datum)
+{
+	int type = datum->type & 0xff;
+
+	if (type == SDB_TYPE_STRING) {
+		char **v = datum->data.array.values;
+		size_t i;
+
+		for (i = 0; i < datum->data.array.length; ++i) {
+			if (v[i])
+				free(v[i]);
+			v[i] = NULL;
+		}
+	}
+} /* free_array_values */
+
 /* Calculate the linear function 'd1 + n * d2'. */
 static int
 data_lin(const sdb_data_t *d1, int n, const sdb_data_t *d2, sdb_data_t *res)
@@ -184,6 +231,7 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	unsigned char *s1, *s2;
 	size_t len1, len2;
 
+	/* TODO: support array plus element */
 	if (d1->type != d2->type)
 		return -1;
 
@@ -198,6 +246,13 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 		s2 = d2->data.binary.datum;
 		len1 = d1->data.binary.length;
 		len2 = d2->data.binary.length;
+	}
+	else if (d1->type & SDB_TYPE_ARRAY) {
+		size_t elem_size = sdb_data_sizeof(d1->type & 0xff);
+		s1 = (unsigned char *)d1->data.array.values;
+		s2 = (unsigned char *)d2->data.array.values;
+		len1 = d1->data.array.length * elem_size;
+		len2 = d2->data.array.length * elem_size;
 	}
 	else
 		return -1;
@@ -218,9 +273,21 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	if (res->type == SDB_TYPE_STRING) {
 		res->data.string = (char *)new;
 	}
-	else {
+	else if (res->type == SDB_TYPE_BINARY) {
 		res->data.binary.datum = new;
 		res->data.binary.length = len1 + len2;
+	}
+	else if (d1->type & SDB_TYPE_ARRAY) {
+		res->data.array.values = new;
+		res->data.array.length = len1 + len2;
+		if (copy_array_values(res, res, sdb_data_sizeof(res->type & 0xff))) {
+			/* this leaks already copied values but there's not much we can
+			 * do and this should only happen if we're in trouble anyway */
+			free(new);
+			res->data.array.values = NULL;
+			res->data.array.length = 0;
+			return -1;
+		}
 	}
 	return 0;
 } /* data_concat */
@@ -272,6 +339,18 @@ sdb_data_copy(sdb_data_t *dst, const sdb_data_t *src)
 		else
 			memset(&tmp.data.re.regex, 0, sizeof(tmp.data.re.regex));
 	}
+	else if (src->type & SDB_TYPE_ARRAY) {
+		if (src->data.array.values) {
+			size_t elem_size = sdb_data_sizeof(src->type & 0xff);
+			tmp.data.array.values = calloc(src->data.array.length, elem_size);
+			if (! tmp.data.array.values)
+				return -1;
+			if (copy_array_values(&tmp, src, elem_size)) {
+				sdb_data_free_datum(&tmp);
+				return -1;
+			}
+		}
+	}
 
 	sdb_data_free_datum(dst);
 	*dst = tmp;
@@ -302,6 +381,13 @@ sdb_data_free_datum(sdb_data_t *datum)
 		}
 		datum->data.re.raw = NULL;
 		memset(&datum->data.re.regex, 0, sizeof(datum->data.re.regex));
+	}
+	else if (datum->type & SDB_TYPE_ARRAY) {
+		free_array_values(datum);
+		if (datum->data.array.values)
+			free(datum->data.array.values);
+		datum->data.array.values = NULL;
+		datum->data.array.length = 0;
 	}
 } /* sdb_data_free_datum */
 
@@ -356,6 +442,11 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 		CMP_NULL(d1->data.re.raw, d2->data.re.raw);
 		return strcmp(d1->data.re.raw, d2->data.re.raw);
 	}
+	else if (d1->type & SDB_TYPE_ARRAY) {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
+	}
 	return -1;
 } /* sdb_data_cmp */
 
@@ -364,6 +455,12 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2)
 {
 	char d1_str[sdb_data_strlen(d1) + 1];
 	char d2_str[sdb_data_strlen(d2) + 1];
+
+	if ((d1->type & SDB_TYPE_ARRAY) || (d2->type & SDB_TYPE_ARRAY)) {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
+	}
 
 	if (sdb_data_isnull(d1))
 		d1 = NULL;
@@ -393,6 +490,8 @@ sdb_data_isnull(const sdb_data_t *datum)
 	if ((datum->type == SDB_TYPE_BINARY) && (! datum->data.binary.datum))
 		return 1;
 	if ((datum->type == SDB_TYPE_REGEX) && (! datum->data.re.raw))
+		return 1;
+	if ((datum->type & SDB_TYPE_ARRAY) && (! datum->data.array.values))
 		return 1;
 	return 0;
 } /* sdb_data_isnull */
@@ -478,6 +577,11 @@ sdb_data_strlen(const sdb_data_t *datum)
 		/* "/.../" */
 		return strlen(datum->data.re.raw) + 4;
 	}
+	else if (datum->type & SDB_TYPE_ARRAY) {
+		/* TODO */
+		errno = ENOTSUP;
+		return 0;
+	}
 	return 0;
 } /* sdb_data_strlen */
 
@@ -558,6 +662,11 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 			data = tmp;
 		}
 	}
+	else if (datum->type & SDB_TYPE_ARRAY) {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
+	}
 
 	if (data) {
 		if (quoted == SDB_UNQUOTED)
@@ -612,6 +721,11 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 			tmp.type = SDB_TYPE_REGEX;
 			sdb_data_free_datum(&tmp);
 		}
+	}
+	else if (type & SDB_TYPE_ARRAY) {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
 	}
 	else {
 		errno = EINVAL;

@@ -48,6 +48,9 @@ enum {
 	SDB_TYPE_DATETIME,
 	SDB_TYPE_BINARY,
 	SDB_TYPE_REGEX, /* extended, case-insensitive POSIX regex */
+
+	/* flags: */
+	SDB_TYPE_ARRAY = 1 << 8,
 };
 
 #define SDB_TYPE_TO_STRING(t) \
@@ -58,26 +61,36 @@ enum {
 		: ((t) == SDB_TYPE_BINARY) ? "BINARY" \
 		: ((t) == SDB_TYPE_REGEX) ? "REGEX" : "UNKNOWN")
 
+union sdb_datum;
+typedef union sdb_datum sdb_datum_t;
+
+union sdb_datum {
+	int64_t     integer;  /* SDB_TYPE_INTEGER */
+	double      decimal;  /* SDB_TYPE_DECIMAL */
+	char       *string;   /* SDB_TYPE_STRING  */
+	sdb_time_t  datetime; /* SDB_TYPE_DATETIME */
+	struct {
+		size_t length;
+		unsigned char *datum;
+	} binary;             /* SDB_TYPE_BINARY */
+	struct {
+		char *raw;
+		regex_t regex;
+	} re;                 /* SDB_TYPE_REGEX */
+
+	struct {
+		size_t length;
+		void *values;
+	} array;
+};
+
 /*
  * sdb_data_t:
- * A datum retrieved from an arbitrary data source.
+ * An arbitrary value of a specified type.
  */
 typedef struct {
-	int type;
-	union {
-		int64_t     integer;  /* SDB_TYPE_INTEGER */
-		double      decimal;  /* SDB_TYPE_DECIMAL */
-		char       *string;   /* SDB_TYPE_STRING  */
-		sdb_time_t  datetime; /* SDB_TYPE_DATETIME */
-		struct {
-			size_t length;
-			unsigned char *datum;
-		} binary;             /* SDB_TYPE_BINARY */
-		struct {
-			char *raw;
-			regex_t regex;
-		} re;                 /* SDB_TYPE_REGEX */
-	} data;
+	int type;  /* type of the datum */
+	sdb_datum_t data;
 } sdb_data_t;
 #define SDB_DATA_INIT { SDB_TYPE_NULL, { .integer = 0 } }
 

@@ -38,6 +38,10 @@ START_TEST(test_data)
 	sdb_data_t d1, d2;
 	int check;
 
+	int int_values[] = { 47, 11, 23 };
+	char *string_values[] = { "foo", "bar", "qux" "baz" };
+	size_t i;
+
 	d2.type = SDB_TYPE_INTEGER;
 	d2.data.integer = 4711;
 	memset(&d1, 0, sizeof(d1));
@@ -174,6 +178,48 @@ START_TEST(test_data)
 	fail_unless(d1.type == d2.type,
 			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
 			d1.type, d2.type);
+
+	d2.type = SDB_TYPE_ARRAY | SDB_TYPE_INTEGER;
+	d2.data.array.length = SDB_STATIC_ARRAY_LEN(int_values);
+	d2.data.array.values = int_values;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.array.values != d2.data.array.values,
+			"sdb_data_copy() didn't copy values: got: %p; expected: %p",
+			d1.data.array.values, d2.data.array.values);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(int_values); ++i) {
+		int *i1 = d1.data.array.values;
+		int *i2 = d2.data.array.values;
+		fail_unless(i1[i] == i2[i],
+				"sdb_data_copy() modified integer value %d: "
+				"got: %d; expected: %d", i, i1[i], i2[i]);
+	}
+	sdb_data_free_datum(&d1);
+
+	d2.type = SDB_TYPE_ARRAY | SDB_TYPE_STRING;
+	d2.data.array.length = SDB_STATIC_ARRAY_LEN(string_values);
+	d2.data.array.values = string_values;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.array.values != d2.data.array.values,
+			"sdb_data_copy() didn't copy values: got: %p; expected: %p",
+			d1.data.array.values, d2.data.array.values);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(string_values); ++i) {
+		char **s1 = d1.data.array.values;
+		char **s2 = d2.data.array.values;
+		fail_unless(s1[i] != s2[i],
+				"sdb_data_copy() didn't copy string value %d", i);
+		fail_unless(!strcmp(s1[i], s2[i]),
+				"sdb_data_copy() modified string value %d: "
+				"got: %s; expected: %s", i, s1[i], s2[i]);
+	}
+	sdb_data_free_datum(&d1);
 }
 END_TEST
 
