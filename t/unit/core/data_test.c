@@ -38,7 +38,7 @@ START_TEST(test_data)
 	sdb_data_t d1, d2;
 	int check;
 
-	int int_values[] = { 47, 11, 23 };
+	int64_t int_values[] = { 47, 11, 23 };
 	char *string_values[] = { "foo", "bar", "qux" "baz" };
 	size_t i;
 
