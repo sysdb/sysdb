@@ -530,7 +530,8 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		free(raw);
 	}
 
-	if (sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
+	if ((sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
+			|| (sdb_data_isnull(&v)))
 		status = 0;
 	else {
 		char value[sdb_data_strlen(&v) + 1];

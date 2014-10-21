@@ -797,6 +797,11 @@ START_TEST(test_scan)
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "attribute = 'x'", NULL,             0 },
 		{ "attribute['k1'] = 'v1'", NULL,      1 },
+		{ "attribute['k1'] =~ 'v'", NULL,      2 },
+		{ "attribute['k1'] !~ 'v'", NULL,      1 },
+		{ "attribute['x1'] =~ 'v'", NULL,      0 },
+		{ "attribute['x1'] =~ 'NULL'", NULL,   0 },
+		{ "attribute['x1'] !~ 'v'", NULL,      3 },
 		{ "attribute['k1'] IS NULL", NULL,     1 },
 		{ "attribute['x1'] IS NULL", NULL,     3 },
 		{ "attribute['k1'] IS NOT NULL", NULL, 2 },
