@@ -408,7 +408,7 @@ END_TEST
 
 static void
 verify_json_output(sdb_strbuf_t *buf, const char *expected,
-		const char *filter_str, int flags)
+		sdb_store_matcher_t *filter, int flags)
 {
 	int pos;
 	size_t len1, len2;
@@ -429,9 +429,9 @@ verify_json_output(sdb_strbuf_t *buf, const char *expected,
 	}
 
 	fail_unless(pos == -1,
-			"sdb_store_tojson(<buf>, %s, %x) returned unexpected result\n"
+			"sdb_store_tojson(<buf>, %p, %x) returned unexpected result\n"
 			"         got: %s\n              %*s\n    expected: %s",
-			filter_str, flags, sdb_strbuf_string(buf), pos + 1, "^",
+			filter, flags, sdb_strbuf_string(buf), pos + 1, "^",
 			expected);
 } /* verify_json_output */
 
@@ -664,7 +664,6 @@ START_TEST(test_store_tojson)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *filter = NULL;
-		char filter_str[1024] = "<none>";
 		int status;
 
 		sdb_strbuf_clear(buf);
@@ -684,19 +683,15 @@ START_TEST(test_store_tojson)
 			sdb_object_deref(SDB_OBJ(c));
 			fail_unless(filter != NULL,
 					"INTERNAL ERROR: sdb_store_*_matcher() = NULL");
-
-			if (sdb_store_matcher_tostring(filter,
-						filter_str, sizeof(filter_str)))
-				snprintf(filter_str, sizeof(filter_str), "ERR");
 		}
 
 		status = sdb_store_tojson(buf, filter, golden_data[i].flags);
 		fail_unless(status == 0,
-				"sdb_store_tojson(<buf>, %s, %x) = %d; expected: 0",
-				filter_str, golden_data[i].flags, status);
+				"sdb_store_tojson(<buf>, %p, %x) = %d; expected: 0",
+				filter, golden_data[i].flags, status);
 
 		verify_json_output(buf, golden_data[i].expected,
-				filter_str, golden_data[i].flags);
+				filter, golden_data[i].flags);
 		sdb_object_deref(SDB_OBJ(filter));
 	}
 	sdb_strbuf_destroy(buf);

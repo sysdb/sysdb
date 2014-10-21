@@ -156,8 +156,8 @@ typedef struct {
  * matchers
  */
 
-/* when adding to this, also update 'MATCHER_SYM' below as well as 'matchers'
- * and 'matchers_tostring' in store_lookup.c */
+/* when adding to this, also update 'MATCHER_SYM' below and 'matchers' in
+ * store_lookup.c */
 enum {
 	MATCHER_OR,
 	MATCHER_AND,

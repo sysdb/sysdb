@@ -594,14 +594,6 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter);
 
 /*
- * sdb_store_matcher_tostring:
- * Format a matcher object as string. This is meant for logging or debugging
- * purposes.
- */
-char *
-sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen);
-
-/*
  * sdb_store_lookup_cb:
  * Lookup callback. It is called for each matching object when looking up data
  * in the store. The lookup aborts if the callback returns non-zero.

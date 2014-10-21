@@ -704,15 +704,6 @@ string_matcher_destroy(string_matcher_t *m)
 	}
 } /* string_matcher_destroy */
 
-static char *
-string_tostring(string_matcher_t *m, char *buf, size_t buflen)
-{
-	snprintf(buf, buflen, "{ %s%s%s, %p }",
-			m->name ? "'" : "", m->name ? m->name : "NULL", m->name ? "'" : "",
-			m->name_re);
-	return buf;
-} /* string_tostring */
-
 /* initializes a name matcher */
 static int
 name_matcher_init(sdb_object_t *obj, va_list ap)
@@ -728,17 +719,6 @@ name_matcher_destroy(sdb_object_t *obj)
 	name_matcher_t *m = NAME_M(obj);
 	string_matcher_destroy(&m->name);
 } /* name_matcher_destroy */
-
-static char *
-name_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char name[buflen + 1];
-	assert(m->type == MATCHER_NAME);
-	snprintf(buf, buflen, "OBJ[%s]{ NAME%s }",
-			SDB_STORE_TYPE_TO_NAME(NAME_M(m)->obj_type),
-			string_tostring(&NAME_M(m)->name, name, sizeof(name)));
-	return buf;
-} /* name_tostring */
 
 static int
 attr_matcher_init(sdb_object_t *obj, va_list ap)
@@ -765,22 +745,6 @@ attr_matcher_destroy(sdb_object_t *obj)
 	string_matcher_destroy(&attr->value);
 } /* attr_matcher_destroy */
 
-static char *
-attr_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char value[buflen + 1];
-
-	if (! m) {
-		snprintf(buf, buflen, "ATTR{}");
-		return buf;
-	}
-
-	assert(m->type == MATCHER_ATTR);
-	snprintf(buf, buflen, "ATTR[%s]{ VALUE%s }", ATTR_M(m)->name,
-			string_tostring(&ATTR_M(m)->value, value, sizeof(value)));
-	return buf;
-} /* attr_tostring */
-
 static int
 cond_matcher_init(sdb_object_t *obj, va_list ap)
 {
@@ -802,40 +766,6 @@ cond_matcher_destroy(sdb_object_t *obj)
 {
 	sdb_object_deref(SDB_OBJ(COND_M(obj)->cond));
 } /* cond_matcher_destroy */
-
-static char *
-cond_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	const char *type, *id;
-	sdb_data_t value = SDB_DATA_INIT;
-	char value_str[buflen];
-	sdb_store_expr_t *expr;
-
-	if (COND_M(m)->cond->cmp == attr_cmp) {
-		type = "ATTR";
-		id = ATTR_C(COND_M(m)->cond)->name;
-		expr = ATTR_C(COND_M(m)->cond)->expr;
-	}
-	else if (COND_M(m)->cond->cmp == obj_cmp) {
-		type = "OBJ";
-		id = SDB_FIELD_TO_NAME(OBJ_C(COND_M(m)->cond)->field);
-		expr = OBJ_C(COND_M(m)->cond)->expr;
-	}
-	else {
-		snprintf(buf, buflen, "<unknown>");
-		return buf;
-	}
-
-	if (sdb_store_expr_eval(expr, /* obj */ NULL, &value, /* filter */ NULL))
-		snprintf(value_str, sizeof(value_str), "ERR");
-	else if (sdb_data_format(&value, value_str, sizeof(value_str),
-				SDB_SINGLE_QUOTED) < 0)
-		snprintf(value_str, sizeof(value_str), "ERR");
-	snprintf(buf, buflen, "%s[%s]{ %s %s }", type, id,
-			MATCHER_SYM(m->type), value_str);
-	sdb_data_free_datum(&value);
-	return buf;
-} /* cond_tostring */
 
 static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
@@ -863,25 +793,6 @@ op_matcher_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(OP_M(obj)->right));
 } /* op_matcher_destroy */
 
-static char *
-op_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char left[buflen + 1], right[buflen + 1];
-
-	if (! m) {
-		/* this should not happen */
-		snprintf(buf, buflen, "()");
-		return buf;
-	}
-
-	assert((m->type == MATCHER_OR) || (m->type == MATCHER_AND));
-	snprintf(buf, buflen, "(%s, %s, %s)",
-			m->type == MATCHER_OR ? "OR" : "AND",
-			sdb_store_matcher_tostring(OP_M(m)->left, left, sizeof(left)),
-			sdb_store_matcher_tostring(OP_M(m)->right, right, sizeof(right)));
-	return buf;
-} /* op_tostring */
-
 static int
 child_matcher_init(sdb_object_t *obj, va_list ap)
 {
@@ -900,16 +811,6 @@ child_matcher_destroy(sdb_object_t *obj)
 {
 	sdb_object_deref(SDB_OBJ(CHILD_M(obj)->m));
 } /* child_matcher_destroy */
-
-static char *
-child_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	snprintf(buf, buflen, "%s:", MATCHER_SYM(m->type));
-	buf[buflen - 1] = '\0';
-	sdb_store_matcher_tostring(CHILD_M(m)->m,
-			buf + strlen(buf), buflen - strlen(buf));
-	return buf;
-} /* child_tostring */
 
 static int
 cmp_matcher_init(sdb_object_t *obj, va_list ap)
@@ -933,20 +834,6 @@ cmp_matcher_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_OBJ(CMP_M(obj)->right));
 } /* cmp_matcher_destroy */
 
-static char *
-cmp_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	if (! m) {
-		/* this should not happen */
-		snprintf(buf, buflen, "()");
-		return buf;
-	}
-
-	/* TODO */
-	snprintf(buf, buflen, "CMP_MATCHER(%d)", m->type);
-	return buf;
-} /* cmp_tostring */
-
 static int
 uop_matcher_init(sdb_object_t *obj, va_list ap)
 {
@@ -969,23 +856,6 @@ uop_matcher_destroy(sdb_object_t *obj)
 		sdb_object_deref(SDB_OBJ(UOP_M(obj)->op));
 } /* uop_matcher_destroy */
 
-static char *
-uop_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	char op[buflen + 1];
-
-	if (! m) {
-		/* this should not happen */
-		snprintf(buf, buflen, "()");
-		return buf;
-	}
-
-	assert(m->type == MATCHER_NOT);
-	snprintf(buf, buflen, "(NOT, %s)",
-			sdb_store_matcher_tostring(UOP_M(m)->op, op, sizeof(op)));
-	return buf;
-} /* uop_tostring */
-
 static int
 isnull_matcher_init(sdb_object_t *obj, va_list ap)
 {
@@ -1004,17 +874,6 @@ isnull_matcher_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_OBJ(ISNULL_M(obj)->expr));
 	ISNULL_M(obj)->expr = NULL;
 } /* isnull_matcher_destroy */
-
-static char *
-isnull_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	/* XXX */
-	if (m->type == MATCHER_ISNULL)
-		strncpy(buf, "(IS NULL)", buflen);
-	else
-		strncpy(buf, "(IS NOT NULL)", buflen);
-	return buf;
-} /* isnull_tostring */
 
 static sdb_type_t name_type = {
 	/* size = */ sizeof(name_matcher_t),
@@ -1062,38 +921,6 @@ static sdb_type_t isnull_type = {
 	/* size = */ sizeof(isnull_matcher_t),
 	/* init = */ isnull_matcher_init,
 	/* destroy = */ isnull_matcher_destroy,
-};
-
-typedef char *(*matcher_tostring_cb)(sdb_store_matcher_t *, char *, size_t);
-
-/* this array needs to be indexable by the matcher types;
- * -> update the enum in store-private.h when updating this */
-static matcher_tostring_cb
-matchers_tostring[] = {
-	op_tostring,
-	op_tostring,
-	uop_tostring,
-	name_tostring,
-	attr_tostring,
-	child_tostring,
-	child_tostring,
-	child_tostring,
-	cond_tostring,
-	cond_tostring,
-	cond_tostring,
-	cond_tostring,
-	cond_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	cmp_tostring,
-	isnull_tostring,
-	isnull_tostring,
 };
 
 /*
@@ -1536,18 +1363,6 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	return matchers[m->type](m, obj, filter);
 } /* sdb_store_matcher_matches */
-
-char *
-sdb_store_matcher_tostring(sdb_store_matcher_t *m, char *buf, size_t buflen)
-{
-	if (! m)
-		return NULL;
-
-	if ((m->type < 0)
-			|| (((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers_tostring))))
-		return NULL;
-	return matchers_tostring[m->type](m, buf, buflen);
-} /* sdb_store_matcher_tostring */
 
 int
 sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
