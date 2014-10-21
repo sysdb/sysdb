@@ -64,6 +64,7 @@ populate(void)
 	} attrs[] = {
 		{ "a", "k1", { SDB_TYPE_STRING, { .string = "v1" } } },
 		{ "a", "k2", { SDB_TYPE_INTEGER, { .integer = 123 } } },
+		{ "b", "k1", { SDB_TYPE_STRING, { .string = "v2" } } },
 	};
 
 	size_t i;
@@ -820,46 +821,46 @@ START_TEST(test_scan)
 			"OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}" },
 		{ "service !~ 's'", NULL,              1,
 			"\\(NOT, OBJ\\[service\\]\\{ NAME\\{ NULL, "PTR_RE" } \\}\\)" },
-		{ "attribute = 'k1'", NULL,            1,
+		{ "attribute = 'k1'", NULL,            2,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute = 'k1'", "host = 'x'",    0, /* filter never matches */
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute = 'k1'",
-			"NOT attribute['x'] = ''",         1, /* filter always matches */
+			"NOT attribute['x'] = ''",         2, /* filter always matches */
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'k1', \\(nil\\) \\} " },
 		{ "attribute = 'x'", NULL,             0,
 			"OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\}" },
 		{ "attribute['k1'] = 'v1'", NULL,      1,
-			"ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}" },
-		{ "attribute['k1'] IS NULL", NULL,     2,
+			"CMP_MATCHER\\(15\\)" },
+		{ "attribute['k1'] IS NULL", NULL,     1,
 			"\\(IS NULL\\)" },
 		{ "attribute['x1'] IS NULL", NULL,     3,
 			"\\(IS NULL\\)" },
-		{ "attribute['k1'] IS NOT NULL", NULL, 1,
+		{ "attribute['k1'] IS NOT NULL", NULL, 2,
 			"\\(IS NOT NULL\\)" },
 		{ "attribute['x1'] IS NOT NULL", NULL, 0,
 			"\\(IS NOT NULL\\)" },
 		{ "attribute['k2'] < 123", NULL,       0,
-			"ATTR\\[k2\\]\\{ < 123 \\}" },
+			"CMP_MATCHER\\(13\\)" },
 		{ "attribute['k2'] <= 123", NULL,      1,
-			"ATTR\\[k2\\]\\{ <= 123 \\}" },
+			"CMP_MATCHER\\(14\\)" },
 		{ "attribute['k2'] >= 123", NULL,      1,
-			"ATTR\\[k2\\]\\{ >= 123 \\}" },
+			"CMP_MATCHER\\(17\\)" },
 		{ "attribute['k2'] > 123", NULL,       0,
-			"ATTR\\[k2\\]\\{ > 123 \\}" },
+			"CMP_MATCHER\\(18\\)" },
 		{ "attribute['k2'] = 123", NULL,       1,
-			"ATTR\\[k2\\]\\{ = 123 \\}" },
-		{ "attribute['k2'] != 123", NULL,      2,
-			"\\(NOT, ATTR\\[k2\\]\\{ = 123 \\}\\)" },
-		{ "attribute['k1'] != 'v1'", NULL,     2,
-			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v1', \\(nil\\) \\} \\}\\)" },
-		{ "attribute['k1'] != 'v2'", NULL,     3,
-			"\\(NOT, ATTR\\[k1\\]\\{ VALUE\\{ 'v2', \\(nil\\) \\} \\}\\)" },
+			"CMP_MATCHER\\(15\\)" },
+		{ "attribute['k2'] != 123", NULL,      0,
+			"CMP_MATCHER\\(16\\)" },
+		{ "attribute['k1'] != 'v1'", NULL,     1,
+			"CMP_MATCHER\\(16\\)" },
+		{ "attribute['k1'] != 'v2'", NULL,     1,
+			"CMP_MATCHER\\(16\\)" },
 		{ "attribute != 'x' "
 		  "AND attribute['y'] !~ 'x'", NULL,   3,
 			"\\(AND, "
 				"\\(NOT, OBJ\\[attribute\\]\\{ NAME\\{ 'x', \\(nil\\) \\} \\}\\), "
-				"\\(NOT, ATTR\\[y\\]\\{ VALUE\\{ NULL, "PTR_RE" \\} \\}\\)\\)" },
+				"CMP_MATCHER\\(21\\)" },
 	};
 
 	int check, n;

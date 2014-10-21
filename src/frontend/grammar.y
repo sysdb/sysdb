@@ -38,6 +38,8 @@
 #include "utils/error.h"
 #include "utils/llist.h"
 
+#include <assert.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -431,17 +433,14 @@ matcher:
 		}
 	;
 
-/*
- * <object_type>.<object_attr> <cmp> <value>
- *
- * Parse matchers comparing object attributes with a value.
- */
 compare_matcher:
-	'.' IDENTIFIER cmp expression
+	expression cmp expression
 		{
-			$$ = sdb_store_matcher_parse_field_cmp($2, $3, $4);
-			free($2); $2 = NULL;
-			sdb_object_deref(SDB_OBJ($4));
+			sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op($2);
+			assert(cb); /* else, the grammar accepts invalid 'cmp' */
+			$$ = cb($1, $3);
+			sdb_object_deref(SDB_OBJ($1));
+			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
 	IDENTIFIER cmp expression
@@ -449,14 +448,6 @@ compare_matcher:
 			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, $3);
 			free($1); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3));
-		}
-	|
-	IDENTIFIER '[' STRING ']' cmp expression
-		{
-			$$ = sdb_store_matcher_parse_cmp($1, $3, $5, $6);
-			free($1); $1 = NULL;
-			free($3); $3 = NULL;
-			sdb_object_deref(SDB_OBJ($6));
 		}
 	|
 	expression IS NULL_T

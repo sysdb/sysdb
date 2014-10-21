@@ -329,39 +329,39 @@ START_TEST(test_parse_matcher)
 		  "service =~ 'pattern'",         -1,  MATCHER_OR },
 		{ "NOT host = 'host'",            -1,  MATCHER_NOT },
 		/* numeric expressions */
-		{ "attribute['foo'] < 123",       -1,  MATCHER_LT },
-		{ "attribute['foo'] <= 123",      -1,  MATCHER_LE },
-		{ "attribute['foo'] = 123",       -1,  MATCHER_EQ },
-		{ "attribute['foo'] >= 123",      -1,  MATCHER_GE },
-		{ "attribute['foo'] > 123",       -1,  MATCHER_GT },
+		{ "attribute['foo'] < 123",       -1,  MATCHER_CMP_LT },
+		{ "attribute['foo'] <= 123",      -1,  MATCHER_CMP_LE },
+		{ "attribute['foo'] = 123",       -1,  MATCHER_CMP_EQ },
+		{ "attribute['foo'] >= 123",      -1,  MATCHER_CMP_GE },
+		{ "attribute['foo'] > 123",       -1,  MATCHER_CMP_GT },
 		/* datetime expressions */
 		{ "attribute['foo'] = "
-		  "2014-08-16",                   -1,  MATCHER_EQ },
+		  "2014-08-16",                   -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "17:23",                        -1,  MATCHER_EQ },
+		  "17:23",                        -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "17:23:53",                     -1,  MATCHER_EQ },
+		  "17:23:53",                     -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "17:23:53.123",                 -1,  MATCHER_EQ },
+		  "17:23:53.123",                 -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "17:23:53.123456789",           -1,  MATCHER_EQ },
+		  "17:23:53.123456789",           -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "2014-08-16 17:23",             -1,  MATCHER_EQ },
+		  "2014-08-16 17:23",             -1,  MATCHER_CMP_EQ },
 		{ "attribute['foo'] = "
-		  "2014-08-16 17:23:53",          -1,  MATCHER_EQ },
+		  "2014-08-16 17:23:53",          -1,  MATCHER_CMP_EQ },
 		/* NULL; while this is an implementation detail,
 		 * IS NULL currently maps to an equality matcher */
 		{ "attribute['foo'] IS NULL",     -1,  MATCHER_ISNULL },
 		{ "attribute['foo'] IS NOT NULL", -1,  MATCHER_ISNNULL },
 
 		/* object field matchers */
-		{ ".last_update < 10s",           -1,  MATCHER_LT },
-		{ ".AGE <= 1m",                   -1,  MATCHER_LE },
-		{ ".interval = 10h",              -1,  MATCHER_EQ },
-		{ ".Last_Update >= 24D",          -1,  MATCHER_GE },
-		{ ".age > 1M",                    -1,  MATCHER_GT },
-		{ ".age != 20Y",                  -1,  MATCHER_NOT },
-		{ ".age <= 2 * .interval",        -1,  MATCHER_LE },
+		{ ".last_update < 10s",           -1,  MATCHER_CMP_LT },
+		{ ".AGE <= 1m",                   -1,  MATCHER_CMP_LE },
+		{ ".interval = 10h",              -1,  MATCHER_CMP_EQ },
+		{ ".Last_Update >= 24D",          -1,  MATCHER_CMP_GE },
+		{ ".age > 1M",                    -1,  MATCHER_CMP_GT },
+		{ ".age != 20Y",                  -1,  MATCHER_CMP_NE },
+		{ ".age <= 2 * .interval",        -1,  MATCHER_CMP_LE },
 		{ "'be' IN .backend",             -1,  MATCHER_IN },
 
 		/* check operator precedence */
