@@ -92,7 +92,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token AND OR IS NOT MATCHING FILTER
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
-%token CMP_LT CMP_LE CMP_GE CMP_GT
+%token CMP_LT CMP_LE CMP_GE CMP_GT IN
 %token CONCAT
 
 %token START END
@@ -115,6 +115,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %left CMP_EQUAL CMP_NEQUAL
 %left CMP_LT CMP_LE CMP_GE CMP_GT
 %nonassoc CMP_REGEX CMP_NREGEX
+%nonassoc IN
 %left CONCAT
 %nonassoc IS
 %left '+' '-'
@@ -468,6 +469,13 @@ compare_matcher:
 		{
 			$$ = sdb_store_isnnull_matcher($1);
 			sdb_object_deref(SDB_OBJ($1));
+		}
+	|
+	expression IN expression
+		{
+			$$ = sdb_store_in_matcher($1, $3);
+			sdb_object_deref(SDB_OBJ($1));
+			sdb_object_deref(SDB_OBJ($3));
 		}
 	;
 

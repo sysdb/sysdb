@@ -55,6 +55,7 @@ static struct {
 	{ "END",        END },
 	{ "FETCH",      FETCH },
 	{ "FILTER",     FILTER },
+	{ "IN",         IN },
 	{ "IS",         IS },
 	{ "LIST",       LIST },
 	{ "LOOKUP",     LOOKUP },
