@@ -64,7 +64,7 @@ output="$( run_sysdb -H "$SOCKET_FILE" \
 echo $output | grep -E '^\[\]$'
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER .backend = 'backend::mock_plugin'" )"
+	-c "LOOKUP hosts FILTER 'backend::mock_plugin' IN .backend" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"' \
@@ -72,7 +72,7 @@ echo "$output" \
 	| grep -F '"other.host.name"' \
 	| grep -F '"some.host.name"'
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts FILTER .backend = 'invalid'" )"
+	-c "LOOKUP hosts FILTER 'invalid' IN .backend" )"
 echo $output | grep -E '^\[\]$'
 
 stop_sysdbd

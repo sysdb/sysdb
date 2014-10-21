@@ -361,8 +361,8 @@ START_TEST(test_parse_matcher)
 		{ ".Last_Update >= 24D",          -1,  MATCHER_GE },
 		{ ".age > 1M",                    -1,  MATCHER_GT },
 		{ ".age != 20Y",                  -1,  MATCHER_NOT },
-		{ ".backend != 'be'",             -1,  MATCHER_NOT },
 		{ ".age <= 2 * .interval",        -1,  MATCHER_LE },
+		{ "'be' IN .backend",             -1,  MATCHER_IN },
 
 		/* check operator precedence */
 		{ "host = 'name' OR "
