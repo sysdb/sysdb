@@ -640,7 +640,7 @@ sdb_data_strlen(const sdb_data_t *datum)
 	}
 	else if (datum->type == SDB_TYPE_STRING) {
 		if (! datum->data.string)
-			return 8; /* "<NULL>" */
+			return 6; /* NULL */
 		/* in the worst case, each character needs to be escaped */
 		return 2 * strlen(datum->data.string) + 2;
 	}
@@ -650,13 +650,13 @@ sdb_data_strlen(const sdb_data_t *datum)
 	}
 	else if (datum->type == SDB_TYPE_BINARY) {
 		if (! datum->data.binary.datum)
-			return 8; /* "<NULL>" */
+			return 6; /* NULL */
 		/* "\xNN" */
 		return 4 * datum->data.binary.length + 2;
 	}
 	else if (datum->type == SDB_TYPE_REGEX) {
 		if (! datum->data.re.raw)
-			return 8; /* "<NULL>" */
+			return 6; /* NULL */
 		/* "/.../" */
 		return strlen(datum->data.re.raw) + 4;
 	}
@@ -673,6 +673,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 {
 	char tmp[sdb_data_strlen(datum) + 1];
 	char *data = NULL;
+	_Bool is_null = 0;
 	int ret = -1;
 
 	size_t i, pos;
@@ -688,7 +689,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	}
 	else if (datum->type == SDB_TYPE_STRING) {
 		if (! datum->data.string)
-			data = "<NULL>";
+			is_null = 1;
 		else {
 			pos = 0;
 			for (i = 0; i < strlen(datum->data.string); ++i) {
@@ -735,11 +736,11 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 			data = tmp;
 		}
 		else
-			data = "<NULL>";
+			is_null = 1;
 	}
 	else if (datum->type == SDB_TYPE_REGEX) {
 		if (! datum->data.re.raw)
-			data = "<NULL>";
+			is_null = 1;
 		else {
 			snprintf(tmp, sizeof(tmp), "/%s/", datum->data.re.raw);
 			data = tmp;
@@ -751,7 +752,12 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 		return -1;
 	}
 
-	if (data) {
+	if (is_null) {
+		/* never quote NULL */
+		strncpy(buf, "NULL", buflen);
+		ret = (int)SDB_MIN(buflen, 4);
+	}
+	else if (data) {
 		if (quoted == SDB_UNQUOTED)
 			ret = snprintf(buf, buflen, "%s", data);
 		else if (quoted == SDB_SINGLE_QUOTED)
