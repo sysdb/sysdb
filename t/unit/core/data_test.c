@@ -727,6 +727,73 @@ START_TEST(test_strcmp)
 }
 END_TEST
 
+START_TEST(test_inarray)
+{
+	int64_t int_values[] = { 47, 11, 64 };
+	double dec_values[] = { 12.3, 47.11, 64.0 };
+	char *string_values[] = { "foo", "bar", "qux", "baz" };
+
+	sdb_data_t int_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+		{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } }
+	};
+	sdb_data_t dec_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+		{ .array = { SDB_STATIC_ARRAY_LEN(dec_values), dec_values } }
+	};
+	sdb_data_t string_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+		{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } }
+	};
+
+	struct {
+		sdb_data_t value;
+		sdb_data_t array;
+		_Bool expected;
+	} golden_data[] = {
+		{ { SDB_TYPE_INTEGER, { .integer = 47    } }, int_array,    1 },
+		{ { SDB_TYPE_INTEGER, { .integer = 11    } }, int_array,    1 },
+		{ { SDB_TYPE_INTEGER, { .integer = 64    } }, int_array,    1 },
+		{ { SDB_TYPE_INTEGER, { .integer = 65    } }, int_array,    0 },
+		{ { SDB_TYPE_NULL,    { .integer = 0     } }, int_array,    0 },
+		{ int_array, { SDB_TYPE_INTEGER, { .integer = 47    } },    0 },
+		{ int_array, int_array, 0 },
+		{ { SDB_TYPE_DECIMAL, { .decimal = 12.3  } }, dec_array,    1 },
+		{ { SDB_TYPE_DECIMAL, { .decimal = 47.11 } }, dec_array,    1 },
+		{ { SDB_TYPE_DECIMAL, { .decimal = 64.0  } }, dec_array,    1 },
+		{ { SDB_TYPE_DECIMAL, { .decimal = 60.0  } }, dec_array,    0 },
+		{ { SDB_TYPE_INTEGER, { .integer = 64    } }, dec_array,    0 },
+		{ { SDB_TYPE_NULL,    { .integer = 0     } }, dec_array,    0 },
+		{ { SDB_TYPE_STRING,  { .string  = "Foo" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "FOO" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "foo" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "bar" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "qux" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "baz" } }, string_array, 1 },
+		{ { SDB_TYPE_STRING,  { .string  = "ba"  } }, string_array, 0 },
+		{ { SDB_TYPE_STRING,  { .string  = "abc" } }, string_array, 0 },
+		{ { SDB_TYPE_NULL,    { .integer = 0     } }, string_array, 0 },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		char v_str[1024] = "", a_str[1024] = "";
+		_Bool check;
+
+		sdb_data_format(&golden_data[i].value,
+				v_str, sizeof(v_str), SDB_UNQUOTED);
+		sdb_data_format(&golden_data[i].array,
+				a_str, sizeof(a_str), SDB_UNQUOTED);
+
+		check = sdb_data_inarray(&golden_data[i].value, &golden_data[i].array);
+		fail_unless(check == golden_data[i].expected,
+				"sdb_data_inarray(%s, %s) = %d; expected: %d",
+				v_str, a_str, check, golden_data[i].expected);
+	}
+}
+END_TEST
+
 START_TEST(test_parse_op)
 {
 	struct {
@@ -1353,6 +1420,7 @@ core_data_suite(void)
 	tcase_add_test(tc, test_data);
 	tcase_add_test(tc, test_cmp);
 	tcase_add_test(tc, test_strcmp);
+	tcase_add_test(tc, test_inarray);
 	tcase_add_test(tc, test_parse_op);
 	tcase_add_test(tc, test_expr_eval);
 	tcase_add_test(tc, test_format);

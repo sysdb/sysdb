@@ -541,6 +541,44 @@ sdb_data_isnull(const sdb_data_t *datum)
 	return 0;
 } /* sdb_data_isnull */
 
+_Bool
+sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array)
+{
+	size_t i;
+
+	if (sdb_data_isnull(value) || sdb_data_isnull(array))
+		return 0;
+	if ((value->type & SDB_TYPE_ARRAY) || (! (array->type & SDB_TYPE_ARRAY)))
+		return 0;
+	if (value->type != (array->type & 0xff))
+		return 0;
+
+	if (value->type == SDB_TYPE_INTEGER) {
+		int64_t *v = array->data.array.values;
+		for (i = 0; i < array->data.array.length; ++i)
+			if (value->data.integer == v[i])
+				return 1;
+	}
+	else if (value->type == SDB_TYPE_DECIMAL) {
+		double *v = array->data.array.values;
+		for (i = 0; i < array->data.array.length; ++i)
+			if (value->data.decimal == v[i])
+				return 1;
+	}
+	else if (value->type == SDB_TYPE_STRING) {
+		char **v = array->data.array.values;
+		for (i = 0; i < array->data.array.length; ++i)
+			if (!strcasecmp(value->data.string, v[i]))
+				return 1;
+	}
+	else {
+		/* TODO */
+		errno = ENOTSUP;
+		return 0;
+	}
+	return 0;
+} /* sdb_data_inarray */
+
 int
 sdb_data_parse_op(const char *op)
 {

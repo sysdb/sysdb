@@ -158,6 +158,15 @@ _Bool
 sdb_data_isnull(const sdb_data_t *datum);
 
 /*
+ * sdb_data_inarray:
+ * Determine whether a datum is included in an array based on the usual
+ * comparison function of the value's type. The element type of the array has
+ * to match the type of the value.
+ */
+_Bool
+sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array);
+
+/*
  * Operators supported by sdb_data_eval_expr.
  */
 enum {
