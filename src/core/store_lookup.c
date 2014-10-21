@@ -379,7 +379,8 @@ match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
  * specified stored object and filter. Returns a value less than, equal to, or
  * greater than zero if the value of the first expression compares less than,
  * equal to, or greater than the value of the second expression. Returns
- * INT_MAX if any of the expressions could not be evaluated.
+ * INT_MAX if any of the expressions could not be evaluated or if any of them
+ * evaluated to NULL.
  */
 static int
 cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
@@ -395,7 +396,9 @@ cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
 		return INT_MAX;
 	}
 
-	if (v1.type == v2.type)
+	if (sdb_data_isnull(&v1) || (sdb_data_isnull(&v2)))
+		status = INT_MAX;
+	else if (v1.type == v2.type)
 		status = sdb_data_cmp(&v1, &v2);
 	else
 		status = sdb_data_strcmp(&v1, &v2);
