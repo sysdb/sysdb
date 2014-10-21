@@ -178,6 +178,7 @@ enum {
 	MATCHER_CMP_NE,
 	MATCHER_CMP_GE,
 	MATCHER_CMP_GT,
+	MATCHER_IN,
 	MATCHER_REGEX,
 	MATCHER_NREGEX,
 	MATCHER_ISNULL,
@@ -199,6 +200,7 @@ enum {
 		: ((t) == MATCHER_CMP_NE) ? "!=" \
 		: ((t) == MATCHER_GE) ? ">=" \
 		: ((t) == MATCHER_GT) ? ">" \
+		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \

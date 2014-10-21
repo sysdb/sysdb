@@ -460,6 +460,15 @@ sdb_store_matcher_t *
 sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
+ * sdb_store_in_matcher:
+ * Creates a matcher which matches if the right value evaluates to an array
+ * value and the left value is included in that array. See sdb_data_inarray
+ * for more details.
+ */
+sdb_store_matcher_t *
+sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+
+/*
  * sdb_store_regex_matcher:
  * Creates a matcher which matches the string value the left expression
  * evaluates to against the regular expression the right expression evaluates

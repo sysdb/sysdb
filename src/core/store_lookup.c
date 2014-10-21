@@ -466,6 +466,27 @@ match_cmp_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_cmp_gt */
 
 static int
+match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	sdb_data_t value = SDB_DATA_INIT, array = SDB_DATA_INIT;
+	int status = 1;
+
+	assert(m->type == MATCHER_IN);
+
+	if ((sdb_store_expr_eval(CMP_M(m)->left, obj, &value, filter))
+			|| (sdb_store_expr_eval(CMP_M(m)->right, obj, &array, filter)))
+		status = 0;
+
+	if (status)
+		status = sdb_data_inarray(&value, &array);
+
+	sdb_data_free_datum(&value);
+	sdb_data_free_datum(&array);
+	return status;
+} /* match_in */
+
+static int
 match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -573,6 +594,7 @@ matchers[] = {
 	match_cmp_ne,
 	match_cmp_ge,
 	match_cmp_gt,
+	match_in,
 	match_regex,
 	match_regex,
 	match_isnull,
@@ -1066,6 +1088,7 @@ matchers_tostring[] = {
 	cmp_tostring,
 	cmp_tostring,
 	cmp_tostring,
+	cmp_tostring,
 	isnull_tostring,
 	isnull_tostring,
 };
@@ -1217,6 +1240,13 @@ sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right)
 	return M(sdb_object_create("gt-matcher", cmp_type,
 				MATCHER_CMP_GT, left, right));
 } /* sdb_store_cmp_gt */
+
+sdb_store_matcher_t *
+sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("in-matcher", cmp_type,
+				MATCHER_IN, left, right));
+} /* sdb_store_in_matcher */
 
 sdb_store_matcher_t *
 sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
