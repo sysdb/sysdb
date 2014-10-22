@@ -145,13 +145,6 @@ typedef struct {
 } attr_cond_t;
 #define ATTR_C(obj) ((attr_cond_t *)(obj))
 
-typedef struct {
-	sdb_store_cond_t super;
-	int field;
-	sdb_store_expr_t *expr;
-} obj_cond_t;
-#define OBJ_C(obj) ((obj_cond_t *)(obj))
-
 /*
  * matchers
  */

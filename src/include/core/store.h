@@ -379,15 +379,6 @@ sdb_store_cond_t *
 sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr);
 
 /*
- * sdb_store_obj_cond:
- * Creates a conditional based on queryable object fields. The respective
- * field of *any* object type is compared against the value the expression
- * evaluates to.
- */
-sdb_store_cond_t *
-sdb_store_obj_cond(int field, sdb_store_expr_t *expr);
-
-/*
  * sdb_store_name_matcher:
  * Creates a matcher matching by the specified object type's name. If 're' is
  * true, the specified name is treated as a POSIX extended regular expression.
@@ -539,19 +530,6 @@ sdb_store_parse_field_name(const char *name);
 sdb_store_matcher_t *
 sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		const char *op, sdb_store_expr_t *expr);
-
-/*
- * sdb_store_matcher_parse_field_cmp:
- * Parse a simple compare expression for queryable object fields (<field> <op>
- * <expression>).
- *
- * Returns:
- *  - a matcher object on success
- *  - NULL else
- */
-sdb_store_matcher_t *
-sdb_store_matcher_parse_field_cmp(const char *name, const char *op,
-		sdb_store_expr_t *expr);
 
 /*
  * sdb_store_dis_matcher:

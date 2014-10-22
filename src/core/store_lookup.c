@@ -128,50 +128,6 @@ attr_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
 	return status;
 } /* attr_cmp */
 
-static int
-obj_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
-		sdb_store_matcher_t *filter)
-{
-	sdb_data_t obj_value = SDB_DATA_INIT;
-	sdb_data_t value = SDB_DATA_INIT;
-	int status;
-
-	if (sdb_store_expr_eval(OBJ_C(cond)->expr, obj, &value, filter))
-		return INT_MAX;
-
-	if (OBJ_C(cond)->field == SDB_FIELD_BACKEND) {
-		/* this implementation is not actually a conditional but rather checks
-		 * for equality (or rather, existence) only */
-		size_t i;
-
-		if (value.type != SDB_TYPE_STRING)
-			return INT_MAX;
-
-		status = INT_MAX;
-		for (i = 0; i < obj->backends_num; ++i) {
-			if (! strcasecmp(obj->backends[i], value.data.string)) {
-				status = 0;
-				break;
-			}
-		}
-		sdb_data_free_datum(&value);
-		return status;
-	}
-
-	if (sdb_store_get_field(obj, OBJ_C(cond)->field, &obj_value))
-		return INT_MAX;
-	if (obj_value.type != value.type) {
-		sdb_data_free_datum(&obj_value);
-		sdb_data_free_datum(&value);
-		return INT_MAX;
-	}
-
-	status = sdb_data_cmp(&obj_value, &value);
-	sdb_data_free_datum(&obj_value);
-	sdb_data_free_datum(&value);
-	return status;
-} /* obj_cmp */
-
 /*
  * matcher implementations
  */
@@ -642,32 +598,6 @@ static sdb_type_t attr_cond_type = {
 	/* destroy = */ attr_cond_destroy,
 };
 
-static int
-obj_cond_init(sdb_object_t *obj, va_list ap)
-{
-	int field = va_arg(ap, int);
-	sdb_store_expr_t *expr = va_arg(ap, sdb_store_expr_t *);
-
-	SDB_STORE_COND(obj)->cmp = obj_cmp;
-
-	OBJ_C(obj)->field = field;
-	OBJ_C(obj)->expr = expr;
-	sdb_object_ref(SDB_OBJ(expr));
-	return 0;
-} /* obj_cond_init */
-
-static void
-obj_cond_destroy(sdb_object_t *obj)
-{
-	sdb_object_deref(SDB_OBJ(OBJ_C(obj)->expr));
-} /* obj_cond_destroy */
-
-static sdb_type_t obj_cond_type = {
-	/* size = */ sizeof(obj_cond_t),
-	/* init = */ obj_cond_init,
-	/* destroy = */ obj_cond_destroy,
-};
-
 /*
  * private matcher types
  */
@@ -934,13 +864,6 @@ sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr)
 	return SDB_STORE_COND(sdb_object_create("attr-cond", attr_cond_type,
 				name, expr));
 } /* sdb_store_attr_cond */
-
-sdb_store_cond_t *
-sdb_store_obj_cond(int field, sdb_store_expr_t *expr)
-{
-	return SDB_STORE_COND(sdb_object_create("obj-cond", obj_cond_type,
-				field, expr));
-} /* sdb_store_obj_cond */
 
 sdb_store_matcher_t *
 sdb_store_name_matcher(int type, const char *name, _Bool re)
@@ -1296,37 +1219,6 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	sdb_data_free_datum(&value);
 	return maybe_inv_matcher(m, inv);
 } /* sdb_store_matcher_parse_cmp */
-
-sdb_store_matcher_t *
-sdb_store_matcher_parse_field_cmp(const char *name, const char *op,
-		sdb_store_expr_t *expr)
-{
-	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
-	sdb_store_matcher_t *m;
-	sdb_store_cond_t *cond;
-	_Bool inv = 0;
-
-	int field;
-
-	if (! expr)
-		return NULL;
-
-	field = sdb_store_parse_field_name(name);
-	if (field < 0)
-		return NULL;
-
-	if (parse_cond_op(op, &matcher, &inv))
-		return NULL;
-	cond = sdb_store_obj_cond(field, expr);
-	if (! cond)
-		return NULL;
-
-	assert(matcher);
-	m = matcher(cond);
-	/* pass ownership to 'm' or destroy in case of an error */
-	sdb_object_deref(SDB_OBJ(cond));
-	return maybe_inv_matcher(m, inv);
-} /* sdb_store_matcher_parse_field_cmp */
 
 sdb_store_matcher_t *
 sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
