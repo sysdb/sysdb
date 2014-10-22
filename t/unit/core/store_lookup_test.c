@@ -273,9 +273,9 @@ START_TEST(test_store_match_attr)
 }
 END_TEST
 
-START_TEST(test_attr_cond)
+START_TEST(test_cmp_attr)
 {
-	sdb_store_obj_t *obj;
+	sdb_store_obj_t *host;
 
 	struct {
 		const char *attr;
@@ -301,60 +301,61 @@ START_TEST(test_attr_cond)
 	int status;
 	size_t i;
 
-	obj = sdb_store_get_host("a");
-	fail_unless(obj != NULL,
+	host = sdb_store_get_host("a");
+	fail_unless(host != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_expr_t *expr;
-		sdb_store_cond_t *c;
-		char buf[1024];
+		sdb_store_expr_t *attr;
+		sdb_store_expr_t *value;
+		char value_str[1024];
 		size_t j;
 
 		struct {
-			sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *);
+			sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
+					sdb_store_expr_t *);
 			int expected;
 		} tests[] = {
-			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
-			{ sdb_store_le_matcher, golden_data[i].expected_le },
-			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
-			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
-			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
+			{ sdb_store_cmp_lt, golden_data[i].expected_lt },
+			{ sdb_store_cmp_le, golden_data[i].expected_le },
+			{ sdb_store_cmp_eq, golden_data[i].expected_eq },
+			{ sdb_store_cmp_ge, golden_data[i].expected_ge },
+			{ sdb_store_cmp_gt, golden_data[i].expected_gt },
 		};
 
 		sdb_data_format(&golden_data[i].value,
-				buf, sizeof(buf), SDB_UNQUOTED);
+				value_str, sizeof(value_str), SDB_UNQUOTED);
 
-		expr = sdb_store_expr_constvalue(&golden_data[i].value);
-		fail_unless(expr != NULL,
+		attr = sdb_store_expr_attrvalue(golden_data[i].attr);
+		fail_unless(attr != NULL,
+				"sdb_store_expr_attrvalue(%s) = NULL; expected: <expr>",
+				golden_data[i].attr);
+
+		value = sdb_store_expr_constvalue(&golden_data[i].value);
+		fail_unless(value != NULL,
 				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
-				buf);
-
-		c = sdb_store_attr_cond(golden_data[i].attr, expr);
-		sdb_object_deref(SDB_OBJ(expr));
-		fail_unless(c != NULL,
-				"sdb_store_attr_cond(%s, expr{%s}) = NULL; expected: <cond>",
-				golden_data[i].attr, buf);
+				value_str);
 
 		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
 			sdb_store_matcher_t *m;
 
-			m = tests[j].matcher(c);
+			m = tests[j].matcher(attr, value);
 			fail_unless(m != NULL,
 					"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
 
-			status = sdb_store_matcher_matches(m, obj, /* filter */ NULL);
+			status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
 			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(<m>, <obj>, NULL) = %d; "
+					"sdb_store_matcher_matches(<m>, <host>, NULL) = %d; "
 					"expected: %d", status, tests[j].expected);
 
 			sdb_object_deref(SDB_OBJ(m));
 		}
 
-		sdb_object_deref(SDB_OBJ(c));
+		sdb_object_deref(SDB_OBJ(attr));
+		sdb_object_deref(SDB_OBJ(value));
 	}
 
-	sdb_object_deref(SDB_OBJ(obj));
+	sdb_object_deref(SDB_OBJ(host));
 }
 END_TEST
 
@@ -793,7 +794,7 @@ core_store_lookup_suite(void)
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match_name);
 	tcase_add_test(tc, test_store_match_attr);
-	tcase_add_test(tc, test_attr_cond);
+	tcase_add_test(tc, test_cmp_attr);
 	tcase_add_test(tc, test_cmp_obj);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
