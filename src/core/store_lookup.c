@@ -100,35 +100,6 @@ attr_get(sdb_host_t *host, const char *name, sdb_store_matcher_t *filter)
 } /* attr_get */
 
 /*
- * conditional implementations
- */
-
-static int
-attr_cmp(sdb_store_obj_t *obj, sdb_store_cond_t *cond,
-		sdb_store_matcher_t *filter)
-{
-	sdb_attribute_t *attr;
-	sdb_data_t value = SDB_DATA_INIT;
-	int status;
-
-	if (obj->type != SDB_HOST)
-		return INT_MAX;
-
-	if (sdb_store_expr_eval(ATTR_C(cond)->expr, obj, &value, filter))
-		return INT_MAX;
-
-	attr = attr_get(HOST(obj), ATTR_C(cond)->name, filter);
-	if (! attr)
-		status = INT_MAX;
-	else if (attr->value.type != value.type)
-		status = sdb_data_strcmp(&attr->value, &value);
-	else
-		status = sdb_data_cmp(&attr->value, &value);
-	sdb_data_free_datum(&value);
-	return status;
-} /* attr_cmp */
-
-/*
  * matcher implementations
  */
 
@@ -562,43 +533,6 @@ matchers[] = {
 };
 
 /*
- * private conditional types
- */
-
-static int
-attr_cond_init(sdb_object_t *obj, va_list ap)
-{
-	const char *name = va_arg(ap, const char *);
-	sdb_store_expr_t *expr = va_arg(ap, sdb_store_expr_t *);
-
-	if (! name)
-		return -1;
-
-	SDB_STORE_COND(obj)->cmp = attr_cmp;
-
-	ATTR_C(obj)->name = strdup(name);
-	if (! ATTR_C(obj)->name)
-		return -1;
-	ATTR_C(obj)->expr = expr;
-	sdb_object_ref(SDB_OBJ(expr));
-	return 0;
-} /* attr_cond_init */
-
-static void
-attr_cond_destroy(sdb_object_t *obj)
-{
-	if (ATTR_C(obj)->name)
-		free(ATTR_C(obj)->name);
-	sdb_object_deref(SDB_OBJ(ATTR_C(obj)->expr));
-} /* attr_cond_destroy */
-
-static sdb_type_t attr_cond_type = {
-	/* size = */ sizeof(attr_cond_t),
-	/* init = */ attr_cond_init,
-	/* destroy = */ attr_cond_destroy,
-};
-
-/*
  * private matcher types
  */
 
@@ -858,13 +792,6 @@ static sdb_type_t isnull_type = {
  * public API
  */
 
-sdb_store_cond_t *
-sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr)
-{
-	return SDB_STORE_COND(sdb_object_create("attr-cond", attr_cond_type,
-				name, expr));
-} /* sdb_store_attr_cond */
-
 sdb_store_matcher_t *
 sdb_store_name_matcher(int type, const char *name, _Bool re)
 {
@@ -1109,58 +1036,8 @@ maybe_inv_matcher(sdb_store_matcher_t *m, _Bool inv)
 	return tmp;
 } /* maybe_inv_matcher */
 
-static int
-parse_cond_op(const char *op,
-		sdb_store_matcher_t *(**matcher)(sdb_store_cond_t *), _Bool *inv)
-{
-	*inv = 0;
-	if (! strcasecmp(op, "<"))
-		*matcher = sdb_store_lt_matcher;
-	else if (! strcasecmp(op, "<="))
-		*matcher = sdb_store_le_matcher;
-	else if (! strcasecmp(op, "="))
-		*matcher = sdb_store_eq_matcher;
-	else if (! strcasecmp(op, ">="))
-		*matcher = sdb_store_ge_matcher;
-	else if (! strcasecmp(op, ">"))
-		*matcher = sdb_store_gt_matcher;
-	else if (! strcasecmp(op, "!=")) {
-		*matcher = sdb_store_eq_matcher;
-		*inv = 1;
-	}
-	else
-		return -1;
-	return 0;
-} /* parse_cond_op */
-
-static sdb_store_matcher_t *
-parse_attr_cmp(const char *attr, const char *op, sdb_store_expr_t *expr)
-{
-	sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *) = NULL;
-	sdb_store_matcher_t *m;
-	sdb_store_cond_t *cond;
-	_Bool inv = 0;
-
-	if (! attr)
-		return NULL;
-
-	if (! expr)
-		return NULL;
-	else if (parse_cond_op(op, &matcher, &inv))
-		return NULL;
-
-	cond = sdb_store_attr_cond(attr, expr);
-	if (! cond)
-		return NULL;
-
-	m = matcher(cond);
-	/* pass ownership to 'm' or destroy in case of an error */
-	sdb_object_deref(SDB_OBJ(cond));
-	return maybe_inv_matcher(m, inv);
-} /* parse_attr_cmp */
-
 sdb_store_matcher_t *
-sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
+sdb_store_matcher_parse_cmp(const char *obj_type,
 		const char *op, sdb_store_expr_t *expr)
 {
 	int type = -1;
@@ -1195,8 +1072,6 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 		inv = 1;
 		re = 1;
 	}
-	else if (type == SDB_ATTRIBUTE)
-		return parse_attr_cmp(attr, op, expr);
 	else
 		return NULL;
 
@@ -1206,16 +1081,10 @@ sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
 	if (sdb_store_expr_eval(expr, /* obj */ NULL, &value, /* filter */ NULL)
 			|| (value.type != SDB_TYPE_STRING)) {
 		sdb_data_free_datum(&value);
-		if (type != SDB_ATTRIBUTE)
-			return NULL;
-		return parse_attr_cmp(attr, op, expr);
+		return NULL;
 	}
 
-	if (! attr)
-		m = sdb_store_name_matcher(type, value.data.string, re);
-	else if (type == SDB_ATTRIBUTE)
-		m = sdb_store_attr_matcher(attr, value.data.string, re);
-
+	m = sdb_store_name_matcher(type, value.data.string, re);
 	sdb_data_free_datum(&value);
 	return maybe_inv_matcher(m, inv);
 } /* sdb_store_matcher_parse_cmp */

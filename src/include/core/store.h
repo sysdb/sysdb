@@ -370,15 +370,6 @@ typedef struct sdb_store_cond sdb_store_cond_t;
 #define SDB_STORE_COND(obj) ((sdb_store_cond_t *)(obj))
 
 /*
- * sdb_store_attr_cond:
- * Creates a conditional based on attribute values. The value of stored
- * attributes is compared against the value the expression evaluates to. See
- * sdb_data_cmp for details about the comparison.
- */
-sdb_store_cond_t *
-sdb_store_attr_cond(const char *name, sdb_store_expr_t *expr);
-
-/*
  * sdb_store_name_matcher:
  * Creates a matcher matching by the specified object type's name. If 're' is
  * true, the specified name is treated as a POSIX extended regular expression.
@@ -521,14 +512,14 @@ sdb_store_parse_field_name(const char *name);
 
 /*
  * sdb_store_matcher_parse_cmp:
- * Parse a simple compare expression (<obj_type>.<attr> <op> <expression>).
+ * Parse a simple compare expression (<obj_type> <op> <expression>).
  *
  * Returns:
  *  - a matcher object on success
  *  - NULL else
  */
 sdb_store_matcher_t *
-sdb_store_matcher_parse_cmp(const char *obj_type, const char *attr,
+sdb_store_matcher_parse_cmp(const char *obj_type,
 		const char *op, sdb_store_expr_t *expr);
 
 /*

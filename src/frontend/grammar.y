@@ -445,7 +445,7 @@ compare_matcher:
 	|
 	IDENTIFIER cmp expression
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, NULL, $2, $3);
+			$$ = sdb_store_matcher_parse_cmp($1, $2, $3);
 			free($1); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3));
 		}

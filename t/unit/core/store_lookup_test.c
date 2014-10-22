@@ -557,7 +557,6 @@ START_TEST(test_parse_cmp)
 	sdb_data_t metricname = { SDB_TYPE_STRING,  { .string  = "metricname" } };
 	sdb_data_t srvname    = { SDB_TYPE_STRING,  { .string  = "srvname" } };
 	sdb_data_t attrname   = { SDB_TYPE_STRING,  { .string  = "attrname" } };
-	sdb_data_t attrvalue  = { SDB_TYPE_INTEGER, { .integer = 4711 } };
 
 	sdb_store_matcher_t *check;
 
@@ -565,75 +564,50 @@ START_TEST(test_parse_cmp)
 
 	struct {
 		const char *obj_type;
-		const char *attr;
 		const char *op;
 		const sdb_data_t *value;
 		int expected;
 	} golden_data[] = {
-		{ "host",      NULL,   "=",  &hostname,   MATCHER_NAME },
-		{ "host",      NULL,   "!=", &hostname,   MATCHER_NOT },
-		{ "host",      NULL,   "=~", &hostname,   MATCHER_NAME },
-		{ "host",      NULL,   "!~", &hostname,   MATCHER_NOT },
-		{ "host",      "attr", "=",  &hostname,   -1 },
-		{ "host",      "attr", "!=", &hostname,   -1 },
-		{ "host",      "attr", "!=", &attrvalue,  -1 },
-		{ "host",      "attr", "<=", &attrvalue,  -1 },
-		{ "host",      NULL,   "&^", &hostname,   -1 },
-		{ "host",      NULL,   "<",  &hostname,   -1 },
-		{ "host",      NULL,   "<=", &hostname,   -1 },
-		{ "host",      NULL,   ">=", &hostname,   -1 },
-		{ "host",      NULL,   ">",  &hostname,   -1 },
-		{ "host",      NULL,   "=",  NULL,        -1 },
-		{ "metric",    NULL,   "=",  &metricname, MATCHER_NAME },
-		{ "metric",    NULL,   "!=", &metricname, MATCHER_NOT },
-		{ "metric",    NULL,   "=~", &metricname, MATCHER_NAME },
-		{ "metric",    NULL,   "!~", &metricname, MATCHER_NOT },
-		{ "metric",    "attr", "=",  &metricname, -1 },
-		{ "metric",    "attr", "!=", &metricname, -1 },
-		{ "metric",    "attr", "!=", &attrvalue,  -1 },
-		{ "metric",    "attr", "<=", &attrvalue,  -1 },
-		{ "metric",    NULL,   "&^", &metricname, -1 },
-		{ "metric",    NULL,   "<",  &metricname, -1 },
-		{ "metric",    NULL,   "<=", &metricname, -1 },
-		{ "metric",    NULL,   ">=", &metricname, -1 },
-		{ "metric",    NULL,   ">",  &metricname, -1 },
-		{ "metric",    NULL,   "=",  NULL,        -1 },
-		{ "service",   NULL,   "=",  &srvname,    MATCHER_NAME },
-		{ "service",   NULL,   "!=", &srvname,    MATCHER_NOT },
-		{ "service",   NULL,   "=~", &srvname,    MATCHER_NAME },
-		{ "service",   NULL,   "!~", &srvname,    MATCHER_NOT },
-		{ "service",   "attr", "=",  &srvname,    -1 },
-		{ "service",   "attr", "!=", &srvname,    -1 },
-		{ "service",   "attr", "!=", &attrvalue,  -1 },
-		{ "service",   "attr", "<=", &attrvalue,  -1 },
-		{ "service",   NULL,   "&^", &srvname,    -1 },
-		{ "service",   NULL,   "<",  &srvname,    -1 },
-		{ "service",   NULL,   "<=", &srvname,    -1 },
-		{ "service",   NULL,   ">=", &srvname,    -1 },
-		{ "service",   NULL,   ">",  &srvname,    -1 },
-		{ "service",   NULL,   "=",  NULL,        -1 },
-		{ "attribute", NULL,   "=",  &attrname,   MATCHER_NAME },
-		{ "attribute", NULL,   "!=", &attrname,   MATCHER_NOT },
-		{ "attribute", NULL,   "=~", &attrname,   MATCHER_NAME },
-		{ "attribute", NULL,   "!~", &attrname,   MATCHER_NOT },
-		{ "attribute", NULL,   "<",  &attrname,   -1 },
-		{ "attribute", NULL,   "<=", &attrname,   -1 },
-		{ "attribute", NULL,   ">=", &attrname,   -1 },
-		{ "attribute", NULL,   ">",  &attrname,   -1 },
-		{ "attribute", NULL,   "=",  NULL,        -1 },
-		{ "attribute", "attr", "=",  &attrname,   MATCHER_ATTR },
-		{ "attribute", "attr", "!=", &attrname,   MATCHER_NOT },
-		{ "attribute", "attr", "=~", &attrname,   MATCHER_ATTR },
-		{ "attribute", "attr", "!~", &attrname,   MATCHER_NOT },
-		{ "attribute", "attr", "&^", &attrname,   -1 },
-		{ "attribute", "attr", "<",  NULL,        -1 },
-		{ "attribute", "attr", "<",  &attrname,   MATCHER_LT },
-		{ "attribute", "attr", "<=", &attrname,   MATCHER_LE },
-/*		{ "attribute", "attr", "=",  &attrname,   MATCHER_EQ }, */
-		{ "attribute", "attr", ">=", &attrname,   MATCHER_GE },
-		{ "attribute", "attr", ">",  &attrname,   MATCHER_GT },
-		{ "foo",       NULL,   "=",  &attrname,   -1 },
-		{ "foo",       "attr", "=",  &attrname,   -1 },
+		{ "host",      "=",  &hostname,   MATCHER_NAME },
+		{ "host",      "!=", &hostname,   MATCHER_NOT },
+		{ "host",      "=~", &hostname,   MATCHER_NAME },
+		{ "host",      "!~", &hostname,   MATCHER_NOT },
+		{ "host",      "&^", &hostname,   -1 },
+		{ "host",      "<",  &hostname,   -1 },
+		{ "host",      "<=", &hostname,   -1 },
+		{ "host",      ">=", &hostname,   -1 },
+		{ "host",      ">",  &hostname,   -1 },
+		{ "host",      "=",  NULL,        -1 },
+		{ "metric",    "=",  &metricname, MATCHER_NAME },
+		{ "metric",    "!=", &metricname, MATCHER_NOT },
+		{ "metric",    "=~", &metricname, MATCHER_NAME },
+		{ "metric",    "!~", &metricname, MATCHER_NOT },
+		{ "metric",    "&^", &metricname, -1 },
+		{ "metric",    "<",  &metricname, -1 },
+		{ "metric",    "<=", &metricname, -1 },
+		{ "metric",    ">=", &metricname, -1 },
+		{ "metric",    ">",  &metricname, -1 },
+		{ "metric",    "=",  NULL,        -1 },
+		{ "service",   "=",  &srvname,    MATCHER_NAME },
+		{ "service",   "!=", &srvname,    MATCHER_NOT },
+		{ "service",   "=~", &srvname,    MATCHER_NAME },
+		{ "service",   "!~", &srvname,    MATCHER_NOT },
+		{ "service",   "&^", &srvname,    -1 },
+		{ "service",   "<",  &srvname,    -1 },
+		{ "service",   "<=", &srvname,    -1 },
+		{ "service",   ">=", &srvname,    -1 },
+		{ "service",   ">",  &srvname,    -1 },
+		{ "service",   "=",  NULL,        -1 },
+		{ "attribute", "=",  &attrname,   MATCHER_NAME },
+		{ "attribute", "!=", &attrname,   MATCHER_NOT },
+		{ "attribute", "=~", &attrname,   MATCHER_NAME },
+		{ "attribute", "!~", &attrname,   MATCHER_NOT },
+		{ "attribute", "<",  &attrname,   -1 },
+		{ "attribute", "<=", &attrname,   -1 },
+		{ "attribute", ">=", &attrname,   -1 },
+		{ "attribute", ">",  &attrname,   -1 },
+		{ "attribute", "=",  NULL,        -1 },
+		{ "foo",       "=",  &attrname,   -1 },
 	};
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
@@ -650,26 +624,25 @@ START_TEST(test_parse_cmp)
 				buf);
 
 		check = sdb_store_matcher_parse_cmp(golden_data[i].obj_type,
-				golden_data[i].attr, golden_data[i].op, expr);
+				golden_data[i].op, expr);
 		sdb_object_deref(SDB_OBJ(expr));
 
 		if (golden_data[i].expected == -1) {
 			fail_unless(check == NULL,
-					"sdb_store_matcher_parse_cmp(%s, %s, %s, expr{%s}) = %p; "
+					"sdb_store_matcher_parse_cmp(%s, %s, expr{%s}) = %p; "
 					"expected: NULL", golden_data[i].obj_type,
-					golden_data[i].attr, golden_data[i].op, buf, check);
+					golden_data[i].op, buf, check);
 			continue;
 		}
 
 		fail_unless(check != NULL,
-				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) = %p; "
+				"sdb_store_matcher_parse_cmp(%s, %s, %s) = %p; "
 				"expected: <expr>", golden_data[i].obj_type,
-				golden_data[i].attr, golden_data[i].op, buf, check);
+				golden_data[i].op, buf, check);
 		fail_unless(M(check)->type == golden_data[i].expected,
-				"sdb_store_matcher_parse_cmp(%s, %s, %s, %s) returned matcher "
+				"sdb_store_matcher_parse_cmp(%s, %s, %s) returned matcher "
 				"of type %d; expected: %d", golden_data[i].obj_type,
-				golden_data[i].attr, golden_data[i].op, buf,
-				M(check)->type, golden_data[i].expected);
+				golden_data[i].op, buf, M(check)->type, golden_data[i].expected);
 
 		sdb_object_deref(SDB_OBJ(check));
 	}
