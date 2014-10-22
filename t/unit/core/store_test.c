@@ -442,7 +442,8 @@ START_TEST(test_store_tojson)
 
 	struct {
 		struct {
-			sdb_store_matcher_t *(*m)(sdb_store_cond_t *);
+			sdb_store_matcher_t *(*m)(sdb_store_expr_t *,
+					sdb_store_expr_t *);
 			int field;
 			sdb_data_t value;
 		} filter;
@@ -604,14 +605,14 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
-		{ { sdb_store_eq_matcher, SDB_FIELD_NAME,
+		{ { sdb_store_cmp_eq, SDB_FIELD_NAME,
 				{ SDB_TYPE_STRING, { .string = "h1" } } }, 0,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
 					"\"attributes\": [], \"metrics\": [], \"services\": []}"
 			"]" },
-		{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_cmp_gt, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, 0,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -629,7 +630,7 @@ START_TEST(test_store_tojson)
 							"]}"
 					"]}"
 			"]" },
-		{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_cmp_le, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, 0,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -647,7 +648,7 @@ START_TEST(test_store_tojson)
 					"], "
 					"\"services\": []}"
 			"]" },
-		{ { sdb_store_ge_matcher, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_cmp_ge, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 3 } } }, 0,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -669,20 +670,22 @@ START_TEST(test_store_tojson)
 		sdb_strbuf_clear(buf);
 
 		if (golden_data[i].filter.m) {
-			sdb_store_expr_t *expr;
-			sdb_store_cond_t *c = NULL;
+			sdb_store_expr_t *field;
+			sdb_store_expr_t *value;
 
-			expr = sdb_store_expr_constvalue(&golden_data[i].filter.value);
-			fail_unless(expr != NULL,
+			field = sdb_store_expr_fieldvalue(golden_data[i].filter.field);
+			fail_unless(field != NULL,
+					"INTERNAL ERROR: sdb_store_expr_fieldvalue() = NULL");
+			value = sdb_store_expr_constvalue(&golden_data[i].filter.value);
+			fail_unless(value != NULL,
 					"INTERNAL ERROR: sdb_store_expr_constvalue() = NULL");
-			c = sdb_store_obj_cond(golden_data[i].filter.field, expr);
-			sdb_object_deref(SDB_OBJ(expr));
-			fail_unless(c != NULL,
-					"INTERNAL ERROR: sdb_store_obj_cond() = NULL");
-			filter = golden_data[i].filter.m(c);
-			sdb_object_deref(SDB_OBJ(c));
+
+			filter = golden_data[i].filter.m(field, value);
 			fail_unless(filter != NULL,
 					"INTERNAL ERROR: sdb_store_*_matcher() = NULL");
+
+			sdb_object_deref(SDB_OBJ(field));
+			sdb_object_deref(SDB_OBJ(value));
 		}
 
 		status = sdb_store_tojson(buf, filter, golden_data[i].flags);

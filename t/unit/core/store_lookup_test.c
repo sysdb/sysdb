@@ -30,6 +30,8 @@
 #include "frontend/parser.h"
 #include "libsysdb_test.h"
 
+#include <assert.h>
+
 #include <check.h>
 #include <string.h>
 
@@ -356,7 +358,7 @@ START_TEST(test_attr_cond)
 }
 END_TEST
 
-START_TEST(test_obj_cond)
+START_TEST(test_cmp_obj)
 {
 	struct {
 		const char *host;
@@ -386,6 +388,8 @@ START_TEST(test_obj_cond)
 		{ "a", SDB_FIELD_INTERVAL,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 1, 1, 0, 0, 0 },
 		/* type mismatch */
+		/* TODO: let matchers only use data_strcmp for attributes
+		 *       everything else has a well-known type
 		{ "a", SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
 		{ "a", SDB_FIELD_AGE,
@@ -396,69 +400,82 @@ START_TEST(test_obj_cond)
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
 		{ "a", SDB_FIELD_BACKEND,
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+		*/
 		/* (64bit) integer value without zero-bytes */
+		/*
 		{ "a", SDB_FIELD_BACKEND,
 			{ SDB_TYPE_INTEGER, { .integer = 0xffffffffffffffffL } },
 			0, 0, 0, 0, 0 },
+		*/
 	};
 
 	int status;
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_obj_t *obj;
-		sdb_store_expr_t *expr;
-		sdb_store_cond_t *c;
-		char buf[1024];
+		sdb_store_obj_t *host;
+		sdb_store_expr_t *field;
+		sdb_store_expr_t *value;
+		char value_str[1024];
 		size_t j;
 
 		struct {
-			sdb_store_matcher_t *(*matcher)(sdb_store_cond_t *);
+			sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
+					sdb_store_expr_t *);
 			int expected;
 		} tests[] = {
-			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
-			{ sdb_store_le_matcher, golden_data[i].expected_le },
-			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
-			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
-			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
+			{ sdb_store_cmp_lt, golden_data[i].expected_lt },
+			{ sdb_store_cmp_le, golden_data[i].expected_le },
+			{ sdb_store_cmp_eq, golden_data[i].expected_eq },
+			{ sdb_store_cmp_ge, golden_data[i].expected_ge },
+			{ sdb_store_cmp_gt, golden_data[i].expected_gt },
 		};
+		char *op_str[] = { "<", "<=", "=", ">=", ">" };
 
-		obj = sdb_store_get_host(golden_data[i].host);
-		fail_unless(obj != NULL,
+		assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+
+		host = sdb_store_get_host(golden_data[i].host);
+		fail_unless(host != NULL,
 				"sdb_store_get_host(%s) = NULL; expected: <host>",
 				golden_data[i].host);
 
 		sdb_data_format(&golden_data[i].value,
-				buf, sizeof(buf), SDB_UNQUOTED);
+				value_str, sizeof(value_str), SDB_UNQUOTED);
 
-		expr = sdb_store_expr_constvalue(&golden_data[i].value);
-		fail_unless(expr != NULL,
-				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
-				buf);
+		field = sdb_store_expr_fieldvalue(golden_data[i].field);
+		fail_unless(field != NULL,
+				"sdb_store_expr_fieldvalue(%d) = NULL; "
+				"expected: <expr>", golden_data[i].field);
 
-		c = sdb_store_obj_cond(golden_data[i].field, expr);
-		sdb_object_deref(SDB_OBJ(expr));
-		fail_unless(c != NULL,
-				"sdb_store_obj_cond(%d, expr{%s}) = NULL; expected: <cond>",
-				golden_data[i].field, buf);
+		value = sdb_store_expr_constvalue(&golden_data[i].value);
+		fail_unless(value != NULL,
+				"sdb_store_expr_constvalue(%s) = NULL; "
+				"expected: <expr>", value_str);
 
 		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
+			char m_str[1024];
 			sdb_store_matcher_t *m;
 
-			m = tests[j].matcher(c);
+			snprintf(m_str, sizeof(m_str), "%s %s %s",
+					SDB_FIELD_TO_NAME(golden_data[i].field),
+					op_str[j], value_str);
+
+			m = tests[j].matcher(field, value);
 			fail_unless(m != NULL,
 					"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
 
-			status = sdb_store_matcher_matches(m, obj, /* filter */ NULL);
+			status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
 			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(<m>, <host '%s'>, NULL) = %d; "
-					"expected: %d", status, tests[j].expected);
+					"sdb_store_matcher_matches(<%s>, <host '%s'>, NULL) = %d; "
+					"expected: %d", m_str, golden_data[i].host, status,
+					tests[j].expected);
 
 			sdb_object_deref(SDB_OBJ(m));
 		}
 
-		sdb_object_deref(SDB_OBJ(c));
-		sdb_object_deref(SDB_OBJ(obj));
+		sdb_object_deref(SDB_OBJ(field));
+		sdb_object_deref(SDB_OBJ(value));
+		sdb_object_deref(SDB_OBJ(host));
 	}
 }
 END_TEST
@@ -867,7 +884,7 @@ core_store_lookup_suite(void)
 	tcase_add_test(tc, test_store_match_name);
 	tcase_add_test(tc, test_store_match_attr);
 	tcase_add_test(tc, test_attr_cond);
-	tcase_add_test(tc, test_obj_cond);
+	tcase_add_test(tc, test_cmp_obj);
 	tcase_add_test(tc, test_store_match_op);
 	tcase_add_test(tc, test_parse_cmp);
 	tcase_add_test(tc, test_parse_field_cmp);
