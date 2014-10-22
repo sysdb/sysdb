@@ -139,12 +139,12 @@ enum {
 	MATCHER_SERVICE,
 	MATCHER_METRIC,
 	MATCHER_ATTRIBUTE,
-	MATCHER_CMP_LT,
-	MATCHER_CMP_LE,
-	MATCHER_CMP_EQ,
-	MATCHER_CMP_NE,
-	MATCHER_CMP_GE,
-	MATCHER_CMP_GT,
+	MATCHER_LT,
+	MATCHER_LE,
+	MATCHER_EQ,
+	MATCHER_NE,
+	MATCHER_GE,
+	MATCHER_GT,
 	MATCHER_IN,
 	MATCHER_REGEX,
 	MATCHER_NREGEX,
@@ -161,7 +161,12 @@ enum {
 		: ((t) == MATCHER_SERVICE) ? "SERVICE" \
 		: ((t) == MATCHER_METRIC) ? "METRIC" \
 		: ((t) == MATCHER_ATTRIBUTE) ? "ATTRIBUTE" \
-		: ((t) == MATCHER_CMP_NE) ? "!=" \
+		: ((t) == MATCHER_LT) ? "<" \
+		: ((t) == MATCHER_LE) ? "<=" \
+		: ((t) == MATCHER_EQ) ? "=" \
+		: ((t) == MATCHER_NE) ? "!=" \
+		: ((t) == MATCHER_GE) ? ">=" \
+		: ((t) == MATCHER_GT) ? ">" \
 		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \

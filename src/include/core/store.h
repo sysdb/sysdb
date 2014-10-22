@@ -401,23 +401,23 @@ sdb_store_child_matcher(int type, sdb_store_matcher_t *m);
 /*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
  * sdb_store_ge_matcher, sdb_store_gt_matcher:
- * Creates a matcher based on a conditional. The matcher matches objects for
- * which the conditional evaluates the object to compare less than, less or
- * equal, equal, greater or equal, or greater than the conditional's value
- * repsectively.
+ * Create conditional matchers comparing the values of two expressions. The
+ * matcher matches if the left expression compres less than, less or equal
+ * than, equal to, not equal to, greater or equal than, or greater than the
+ * right expression.
  */
 sdb_store_matcher_t *
-sdb_store_cmp_lt(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
-sdb_store_cmp_le(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_le_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
-sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_eq_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
-sdb_store_cmp_ne(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_ne_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
-sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_ge_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *
-sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_store_gt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
  * sdb_store_in_matcher:

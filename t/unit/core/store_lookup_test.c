@@ -316,11 +316,11 @@ START_TEST(test_cmp_attr)
 					sdb_store_expr_t *);
 			int expected;
 		} tests[] = {
-			{ sdb_store_cmp_lt, golden_data[i].expected_lt },
-			{ sdb_store_cmp_le, golden_data[i].expected_le },
-			{ sdb_store_cmp_eq, golden_data[i].expected_eq },
-			{ sdb_store_cmp_ge, golden_data[i].expected_ge },
-			{ sdb_store_cmp_gt, golden_data[i].expected_gt },
+			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
+			{ sdb_store_le_matcher, golden_data[i].expected_le },
+			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
+			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
+			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
 		};
 
 		sdb_data_format(&golden_data[i].value,
@@ -425,11 +425,11 @@ START_TEST(test_cmp_obj)
 					sdb_store_expr_t *);
 			int expected;
 		} tests[] = {
-			{ sdb_store_cmp_lt, golden_data[i].expected_lt },
-			{ sdb_store_cmp_le, golden_data[i].expected_le },
-			{ sdb_store_cmp_eq, golden_data[i].expected_eq },
-			{ sdb_store_cmp_ge, golden_data[i].expected_ge },
-			{ sdb_store_cmp_gt, golden_data[i].expected_gt },
+			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
+			{ sdb_store_le_matcher, golden_data[i].expected_le },
+			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
+			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
+			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
 		};
 		char *op_str[] = { "<", "<=", "=", ">=", ">" };
 

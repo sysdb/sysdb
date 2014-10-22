@@ -605,14 +605,14 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
-		{ { sdb_store_cmp_eq, SDB_FIELD_NAME,
+		{ { sdb_store_eq_matcher, SDB_FIELD_NAME,
 				{ SDB_TYPE_STRING, { .string = "h1" } } }, 0,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
 					"\"attributes\": [], \"metrics\": [], \"services\": []}"
 			"]" },
-		{ { sdb_store_cmp_gt, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, 0,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -630,7 +630,7 @@ START_TEST(test_store_tojson)
 							"]}"
 					"]}"
 			"]" },
-		{ { sdb_store_cmp_le, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, 0,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -648,7 +648,7 @@ START_TEST(test_store_tojson)
 					"], "
 					"\"services\": []}"
 			"]" },
-		{ { sdb_store_cmp_ge, SDB_FIELD_LAST_UPDATE,
+		{ { sdb_store_ge_matcher, SDB_FIELD_LAST_UPDATE,
 				{ SDB_TYPE_DATETIME, { .datetime = 3 } } }, 0,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "

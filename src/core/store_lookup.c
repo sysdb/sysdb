@@ -286,64 +286,64 @@ cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
 } /* cmp_expr */
 
 static int
-match_cmp_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_LT);
+	assert(m->type == MATCHER_LT);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && (status < 0);
-} /* match_cmp_lt */
+} /* match_lt */
 
 static int
-match_cmp_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_LE);
+	assert(m->type == MATCHER_LE);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && (status <= 0);
-} /* match_cmp_le */
+} /* match_le */
 
 static int
-match_cmp_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_EQ);
+	assert(m->type == MATCHER_EQ);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && (! status);
-} /* match_cmp_eq */
+} /* match_eq */
 
 static int
-match_cmp_ne(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_ne(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_NE);
+	assert(m->type == MATCHER_NE);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && status;
-} /* match_cmp_ne */
+} /* match_ne */
 
 static int
-match_cmp_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_GE);
+	assert(m->type == MATCHER_GE);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && (status >= 0);
-} /* match_cmp_ge */
+} /* match_ge */
 
 static int
-match_cmp_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	int status;
-	assert(m->type == MATCHER_CMP_GT);
+	assert(m->type == MATCHER_GT);
 	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
 	return (status != INT_MAX) && (status > 0);
-} /* match_cmp_gt */
+} /* match_gt */
 
 static int
 match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -464,12 +464,12 @@ matchers[] = {
 	match_child,
 	match_child,
 	match_child,
-	match_cmp_lt,
-	match_cmp_le,
-	match_cmp_eq,
-	match_cmp_ne,
-	match_cmp_ge,
-	match_cmp_gt,
+	match_lt,
+	match_le,
+	match_eq,
+	match_ne,
+	match_ge,
+	match_gt,
 	match_in,
 	match_regex,
 	match_regex,
@@ -757,52 +757,47 @@ sdb_store_child_matcher(int type, sdb_store_matcher_t *m)
 	return M(sdb_object_create("any-matcher", child_type, type, m));
 } /* sdb_store_child_matcher */
 
-/*
- * TODO: Rename sdb_store_cmp_* to sdb_store_* once the old code is unused and
- * has been removed.
- */
-
 sdb_store_matcher_t *
-sdb_store_cmp_lt(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("lt-matcher", cmp_type,
-				MATCHER_CMP_LT, left, right));
-} /* sdb_store_cmp_lt */
+				MATCHER_LT, left, right));
+} /* sdb_store_lt_matcher */
 
 sdb_store_matcher_t *
-sdb_store_cmp_le(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_le_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("le-matcher", cmp_type,
-				MATCHER_CMP_LE, left, right));
-} /* sdb_store_cmp_le */
+				MATCHER_LE, left, right));
+} /* sdb_store_le_matcher */
 
 sdb_store_matcher_t *
-sdb_store_cmp_eq(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_eq_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("eq-matcher", cmp_type,
-				MATCHER_CMP_EQ, left, right));
-} /* sdb_store_cmp_eq */
+				MATCHER_EQ, left, right));
+} /* sdb_store_eq_matcher */
 
 sdb_store_matcher_t *
-sdb_store_cmp_ne(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_ne_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("ne-matcher", cmp_type,
-				MATCHER_CMP_NE, left, right));
-} /* sdb_store_cmp_ne */
+				MATCHER_NE, left, right));
+} /* sdb_store_ne_matcher */
 
 sdb_store_matcher_t *
-sdb_store_cmp_ge(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_ge_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("ge-matcher", cmp_type,
-				MATCHER_CMP_GE, left, right));
-} /* sdb_store_cmp_ge */
+				MATCHER_GE, left, right));
+} /* sdb_store_ge_matcher */
 
 sdb_store_matcher_t *
-sdb_store_cmp_gt(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_store_gt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("gt-matcher", cmp_type,
-				MATCHER_CMP_GT, left, right));
-} /* sdb_store_cmp_gt */
+				MATCHER_GT, left, right));
+} /* sdb_store_gt_matcher */
 
 sdb_store_matcher_t *
 sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
@@ -858,17 +853,17 @@ sdb_store_matcher_op_cb
 sdb_store_parse_matcher_op(const char *op)
 {
 	if (! strcasecmp(op, "<"))
-		return sdb_store_cmp_lt;
+		return sdb_store_lt_matcher;
 	else if (! strcasecmp(op, "<="))
-		return sdb_store_cmp_le;
+		return sdb_store_le_matcher;
 	else if (! strcasecmp(op, "="))
-		return sdb_store_cmp_eq;
+		return sdb_store_eq_matcher;
 	else if (! strcasecmp(op, "!="))
-		return sdb_store_cmp_ne;
+		return sdb_store_ne_matcher;
 	else if (! strcasecmp(op, ">="))
-		return sdb_store_cmp_ge;
+		return sdb_store_ge_matcher;
 	else if (! strcasecmp(op, ">"))
-		return sdb_store_cmp_gt;
+		return sdb_store_gt_matcher;
 	else if (! strcasecmp(op, "=~"))
 		return sdb_store_regex_matcher;
 	else if (! strcasecmp(op, "!~"))
