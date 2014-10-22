@@ -359,17 +359,6 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_data_t *res, sdb_store_matcher_t *filter);
 
 /*
- * Conditionals may be used to lookup hosts from the store based on a
- * conditional expression.
- *
- * A conditional object inherits from sdb_object_t and, thus, may safely be
- * cast to a generic object.
- */
-struct sdb_store_cond;
-typedef struct sdb_store_cond sdb_store_cond_t;
-#define SDB_STORE_COND(obj) ((sdb_store_cond_t *)(obj))
-
-/*
  * sdb_store_name_matcher:
  * Creates a matcher matching by the specified object type's name. If 're' is
  * true, the specified name is treated as a POSIX extended regular expression.
@@ -417,17 +406,6 @@ sdb_store_child_matcher(int type, sdb_store_matcher_t *m);
  * equal, equal, greater or equal, or greater than the conditional's value
  * repsectively.
  */
-sdb_store_matcher_t *
-sdb_store_lt_matcher(sdb_store_cond_t *cond);
-sdb_store_matcher_t *
-sdb_store_le_matcher(sdb_store_cond_t *cond);
-sdb_store_matcher_t *
-sdb_store_eq_matcher(sdb_store_cond_t *cond);
-sdb_store_matcher_t *
-sdb_store_ge_matcher(sdb_store_cond_t *cond);
-sdb_store_matcher_t *
-sdb_store_gt_matcher(sdb_store_cond_t *cond);
-
 sdb_store_matcher_t *
 sdb_store_cmp_lt(sdb_store_expr_t *left, sdb_store_expr_t *right);
 sdb_store_matcher_t *

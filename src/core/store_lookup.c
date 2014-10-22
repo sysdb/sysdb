@@ -250,56 +250,6 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return status;
 } /* match_child */
 
-static int
-match_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_LT);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond, filter);
-	return (status != INT_MAX) && (status < 0);
-} /* match_lt */
-
-static int
-match_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_LE);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond, filter);
-	return (status != INT_MAX) && (status <= 0);
-} /* match_le */
-
-static int
-match_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_EQ);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond, filter);
-	return (status != INT_MAX) && (! status);
-} /* match_eq */
-
-static int
-match_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_GE);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond, filter);
-	return (status != INT_MAX) && (status >= 0);
-} /* match_ge */
-
-static int
-match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_GT);
-	status = COND_M(m)->cond->cmp(obj, COND_M(m)->cond, filter);
-	return (status != INT_MAX) && (status > 0);
-} /* match_gt */
-
 /*
  * cmp_expr:
  * Compare the values of two expressions when evaluating them using the
@@ -514,11 +464,6 @@ matchers[] = {
 	match_child,
 	match_child,
 	match_child,
-	match_lt,
-	match_le,
-	match_eq,
-	match_ge,
-	match_gt,
 	match_cmp_lt,
 	match_cmp_le,
 	match_cmp_eq,
@@ -609,28 +554,6 @@ attr_matcher_destroy(sdb_object_t *obj)
 	attr->name = NULL;
 	string_matcher_destroy(&attr->value);
 } /* attr_matcher_destroy */
-
-static int
-cond_matcher_init(sdb_object_t *obj, va_list ap)
-{
-	int type = va_arg(ap, int);
-	sdb_store_cond_t *cond = va_arg(ap, sdb_store_cond_t *);
-
-	if (! cond)
-		return -1;
-
-	sdb_object_ref(SDB_OBJ(cond));
-
-	M(obj)->type = type;
-	COND_M(obj)->cond = cond;
-	return 0;
-} /* cond_matcher_init */
-
-static void
-cond_matcher_destroy(sdb_object_t *obj)
-{
-	sdb_object_deref(SDB_OBJ(COND_M(obj)->cond));
-} /* cond_matcher_destroy */
 
 static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
@@ -752,12 +675,6 @@ static sdb_type_t attr_type = {
 	/* destroy = */ attr_matcher_destroy,
 };
 
-static sdb_type_t cond_type = {
-	/* size = */ sizeof(cond_matcher_t),
-	/* init = */ cond_matcher_init,
-	/* destroy = */ cond_matcher_destroy,
-};
-
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
@@ -839,41 +756,6 @@ sdb_store_child_matcher(int type, sdb_store_matcher_t *m)
 		return NULL;
 	return M(sdb_object_create("any-matcher", child_type, type, m));
 } /* sdb_store_child_matcher */
-
-sdb_store_matcher_t *
-sdb_store_lt_matcher(sdb_store_cond_t *cond)
-{
-	return M(sdb_object_create("lt-matcher", cond_type,
-				MATCHER_LT, cond));
-} /* sdb_store_lt_matcher */
-
-sdb_store_matcher_t *
-sdb_store_le_matcher(sdb_store_cond_t *cond)
-{
-	return M(sdb_object_create("le-matcher", cond_type,
-				MATCHER_LE, cond));
-} /* sdb_store_le_matcher */
-
-sdb_store_matcher_t *
-sdb_store_eq_matcher(sdb_store_cond_t *cond)
-{
-	return M(sdb_object_create("eq-matcher", cond_type,
-				MATCHER_EQ, cond));
-} /* sdb_store_eq_matcher */
-
-sdb_store_matcher_t *
-sdb_store_ge_matcher(sdb_store_cond_t *cond)
-{
-	return M(sdb_object_create("ge-matcher", cond_type,
-				MATCHER_GE, cond));
-} /* sdb_store_ge_matcher */
-
-sdb_store_matcher_t *
-sdb_store_gt_matcher(sdb_store_cond_t *cond)
-{
-	return M(sdb_object_create("gt-matcher", cond_type,
-				MATCHER_GT, cond));
-} /* sdb_store_gt_matcher */
 
 /*
  * TODO: Rename sdb_store_cmp_* to sdb_store_* once the old code is unused and

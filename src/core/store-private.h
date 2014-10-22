@@ -125,27 +125,6 @@ struct sdb_store_expr {
 };
 
 /*
- * conditionals
- */
-
-/* compares an object using the specified conditional and taking the specified
- * filter into account */
-typedef int (*cmp_cb)(sdb_store_obj_t *, sdb_store_cond_t *,
-		sdb_store_matcher_t *);
-
-struct sdb_store_cond {
-	sdb_object_t super;
-	cmp_cb cmp;
-};
-
-typedef struct {
-	sdb_store_cond_t super;
-	char *name;
-	sdb_store_expr_t *expr;
-} attr_cond_t;
-#define ATTR_C(obj) ((attr_cond_t *)(obj))
-
-/*
  * matchers
  */
 
@@ -160,11 +139,6 @@ enum {
 	MATCHER_SERVICE,
 	MATCHER_METRIC,
 	MATCHER_ATTRIBUTE,
-	MATCHER_LT,
-	MATCHER_LE,
-	MATCHER_EQ,
-	MATCHER_GE,
-	MATCHER_GT,
 	MATCHER_CMP_LT,
 	MATCHER_CMP_LE,
 	MATCHER_CMP_EQ,
@@ -187,12 +161,7 @@ enum {
 		: ((t) == MATCHER_SERVICE) ? "SERVICE" \
 		: ((t) == MATCHER_METRIC) ? "METRIC" \
 		: ((t) == MATCHER_ATTRIBUTE) ? "ATTRIBUTE" \
-		: ((t) == MATCHER_LT) ? "<" \
-		: ((t) == MATCHER_LE) ? "<=" \
-		: ((t) == MATCHER_EQ) ? "=" \
 		: ((t) == MATCHER_CMP_NE) ? "!=" \
-		: ((t) == MATCHER_GE) ? ">=" \
-		: ((t) == MATCHER_GT) ? ">" \
 		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \
@@ -272,13 +241,6 @@ typedef struct {
 	sdb_store_expr_t *expr;
 } isnull_matcher_t;
 #define ISNULL_M(m) ((isnull_matcher_t *)(m))
-
-/* match using conditionals */
-typedef struct {
-	sdb_store_matcher_t super;
-	sdb_store_cond_t *cond;
-} cond_matcher_t;
-#define COND_M(m) ((cond_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */
