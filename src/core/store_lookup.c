@@ -79,23 +79,6 @@ scan_iter(sdb_store_obj_t *obj, void *user_data)
  */
 
 static int
-match_string(string_matcher_t *m, const char *name)
-{
-	if ((! m->name) && (! m->name_re))
-		return 1;
-
-	if (! name)
-		name = "";
-
-	if (m->name && strcasecmp(m->name, name))
-		return 0;
-	if (m->name_re && regexec(m->name_re, name,
-					/* matches */ 0, NULL, /* flags = */ 0))
-		return 0;
-	return 1;
-} /* match_string */
-
-static int
 match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -124,46 +107,6 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	return !sdb_store_matcher_matches(UOP_M(m)->op, obj, filter);
 } /* match_unary */
-
-static int
-match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	sdb_avltree_iter_t *iter = NULL;
-	int status = 0;
-
-	assert(m->type == MATCHER_NAME);
-
-	if (obj->type == NAME_M(m)->obj_type)
-		return match_string(&NAME_M(m)->name, SDB_OBJ(obj)->name);
-	else if (obj->type != SDB_HOST)
-		return 0;
-
-	switch (NAME_M(m)->obj_type) {
-		case SDB_SERVICE:
-			iter = sdb_avltree_get_iter(HOST(obj)->services);
-			break;
-		case SDB_METRIC:
-			iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-			break;
-		case SDB_ATTRIBUTE:
-			iter = sdb_avltree_get_iter(HOST(obj)->attributes);
-			break;
-	}
-
-	while (sdb_avltree_iter_has_next(iter)) {
-		sdb_object_t *child = sdb_avltree_iter_get_next(iter);
-		if (filter && (! sdb_store_matcher_matches(filter, STORE_OBJ(child),
-						NULL)))
-			continue;
-		if (match_string(&NAME_M(m)->name, child->name)) {
-			status = 1;
-			break;
-		}
-	}
-	sdb_avltree_iter_destroy(iter);
-	return status;
-} /* match_name */
 
 static int
 match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -423,7 +366,6 @@ matchers[] = {
 	match_logical,
 	match_logical,
 	match_unary,
-	match_name,
 	match_child,
 	match_child,
 	match_child,
@@ -443,55 +385,6 @@ matchers[] = {
 /*
  * private matcher types
  */
-
-/* initializes a string matcher consuming two elements from ap */
-static int
-string_matcher_init(string_matcher_t *m, va_list ap)
-{
-	const char *name = va_arg(ap, const char *);
-	const char *name_re = va_arg(ap, const char *);
-
-	if (name) {
-		m->name = strdup(name);
-		if (! m->name)
-			return -1;
-	}
-	if (name_re) {
-		m->name_re = malloc(sizeof(*m->name_re));
-		if (! m->name_re)
-			return -1;
-		if (regcomp(m->name_re, name_re, REG_EXTENDED | REG_ICASE | REG_NOSUB))
-			return -1;
-	}
-	return 0;
-} /* string_matcher_init */
-
-static void
-string_matcher_destroy(string_matcher_t *m)
-{
-	if (m->name)
-		free(m->name);
-	if (m->name_re) {
-		regfree(m->name_re);
-		free(m->name_re);
-	}
-} /* string_matcher_destroy */
-
-/* initializes a name matcher */
-static int
-name_matcher_init(sdb_object_t *obj, va_list ap)
-{
-	name_matcher_t *m = NAME_M(obj);
-	M(obj)->type = MATCHER_NAME;
-	return string_matcher_init(&m->name, ap);
-} /* name_matcher_init */
-
-static void
-name_matcher_destroy(sdb_object_t *obj)
-{
-	name_matcher_t *m = NAME_M(obj);
-	string_matcher_destroy(&m->name);
-} /* name_matcher_destroy */
 
 static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
@@ -601,12 +494,6 @@ isnull_matcher_destroy(sdb_object_t *obj)
 	ISNULL_M(obj)->expr = NULL;
 } /* isnull_matcher_destroy */
 
-static sdb_type_t name_type = {
-	/* size = */ sizeof(name_matcher_t),
-	/* init = */ name_matcher_init,
-	/* destroy = */ name_matcher_destroy,
-};
-
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
@@ -640,23 +527,6 @@ static sdb_type_t isnull_type = {
 /*
  * public API
  */
-
-sdb_store_matcher_t *
-sdb_store_name_matcher(int type, const char *name, _Bool re)
-{
-	sdb_store_matcher_t *m;
-
-	if (re)
-		m = M(sdb_object_create("name-matcher", name_type, NULL, name));
-	else
-		m = M(sdb_object_create("name-matcher", name_type, name, NULL));
-
-	if (! m)
-		return NULL;
-
-	NAME_M(m)->obj_type = type;
-	return m;
-} /* sdb_store_name_matcher */
 
 sdb_store_matcher_t *
 sdb_store_child_matcher(int type, sdb_store_matcher_t *m)
@@ -829,73 +699,6 @@ sdb_store_parse_field_name(const char *name)
 		return SDB_FIELD_BACKEND;
 	return -1;
 } /* sdb_store_parse_field_name */
-
-static sdb_store_matcher_t *
-maybe_inv_matcher(sdb_store_matcher_t *m, _Bool inv)
-{
-	sdb_store_matcher_t *tmp;
-
-	if ((! m) || (! inv))
-		return m;
-
-	tmp = sdb_store_inv_matcher(m);
-	/* pass ownership to the inverse matcher */
-	sdb_object_deref(SDB_OBJ(m));
-	return tmp;
-} /* maybe_inv_matcher */
-
-sdb_store_matcher_t *
-sdb_store_matcher_parse_cmp(const char *obj_type,
-		const char *op, sdb_store_expr_t *expr)
-{
-	int type = -1;
-	_Bool inv = 0;
-	_Bool re = 0;
-
-	sdb_data_t value = SDB_DATA_INIT;
-	sdb_store_matcher_t *m = NULL;
-
-	if (! strcasecmp(obj_type, "host"))
-		type = SDB_HOST;
-	else if (! strcasecmp(obj_type, "service"))
-		type = SDB_SERVICE;
-	else if (! strcasecmp(obj_type, "metric"))
-		type = SDB_METRIC;
-	else if (! strcasecmp(obj_type, "attribute"))
-		type = SDB_ATTRIBUTE;
-	else
-		return NULL;
-
-	/* XXX: this code sucks! */
-	if (! strcasecmp(op, "=")) {
-		/* nothing to do */
-	}
-	else if (! strcasecmp(op, "!=")) {
-		inv = 1;
-	}
-	else if (! strcasecmp(op, "=~")) {
-		re = 1;
-	}
-	else if (! strcasecmp(op, "!~")) {
-		inv = 1;
-		re = 1;
-	}
-	else
-		return NULL;
-
-	if (! expr)
-		return NULL;
-
-	if (sdb_store_expr_eval(expr, /* obj */ NULL, &value, /* filter */ NULL)
-			|| (value.type != SDB_TYPE_STRING)) {
-		sdb_data_free_datum(&value);
-		return NULL;
-	}
-
-	m = sdb_store_name_matcher(type, value.data.string, re);
-	sdb_data_free_datum(&value);
-	return maybe_inv_matcher(m, inv);
-} /* sdb_store_matcher_parse_cmp */
 
 sdb_store_matcher_t *
 sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
