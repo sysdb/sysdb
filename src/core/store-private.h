@@ -135,7 +135,6 @@ enum {
 	MATCHER_AND,
 	MATCHER_NOT,
 	MATCHER_NAME,
-	MATCHER_ATTR,
 	MATCHER_SERVICE,
 	MATCHER_METRIC,
 	MATCHER_ATTRIBUTE,
@@ -157,7 +156,6 @@ enum {
 		: ((t) == MATCHER_AND) ? "AND" \
 		: ((t) == MATCHER_NOT) ? "NOT" \
 		: ((t) == MATCHER_NAME) ? "NAME" \
-		: ((t) == MATCHER_ATTR) ? "ATTR" \
 		: ((t) == MATCHER_SERVICE) ? "SERVICE" \
 		: ((t) == MATCHER_METRIC) ? "METRIC" \
 		: ((t) == MATCHER_ATTRIBUTE) ? "ATTRIBUTE" \
@@ -232,14 +230,6 @@ typedef struct {
 	string_matcher_t name;
 } name_matcher_t;
 #define NAME_M(m) ((name_matcher_t *)(m))
-
-/* match attributes */
-typedef struct {
-	sdb_store_matcher_t super;
-	char *name;
-	string_matcher_t value;
-} attr_matcher_t;
-#define ATTR_M(m) ((attr_matcher_t *)(m))
 
 typedef struct {
 	sdb_store_matcher_t super;

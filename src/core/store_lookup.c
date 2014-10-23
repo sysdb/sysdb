@@ -74,31 +74,6 @@ scan_iter(sdb_store_obj_t *obj, void *user_data)
 	return 0;
 } /* scan_iter */
 
-static sdb_attribute_t *
-attr_get(sdb_host_t *host, const char *name, sdb_store_matcher_t *filter)
-{
-	sdb_avltree_iter_t *iter = NULL;
-	sdb_attribute_t *attr = NULL;
-
-	iter = sdb_avltree_get_iter(host->attributes);
-	while (sdb_avltree_iter_has_next(iter)) {
-		sdb_attribute_t *a = ATTR(sdb_avltree_iter_get_next(iter));
-
-		if (strcasecmp(name, SDB_OBJ(a)->name))
-			continue;
-
-		assert(STORE_OBJ(a)->type == SDB_ATTRIBUTE);
-		attr = a;
-		break;
-	}
-	sdb_avltree_iter_destroy(iter);
-
-	if (filter && (! sdb_store_matcher_matches(filter, STORE_OBJ(attr),
-					NULL)))
-		return NULL;
-	return attr;
-} /* attr_get */
-
 /*
  * matcher implementations
  */
@@ -189,29 +164,6 @@ match_name(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	sdb_avltree_iter_destroy(iter);
 	return status;
 } /* match_name */
-
-static int
-match_attr(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	sdb_attribute_t *attr;
-
-	assert(m->type == MATCHER_ATTR);
-	assert(ATTR_M(m)->name);
-
-	if (obj->type != SDB_HOST)
-		return 0;
-
-	attr = attr_get(HOST(obj), ATTR_M(m)->name, filter);
-	if (attr) {
-		char buf[sdb_data_strlen(&attr->value) + 1];
-		if (sdb_data_format(&attr->value, buf, sizeof(buf), SDB_UNQUOTED) <= 0)
-			return 0;
-		if (match_string(&ATTR_M(m)->value, buf))
-			return 1;
-	}
-	return 0;
-} /* match_attr */
 
 static int
 match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -460,7 +412,6 @@ matchers[] = {
 	match_logical,
 	match_unary,
 	match_name,
-	match_attr,
 	match_child,
 	match_child,
 	match_child,
@@ -529,31 +480,6 @@ name_matcher_destroy(sdb_object_t *obj)
 	name_matcher_t *m = NAME_M(obj);
 	string_matcher_destroy(&m->name);
 } /* name_matcher_destroy */
-
-static int
-attr_matcher_init(sdb_object_t *obj, va_list ap)
-{
-	attr_matcher_t *attr = ATTR_M(obj);
-	const char *name = va_arg(ap, const char *);
-
-	M(obj)->type = MATCHER_ATTR;
-	if (name) {
-		attr->name = strdup(name);
-		if (! attr->name)
-			return -1;
-	}
-	return string_matcher_init(&attr->value, ap);
-} /* attr_matcher_init */
-
-static void
-attr_matcher_destroy(sdb_object_t *obj)
-{
-	attr_matcher_t *attr = ATTR_M(obj);
-	if (attr->name)
-		free(attr->name);
-	attr->name = NULL;
-	string_matcher_destroy(&attr->value);
-} /* attr_matcher_destroy */
 
 static int
 op_matcher_init(sdb_object_t *obj, va_list ap)
@@ -669,12 +595,6 @@ static sdb_type_t name_type = {
 	/* destroy = */ name_matcher_destroy,
 };
 
-static sdb_type_t attr_type = {
-	/* size = */ sizeof(attr_matcher_t),
-	/* init = */ attr_matcher_init,
-	/* destroy = */ attr_matcher_destroy,
-};
-
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
 	/* init = */ op_matcher_init,
@@ -725,23 +645,6 @@ sdb_store_name_matcher(int type, const char *name, _Bool re)
 	NAME_M(m)->obj_type = type;
 	return m;
 } /* sdb_store_name_matcher */
-
-sdb_store_matcher_t *
-sdb_store_attr_matcher(const char *name, const char *value, _Bool re)
-{
-	sdb_store_matcher_t *m;
-
-	if (! name)
-		return NULL;
-
-	if (re)
-		m = M(sdb_object_create("attr-matcher", attr_type,
-					name, NULL, value));
-	else
-		m = M(sdb_object_create("attr-matcher", attr_type,
-					name, value, NULL));
-	return m;
-} /* sdb_store_attr_matcher */
 
 sdb_store_matcher_t *
 sdb_store_child_matcher(int type, sdb_store_matcher_t *m)

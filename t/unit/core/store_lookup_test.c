@@ -198,81 +198,6 @@ START_TEST(test_store_match_name)
 }
 END_TEST
 
-START_TEST(test_store_match_attr)
-{
-	sdb_store_obj_t *obj;
-
-	struct {
-		const char *attr_name;
-		const char *attr_value;
-		_Bool re;
-
-		int expected;
-	} golden_data[] = {
-		{ "k1", NULL,   0, 1 },
-		{ "k",  NULL,   1, 0 },
-		{ "1",  NULL,   1, 0 },
-		{ "k3", NULL,   0, 0 },
-		{ "k3", NULL,   1, 0 },
-		{ "k1", "v1",   0, 1 },
-		{ "k1", "v1",   1, 1 },
-		{ "k1", "^v1$", 1, 1 },
-		{ "k1", "v",    1, 1 },
-		{ "k1", "1",    1, 1 },
-		{ "k1", "v2",   0, 0 },
-		{ "k1", "v2",   1, 0 },
-		{ "k",  "v1",   0, 0 },
-		{ "k",  "v1",   1, 0 },
-		{ "k3", "1",    0, 0 },
-		{ "k3", "1",    1, 0 },
-	};
-
-	size_t i;
-
-	obj = sdb_store_get_host("a");
-	fail_unless(obj != NULL,
-			"sdb_store_get_host(a) = NULL; expected: <host>");
-
-	fail_unless(sdb_store_attr_matcher(NULL, "re", 0) == NULL,
-			"sdb_store_attr_matcher(NULL, \"re\", 0) = <m>; expected: NULL");
-	fail_unless(sdb_store_attr_matcher(NULL, "re", 1) == NULL,
-			"sdb_store_attr_matcher(NULL, \"re\", 1) = <m>; expected: NULL");
-
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_matcher_t *m, *n;
-		int status;
-
-		m = sdb_store_attr_matcher(golden_data[i].attr_name,
-				golden_data[i].attr_value, golden_data[i].re);
-		fail_unless(m != NULL,
-				"sdb_store_attr_matcher() = NULL; expected: <matcher>");
-
-		status = sdb_store_matcher_matches(m, obj, /* filter */ NULL);
-		fail_unless(status == golden_data[i].expected,
-				"sdb_store_matcher_matches(attribute[%s] = %s, "
-				"<host a>, NULL) = %d; expected: %d", golden_data[i].attr_name,
-				golden_data[i].attr_value, status, golden_data[i].expected);
-
-		n = sdb_store_inv_matcher(m);
-		fail_unless(n != NULL,
-				"sdb_store_inv_matcher() = NULL; expected: <matcher>");
-		sdb_object_deref(SDB_OBJ(m));
-
-		/* now match the inverted set of objects */
-		status = sdb_store_matcher_matches(n, obj, /* filter */ NULL);
-		fail_unless(status == !golden_data[i].expected,
-				"sdb_store_matcher_matches(attribute[%s] = %s, "
-				"<host a>, NULL) = %d; expected: %d",
-				golden_data[i].attr_name, golden_data[i].attr_value,
-				status, !golden_data[i].expected);
-
-		sdb_object_deref(SDB_OBJ(n));
-	}
-
-	sdb_object_deref(SDB_OBJ(obj));
-}
-END_TEST
-
 START_TEST(test_cmp_attr)
 {
 	sdb_store_obj_t *host;
@@ -672,6 +597,7 @@ START_TEST(test_scan)
 		const char *filter;
 		int expected;
 	} golden_data[] = {
+		/* TODO: check the name of the expected hosts */
 		{ "host = 'a'", NULL,                  1 },
 		{ "host = 'a'", "host = 'x'",          0 }, /* filter never matches */
 		{ "host = 'a'",
@@ -696,10 +622,19 @@ START_TEST(test_scan)
 		{ "attribute = 'k1'", "host = 'x'",    0 }, /* filter never matches */
 		{ "attribute = 'k1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
+		{ "attribute =~ 'k'", NULL,            2 },
+		{ "attribute =~ '1'", NULL,            2 },
+		{ "attribute =~ '2'", NULL,            1 },
 		{ "attribute = 'x'", NULL,             0 },
+		{ "attribute =~ 'x'", NULL,            0 },
 		{ "attribute['k1'] = 'v1'", NULL,      1 },
+		{ "attribute['k1'] =~ 'v1'", NULL,     1 },
+		{ "attribute['k1'] =~ '^v1$'", NULL,   1 },
 		{ "attribute['k1'] =~ 'v'", NULL,      2 },
+		{ "attribute['k1'] =~ '1'", NULL,      1 },
 		{ "attribute['k1'] !~ 'v'", NULL,      1 },
+		{ "attribute['k1'] = 'v2'", NULL,      1 },
+		{ "attribute['k1'] =~ 'v2'", NULL,     1 },
 		{ "attribute['x1'] =~ 'v'", NULL,      0 },
 		{ "attribute['x1'] =~ 'NULL'", NULL,   0 },
 		{ "attribute['x1'] !~ 'v'", NULL,      3 },
@@ -766,7 +701,6 @@ core_store_lookup_suite(void)
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_test(tc, test_store_match_name);
-	tcase_add_test(tc, test_store_match_attr);
 	tcase_add_test(tc, test_cmp_attr);
 	tcase_add_test(tc, test_cmp_obj);
 	tcase_add_test(tc, test_store_match_op);
