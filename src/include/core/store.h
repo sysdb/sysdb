@@ -458,6 +458,17 @@ sdb_store_matcher_op_cb
 sdb_store_parse_matcher_op(const char *op);
 
 /*
+ * sdb_store_parse_object_type:
+ * Parse the type name of a stored object.
+ *
+ * Returns:
+ *  - the object type on success
+ *  - a negative value else
+ */
+int
+sdb_store_parse_object_type(const char *name);
+
+/*
  * sdb_store_parse_object_type_plural:
  * Parse the type name (plural) of a stored object.
  *

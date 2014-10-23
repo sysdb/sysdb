@@ -787,6 +787,20 @@ sdb_store_parse_matcher_op(const char *op)
 } /* sdb_store_parse_matcher_op */
 
 int
+sdb_store_parse_object_type(const char *name)
+{
+	if (! strcasecmp(name, "host"))
+		return SDB_HOST;
+	else if (! strcasecmp(name, "service"))
+		return SDB_SERVICE;
+	else if (! strcasecmp(name, "metric"))
+		return SDB_METRIC;
+	else if (! strcasecmp(name, "attribute"))
+		return SDB_ATTRIBUTE;
+	return -1;
+} /* sdb_store_parse_object_type */
+
+int
 sdb_store_parse_object_type_plural(const char *name)
 {
 	if (! strcasecmp(name, "hosts"))
