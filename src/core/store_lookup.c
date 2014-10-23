@@ -184,7 +184,7 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		iter = sdb_avltree_get_iter(HOST(obj)->services);
 	else if (m->type == MATCHER_METRIC)
 		iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-	else if (m->type == SDB_ATTRIBUTE)
+	else if (m->type == MATCHER_ATTRIBUTE)
 		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 
 	while (sdb_avltree_iter_has_next(iter)) {
