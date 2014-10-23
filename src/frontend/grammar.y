@@ -293,7 +293,7 @@ list_statement:
 	LIST IDENTIFIER filter_clause
 		{
 			int type = sdb_store_parse_object_type_plural($2);
-			if (type < 0) {
+			if ((type < 0) || (type == SDB_ATTRIBUTE)) {
 				char errmsg[strlen($2) + 32];
 				snprintf(errmsg, sizeof(errmsg),
 						YY_("unknown data-source %s"), $2);

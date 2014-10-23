@@ -795,6 +795,8 @@ sdb_store_parse_object_type_plural(const char *name)
 		return SDB_SERVICE;
 	else if (! strcasecmp(name, "metrics"))
 		return SDB_METRIC;
+	else if (! strcasecmp(name, "attributes"))
+		return SDB_ATTRIBUTE;
 	return -1;
 } /* sdb_store_parse_object_type_plural */
 
