@@ -170,7 +170,8 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_iter_t *iter = NULL;
-	int status = 0;
+	int status;
+	int all = 0;
 
 	assert((m->type == MATCHER_SERVICE)
 			|| (m->type == MATCHER_METRIC)
@@ -180,6 +181,12 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (obj->type != SDB_HOST)
 		return 0;
 
+	/* negated matchers should only match if the respective positive matchers
+	 * do not match; that is if the negated matcher matchers *all* children */
+	if ((CHILD_M(m)->m->type == MATCHER_NE)
+			|| (CHILD_M(m)->m->type == MATCHER_NREGEX))
+		all = 1;
+
 	if (m->type == MATCHER_SERVICE)
 		iter = sdb_avltree_get_iter(HOST(obj)->services);
 	else if (m->type == MATCHER_METRIC)
@@ -187,13 +194,19 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	else if (m->type == MATCHER_ATTRIBUTE)
 		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 
+	status = all;
 	while (sdb_avltree_iter_has_next(iter)) {
 		sdb_store_obj_t *child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
 		if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
 			continue;
 
 		if (sdb_store_matcher_matches(CHILD_M(m)->m, child, filter)) {
-			status = 1;
+			if (! all) {
+				status = 1;
+				break;
+			}
+		} else if (all) {
+			status = 0;
 			break;
 		}
 	}
