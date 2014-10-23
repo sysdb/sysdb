@@ -306,22 +306,27 @@ START_TEST(test_parse_matcher)
 		{ "",                             -1, -1 },
 
 		/* valid expressions */
-		{ "host = 'localhost'",           -1,  MATCHER_NAME },
-		{ "host != 'localhost'",          -1,  MATCHER_NOT },
-		{ "host =~ 'host'",               -1,  MATCHER_NAME },
-		{ "host !~ 'host'",               -1,  MATCHER_NOT },
-		{ "host = 'localhost' -- foo",    -1,  MATCHER_NAME },
-		{ "host = 'host' <garbage>",      13,  MATCHER_NAME },
+		{ "host = 'localhost'",           -1,  MATCHER_EQ },
+		{ "host != 'localhost'",          -1,  MATCHER_NE },
+		{ "host =~ 'host'",               -1,  MATCHER_REGEX },
+		{ "host !~ 'host'",               -1,  MATCHER_NREGEX },
+		{ "host = 'localhost' -- foo",    -1,  MATCHER_EQ },
+		{ "host = 'host' <garbage>",      13,  MATCHER_EQ },
 		/* match hosts by service */
-		{ "service = 'name'",             -1,  MATCHER_NAME },
-		{ "service != 'name'",            -1,  MATCHER_NOT },
-		{ "service =~ 'pattern'",         -1,  MATCHER_NAME },
-		{ "service !~ 'pattern'",         -1,  MATCHER_NOT },
+		{ "service = 'name'",             -1,  MATCHER_SERVICE },
+		{ "service != 'name'",            -1,  MATCHER_SERVICE },
+		{ "service =~ 'pattern'",         -1,  MATCHER_SERVICE },
+		{ "service !~ 'pattern'",         -1,  MATCHER_SERVICE },
+		/* match hosts by metric */
+		{ "metric = 'name'",              -1,  MATCHER_METRIC },
+		{ "metric != 'name'",             -1,  MATCHER_METRIC },
+		{ "metric =~ 'pattern'",          -1,  MATCHER_METRIC },
+		{ "metric !~ 'pattern'",          -1,  MATCHER_METRIC },
 		/* match hosts by attribute */
-		{ "attribute = 'name'",           -1,  MATCHER_NAME },
-		{ "attribute != 'name'",          -1,  MATCHER_NOT },
-		{ "attribute =~ 'pattern'",       -1,  MATCHER_NAME },
-		{ "attribute !~ 'pattern'",       -1,  MATCHER_NOT },
+		{ "attribute = 'name'",           -1,  MATCHER_ATTRIBUTE },
+		{ "attribute != 'name'",          -1,  MATCHER_ATTRIBUTE },
+		{ "attribute =~ 'pattern'",       -1,  MATCHER_ATTRIBUTE },
+		{ "attribute !~ 'pattern'",       -1,  MATCHER_ATTRIBUTE },
 		/* composite expressions */
 		{ "host =~ 'pattern' AND "
 		  "service =~ 'pattern'",         -1,  MATCHER_AND },

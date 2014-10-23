@@ -445,9 +445,26 @@ compare_matcher:
 	|
 	IDENTIFIER cmp expression
 		{
-			$$ = sdb_store_matcher_parse_cmp($1, $2, $3);
+			int type = sdb_store_parse_object_type($1);
+			sdb_store_expr_t *e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+			sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op($2);
+			sdb_store_matcher_t *m;
+			assert(cb);
+
+			m = cb(e, $3);
+			/* TODO: this only works as long as queries
+			 * are limited to hosts */
+			if (type == SDB_HOST) {
+				$$ = m;
+			}
+			else {
+				$$ = sdb_store_child_matcher(type, m);
+				sdb_object_deref(SDB_OBJ(m));
+			}
+
 			free($1); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3));
+			sdb_object_deref(SDB_OBJ(e));
 		}
 	|
 	expression IS NULL_T
