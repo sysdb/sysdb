@@ -188,12 +188,11 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 
 	while (sdb_avltree_iter_has_next(iter)) {
-		sdb_object_t *child = sdb_avltree_iter_get_next(iter);
-		if (filter && (! sdb_store_matcher_matches(filter,
-						STORE_OBJ(child), NULL)))
+		sdb_store_obj_t *child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
+		if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
 			continue;
 
-		if (sdb_store_matcher_matches(CHILD_M(m)->m, obj, filter)) {
+		if (sdb_store_matcher_matches(CHILD_M(m)->m, child, filter)) {
 			status = 1;
 			break;
 		}
