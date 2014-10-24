@@ -184,6 +184,8 @@ cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
 		status = INT_MAX;
 	else if (v1.type == v2.type)
 		status = sdb_data_cmp(&v1, &v2);
+	else if ((e1->data_type >= 0) && (e2->data_type >= 0))
+		status = INT_MAX;
 	else
 		status = sdb_data_strcmp(&v1, &v2);
 

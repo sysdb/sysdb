@@ -266,6 +266,9 @@ START_TEST(test_cmp_attr)
 			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
 		};
 
+		const char *op_str[] = { "<", "<=", "=", ">=", ">" };
+		assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+
 		sdb_data_format(&golden_data[i].value,
 				value_str, sizeof(value_str), SDB_UNQUOTED);
 
@@ -288,8 +291,10 @@ START_TEST(test_cmp_attr)
 
 			status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
 			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(<m>, <host>, NULL) = %d; "
-					"expected: %d", status, tests[j].expected);
+					"sdb_store_matcher_matches(<attr[%s] %s %s>, "
+					"<host>, NULL) = %d; expected: %d",
+					golden_data[i].attr, op_str[j], value_str,
+					status, tests[j].expected);
 
 			sdb_object_deref(SDB_OBJ(m));
 		}
@@ -332,8 +337,6 @@ START_TEST(test_cmp_obj)
 		{ "a", SDB_FIELD_INTERVAL,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 1, 1, 0, 0, 0 },
 		/* type mismatch */
-		/* TODO: let matchers only use data_strcmp for attributes
-		 *       everything else has a well-known type
 		{ "a", SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
 		{ "a", SDB_FIELD_AGE,
@@ -344,13 +347,10 @@ START_TEST(test_cmp_obj)
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
 		{ "a", SDB_FIELD_BACKEND,
 			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		*/
 		/* (64bit) integer value without zero-bytes */
-		/*
 		{ "a", SDB_FIELD_BACKEND,
 			{ SDB_TYPE_INTEGER, { .integer = 0xffffffffffffffffL } },
 			0, 0, 0, 0, 0 },
-		*/
 	};
 
 	int status;
