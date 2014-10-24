@@ -1199,6 +1199,237 @@ START_TEST(test_expr_eval)
 			{ SDB_TYPE_DATETIME, { .datetime = 0 } },
 			err,
 		},
+		/* unsupported type-mismatches */
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_STRING, { .string = "20.0" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_BINARY, { .binary = { 4, (unsigned char *)"20.0" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_INTEGER, { .integer = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_DATETIME, { .datetime = 20 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			{ SDB_TYPE_REGEX + 1, { .integer = 0 } },
+			err, err, err, err, err, err,
+		},
 	};
 
 	size_t i;
