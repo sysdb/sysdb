@@ -117,6 +117,7 @@ struct sdb_store_expr {
 	sdb_object_t super;
 
 	int type; /* see above */
+	int data_type;
 
 	sdb_store_expr_t *left;
 	sdb_store_expr_t *right;

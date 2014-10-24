@@ -106,6 +106,14 @@ enum {
 		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
 		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")
 
+#define SDB_FIELD_TYPE(f) \
+	(((f) == SDB_FIELD_NAME) ? SDB_TYPE_STRING \
+		: ((f) == SDB_FIELD_LAST_UPDATE) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_AGE) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_INTERVAL) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_BACKEND) ? (SDB_TYPE_ARRAY | SDB_TYPE_STRING) \
+		: -1)
+
 /*
  * sdb_store_clear:
  * Clear the entire store and remove all stored objects.

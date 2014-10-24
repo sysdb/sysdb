@@ -75,6 +75,9 @@ expr_init(sdb_object_t *obj, va_list ap)
 	expr->type  = type;
 	expr->left  = left;
 	expr->right = right;
+
+	/* unknown for now */
+	expr->data_type = -1;
 	return 0;
 } /* expr_init */
 
@@ -103,29 +106,39 @@ sdb_store_expr_t *
 sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	sdb_data_t value = SDB_DATA_INIT;
+	sdb_store_expr_t *e;
 
 	if ((op < 0) || (SDB_DATA_CONCAT < op) || (! left) || (! right))
 		return NULL;
 
-	if (left->type || right->type)
-		return SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
+	if (left->type || right->type) {
+		e = SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
 					op, left, right, NULL));
+		e->data_type = sdb_data_expr_type(op, left->type, right->type);
+		return e;
+	}
 	/* else: both expressions are constant values; evaluate now */
 
 	if (sdb_data_expr_eval(op, &left->data, &right->data, &value))
 		return NULL;
-	return SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
 				0, NULL, NULL, &value));
+	e->data_type = value.type;
+	return e;
 } /* sdb_store_expr_create */
 
 sdb_store_expr_t *
 sdb_store_expr_fieldvalue(int field)
 {
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
+	sdb_store_expr_t *e;
+
 	if ((field < 0) || (SDB_FIELD_BACKEND < field))
 		return NULL;
-	return SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
+	e = SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));
+	e->data_type = SDB_FIELD_TYPE(field);
+	return e;
 } /* sdb_store_expr_fieldvalue */
 
 sdb_store_expr_t *
@@ -142,6 +155,7 @@ sdb_store_expr_attrvalue(const char *name)
 				ATTR_VALUE, NULL, NULL, &value));
 	if (! expr)
 		free(value.data.string);
+	expr->data_type = -1;
 	return expr;
 } /* sdb_store_expr_attrvalue */
 
@@ -149,10 +163,14 @@ sdb_store_expr_t *
 sdb_store_expr_constvalue(const sdb_data_t *value)
 {
 	sdb_data_t data = SDB_DATA_INIT;
+	sdb_store_expr_t *e;
+
 	if (sdb_data_copy(&data, value))
 		return NULL;
-	return SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
 				0, NULL, NULL, &data));
+	e->data_type = data.type;
+	return e;
 } /* sdb_store_expr_constvalue */
 
 int
