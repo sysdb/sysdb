@@ -1220,6 +1220,7 @@ START_TEST(test_expr_eval)
 		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
 			sdb_data_t res;
 			int check;
+			int type1, type2, type;
 
 			char d1_str[64] = "", d2_str[64] = "";
 			sdb_data_format(&golden_data[i].d1, d1_str, sizeof(d1_str),
@@ -1227,12 +1228,29 @@ START_TEST(test_expr_eval)
 			sdb_data_format(&golden_data[i].d2, d2_str, sizeof(d2_str),
 					SDB_DOUBLE_QUOTED);
 
+			type1 = golden_data[i].d1.type;
+			type2 = golden_data[i].d2.type;
+			if (sdb_data_isnull(&golden_data[i].d1))
+				type1 = SDB_TYPE_NULL;
+			if (sdb_data_isnull(&golden_data[i].d2))
+				type2 = SDB_TYPE_NULL;
+			type = sdb_data_expr_type(tests[j].op, type1, type2);
+
 			check = sdb_data_expr_eval(tests[j].op,
 					&golden_data[i].d1, &golden_data[i].d2, &res);
 			fail_unless((check == 0) == (tests[j].expected.type != -1),
 					"sdb_data_expr_eval(%s, %s, %s) = %d; expected: %d",
 					SDB_DATA_OP_TO_STRING(tests[j].op), d1_str, d2_str, check,
 					tests[j].expected.type == -1 ? -1 : 0);
+
+			fail_unless(tests[j].expected.type == type,
+					"sdb_data_expr_eval(%s, %s, %s) expected to evaluate "
+					"to type %d while sdb_data_expr_type(%d, %d, %d) "
+					"predicted type %d", SDB_DATA_OP_TO_STRING(tests[j].op),
+					d1_str, d2_str, tests[j].expected.type,
+					tests[j].op, golden_data[i].d1.type,
+					golden_data[i].d2.type, type);
+
 			if (tests[j].expected.type == -1)
 				continue;
 

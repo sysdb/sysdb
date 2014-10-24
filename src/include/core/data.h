@@ -221,6 +221,23 @@ sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		sdb_data_t *res);
 
 /*
+ * sdb_data_expr_type:
+ * Determine the type of the expression when applying the specified operator
+ * to the specified types. Note that if an actual value is a typed NULL value
+ * (e.g. a NULL string value), the return value of this function does not
+ * match the return type of sdb_data_expr_eval.
+ *
+ * See the documentation of sdb_data_expr_eval() for a description of which
+ * operations are supported.
+ *
+ * Returns:
+ *  - the type id on success
+ *  - a negative value else
+ */
+int
+sdb_data_expr_type(int op, int type1, int type2);
+
+/*
  * sdb_data_strlen:
  * Returns a (worst-case) estimate for the number of bytes required to format
  * the datum as a string. Does not take the terminating null byte into

@@ -47,6 +47,77 @@
 #include <math.h>
 
 /*
+ * Operator support maxtrix.
+ * <type1> <op> <type2> -> op_matrix[<op>][<type1>][<type2>]
+ */
+
+/* add, sub, mul, div, mod, concat */
+
+/* integer, decimal, string, datetime, binary, regex */
+
+static int op_matrix[6][6][6] = {
+	/* SDB_DATA_ADD */
+	{
+		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+
+	/* SDB_DATA_SUB */
+	{
+		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+
+	/* SDB_DATA_MUL */
+	{
+		{ SDB_TYPE_INTEGER, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, SDB_TYPE_DECIMAL, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+
+	/* SDB_DATA_DIV */
+	{
+		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+
+	/* SDB_DATA_MOD */
+	{
+		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+
+	/* SDB_DATA_CONCAT */
+	{
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, SDB_TYPE_STRING, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, SDB_TYPE_BINARY, -1 },
+		{ -1, -1, -1, -1, -1, -1 },
+	},
+};
+
+/*
  * private helper functions
  */
 
@@ -623,6 +694,32 @@ sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 	}
 	return -1;
 } /* sdb_data_expr_eval */
+
+int
+sdb_data_expr_type(int op, int type1, int type2)
+{
+	int types_num = (int)SDB_STATIC_ARRAY_LEN(op_matrix[0]);
+
+	assert(SDB_STATIC_ARRAY_LEN(op_matrix[0])
+			== SDB_STATIC_ARRAY_LEN(op_matrix[0][0]));
+
+	if ((op <= 0) || (SDB_STATIC_ARRAY_LEN(op_matrix) < (size_t)op))
+		return -1;
+
+	/* arrays only support concat; type has to match */
+	if ((type1 & SDB_TYPE_ARRAY) || (type2 & SDB_TYPE_ARRAY)) {
+		if ((type1 != type2) || (op != SDB_DATA_CONCAT))
+			return -1;
+		return type1;
+	}
+	if ((type1 < 0) || (types_num < type1)
+			|| (type2 < 0) || (types_num < type2))
+		return -1;
+
+	if ((type1 == SDB_TYPE_NULL) || (type2 == SDB_TYPE_NULL))
+		return SDB_TYPE_NULL;
+	return op_matrix[op - 1][type1 - 1][type2 - 1];
+} /* sdb_data_expr_type */
 
 size_t
 sdb_data_strlen(const sdb_data_t *datum)
