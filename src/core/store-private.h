@@ -154,7 +154,6 @@ enum {
 	(((t) == MATCHER_OR) ? "OR" \
 		: ((t) == MATCHER_AND) ? "AND" \
 		: ((t) == MATCHER_NOT) ? "NOT" \
-		: ((t) == MATCHER_NAME) ? "NAME" \
 		: ((t) == MATCHER_ANY) ? "ANY" \
 		: ((t) == MATCHER_ALL) ? "ALL" \
 		: ((t) == MATCHER_LT) ? "<" \
@@ -169,12 +168,6 @@ enum {
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
 		: ((t) == MATCHER_ISNNULL) ? "IS NOT NULL" \
 		: "UNKNOWN")
-
-/* match the name of something */
-typedef struct {
-	char    *name;
-	regex_t *name_re;
-} string_matcher_t;
 
 /* matcher base type */
 struct sdb_store_matcher {
@@ -220,15 +213,6 @@ typedef struct {
 	sdb_store_expr_t *right;
 } cmp_matcher_t;
 #define CMP_M(m) ((cmp_matcher_t *)(m))
-
-/* match any type of object by it's name */
-typedef struct {
-	sdb_store_matcher_t super;
-
-	int obj_type;
-	string_matcher_t name;
-} name_matcher_t;
-#define NAME_M(m) ((name_matcher_t *)(m))
 
 typedef struct {
 	sdb_store_matcher_t super;
