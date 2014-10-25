@@ -389,6 +389,14 @@ sdb_store_matcher_t *
 sdb_store_any_matcher(int type, sdb_store_matcher_t *m);
 
 /*
+ * sdb_store_all_matcher:
+ * Creates a matcher iterating over objects of the specified type. It matches
+ * if *all* of those objects match 'm'.
+ */
+sdb_store_matcher_t *
+sdb_store_all_matcher(int type, sdb_store_matcher_t *m);
+
+/*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
  * sdb_store_ge_matcher, sdb_store_gt_matcher:
  * Create conditional matchers comparing the values of two expressions. The

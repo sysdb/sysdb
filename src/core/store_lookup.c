@@ -114,9 +114,9 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 {
 	sdb_avltree_iter_t *iter = NULL;
 	int status;
-	int all = 0;
+	int all = (int)(m->type == MATCHER_ALL);
 
-	assert(m->type == MATCHER_ANY);
+	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
 
 	/* TODO: support all object types */
 	if (obj->type != SDB_HOST)
@@ -361,6 +361,7 @@ matchers[] = {
 	match_logical,
 	match_unary,
 	match_iter,
+	match_iter,
 	match_lt,
 	match_le,
 	match_eq,
@@ -529,7 +530,17 @@ sdb_store_any_matcher(int type, sdb_store_matcher_t *m)
 		return NULL;
 	return M(sdb_object_create("any-matcher", iter_type,
 				MATCHER_ANY, type, m));
-} /* sdb_store_iter_matcher */
+} /* sdb_store_any_matcher */
+
+sdb_store_matcher_t *
+sdb_store_all_matcher(int type, sdb_store_matcher_t *m)
+{
+	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
+			&& (type != SDB_ATTRIBUTE))
+		return NULL;
+	return M(sdb_object_create("all-matcher", iter_type,
+				MATCHER_ALL, type, m));
+} /* sdb_store_all_matcher */
 
 sdb_store_matcher_t *
 sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)

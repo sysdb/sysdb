@@ -136,6 +136,7 @@ enum {
 	MATCHER_AND,
 	MATCHER_NOT,
 	MATCHER_ANY,
+	MATCHER_ALL,
 	MATCHER_LT,
 	MATCHER_LE,
 	MATCHER_EQ,
@@ -155,6 +156,7 @@ enum {
 		: ((t) == MATCHER_NOT) ? "NOT" \
 		: ((t) == MATCHER_NAME) ? "NAME" \
 		: ((t) == MATCHER_ANY) ? "ANY" \
+		: ((t) == MATCHER_ALL) ? "ALL" \
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \
