@@ -43,6 +43,20 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * private helper functions
+ */
+
+static sdb_store_matcher_t *
+name_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr);
+
+static sdb_store_matcher_t *
+name_iter_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr);
+
+/*
+ * public API
+ */
+
 int
 sdb_fe_yylex(YYSTYPE *yylval, YYLTYPE *yylloc, sdb_fe_yyscan_t yyscanner);
 
@@ -94,7 +108,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token AND OR IS NOT MATCHING FILTER
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
-%token CMP_LT CMP_LE CMP_GE CMP_GT IN
+%token CMP_LT CMP_LE CMP_GE CMP_GT ANY IN
 %token CONCAT
 
 %token START END
@@ -445,26 +459,16 @@ compare_matcher:
 	|
 	IDENTIFIER cmp expression
 		{
-			int type = sdb_store_parse_object_type($1);
-			sdb_store_expr_t *e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-			sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op($2);
-			sdb_store_matcher_t *m;
-			assert(cb);
-
-			m = cb(e, $3);
-			/* TODO: this only works as long as queries
-			 * are limited to hosts */
-			if (type == SDB_HOST) {
-				$$ = m;
-			}
-			else {
-				$$ = sdb_store_any_matcher(type, m);
-				sdb_object_deref(SDB_OBJ(m));
-			}
-
+			$$ = name_matcher($1, $2, $3);
 			free($1); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3));
-			sdb_object_deref(SDB_OBJ(e));
+		}
+	|
+	ANY IDENTIFIER cmp expression
+		{
+			$$ = name_iter_matcher($2, $3, $4);
+			free($2); $2 = NULL;
+			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
 	expression IS NULL_T
@@ -646,6 +650,49 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
 	sdb_log(SDB_LOG_ERR, "frontend: parse error: %s", msg);
 } /* sdb_fe_yyerror */
+
+static sdb_store_matcher_t *
+name_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
+{
+	int type = sdb_store_parse_object_type(type_name);
+	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
+	sdb_store_expr_t *e;
+	sdb_store_matcher_t *m;
+	assert(cb);
+
+	/* TODO: this only works as long as queries
+	 * are limited to hosts */
+	if (type != SDB_HOST)
+		return NULL;
+
+	e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+	m = cb(e, expr);
+	sdb_object_deref(SDB_OBJ(e));
+	return m;
+} /* name_matcher */
+
+static sdb_store_matcher_t *
+name_iter_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
+{
+	int type = sdb_store_parse_object_type(type_name);
+	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
+	sdb_store_expr_t *e;
+	sdb_store_matcher_t *m, *tmp;
+	assert(cb);
+
+	/* TODO: this only works as long as queries
+	 * are limited to hosts */
+	if (type == SDB_HOST) {
+		return NULL;
+	}
+
+	e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+	m = cb(e, expr);
+	tmp = sdb_store_any_matcher(type, m);
+	sdb_object_deref(SDB_OBJ(m));
+	sdb_object_deref(SDB_OBJ(e));
+	return tmp;
+} /* name_iter_matcher */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

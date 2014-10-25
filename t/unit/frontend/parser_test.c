@@ -65,10 +65,10 @@ START_TEST(test_parse)
 		  "host = 'host'",       -1,  1, CONNECTION_LIST   },
 		{ "LIST services",       -1,  1, CONNECTION_LIST   },
 		{ "LIST services FILTER "
-		  "service = 'svc'",     -1,  1, CONNECTION_LIST   },
+		  "ANY service = 'svc'", -1,  1, CONNECTION_LIST   },
 		{ "LIST metrics",        -1,  1, CONNECTION_LIST   },
 		{ "LIST metrics FILTER "
-		  "metric = 'metric'",   -1,  1, CONNECTION_LIST   },
+		  "ANY metric = 'm'",    -1,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
@@ -77,18 +77,18 @@ START_TEST(test_parse)
 		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' AND "
-		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
 		  "host =~ 'p' AND "
-		  "service =~ 'p'",      -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' AND "
-		  "service =~ 'p' OR "
-		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p' OR "
+		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
 		  "host =~ 'p' AND "
-		  "service =~ 'p' OR "
-		  "service =~ 'r'",      -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p' OR "
+		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
 		  "FILTER .age > 1D",    -1,  1, CONNECTION_LOOKUP },
@@ -189,7 +189,7 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "host IS NULL",        -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
-		  "service IS NULL",     -1, -1, 0 },
+		  "ANY service IS NULL", -1, -1, 0 },
 
 		/* invalid numeric constants */
 		{ "LOOKUP hosts MATCHING "
@@ -318,39 +318,39 @@ START_TEST(test_parse_matcher)
 		{ "host = 'host' <garbage>",      13,  MATCHER_EQ },
 		{ "host &^ 'localhost'",          -1,  -1 },
 		/* match hosts by service */
-		{ "service < 'name'",             -1,  MATCHER_ANY },
-		{ "service <= 'name'",            -1,  MATCHER_ANY },
-		{ "service = 'name'",             -1,  MATCHER_ANY },
-		{ "service != 'name'",            -1,  MATCHER_ANY },
-		{ "service >= 'name'",            -1,  MATCHER_ANY },
-		{ "service > 'name'",             -1,  MATCHER_ANY },
-		{ "service =~ 'pattern'",         -1,  MATCHER_ANY },
-		{ "service !~ 'pattern'",         -1,  MATCHER_ANY },
-		{ "service &^ 'name'",            -1,  -1 },
+		{ "ANY service < 'name'",         -1,  MATCHER_ANY },
+		{ "ANY service <= 'name'",        -1,  MATCHER_ANY },
+		{ "ANY service = 'name'",         -1,  MATCHER_ANY },
+		{ "ANY service != 'name'",        -1,  MATCHER_ANY },
+		{ "ANY service >= 'name'",        -1,  MATCHER_ANY },
+		{ "ANY service > 'name'",         -1,  MATCHER_ANY },
+		{ "ANY service =~ 'pattern'",     -1,  MATCHER_ANY },
+		{ "ANY service !~ 'pattern'",     -1,  MATCHER_ANY },
+		{ "ANY service &^ 'name'",        -1,  -1 },
 		/* match hosts by metric */
-		{ "metric < 'name'",              -1,  MATCHER_ANY },
-		{ "metric <= 'name'",             -1,  MATCHER_ANY },
-		{ "metric = 'name'",              -1,  MATCHER_ANY },
-		{ "metric != 'name'",             -1,  MATCHER_ANY },
-		{ "metric >= 'name'",             -1,  MATCHER_ANY },
-		{ "metric > 'name'",              -1,  MATCHER_ANY },
-		{ "metric =~ 'pattern'",          -1,  MATCHER_ANY },
-		{ "metric !~ 'pattern'",          -1,  MATCHER_ANY },
+		{ "ANY metric < 'name'",          -1,  MATCHER_ANY },
+		{ "ANY metric <= 'name'",         -1,  MATCHER_ANY },
+		{ "ANY metric = 'name'",          -1,  MATCHER_ANY },
+		{ "ANY metric != 'name'",         -1,  MATCHER_ANY },
+		{ "ANY metric >= 'name'",         -1,  MATCHER_ANY },
+		{ "ANY metric > 'name'",          -1,  MATCHER_ANY },
+		{ "ANY metric =~ 'pattern'",      -1,  MATCHER_ANY },
+		{ "ANY metric !~ 'pattern'",      -1,  MATCHER_ANY },
 		/* match hosts by attribute */
-		{ "attribute < 'name'",           -1,  MATCHER_ANY },
-		{ "attribute <= 'name'",          -1,  MATCHER_ANY },
-		{ "attribute = 'name'",           -1,  MATCHER_ANY },
-		{ "attribute != 'name'",          -1,  MATCHER_ANY },
-		{ "attribute >= 'name'",          -1,  MATCHER_ANY },
-		{ "attribute > 'name'",           -1,  MATCHER_ANY },
-		{ "attribute =~ 'pattern'",       -1,  MATCHER_ANY },
-		{ "attribute !~ 'pattern'",       -1,  MATCHER_ANY },
-		{ "attribute &^ 'pattern'",       -1,  -1 },
+		{ "ANY attribute < 'name'",       -1,  MATCHER_ANY },
+		{ "ANY attribute <= 'name'",      -1,  MATCHER_ANY },
+		{ "ANY attribute = 'name'",       -1,  MATCHER_ANY },
+		{ "ANY attribute != 'name'",      -1,  MATCHER_ANY },
+		{ "ANY attribute >= 'name'",      -1,  MATCHER_ANY },
+		{ "ANY attribute > 'name'",       -1,  MATCHER_ANY },
+		{ "ANY attribute =~ 'pattern'",   -1,  MATCHER_ANY },
+		{ "ANY attribute !~ 'pattern'",   -1,  MATCHER_ANY },
+		{ "ANY attribute &^ 'pattern'",   -1,  -1 },
 		/* composite expressions */
 		{ "host =~ 'pattern' AND "
-		  "service =~ 'pattern'",         -1,  MATCHER_AND },
+		  "ANY service =~ 'pattern'",     -1,  MATCHER_AND },
 		{ "host =~ 'pattern' OR "
-		  "service =~ 'pattern'",         -1,  MATCHER_OR },
+		  "ANY service =~ 'pattern'",     -1,  MATCHER_OR },
 		{ "NOT host = 'host'",            -1,  MATCHER_NOT },
 		/* numeric expressions */
 		{ "attribute['foo'] < 123",       -1,  MATCHER_LT },
@@ -412,27 +412,27 @@ START_TEST(test_parse_matcher)
 
 		/* check operator precedence */
 		{ "host = 'name' OR "
-		  "service = 'name' AND "
-		  "attribute = 'name' OR "
+		  "ANY service = 'name' AND "
+		  "ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
 		{ "host = 'name' AND "
-		  "service = 'name' AND "
-		  "attribute = 'name' OR "
+		  "ANY service = 'name' AND "
+		  "ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
 		{ "host = 'name' AND "
-		  "service = 'name' OR "
-		  "attribute = 'name' AND "
+		  "ANY service = 'name' OR "
+		  "ANY attribute = 'name' AND "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
 		{ "(host = 'name' OR "
-		  "service = 'name') AND "
-		  "(attribute = 'name' OR "
+		  "ANY service = 'name') AND "
+		  "(ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar')",    -1,  MATCHER_AND },
 		{ "NOT host = 'name' OR "
-		  "service = 'name'",             -1,  MATCHER_OR },
+		  "ANY service = 'name'",         -1,  MATCHER_OR },
 		{ "NOT host = 'name' OR "
-		  "NOT service = 'name'",         -1,  MATCHER_OR },
+		  "NOT ANY service = 'name'",     -1,  MATCHER_OR },
 		{ "NOT (host = 'name' OR "
-		  "NOT service = 'name')",        -1,  MATCHER_NOT },
+		  "NOT ANY service = 'name')",    -1,  MATCHER_NOT },
 
 		/* syntax errors */
 		{ "LIST",                         -1, -1 },

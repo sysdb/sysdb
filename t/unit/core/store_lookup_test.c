@@ -529,28 +529,28 @@ START_TEST(test_scan)
 		{ "host =~ 'a|b'", NULL,               2 },
 		{ "host =~ 'host'", NULL,              0 },
 		{ "host =~ '.'", NULL,                 3 },
-		{ "metric = 'm1'", NULL,               2 },
-		{ "metric= 'm1'", "host = 'x'",        0 }, /* filter never matches */
-		{ "metric = 'm1'",
+		{ "ANY metric = 'm1'", NULL,           2 },
+		{ "ANY metric= 'm1'", "host = 'x'",    0 }, /* filter never matches */
+		{ "ANY metric = 'm1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "metric =~ 'm'", NULL,               2 },
-		{ "metric !~ 'm'", NULL,               1 },
-		{ "metric =~ 'x'", NULL,               0 },
-		{ "service = 's1'", NULL,              2 },
-		{ "service = 's1'", "host = 'x'",      0 }, /* filter never matches */
-		{ "service = 's1'",
+		{ "ANY metric =~ 'm'", NULL,           2 },
+		{ "ANY metric !~ 'm'", NULL,           1 },
+		{ "ANY metric =~ 'x'", NULL,           0 },
+		{ "ANY service = 's1'", NULL,          2 },
+		{ "ANY service = 's1'", "host = 'x'",  0 }, /* filter never matches */
+		{ "ANY service = 's1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "service =~ 's'", NULL,              2 },
-		{ "service !~ 's'", NULL,              1 },
-		{ "attribute = 'k1'", NULL,            2 },
-		{ "attribute = 'k1'", "host = 'x'",    0 }, /* filter never matches */
-		{ "attribute = 'k1'",
+		{ "ANY service =~ 's'", NULL,          2 },
+		{ "ANY service !~ 's'", NULL,          1 },
+		{ "ANY attribute = 'k1'", NULL,        2 },
+		{ "ANY attribute = 'k1'", "host = 'x'",0 }, /* filter never matches */
+		{ "ANY attribute = 'k1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "attribute =~ 'k'", NULL,            2 },
-		{ "attribute =~ '1'", NULL,            2 },
-		{ "attribute =~ '2'", NULL,            1 },
-		{ "attribute = 'x'", NULL,             0 },
-		{ "attribute =~ 'x'", NULL,            0 },
+		{ "ANY attribute =~ 'k'", NULL,        2 },
+		{ "ANY attribute =~ '1'", NULL,        2 },
+		{ "ANY attribute =~ '2'", NULL,        1 },
+		{ "ANY attribute = 'x'", NULL,         0 },
+		{ "ANY attribute =~ 'x'", NULL,        0 },
 		{ "attribute['k1'] = 'v1'", NULL,      1 },
 		{ "attribute['k1'] =~ 'v1'", NULL,     1 },
 		{ "attribute['k1'] =~ '^v1$'", NULL,   1 },
@@ -574,7 +574,7 @@ START_TEST(test_scan)
 		{ "attribute['k2'] != 123", NULL,      0 },
 		{ "attribute['k1'] != 'v1'", NULL,     1 },
 		{ "attribute['k1'] != 'v2'", NULL,     1 },
-		{ "attribute != 'x' "
+		{ "ANY attribute != 'x' "
 		  "AND attribute['y'] !~ 'x'", NULL,   3 },
 	};
 
