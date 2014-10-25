@@ -91,18 +91,18 @@ START_TEST(test_parse)
 		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
-		  "FILTER .age > 1D",    -1,  1, CONNECTION_LOOKUP },
+		  "FILTER age > 1D",    -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
-		  "FILTER .age > 1D AND "
-		  ".interval < 240s" ,   -1,  1, CONNECTION_LOOKUP },
+		  "FILTER age > 1D AND "
+		  "interval < 240s" ,   -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
-		  "FILTER NOT .age>1D",  -1,  1, CONNECTION_LOOKUP },
+		  "FILTER NOT age>1D",  -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "host =~ 'p' "
-		  "FILTER .age>"
-		  ".interval",           -1,  1, CONNECTION_LOOKUP },
+		  "FILTER age>"
+		  "interval",           -1,   1, CONNECTION_LOOKUP },
 
 		{ "TIMESERIES 'host'.'metric' "
 		  "START 2014-01-01 "
@@ -186,8 +186,6 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "NOT attribute['foo'] "
 		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
-		{ "LOOKUP hosts MATCHING "
-		  "host IS NULL",        -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
 		  "ANY service IS NULL", -1, -1, 0 },
 
@@ -379,36 +377,36 @@ START_TEST(test_parse_matcher)
 		{ "attribute['foo'] IS NOT NULL", -1,  MATCHER_ISNNULL },
 
 		/* object field matchers */
-		{ ".name < 'a'",                  -1,  MATCHER_LT },
-		{ ".name <= 'a'",                 -1,  MATCHER_LE },
-		{ ".name = 'a'",                  -1,  MATCHER_EQ },
-		{ ".name != 'a'",                 -1,  MATCHER_NE },
-		{ ".name >= 'a'",                 -1,  MATCHER_GE },
-		{ ".name > 'a'",                  -1,  MATCHER_GT },
-		{ ".last_update < 2014-10-01",    -1,  MATCHER_LT },
-		{ ".last_update <= 2014-10-01",   -1,  MATCHER_LE },
-		{ ".last_update = 2014-10-01",    -1,  MATCHER_EQ },
-		{ ".last_update != 2014-10-01",   -1,  MATCHER_NE },
-		{ ".last_update >= 2014-10-01",   -1,  MATCHER_GE },
-		{ ".last_update > 2014-10-01",    -1,  MATCHER_GT },
-		{ ".Last_Update >= 24D",          -1,  MATCHER_GE },
-		{ ".age < 20s",                   -1,  MATCHER_LT },
-		{ ".age <= 20s",                  -1,  MATCHER_LE },
-		{ ".age = 20s",                   -1,  MATCHER_EQ },
-		{ ".age != 20s",                  -1,  MATCHER_NE },
-		{ ".age >= 20s",                  -1,  MATCHER_GE },
-		{ ".age > 20s",                   -1,  MATCHER_GT },
-		{ ".AGE <= 1m",                   -1,  MATCHER_LE },
-		{ ".age > 1M",                    -1,  MATCHER_GT },
-		{ ".age != 20Y",                  -1,  MATCHER_NE },
-		{ ".age <= 2 * .interval",        -1,  MATCHER_LE },
-		{ ".interval < 20s",              -1,  MATCHER_LT },
-		{ ".interval <= 20s",             -1,  MATCHER_LE },
-		{ ".interval = 20s",              -1,  MATCHER_EQ },
-		{ ".interval != 20s",             -1,  MATCHER_NE },
-		{ ".interval >= 20s",             -1,  MATCHER_GE },
-		{ ".interval > 20s",              -1,  MATCHER_GT },
-		{ "'be' IN .backend",             -1,  MATCHER_IN },
+		{ "name < 'a'",                   -1,  MATCHER_LT },
+		{ "name <= 'a'",                  -1,  MATCHER_LE },
+		{ "name = 'a'",                   -1,  MATCHER_EQ },
+		{ "name != 'a'",                  -1,  MATCHER_NE },
+		{ "name >= 'a'",                  -1,  MATCHER_GE },
+		{ "name > 'a'",                   -1,  MATCHER_GT },
+		{ "last_update < 2014-10-01",     -1,  MATCHER_LT },
+		{ "last_update <= 2014-10-01",    -1,  MATCHER_LE },
+		{ "last_update = 2014-10-01",     -1,  MATCHER_EQ },
+		{ "last_update != 2014-10-01",    -1,  MATCHER_NE },
+		{ "last_update >= 2014-10-01",    -1,  MATCHER_GE },
+		{ "last_update > 2014-10-01",     -1,  MATCHER_GT },
+		{ "Last_Update >= 24D",           -1,  MATCHER_GE },
+		{ "age < 20s",                    -1,  MATCHER_LT },
+		{ "age <= 20s",                   -1,  MATCHER_LE },
+		{ "age = 20s",                    -1,  MATCHER_EQ },
+		{ "age != 20s",                   -1,  MATCHER_NE },
+		{ "age >= 20s",                   -1,  MATCHER_GE },
+		{ "age > 20s",                    -1,  MATCHER_GT },
+		{ "AGE <= 1m",                    -1,  MATCHER_LE },
+		{ "age > 1M",                     -1,  MATCHER_GT },
+		{ "age != 20Y",                   -1,  MATCHER_NE },
+		{ "age <= 2 * interval",          -1,  MATCHER_LE },
+		{ "interval < 20s",               -1,  MATCHER_LT },
+		{ "interval <= 20s",              -1,  MATCHER_LE },
+		{ "interval = 20s",               -1,  MATCHER_EQ },
+		{ "interval != 20s",              -1,  MATCHER_NE },
+		{ "interval >= 20s",              -1,  MATCHER_GE },
+		{ "interval > 20s",               -1,  MATCHER_GT },
+		{ "'be' IN backend",              -1,  MATCHER_IN },
 
 		/* check operator precedence */
 		{ "host = 'name' OR "
@@ -437,7 +435,7 @@ START_TEST(test_parse_matcher)
 		/* syntax errors */
 		{ "LIST",                         -1, -1 },
 		{ "foo &^ bar",                   -1, -1 },
-		{ ".invalid",                     -1, -1 },
+		{ "invalid",                      -1, -1 },
 	};
 
 	size_t i;
@@ -498,35 +496,35 @@ START_TEST(test_parse_expr)
 		{ "5 % 2",                -1, 0 },
 
 		/* queryable fields */
-		{ ".last_update",         -1, FIELD_VALUE },
-		{ ".AGE",                 -1, FIELD_VALUE },
-		{ ".interval",            -1, FIELD_VALUE },
-		{ ".Last_Update",         -1, FIELD_VALUE },
-		{ ".backend",             -1, FIELD_VALUE },
+		{ "last_update",          -1, FIELD_VALUE },
+		{ "AGE",                  -1, FIELD_VALUE },
+		{ "interval",             -1, FIELD_VALUE },
+		{ "Last_Update",          -1, FIELD_VALUE },
+		{ "backend",              -1, FIELD_VALUE },
 
 		/* attributes */
 		{ "attribute['foo']",     -1, ATTR_VALUE },
 
 		/* arithmetic expressions */
-		{ ".age + .age",          -1, SDB_DATA_ADD },
-		{ ".age - .age",          -1, SDB_DATA_SUB },
-		{ ".age * .age",          -1, SDB_DATA_MUL },
-		{ ".age / .age",          -1, SDB_DATA_DIV },
-		{ ".age % .age",          -1, SDB_DATA_MOD },
-		{ ".age || .age",         -1, SDB_DATA_CONCAT },
+		{ "age + age",            -1, SDB_DATA_ADD },
+		{ "age - age",            -1, SDB_DATA_SUB },
+		{ "age * age",            -1, SDB_DATA_MUL },
+		{ "age / age",            -1, SDB_DATA_DIV },
+		{ "age % age",            -1, SDB_DATA_MOD },
+		{ "age || age",           -1, SDB_DATA_CONCAT },
 
 		/* operator precedence */
-		{ ".age + .age * .age",   -1, SDB_DATA_ADD },
-		{ ".age * .age + .age",   -1, SDB_DATA_ADD },
-		{ ".age + .age - .age",   -1, SDB_DATA_SUB },
-		{ ".age - .age + .age",   -1, SDB_DATA_ADD },
-		{ "(.age + .age) * .age", -1, SDB_DATA_MUL },
-		{ ".age + (.age * .age)", -1, SDB_DATA_ADD },
+		{ "age + age * age",      -1, SDB_DATA_ADD },
+		{ "age * age + age",      -1, SDB_DATA_ADD },
+		{ "age + age - age",      -1, SDB_DATA_SUB },
+		{ "age - age + age",      -1, SDB_DATA_ADD },
+		{ "(age + age) * age",    -1, SDB_DATA_MUL },
+		{ "age + (age * age)",    -1, SDB_DATA_ADD },
 
 		/* syntax errors */
 		{ "LIST",                 -1, INT_MAX },
 		{ "foo &^ bar",           -1, INT_MAX },
-		{ ".invalid",             -1, INT_MAX },
+		{ "invalid",              -1, INT_MAX },
 	};
 
 	size_t i;

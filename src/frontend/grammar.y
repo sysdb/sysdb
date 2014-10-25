@@ -48,9 +48,6 @@
  */
 
 static sdb_store_matcher_t *
-name_matcher(const char *type_name, const char *cmp, sdb_store_expr_t *expr);
-
-static sdb_store_matcher_t *
 name_iter_matcher(int m_type, const char *type_name, const char *cmp,
 		sdb_store_expr_t *expr);
 
@@ -458,13 +455,6 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	IDENTIFIER cmp expression
-		{
-			$$ = name_matcher($1, $2, $3);
-			free($1); $1 = NULL;
-			sdb_object_deref(SDB_OBJ($3));
-		}
-	|
 	ANY IDENTIFIER cmp expression
 		{
 			$$ = name_iter_matcher(MATCHER_ANY, $2, $3, $4);
@@ -547,10 +537,16 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
-	'.' IDENTIFIER
+	IDENTIFIER
 		{
-			int field = sdb_store_parse_field_name($2);
-			free($2); $2 = NULL;
+			int field;
+			/* TODO: this only works as long as queries
+			 * are limited to hosts */
+			if (!strcasecmp($1, "host"))
+				field = SDB_FIELD_NAME;
+			else
+				field = sdb_store_parse_field_name($1);
+			free($1); $1 = NULL;
 			$$ = sdb_store_expr_fieldvalue(field);
 		}
 	|
@@ -658,26 +654,6 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
 	sdb_log(SDB_LOG_ERR, "frontend: parse error: %s", msg);
 } /* sdb_fe_yyerror */
-
-static sdb_store_matcher_t *
-name_matcher(const char *type_name, const char *cmp, sdb_store_expr_t *expr)
-{
-	int type = sdb_store_parse_object_type(type_name);
-	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
-	sdb_store_expr_t *e;
-	sdb_store_matcher_t *m;
-	assert(cb);
-
-	/* TODO: this only works as long as queries
-	 * are limited to hosts */
-	if (type != SDB_HOST)
-		return NULL;
-
-	e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-	m = cb(e, expr);
-	sdb_object_deref(SDB_OBJ(e));
-	return m;
-} /* name_matcher */
 
 static sdb_store_matcher_t *
 name_iter_matcher(int m_type, const char *type_name, const char *cmp,
