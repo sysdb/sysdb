@@ -534,14 +534,14 @@ START_TEST(test_scan)
 		{ "ANY metric = 'm1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY metric =~ 'm'", NULL,           2 },
-		{ "ANY metric !~ 'm'", NULL,           1 },
+		{ "ANY metric !~ 'm'", NULL,           0 },
 		{ "ANY metric =~ 'x'", NULL,           0 },
 		{ "ANY service = 's1'", NULL,          2 },
 		{ "ANY service = 's1'", "host = 'x'",  0 }, /* filter never matches */
 		{ "ANY service = 's1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY service =~ 's'", NULL,          2 },
-		{ "ANY service !~ 's'", NULL,          1 },
+		{ "ANY service !~ 's'", NULL,          0 },
 		{ "ANY attribute = 'k1'", NULL,        2 },
 		{ "ANY attribute = 'k1'", "host = 'x'",0 }, /* filter never matches */
 		{ "ANY attribute = 'k1'",
@@ -575,7 +575,7 @@ START_TEST(test_scan)
 		{ "attribute['k1'] != 'v1'", NULL,     1 },
 		{ "attribute['k1'] != 'v2'", NULL,     1 },
 		{ "ANY attribute != 'x' "
-		  "AND attribute['y'] !~ 'x'", NULL,   3 },
+		  "AND attribute['y'] !~ 'x'", NULL,   2 },
 	};
 
 	int check, n;

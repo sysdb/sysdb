@@ -122,12 +122,6 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (obj->type != SDB_HOST)
 		return 0;
 
-	/* negated matchers should only match if the respective positive matchers
-	 * do not match; that is if the negated matcher matchers *all* children */
-	if ((ITER_M(m)->m->type == MATCHER_NE)
-			|| (ITER_M(m)->m->type == MATCHER_NREGEX))
-		all = 1;
-
 	if (ITER_M(m)->type == SDB_SERVICE)
 		iter = sdb_avltree_get_iter(HOST(obj)->services);
 	else if (ITER_M(m)->type == SDB_METRIC)
