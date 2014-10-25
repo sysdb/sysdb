@@ -135,9 +135,7 @@ enum {
 	MATCHER_OR,
 	MATCHER_AND,
 	MATCHER_NOT,
-	MATCHER_SERVICE,
-	MATCHER_METRIC,
-	MATCHER_ATTRIBUTE,
+	MATCHER_ANY,
 	MATCHER_LT,
 	MATCHER_LE,
 	MATCHER_EQ,
@@ -156,9 +154,7 @@ enum {
 		: ((t) == MATCHER_AND) ? "AND" \
 		: ((t) == MATCHER_NOT) ? "NOT" \
 		: ((t) == MATCHER_NAME) ? "NAME" \
-		: ((t) == MATCHER_SERVICE) ? "SERVICE" \
-		: ((t) == MATCHER_METRIC) ? "METRIC" \
-		: ((t) == MATCHER_ATTRIBUTE) ? "ATTRIBUTE" \
+		: ((t) == MATCHER_ANY) ? "ANY" \
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \
@@ -205,12 +201,13 @@ typedef struct {
 } uop_matcher_t;
 #define UOP_M(m) ((uop_matcher_t *)(m))
 
-/* child matcher */
+/* iter matcher */
 typedef struct {
 	sdb_store_matcher_t super;
+	int type;
 	sdb_store_matcher_t *m;
-} child_matcher_t;
-#define CHILD_M(m) ((child_matcher_t *)(m))
+} iter_matcher_t;
+#define ITER_M(m) ((iter_matcher_t *)(m))
 
 /* compare operator matcher */
 typedef struct {

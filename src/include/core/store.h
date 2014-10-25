@@ -381,12 +381,12 @@ sdb_store_matcher_t *
 sdb_store_isnnull_matcher(sdb_store_expr_t *expr);
 
 /*
- * sdb_store_child_matcher:
- * Creates a matcher matching an object's children of the specified type. It
- * matches if *any* of those children match 'm'.
+ * sdb_store_any_matcher:
+ * Creates a matcher iterating over objects of the specified type. It matches
+ * if *any* of those objects match 'm'.
  */
 sdb_store_matcher_t *
-sdb_store_child_matcher(int type, sdb_store_matcher_t *m);
+sdb_store_any_matcher(int type, sdb_store_matcher_t *m);
 
 /*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,

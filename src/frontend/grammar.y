@@ -458,7 +458,7 @@ compare_matcher:
 				$$ = m;
 			}
 			else {
-				$$ = sdb_store_child_matcher(type, m);
+				$$ = sdb_store_any_matcher(type, m);
 				sdb_object_deref(SDB_OBJ(m));
 			}
 

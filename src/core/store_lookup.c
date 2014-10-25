@@ -109,16 +109,14 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_unary */
 
 static int
-match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_iter_t *iter = NULL;
 	int status;
 	int all = 0;
 
-	assert((m->type == MATCHER_SERVICE)
-			|| (m->type == MATCHER_METRIC)
-			|| (m->type == MATCHER_ATTRIBUTE));
+	assert(m->type == MATCHER_ANY);
 
 	/* TODO: support all object types */
 	if (obj->type != SDB_HOST)
@@ -126,15 +124,15 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	/* negated matchers should only match if the respective positive matchers
 	 * do not match; that is if the negated matcher matchers *all* children */
-	if ((CHILD_M(m)->m->type == MATCHER_NE)
-			|| (CHILD_M(m)->m->type == MATCHER_NREGEX))
+	if ((ITER_M(m)->m->type == MATCHER_NE)
+			|| (ITER_M(m)->m->type == MATCHER_NREGEX))
 		all = 1;
 
-	if (m->type == MATCHER_SERVICE)
+	if (ITER_M(m)->type == SDB_SERVICE)
 		iter = sdb_avltree_get_iter(HOST(obj)->services);
-	else if (m->type == MATCHER_METRIC)
+	else if (ITER_M(m)->type == SDB_METRIC)
 		iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-	else if (m->type == MATCHER_ATTRIBUTE)
+	else if (ITER_M(m)->type == SDB_ATTRIBUTE)
 		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 
 	status = all;
@@ -143,7 +141,7 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
 			continue;
 
-		if (sdb_store_matcher_matches(CHILD_M(m)->m, child, filter)) {
+		if (sdb_store_matcher_matches(ITER_M(m)->m, child, filter)) {
 			if (! all) {
 				status = 1;
 				break;
@@ -155,7 +153,7 @@ match_child(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	}
 	sdb_avltree_iter_destroy(iter);
 	return status;
-} /* match_child */
+} /* match_iter */
 
 /*
  * cmp_expr:
@@ -368,9 +366,7 @@ matchers[] = {
 	match_logical,
 	match_logical,
 	match_unary,
-	match_child,
-	match_child,
-	match_child,
+	match_iter,
 	match_lt,
 	match_le,
 	match_eq,
@@ -415,23 +411,24 @@ op_matcher_destroy(sdb_object_t *obj)
 } /* op_matcher_destroy */
 
 static int
-child_matcher_init(sdb_object_t *obj, va_list ap)
+iter_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
-	CHILD_M(obj)->m = va_arg(ap, sdb_store_matcher_t *);
+	ITER_M(obj)->type = va_arg(ap, int);
+	ITER_M(obj)->m = va_arg(ap, sdb_store_matcher_t *);
 
-	if (! CHILD_M(obj)->m)
+	if (! ITER_M(obj)->m)
 		return -1;
 
-	sdb_object_ref(SDB_OBJ(CHILD_M(obj)->m));
+	sdb_object_ref(SDB_OBJ(ITER_M(obj)->m));
 	return 0;
-} /* child_matcher_init */
+} /* iter_matcher_init */
 
 static void
-child_matcher_destroy(sdb_object_t *obj)
+iter_matcher_destroy(sdb_object_t *obj)
 {
-	sdb_object_deref(SDB_OBJ(CHILD_M(obj)->m));
-} /* child_matcher_destroy */
+	sdb_object_deref(SDB_OBJ(ITER_M(obj)->m));
+} /* iter_matcher_destroy */
 
 static int
 cmp_matcher_init(sdb_object_t *obj, va_list ap)
@@ -508,10 +505,10 @@ static sdb_type_t uop_type = {
 	/* destroy = */ uop_matcher_destroy,
 };
 
-static sdb_type_t child_type = {
-	/* size = */ sizeof(child_matcher_t),
-	/* init = */ child_matcher_init,
-	/* destroy = */ child_matcher_destroy,
+static sdb_type_t iter_type = {
+	/* size = */ sizeof(iter_matcher_t),
+	/* init = */ iter_matcher_init,
+	/* destroy = */ iter_matcher_destroy,
 };
 
 static sdb_type_t cmp_type = {
@@ -531,18 +528,14 @@ static sdb_type_t isnull_type = {
  */
 
 sdb_store_matcher_t *
-sdb_store_child_matcher(int type, sdb_store_matcher_t *m)
+sdb_store_any_matcher(int type, sdb_store_matcher_t *m)
 {
-	if (type == SDB_SERVICE)
-		type = MATCHER_SERVICE;
-	else if (type == SDB_METRIC)
-		type = MATCHER_METRIC;
-	else if (type == SDB_ATTRIBUTE)
-		type = MATCHER_ATTRIBUTE;
-	else
+	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
+			&& (type != SDB_ATTRIBUTE))
 		return NULL;
-	return M(sdb_object_create("any-matcher", child_type, type, m));
-} /* sdb_store_child_matcher */
+	return M(sdb_object_create("any-matcher", iter_type,
+				MATCHER_ANY, type, m));
+} /* sdb_store_iter_matcher */
 
 sdb_store_matcher_t *
 sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)

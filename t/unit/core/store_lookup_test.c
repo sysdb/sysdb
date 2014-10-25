@@ -178,7 +178,7 @@ START_TEST(test_cmp_name)
 			m = sdb_store_eq_matcher(obj, value);
 		if (golden_data[i].type != SDB_HOST) {
 			sdb_store_matcher_t *tmp;
-			tmp = sdb_store_child_matcher(golden_data[i].type, m);
+			tmp = sdb_store_any_matcher(golden_data[i].type, m);
 			sdb_object_deref(SDB_OBJ(m));
 			m = tmp;
 		}
