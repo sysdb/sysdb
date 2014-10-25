@@ -51,6 +51,7 @@ static struct {
 	const char *name;
 	int id;
 } reserved_words[] = {
+	{ "ALL",        ALL },
 	{ "AND",        AND },
 	{ "ANY",        ANY },
 	{ "END",        END },

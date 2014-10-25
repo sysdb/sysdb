@@ -534,7 +534,11 @@ START_TEST(test_scan)
 		{ "ANY metric = 'm1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY metric =~ 'm'", NULL,           2 },
+		{ "ALL metric =~ 'm'", NULL,           3 },
+		{ "ALL metric =~ '1'", NULL,           2 },
+		{ "ALL metric =~ '2'", NULL,           1 },
 		{ "ANY metric !~ 'm'", NULL,           0 },
+		{ "ALL metric !~ 'm'", NULL,           1 },
 		{ "ANY metric =~ 'x'", NULL,           0 },
 		{ "ANY service = 's1'", NULL,          2 },
 		{ "ANY service = 's1'", "host = 'x'",  0 }, /* filter never matches */
@@ -551,6 +555,7 @@ START_TEST(test_scan)
 		{ "ANY attribute =~ '2'", NULL,        1 },
 		{ "ANY attribute = 'x'", NULL,         0 },
 		{ "ANY attribute =~ 'x'", NULL,        0 },
+		{ "ALL attribute = 'k1'", NULL,        2 },
 		{ "attribute['k1'] = 'v1'", NULL,      1 },
 		{ "attribute['k1'] =~ 'v1'", NULL,     1 },
 		{ "attribute['k1'] =~ '^v1$'", NULL,   1 },

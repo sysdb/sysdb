@@ -48,10 +48,11 @@
  */
 
 static sdb_store_matcher_t *
-name_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr);
+name_matcher(const char *type_name, const char *cmp, sdb_store_expr_t *expr);
 
 static sdb_store_matcher_t *
-name_iter_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr);
+name_iter_matcher(int m_type, const char *type_name, const char *cmp,
+		sdb_store_expr_t *expr);
 
 /*
  * public API
@@ -108,7 +109,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %token AND OR IS NOT MATCHING FILTER
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
-%token CMP_LT CMP_LE CMP_GE CMP_GT ANY IN
+%token CMP_LT CMP_LE CMP_GE CMP_GT ALL ANY IN
 %token CONCAT
 
 %token START END
@@ -466,7 +467,14 @@ compare_matcher:
 	|
 	ANY IDENTIFIER cmp expression
 		{
-			$$ = name_iter_matcher($2, $3, $4);
+			$$ = name_iter_matcher(MATCHER_ANY, $2, $3, $4);
+			free($2); $2 = NULL;
+			sdb_object_deref(SDB_OBJ($4));
+		}
+	|
+	ALL IDENTIFIER cmp expression
+		{
+			$$ = name_iter_matcher(MATCHER_ALL, $2, $3, $4);
 			free($2); $2 = NULL;
 			sdb_object_deref(SDB_OBJ($4));
 		}
@@ -652,7 +660,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 } /* sdb_fe_yyerror */
 
 static sdb_store_matcher_t *
-name_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
+name_matcher(const char *type_name, const char *cmp, sdb_store_expr_t *expr)
 {
 	int type = sdb_store_parse_object_type(type_name);
 	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
@@ -672,12 +680,13 @@ name_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
 } /* name_matcher */
 
 static sdb_store_matcher_t *
-name_iter_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
+name_iter_matcher(int m_type, const char *type_name, const char *cmp,
+		sdb_store_expr_t *expr)
 {
 	int type = sdb_store_parse_object_type(type_name);
 	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
 	sdb_store_expr_t *e;
-	sdb_store_matcher_t *m, *tmp;
+	sdb_store_matcher_t *m, *tmp = NULL;
 	assert(cb);
 
 	/* TODO: this only works as long as queries
@@ -688,7 +697,10 @@ name_iter_matcher(char *type_name, char *cmp, sdb_store_expr_t *expr)
 
 	e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
 	m = cb(e, expr);
-	tmp = sdb_store_any_matcher(type, m);
+	if (m_type == MATCHER_ANY)
+		tmp = sdb_store_any_matcher(type, m);
+	else if (m_type == MATCHER_ALL)
+		tmp = sdb_store_all_matcher(type, m);
 	sdb_object_deref(SDB_OBJ(m));
 	sdb_object_deref(SDB_OBJ(e));
 	return tmp;
