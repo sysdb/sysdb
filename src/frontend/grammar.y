@@ -48,7 +48,7 @@
  */
 
 static sdb_store_matcher_t *
-name_iter_matcher(int m_type, const char *type_name, const char *cmp,
+name_iter_matcher(int m_type, int type, const char *cmp,
 		sdb_store_expr_t *expr);
 
 /*
@@ -89,6 +89,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %union {
 	const char *sstr; /* static string */
 	char *str;
+	int integer;
 
 	sdb_data_t data;
 	sdb_time_t datetime;
@@ -108,6 +109,10 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 %token CMP_EQUAL CMP_NEQUAL CMP_REGEX CMP_NREGEX
 %token CMP_LT CMP_LE CMP_GE CMP_GT ALL ANY IN
 %token CONCAT
+
+%token HOST_T HOSTS_T SERVICE_T SERVICES_T METRIC_T METRICS_T
+%token ATTRIBUTE_T ATTRIBUTES_T
+%token NAME_T LAST_UPDATE_T AGE_T INTERVAL_T BACKEND_T
 
 %token START END
 
@@ -152,6 +157,10 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 	compare_matcher
 
 %type <expr> expression
+
+%type <integer> object_type_plural
+%type <integer> iterable
+%type <integer> field
 
 %type <sstr> cmp
 
@@ -272,19 +281,9 @@ statement:
  * Retrieve detailed information about a single host.
  */
 fetch_statement:
-	FETCH IDENTIFIER STRING filter_clause
+	FETCH HOST_T STRING filter_clause
 		{
 			/* TODO: support other types as well */
-			if (strcasecmp($2, "host")) {
-				char errmsg[strlen($2) + 32];
-				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown data-source %s"), $2);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
-				free($2); $2 = NULL;
-				free($3); $3 = NULL;
-				sdb_object_deref(SDB_OBJ($4));
-				YYABORT;
-			}
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
@@ -292,7 +291,6 @@ fetch_statement:
 			CONN_FETCH($$)->name = $3;
 			CONN_FETCH($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_FETCH;
-			free($2); $2 = NULL;
 		}
 	;
 
@@ -302,25 +300,13 @@ fetch_statement:
  * Returns a list of all hosts in the store.
  */
 list_statement:
-	LIST IDENTIFIER filter_clause
+	LIST object_type_plural filter_clause
 		{
-			int type = sdb_store_parse_object_type_plural($2);
-			if ((type < 0) || (type == SDB_ATTRIBUTE)) {
-				char errmsg[strlen($2) + 32];
-				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown data-source %s"), $2);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
-				free($2); $2 = NULL;
-				sdb_object_deref(SDB_OBJ($3));
-				YYABORT;
-			}
-
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_list_t, conn_list_destroy));
-			CONN_LIST($$)->type = type;
+			CONN_LIST($$)->type = $2;
 			CONN_LIST($$)->filter = CONN_MATCHER($3);
 			$$->cmd = CONNECTION_LIST;
-			free($2); $2 = NULL;
 		}
 	;
 
@@ -330,19 +316,9 @@ list_statement:
  * Returns detailed information about <type> matching condition.
  */
 lookup_statement:
-	LOOKUP IDENTIFIER matching_clause filter_clause
+	LOOKUP HOSTS_T matching_clause filter_clause
 		{
 			/* TODO: support other types as well */
-			if (strcasecmp($2, "hosts")) {
-				char errmsg[strlen($2) + 32];
-				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown data-source %s"), $2);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
-				free($2); $2 = NULL;
-				sdb_object_deref(SDB_OBJ($3));
-				sdb_object_deref(SDB_OBJ($4));
-				YYABORT;
-			}
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_lookup_t, conn_lookup_destroy));
@@ -350,7 +326,6 @@ lookup_statement:
 			CONN_LOOKUP($$)->matcher = CONN_MATCHER($3);
 			CONN_LOOKUP($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_LOOKUP;
-			free($2); $2 = NULL;
 		}
 	;
 
@@ -455,17 +430,15 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	ANY IDENTIFIER cmp expression
+	ANY iterable cmp expression
 		{
 			$$ = name_iter_matcher(MATCHER_ANY, $2, $3, $4);
-			free($2); $2 = NULL;
 			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
-	ALL IDENTIFIER cmp expression
+	ALL iterable cmp expression
 		{
 			$$ = name_iter_matcher(MATCHER_ALL, $2, $3, $4);
-			free($2); $2 = NULL;
 			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
@@ -537,32 +510,21 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
-	IDENTIFIER
+	HOST_T
 		{
-			int field;
 			/* TODO: this only works as long as queries
 			 * are limited to hosts */
-			if (!strcasecmp($1, "host"))
-				field = SDB_FIELD_NAME;
-			else
-				field = sdb_store_parse_field_name($1);
-			free($1); $1 = NULL;
-			$$ = sdb_store_expr_fieldvalue(field);
+			$$ = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
 		}
 	|
-	IDENTIFIER '[' STRING ']'
+	field
 		{
-			if (strcasecmp($1, "attribute")) {
-				char errmsg[strlen($1) + strlen($3) + 32];
-				snprintf(errmsg, sizeof(errmsg),
-						YY_("unknown value %s[%s]"), $1, $3);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
-				free($1); $1 = NULL;
-				free($3); $3 = NULL;
-				YYABORT;
-			}
+			$$ = sdb_store_expr_fieldvalue($1);
+		}
+	|
+	ATTRIBUTE_T '[' STRING ']'
+		{
 			$$ = sdb_store_expr_attrvalue($3);
-			free($1); $1 = NULL;
 			free($3); $3 = NULL;
 		}
 	|
@@ -571,6 +533,34 @@ expression:
 			$$ = sdb_store_expr_constvalue(&$1);
 			sdb_data_free_datum(&$1);
 		}
+	;
+
+object_type_plural:
+	HOSTS_T { $$ = SDB_HOST; }
+	|
+	SERVICES_T { $$ = SDB_SERVICE; }
+	|
+	METRICS_T { $$ = SDB_METRIC; }
+	;
+
+iterable:
+	SERVICE_T { $$ = SDB_SERVICE; }
+	|
+	METRIC_T { $$ = SDB_METRIC; }
+	|
+	ATTRIBUTE_T { $$ = SDB_ATTRIBUTE; }
+	;
+
+field:
+	NAME_T { $$ = SDB_FIELD_NAME; }
+	|
+	LAST_UPDATE_T { $$ = SDB_FIELD_LAST_UPDATE; }
+	|
+	AGE_T { $$ = SDB_FIELD_AGE; }
+	|
+	INTERVAL_T { $$ = SDB_FIELD_INTERVAL; }
+	|
+	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
 	;
 
 cmp:
@@ -656,10 +646,9 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 } /* sdb_fe_yyerror */
 
 static sdb_store_matcher_t *
-name_iter_matcher(int m_type, const char *type_name, const char *cmp,
+name_iter_matcher(int m_type, int type, const char *cmp,
 		sdb_store_expr_t *expr)
 {
-	int type = sdb_store_parse_object_type(type_name);
 	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
 	sdb_store_expr_t *e;
 	sdb_store_matcher_t *m, *tmp = NULL;
