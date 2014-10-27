@@ -29,6 +29,7 @@
 #define SDB_FRONTEND_PARSER_H 1
 
 #include "core/store.h"
+#include "frontend/connection.h"
 #include "utils/llist.h"
 
 #ifdef __cplusplus
@@ -68,6 +69,17 @@ sdb_fe_parse_matcher(const char *cond, int len);
 
 sdb_store_expr_t *
 sdb_fe_parse_expr(const char *expr, int len);
+
+/*
+ * sdb_fe_analyze:
+ * Analyze a parsed node, checking for semantical errors.
+ *
+ * Returns:
+ *  - 0 if the node is semantically correct
+ *  - a negative value else
+ */
+int
+sdb_fe_analyze(sdb_conn_node_t *node);
 
 #ifdef __cplusplus
 } /* extern "C" */

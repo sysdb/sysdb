@@ -114,7 +114,16 @@ sdb_fe_query(sdb_conn_t *conn)
 	}
 
 	if (node) {
-		status = sdb_fe_exec(conn, node);
+		if (sdb_fe_analyze(node)) {
+			char query[conn->cmd_len + 1];
+			strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+			query[sizeof(query) - 1] = '\0';
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to verify query '%s'",
+					query);
+			status = -1;
+		}
+		else
+			status = sdb_fe_exec(conn, node);
 		sdb_object_deref(SDB_OBJ(node));
 	}
 
@@ -176,6 +185,14 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	uint32_t type;
 	int status;
 
+	conn_matcher_t m_node = {
+		{ SDB_OBJECT_INIT, CONNECTION_MATCHER }, NULL
+	};
+	conn_lookup_t node = {
+		{ SDB_OBJECT_INIT, CONNECTION_LOOKUP },
+		-1, &m_node, NULL
+	};
+
 	if ((! conn) || (conn->cmd != CONNECTION_LOOKUP))
 		return -1;
 
@@ -200,7 +217,19 @@ sdb_fe_lookup(sdb_conn_t *conn)
 		return -1;
 	}
 
-	status = sdb_fe_exec_lookup(conn, type, m, /* filter = */ NULL);
+	node.type = type;
+	m_node.matcher = m;
+
+	if (sdb_fe_analyze(SDB_CONN_NODE(&node))) {
+		char expr[matcher_len + 1];
+		strncpy(expr, matcher, sizeof(expr));
+		expr[sizeof(expr) - 1] = '\0';
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to verify "
+				"lookup condition '%s'", expr);
+		status = -1;
+	}
+	else
+		status = sdb_fe_exec_lookup(conn, type, m, /* filter = */ NULL);
 	sdb_object_deref(SDB_OBJ(m));
 	return status;
 } /* sdb_fe_lookup */
