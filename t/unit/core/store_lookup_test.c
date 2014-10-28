@@ -587,7 +587,7 @@ START_TEST(test_scan)
 	size_t i;
 
 	n = 0;
-	check = sdb_store_scan(/* matcher */ NULL, /* filter */ NULL,
+	check = sdb_store_scan(SDB_HOST, /* matcher */ NULL, /* filter */ NULL,
 			scan_cb, &n);
 	fail_unless(check == 0,
 			"sdb_store_scan() = %d; expected: 0", check);
@@ -610,11 +610,11 @@ START_TEST(test_scan)
 		}
 
 		n = 0;
-		sdb_store_scan(m, filter, scan_cb, &n);
+		sdb_store_scan(SDB_HOST, m, filter, scan_cb, &n);
 		fail_unless(n == golden_data[i].expected,
-				"sdb_store_scan(matcher{%s}, filter{%s}) found %d hosts; "
-				"expected: %d", golden_data[i].query, golden_data[i].filter,
-				n, golden_data[i].expected);
+				"sdb_store_scan(HOST, matcher{%s}, filter{%s}) "
+				"found %d hosts; expected: %d", golden_data[i].query,
+				golden_data[i].filter, n, golden_data[i].expected);
 		sdb_object_deref(SDB_OBJ(filter));
 		sdb_object_deref(SDB_OBJ(m));
 	}

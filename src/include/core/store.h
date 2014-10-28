@@ -546,18 +546,18 @@ typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj, void *user_data);
 
 /*
  * sdb_store_scan:
- * Look up objects in the store. The specified callback function is called for
- * each object in the store matching 'm'. The function performs a full scan of
- * all hosts stored in the database. If specified, the filter will be used to
- * preselect objects for further evaluation. See the description of
- * 'sdb_store_matcher_matches' for details.
+ * Look up objects of the specified type in the store. The specified callback
+ * function is called for each object in the store matching 'm'. The function
+ * performs a full scan of all objects stored in the database. If specified,
+ * the filter will be used to preselect objects for further evaluation. See
+ * the description of 'sdb_store_matcher_matches' for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data);
 
 /*

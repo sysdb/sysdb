@@ -55,6 +55,7 @@ populate(void)
 
 	sdb_store_metric("h1", "m1", /* store */ NULL, 2);
 	sdb_store_metric("h1", "m2", /* store */ NULL, 1);
+	sdb_store_metric("h2", "m1", /* store */ NULL, 1);
 
 	sdb_store_service("h2", "s1", 1);
 	sdb_store_service("h2", "s2", 2);
@@ -483,7 +484,12 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
 					"\"attributes\": [], "
-					"\"metrics\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []}"
+					"], "
 					"\"services\": ["
 						"{\"name\": \"s1\", "
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -534,7 +540,12 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
 					"\"attributes\": [], "
-					"\"metrics\": []}"
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": []}"
+					"]}"
 			"]" },
 		{ { NULL, 0, SDB_DATA_INIT }, SDB_SKIP_METRICS,
 			"["
@@ -588,7 +599,11 @@ START_TEST(test_store_tojson)
 					"\"services\": []},"
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
-					"\"metrics\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"], "
 					"\"services\": ["
 						"{\"name\": \"s1\", "
 							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
@@ -852,7 +867,7 @@ START_TEST(test_interval)
 END_TEST
 
 static int
-scan_incr(sdb_store_obj_t *obj, void *user_data)
+scan_count(sdb_store_obj_t *obj, void *user_data)
 {
 	intptr_t *i = user_data;
 
@@ -865,7 +880,7 @@ scan_incr(sdb_store_obj_t *obj, void *user_data)
 
 	++(*i);
 	return 0;
-} /* scan_incr */
+} /* scan_count */
 
 static int
 scan_error(sdb_store_obj_t *obj, void *user_data)
@@ -889,27 +904,50 @@ START_TEST(test_scan)
 	int check;
 
 	/* empty store */
-	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_incr, &i);
+	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+			scan_count, &i);
 	fail_unless(check == -1,
-			"sdb_store_scan(), empty store = %d; expected: -1", check);
+			"sdb_store_scan(HOST), empty store = %d; expected: -1", check);
 	fail_unless(i == 0,
-			"sdb_store_scan called callback %d times; expected: 0", (int)i);
+			"sdb_store_scan(HOST) called callback %d times; "
+			"expected: 0", (int)i);
 
 	populate();
 
-	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_incr, &i);
+	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+			scan_count, &i);
 	fail_unless(check == 0,
-			"sdb_store_scan() = %d; expected: 0", check);
+			"sdb_store_scan(HOST) = %d; expected: 0", check);
 	fail_unless(i == 2,
-			"sdb_store_scan called callback %d times; expected: 1", (int)i);
+			"sdb_store_scan(HOST) called callback %d times; "
+			"expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_error, &i);
+	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+			scan_error, &i);
 	fail_unless(check == -1,
-			"sdb_store_scan(), error callback = %d; expected: -1", check);
+			"sdb_store_scan(HOST), error callback = %d; expected: -1", check);
 	fail_unless(i == 1,
-			"sdb_store_scan called callback %d times "
+			"sdb_store_scan(HOST) called callback %d times "
 			"(callback returned error); expected: 1", (int)i);
+
+	i = 0;
+	check = sdb_store_scan(SDB_SERVICE, /* m, filter = */ NULL, NULL,
+			scan_count, &i);
+	fail_unless(check == 0,
+			"sdb_store_scan(SERVICE) = %d; expected: 0", check);
+	fail_unless(i == 2,
+			"sdb_store_scan(SERVICE) called callback %d times; "
+			"expected: 2", (int)i);
+
+	i = 0;
+	check = sdb_store_scan(SDB_METRIC, /* m, filter = */ NULL, NULL,
+			scan_count, &i);
+	fail_unless(check == 0,
+			"sdb_store_scan(METRIC) = %d; expected: 0", check);
+	fail_unless(i == 3,
+			"sdb_store_scan(METRIC) called callback %d times; "
+			"expected: 3", (int)i);
 }
 END_TEST
 

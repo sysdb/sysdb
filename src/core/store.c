@@ -1092,13 +1092,16 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 } /* sdb_store_tojson */
 
 int
-sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data)
 {
 	sdb_avltree_iter_t *host_iter;
 	int status = 0;
 
 	if (! cb)
+		return -1;
+
+	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC))
 		return -1;
 
 	pthread_rwlock_rdlock(&host_lock);
@@ -1110,16 +1113,41 @@ sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 	/* has_next returns false if the iterator is NULL */
 	while (sdb_avltree_iter_has_next(host_iter)) {
 		sdb_store_obj_t *host;
+		sdb_avltree_iter_t *iter = NULL;
 
 		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
-		if (sdb_store_matcher_matches(m, host, filter)) {
-			if (cb(host, user_data)) {
-				status = -1;
-				break;
+		if (! sdb_store_matcher_matches(filter, host, NULL))
+			continue;
+
+		if (type == SDB_SERVICE)
+			iter = sdb_avltree_get_iter(HOST(host)->services);
+		else if (type == SDB_METRIC)
+			iter = sdb_avltree_get_iter(HOST(host)->metrics);
+
+		if (iter) {
+			while (sdb_avltree_iter_has_next(iter)) {
+				sdb_store_obj_t *obj;
+				obj = STORE_OBJ(sdb_avltree_iter_get_next(iter));
+				assert(obj);
+
+				if (sdb_store_matcher_matches(m, obj, filter)) {
+					if (cb(obj, user_data)) {
+						status = -1;
+						break;
+					}
+				}
 			}
 		}
+		else if (sdb_store_matcher_matches(m, host, filter)) {
+			if (cb(host, user_data))
+				status = -1;
+		}
+
+		sdb_avltree_iter_destroy(iter);
+		if (status)
+			break;
 	}
 
 	sdb_avltree_iter_destroy(host_iter);

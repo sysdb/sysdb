@@ -413,7 +413,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	 * we'd have to filter twice -- once in the scanner and then again in the
 	 * serializer. */
 	data.last_len = sdb_strbuf_len(data.buf);
-	if (sdb_store_scan(m, /* filter */ NULL, lookup_tojson, &data)) {
+	if (sdb_store_scan(SDB_HOST, m, /* filter */ NULL, lookup_tojson, &data)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
 		sdb_strbuf_destroy(data.buf);
