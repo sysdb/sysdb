@@ -1091,12 +1091,15 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags)
 	return 0;
 } /* sdb_store_tojson */
 
-/* TODO: actually support hierarchical data */
 int
-sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
+sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+		sdb_store_lookup_cb cb, void *user_data)
 {
 	sdb_avltree_iter_t *host_iter;
 	int status = 0;
+
+	if (! cb)
+		return -1;
 
 	pthread_rwlock_rdlock(&host_lock);
 
@@ -1111,16 +1114,18 @@ sdb_store_iterate(sdb_store_iter_cb cb, void *user_data)
 		host = STORE_OBJ(sdb_avltree_iter_get_next(host_iter));
 		assert(host);
 
-		if (cb(host, user_data)) {
-			status = -1;
-			break;
+		if (sdb_store_matcher_matches(m, host, filter)) {
+			if (cb(host, user_data)) {
+				status = -1;
+				break;
+			}
 		}
 	}
 
 	sdb_avltree_iter_destroy(host_iter);
 	pthread_rwlock_unlock(&host_lock);
 	return status;
-} /* sdb_store_iterate */
+} /* sdb_store_scan */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

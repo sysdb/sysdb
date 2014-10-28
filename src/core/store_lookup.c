@@ -50,31 +50,6 @@
 #include <limits.h>
 
 /*
- * private data types
- */
-
-typedef struct {
-	sdb_store_matcher_t *m;
-	sdb_store_matcher_t *filter;
-	sdb_store_lookup_cb  cb;
-	void *user_data;
-} scan_iter_data_t;
-
-/*
- * private helper functions
- */
-
-static int
-scan_iter(sdb_store_obj_t *obj, void *user_data)
-{
-	scan_iter_data_t *d = user_data;
-
-	if (sdb_store_matcher_matches(d->m, obj, d->filter))
-		return d->cb(obj, d->user_data);
-	return 0;
-} /* scan_iter */
-
-/*
  * matcher implementations
  */
 
@@ -736,17 +711,6 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	return matchers[m->type](m, obj, filter);
 } /* sdb_store_matcher_matches */
-
-int
-sdb_store_scan(sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
-		sdb_store_lookup_cb cb, void *user_data)
-{
-	scan_iter_data_t data = { m, filter, cb, user_data };
-
-	if (! cb)
-		return -1;
-	return sdb_store_iterate(scan_iter, &data);
-} /* sdb_store_scan */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

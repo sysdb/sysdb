@@ -852,63 +852,63 @@ START_TEST(test_interval)
 END_TEST
 
 static int
-iter_incr(sdb_store_obj_t *obj, void *user_data)
+scan_incr(sdb_store_obj_t *obj, void *user_data)
 {
 	intptr_t *i = user_data;
 
 	fail_unless(obj != NULL,
-			"sdb_store_iterate callback received NULL obj; expected: "
+			"sdb_store_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_iterate callback received NULL user_data; "
+			"sdb_store_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
 	return 0;
-} /* iter_incr */
+} /* scan_incr */
 
 static int
-iter_error(sdb_store_obj_t *obj, void *user_data)
+scan_error(sdb_store_obj_t *obj, void *user_data)
 {
 	intptr_t *i = user_data;
 
 	fail_unless(obj != NULL,
-			"sdb_store_iterate callback received NULL obj; expected: "
+			"sdb_store_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_iterate callback received NULL user_data; "
+			"sdb_store_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
 	return -1;
-} /* iter_error */
+} /* scan_error */
 
-START_TEST(test_iterate)
+START_TEST(test_scan)
 {
 	intptr_t i = 0;
 	int check;
 
 	/* empty store */
-	check = sdb_store_iterate(iter_incr, &i);
+	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_incr, &i);
 	fail_unless(check == -1,
-			"sdb_store_iterate(), empty store = %d; expected: -1", check);
+			"sdb_store_scan(), empty store = %d; expected: -1", check);
 	fail_unless(i == 0,
-			"sdb_store_iterate called callback %d times; expected: 0", (int)i);
+			"sdb_store_scan called callback %d times; expected: 0", (int)i);
 
 	populate();
 
-	check = sdb_store_iterate(iter_incr, &i);
+	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_incr, &i);
 	fail_unless(check == 0,
-			"sdb_store_iterate() = %d; expected: 0", check);
+			"sdb_store_scan() = %d; expected: 0", check);
 	fail_unless(i == 2,
-			"sdb_store_iterate called callback %d times; expected: 1", (int)i);
+			"sdb_store_scan called callback %d times; expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_iterate(iter_error, &i);
+	check = sdb_store_scan(/* m, filter = */ NULL, NULL, scan_error, &i);
 	fail_unless(check == -1,
-			"sdb_store_iterate(), error callback = %d; expected: -1", check);
+			"sdb_store_scan(), error callback = %d; expected: -1", check);
 	fail_unless(i == 1,
-			"sdb_store_iterate called callback %d times "
+			"sdb_store_scan called callback %d times "
 			"(callback returned error); expected: 1", (int)i);
 }
 END_TEST
@@ -930,7 +930,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_service_attr);
 	tcase_add_test(tc, test_get_field);
 	tcase_add_test(tc, test_interval);
-	tcase_add_test(tc, test_iterate);
+	tcase_add_test(tc, test_scan);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
 	suite_add_tcase(s, tc);
 

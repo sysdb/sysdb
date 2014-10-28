@@ -610,24 +610,6 @@ int
 sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
 		sdb_store_matcher_t *filter, int flags);
 
-/*
- * sdb_store_iter_cb:
- * Store iterator callback. Iteration stops if the callback returns non-zero.
- */
-typedef int (*sdb_store_iter_cb)(sdb_store_obj_t *obj, void *user_data);
-
-/*
- * sdb_store_iterate:
- * Iterate the entire store, calling the specified callback for each object.
- * The user_data pointer is passed on to each call of the callback.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value else
- */
-int
-sdb_store_iterate(sdb_store_iter_cb cb, void *user_data);
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
