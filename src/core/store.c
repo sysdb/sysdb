@@ -941,7 +941,7 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_t *tree = NULL;
-	sdb_avltree_iter_t *iter = NULL;
+	sdb_store_obj_t *attr;
 
 	if ((! obj) || (! name))
 		return -1;
@@ -956,27 +956,19 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 	if (! tree)
 		return -1;
 
-	iter = sdb_avltree_get_iter(tree);
-	while (sdb_avltree_iter_has_next(iter)) {
-		sdb_object_t *attr = sdb_avltree_iter_get_next(iter);
-
-		if (strcasecmp(SDB_OBJ(attr)->name, name))
-			continue;
-
-		if (filter&& (! sdb_store_matcher_matches(filter,
-						STORE_OBJ(attr), NULL)))
-			break; /* found it but it's filtered */
-
-		assert(STORE_OBJ(attr)->type == SDB_ATTRIBUTE);
-		if (res)
-			sdb_data_copy(res, &ATTR(attr)->value);
-		sdb_avltree_iter_destroy(iter);
-		return 0;
+	attr = STORE_OBJ(sdb_avltree_lookup(tree, name));
+	if (! attr)
+		return -1;
+	if (filter && (! sdb_store_matcher_matches(filter, attr, NULL))) {
+		sdb_object_deref(SDB_OBJ(attr));
+		return -1;
 	}
-	sdb_avltree_iter_destroy(iter);
 
-	/* not found */
-	return -1;
+	assert(STORE_OBJ(attr)->type == SDB_ATTRIBUTE);
+	if (res)
+		sdb_data_copy(res, &ATTR(attr)->value);
+	sdb_object_deref(SDB_OBJ(attr));
+	return 0;
 } /* sdb_store_get_attr */
 
 int
