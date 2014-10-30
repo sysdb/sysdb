@@ -43,25 +43,23 @@
 
 typedef struct {
 	sdb_strbuf_t *buf;
-	sdb_store_matcher_t *filter;
-
 	size_t last_len;
 } tojson_data_t;
 
 static int
-lookup_tojson(sdb_store_obj_t *obj, void *user_data)
+lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+		void *user_data)
 {
 	tojson_data_t *data = user_data;
 	int status;
 
-	if (data->filter && (! sdb_store_matcher_matches(data->filter, obj, NULL)))
+	if (filter && (! sdb_store_matcher_matches(filter, obj, NULL)))
 		return 0;
 
 	if (sdb_strbuf_len(data->buf) > data->last_len)
 		sdb_strbuf_append(data->buf, ",");
 	data->last_len = sdb_strbuf_len(data->buf);
-	status = sdb_store_host_tojson(obj, data->buf,
-			data->filter, /* flags = */ 0);
+	status = sdb_store_host_tojson(obj, data->buf, filter, /* flags = */ 0);
 	return status;
 } /* lookup_tojson */
 
@@ -382,7 +380,7 @@ int
 sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
-	tojson_data_t data = { NULL, filter, 0 };
+	tojson_data_t data = { NULL, 0 };
 	uint32_t res_type = htonl(CONNECTION_LOOKUP);
 
 	/* XXX: support other types */
@@ -409,11 +407,8 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	sdb_strbuf_memcpy(data.buf, &res_type, sizeof(uint32_t));
 	sdb_strbuf_append(data.buf, "[");
 
-	/* Let the JSON serializer handle the filter instead of the scanner. Else,
-	 * we'd have to filter twice -- once in the scanner and then again in the
-	 * serializer. */
 	data.last_len = sdb_strbuf_len(data.buf);
-	if (sdb_store_scan(SDB_HOST, m, /* filter */ NULL, lookup_tojson, &data)) {
+	if (sdb_store_scan(SDB_HOST, m, filter, lookup_tojson, &data)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
 		sdb_strbuf_destroy(data.buf);

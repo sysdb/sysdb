@@ -540,9 +540,11 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 /*
  * sdb_store_lookup_cb:
  * Lookup callback. It is called for each matching object when looking up data
- * in the store. The lookup aborts if the callback returns non-zero.
+ * in the store passing on the lookup filter and the specified user-data. The
+ * lookup aborts early if the callback returns non-zero.
  */
-typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj, void *user_data);
+typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter, void *user_data);
 
 /*
  * sdb_store_scan:

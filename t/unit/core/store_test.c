@@ -867,9 +867,12 @@ START_TEST(test_interval)
 END_TEST
 
 static int
-scan_count(sdb_store_obj_t *obj, void *user_data)
+scan_count(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
 {
 	intptr_t *i = user_data;
+
+	if (! sdb_store_matcher_matches(filter, obj, NULL))
+		return 0;
 
 	fail_unless(obj != NULL,
 			"sdb_store_scan callback received NULL obj; expected: "
@@ -883,9 +886,12 @@ scan_count(sdb_store_obj_t *obj, void *user_data)
 } /* scan_count */
 
 static int
-scan_error(sdb_store_obj_t *obj, void *user_data)
+scan_error(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
 {
 	intptr_t *i = user_data;
+
+	if (! sdb_store_matcher_matches(filter, obj, NULL))
+		return 0;
 
 	fail_unless(obj != NULL,
 			"sdb_store_scan callback received NULL obj; expected: "

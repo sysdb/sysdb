@@ -499,9 +499,12 @@ START_TEST(test_store_match_op)
 END_TEST
 
 static int
-scan_cb(sdb_store_obj_t *obj, void *user_data)
+scan_cb(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
 {
 	int *i = user_data;
+
+	if (! sdb_store_matcher_matches(filter, obj, NULL))
+		return 0;
 
 	fail_unless(obj != NULL,
 			"sdb_store_scan callback received NULL obj; expected: "

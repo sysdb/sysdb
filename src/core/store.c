@@ -1125,7 +1125,7 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 				assert(obj);
 
 				if (sdb_store_matcher_matches(m, obj, filter)) {
-					if (cb(obj, user_data)) {
+					if (cb(obj, filter, user_data)) {
 						status = -1;
 						break;
 					}
@@ -1133,7 +1133,7 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 			}
 		}
 		else if (sdb_store_matcher_matches(m, host, filter)) {
-			if (cb(host, user_data))
+			if (cb(host, filter, user_data))
 				status = -1;
 		}
 
