@@ -280,6 +280,8 @@ SEE ALSO
 --------
 manpage:sysdb[1], manpage:sysdb[7]
 
+RFC 4627 (JSON): http://www.ietf.org/rfc/rfc4627.txt
+
 The SysDB homepage: https://sysdb.io/
 
 AUTHOR
