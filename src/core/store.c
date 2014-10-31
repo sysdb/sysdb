@@ -1093,8 +1093,10 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 	if (! cb)
 		return -1;
 
-	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC))
+	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC)) {
+		sdb_log(SDB_LOG_ERR, "store: Cannot scan objects of type %d", type);
 		return -1;
+	}
 
 	pthread_rwlock_rdlock(&host_lock);
 
@@ -1126,6 +1128,8 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 
 				if (sdb_store_matcher_matches(m, obj, filter)) {
 					if (cb(obj, filter, user_data)) {
+						sdb_log(SDB_LOG_ERR, "store: Callback returned "
+								"an error while scanning");
 						status = -1;
 						break;
 					}
@@ -1133,8 +1137,11 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 			}
 		}
 		else if (sdb_store_matcher_matches(m, host, filter)) {
-			if (cb(host, filter, user_data))
+			if (cb(host, filter, user_data)) {
+				sdb_log(SDB_LOG_ERR, "store: Callback returned "
+						"an error while scanning");
 				status = -1;
+			}
 		}
 
 		sdb_avltree_iter_destroy(iter);
