@@ -41,26 +41,12 @@
  * private helper functions
  */
 
-typedef struct {
-	sdb_strbuf_t *buf;
-	size_t last_len;
-} tojson_data_t;
-
 static int
 lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 		void *user_data)
 {
-	tojson_data_t *data = user_data;
-	int status;
-
-	if (filter && (! sdb_store_matcher_matches(filter, obj, NULL)))
-		return 0;
-
-	if (sdb_strbuf_len(data->buf) > data->last_len)
-		sdb_strbuf_append(data->buf, ",");
-	data->last_len = sdb_strbuf_len(data->buf);
-	status = sdb_store_host_tojson(obj, data->buf, filter, /* flags = */ 0);
-	return status;
+	sdb_store_json_formatter_t *f = user_data;
+	return sdb_store_json_emit_full(f, obj, filter);
 } /* lookup_tojson */
 
 /*
@@ -380,8 +366,10 @@ int
 sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
-	tojson_data_t data = { NULL, 0 };
 	uint32_t res_type = htonl(CONNECTION_LOOKUP);
+
+	sdb_store_json_formatter_t *f;
+	sdb_strbuf_t *buf;
 
 	/* XXX: support other types */
 	if (type != SDB_HOST) {
@@ -392,34 +380,46 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		return -1;
 	}
 
-	data.buf = sdb_strbuf_create(1024);
-	if (! data.buf) {
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
 				"buffer to handle LOOKUP command: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(data.buf);
+		return -1;
+	}
+	f = sdb_store_json_formatter(buf);
+	if (! f) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"JSON formatter to handle LOOKUP command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
 		return -1;
 	}
 
-	sdb_strbuf_memcpy(data.buf, &res_type, sizeof(uint32_t));
-	sdb_strbuf_append(data.buf, "[");
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
+	sdb_strbuf_append(buf, "[");
 
-	data.last_len = sdb_strbuf_len(data.buf);
-	if (sdb_store_scan(SDB_HOST, m, filter, lookup_tojson, &data)) {
+	if (sdb_store_scan(SDB_HOST, m, filter, lookup_tojson, f)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
 		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
-		sdb_strbuf_destroy(data.buf);
+		sdb_strbuf_destroy(buf);
+		free(f);
 		return -1;
 	}
+	sdb_store_json_finish(f);
 
-	sdb_strbuf_append(data.buf, "]");
+	sdb_strbuf_append(buf, "]");
 
 	sdb_connection_send(conn, CONNECTION_DATA,
-			(uint32_t)sdb_strbuf_len(data.buf), sdb_strbuf_string(data.buf));
-	sdb_strbuf_destroy(data.buf);
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+	sdb_strbuf_destroy(buf);
+	free(f);
 	return 0;
 } /* sdb_fe_exec_lookup */
 
