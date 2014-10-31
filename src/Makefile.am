@@ -72,6 +72,7 @@ libsysdb_la_SOURCES = \
 		core/store.c include/core/store.h \
 		core/store-private.h \
 		core/store_expr.c \
+		core/store_json.c \
 		core/store_lookup.c \
 		core/data.c include/core/data.h \
 		core/timeseries.c include/core/timeseries.h \

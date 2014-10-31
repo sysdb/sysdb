@@ -89,6 +89,13 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
 #define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
 
 /*
+ * A JSON formatter converts a stored object into the JSON format.
+ * See http://www.ietf.org/rfc/rfc4627.txt
+ */
+struct sdb_store_json_formatter;
+typedef struct sdb_store_json_formatter sdb_store_json_formatter_t;
+
+/*
  * Queryable fields of a stored object.
  */
 enum {
@@ -611,6 +618,58 @@ sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags);
 int
 sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
 		sdb_store_matcher_t *filter, int flags);
+
+/*
+ * sdb_store_json_formatter:
+ * Create a JSON formatter writing to the specified buffer.
+ */
+sdb_store_json_formatter_t *
+sdb_store_json_formatter(sdb_strbuf_t *buf);
+
+/*
+ * sdb_store_json_emit:
+ * Serialize a single object to JSON adding it to the string buffer associated
+ * with the formatter object. The serialized object will not include
+ * attributes or any child objects. Instead, call the function again for each
+ * of those objects. All attributes have to be emitted before any other
+ * children types. Use sdb_store_json_emit_full() to emit a full (filtered)
+ * object.
+ *
+ * Note that the output might not be valid JSON before calling
+ * sdb_store_json_finish().
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj);
+
+/*
+ * sdb_store_json_emit_full:
+ * Serialize a single object including it's attributes and all children to
+ * JSON, adding it to the string buffer associated with the formatter object.
+ * The filter, if specified, is applied to each attribute and child object.
+ * Only matching objects will be included in the output.
+ *
+ * Note that the output might not be valid JSON before calling
+ * sdb_store_json_finish().
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter);
+
+/*
+ * sdb_store_json_finish:
+ * Finish the JSON output. This function has to be called once after emiting
+ * all objects.
+ */
+int
+sdb_store_json_finish(sdb_store_json_formatter_t *f);
 
 #ifdef __cplusplus
 } /* extern "C" */
