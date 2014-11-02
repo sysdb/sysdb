@@ -390,7 +390,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		return -1;
 	}
-	f = sdb_store_json_formatter(buf, SDB_WANT_ARRAY);
+	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
 	if (! f) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "

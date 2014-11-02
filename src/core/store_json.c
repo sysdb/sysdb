@@ -53,6 +53,10 @@ struct sdb_store_json_formatter {
 	int context[8];
 	size_t current;
 
+	/* The current host context when processing non-host objects */
+	sdb_store_obj_t *current_host;
+
+	int type;
 	int flags;
 };
 
@@ -68,6 +72,17 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	size_t i;
 
 	assert(f && obj);
+
+	if ((f->type != SDB_HOST) && (f->type == obj->type)) {
+		/* create the host for the current entry first */
+		assert(obj->parent && (obj->parent->type == SDB_HOST));
+		if (f->current_host != obj->parent) {
+			json_emit(f, obj->parent);
+			sdb_strbuf_append(f->buf, ", \"%ss\": [",
+					SDB_STORE_TYPE_TO_NAME(obj->type));
+			f->current_host = obj->parent;
+		}
+	}
 
 	sdb_strbuf_append(f->buf, "{\"name\": \"%s\", ", SDB_OBJ(obj)->name);
 	if (obj->type == SDB_ATTRIBUTE) {
@@ -107,11 +122,14 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
  */
 
 sdb_store_json_formatter_t *
-sdb_store_json_formatter(sdb_strbuf_t *buf, int flags)
+sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 {
 	sdb_store_json_formatter_t *f;
 
 	if (! buf)
+		return NULL;
+
+	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC))
 		return NULL;
 
 	f = calloc(1, sizeof(*f));
@@ -121,6 +139,10 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int flags)
 	f->buf = buf;
 	f->context[0] = 0;
 	f->current = 0;
+
+	f->current_host = NULL;
+
+	f->type = type;
 	f->flags = flags;
 	return f;
 } /* sdb_store_json_formatter */
@@ -131,14 +153,42 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	if ((! f) || (! obj))
 		return -1;
 
-	/* first host */
+	if ((f->type != SDB_HOST) && (obj->type == SDB_HOST)) {
+		sdb_log(SDB_LOG_ERR, "store: Unexpected object of type host "
+				"during %s JSON serialization",
+				SDB_STORE_TYPE_TO_NAME(f->type));
+		return -1;
+	}
+
+	/* first top-level object */
 	if (! f->context[0]) {
+		if (obj->type != f->type) {
+			sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
+					"as the first element during %s JSON serialization",
+					SDB_STORE_TYPE_TO_NAME(obj->type),
+					SDB_STORE_TYPE_TO_NAME(f->type));
+			return -1;
+		}
 		if (f->flags & SDB_WANT_ARRAY)
 			sdb_strbuf_append(f->buf, "[");
 		assert(f->current == 0);
-		f->context[0] = SDB_HOST;
+		f->context[0] = obj->type;
 		return json_emit(f, obj);
 	}
+
+	if ((f->current >= 1) && (obj->type != SDB_ATTRIBUTE)) {
+		/* new entry of a previous type or a new type on the same level;
+		 * rewind to the right state */
+		while (f->current > 0) {
+			if (f->context[f->current] == obj->type)
+				break;
+			sdb_strbuf_append(f->buf, "}]");
+			--f->current;
+		}
+	}
+	if ((obj->type == f->type) && (f->type != SDB_HOST))
+		if (obj->parent != f->current_host)
+			sdb_strbuf_append(f->buf, "}]");
 
 	if (obj->type == f->context[f->current]) {
 		/* new entry of the same type */
@@ -152,19 +202,6 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		sdb_strbuf_append(f->buf, ", \"%ss\": [",
 				SDB_STORE_TYPE_TO_NAME(obj->type));
 		++f->current;
-	}
-	else if (f->current >= 1) {
-		/* new entry of a previous type or a new type on the same level
-		 * -> rewind to the right state and then handle the new object */
-		assert(obj->type != SDB_ATTRIBUTE);
-		while (f->current > 0) {
-			if (f->context[f->current] == obj->type)
-				break;
-			assert(f->context[f->current] != SDB_HOST);
-			sdb_strbuf_append(f->buf, "}]");
-			--f->current;
-		}
-		return sdb_store_json_emit(f, obj);
 	}
 	else {
 		sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
@@ -244,8 +281,13 @@ sdb_store_json_finish(sdb_store_json_formatter_t *f)
 		sdb_strbuf_append(f->buf, "}]");
 		--f->current;
 	}
+	if (f->context[0] != SDB_HOST) {
+		assert(f->type != SDB_HOST);
+		sdb_strbuf_append(f->buf, "}]}");
+	}
+	else
+		sdb_strbuf_append(f->buf, "}");
 
-	sdb_strbuf_append(f->buf, "}");
 	if (f->flags & SDB_WANT_ARRAY)
 		sdb_strbuf_append(f->buf, "]");
 	return 0;

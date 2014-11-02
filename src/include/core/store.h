@@ -623,10 +623,11 @@ sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
 
 /*
  * sdb_store_json_formatter:
- * Create a JSON formatter writing to the specified buffer.
+ * Create a JSON formatter for the specified object types writing to the
+ * specified buffer.
  */
 sdb_store_json_formatter_t *
-sdb_store_json_formatter(sdb_strbuf_t *buf, int flags);
+sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags);
 
 /*
  * sdb_store_json_emit:

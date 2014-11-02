@@ -130,10 +130,12 @@ START_TEST(test_store_tojson)
 			int field;
 			sdb_data_t value;
 		} filter;
+		int type;
 		int (*f)(sdb_store_obj_t *, sdb_store_matcher_t *, void *);
 		const char *expected;
 	} golden_data[] = {
-		{ { NULL, 0, SDB_DATA_INIT }, scan_tojson_full,
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_HOST, scan_tojson_full,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
@@ -185,7 +187,8 @@ START_TEST(test_store_tojson)
 							"]}"
 					"]}"
 			"]" },
-		{ { NULL, 0, SDB_DATA_INIT }, scan_tojson,
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_HOST, scan_tojson,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []},"
@@ -193,13 +196,15 @@ START_TEST(test_store_tojson)
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
 		{ { sdb_store_eq_matcher, SDB_FIELD_NAME,
-				{ SDB_TYPE_STRING, { .string = "h1" } } }, scan_tojson_full,
+				{ SDB_TYPE_STRING, { .string = "h1" } } },
+			SDB_HOST, scan_tojson_full,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
 		{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
-				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, scan_tojson_full,
+				{ SDB_TYPE_DATETIME, { .datetime = 1 } } },
+			SDB_HOST, scan_tojson_full,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
@@ -215,7 +220,8 @@ START_TEST(test_store_tojson)
 					"]}"
 			"]" },
 		{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
-				{ SDB_TYPE_DATETIME, { .datetime = 1 } } }, scan_tojson_full,
+				{ SDB_TYPE_DATETIME, { .datetime = 1 } } },
+			SDB_HOST, scan_tojson_full,
 			"["
 				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": [], "
@@ -231,13 +237,136 @@ START_TEST(test_store_tojson)
 					"]}"
 			"]" },
 		{ { sdb_store_ge_matcher, SDB_FIELD_LAST_UPDATE,
-				{ SDB_TYPE_DATETIME, { .datetime = 3 } } }, scan_tojson_full,
+				{ SDB_TYPE_DATETIME, { .datetime = 3 } } },
+			SDB_HOST, scan_tojson_full,
 			"["
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
 		{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
-				{ SDB_TYPE_DATETIME, { .datetime = 0 } } }, scan_tojson_full,
+				{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
+			SDB_HOST, scan_tojson_full,
+			"[]" },
+
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_SERVICE, scan_tojson_full,
+			"["
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"services\": ["
+						"{\"name\": \"s1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []},"
+						"{\"name\": \"s2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k1\", \"value\": 123, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []},"
+								"{\"name\": \"k2\", \"value\": 4711, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]}"
+					"]}"
+			"]" },
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_SERVICE, scan_tojson,
+			"["
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"services\": ["
+						"{\"name\": \"s1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []},"
+						"{\"name\": \"s2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]}"
+			"]" },
+		{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
+				{ SDB_TYPE_DATETIME, { .datetime = 1 } } },
+			SDB_SERVICE, scan_tojson_full,
+			"["
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"services\": ["
+						"{\"name\": \"s2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k1\", \"value\": 123, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]}"
+					"]}"
+			"]" },
+		{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+				{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
+			SDB_SERVICE, scan_tojson_full,
+			"[]" },
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_METRIC, scan_tojson_full,
+			"["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": [], "
+							"\"attributes\": ["
+								"{\"name\": \"k3\", \"value\": 42, "
+									"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+									"\"update_interval\": \"0s\", \"backends\": []}"
+							"]},"
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]}"
+			"]" },
+		{ { NULL, 0, SDB_DATA_INIT },
+			SDB_METRIC, scan_tojson,
+			"["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []},"
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]},"
+				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m1\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]}"
+			"]" },
+		{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
+				{ SDB_TYPE_DATETIME, { .datetime = 1 } } },
+			SDB_METRIC, scan_tojson_full,
+			"["
+				"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
+					"\"update_interval\": \"0s\", \"backends\": [], "
+					"\"metrics\": ["
+						"{\"name\": \"m2\", "
+							"\"last_update\": \"1970-01-01 00:00:00 +0000\", "
+							"\"update_interval\": \"0s\", \"backends\": []}"
+					"]}"
+			"]" },
+		{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+				{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
+			SDB_METRIC, scan_tojson_full,
 			"[]" },
 	};
 
@@ -272,10 +401,11 @@ START_TEST(test_store_tojson)
 		}
 
 		sdb_strbuf_clear(buf);
-		f = sdb_store_json_formatter(buf, SDB_WANT_ARRAY);
+		f = sdb_store_json_formatter(buf,
+				golden_data[i].type, SDB_WANT_ARRAY);
 		assert(f);
 
-		status = sdb_store_scan(SDB_HOST, /* m = */ NULL, filter,
+		status = sdb_store_scan(golden_data[i].type, /* m = */ NULL, filter,
 				golden_data[i].f, f);
 		fail_unless(status == 0,
 				"sdb_store_scan(HOST, ..., tojson) = %d; expected: 0",
