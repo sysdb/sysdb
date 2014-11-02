@@ -61,6 +61,10 @@ core_object_suite(void);
 Suite *
 core_store_suite(void);
 
+/* t/core/store_json */
+Suite *
+core_store_json_suite(void);
+
 /* t/core/store_lookup_test */
 Suite *
 core_store_lookup_suite(void);

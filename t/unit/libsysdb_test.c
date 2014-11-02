@@ -46,6 +46,7 @@ main(void)
 		{ core_object_suite, NULL },
 		{ core_store_suite, NULL },
 		{ core_store_lookup_suite, NULL },
+		{ core_store_json_suite, NULL },
 		{ core_time_suite, NULL },
 		{ fe_conn_suite, NULL },
 		{ fe_parser_suite, NULL },

@@ -34,6 +34,7 @@ unit_libsysdb_test_SOURCES = \
 		unit/core/data_test.c \
 		unit/core/object_test.c \
 		unit/core/store_test.c \
+		unit/core/store_json_test.c \
 		unit/core/store_lookup_test.c \
 		unit/core/time_test.c \
 		unit/frontend/connection_test.c \
