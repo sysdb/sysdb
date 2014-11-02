@@ -88,8 +88,10 @@ store_obj_destroy(sdb_object_t *obj)
 	sobj->backends = NULL;
 	sobj->backends_num = 0;
 
-	if (sobj->parent)
-		sdb_object_deref(SDB_OBJ(sobj->parent));
+	// We don't currently keep an extra reference for parent objects to
+	// avoid circular self-references which are not handled correctly by
+	// the ref-count base management layer.
+	//sdb_object_deref(SDB_OBJ(sobj->parent));
 } /* store_obj_destroy */
 
 static int
@@ -253,9 +255,25 @@ static sdb_type_t sdb_attribute_type = {
  */
 
 static sdb_host_t *
-lookup_host(const char *name)
+lookup_host(const char *name, _Bool canonicalize)
 {
-	return HOST(sdb_avltree_lookup(hosts, name));
+	sdb_host_t *host;
+	char *cname;
+
+	assert(name);
+	if (! canonicalize)
+		return HOST(sdb_avltree_lookup(hosts, name));
+
+	cname = strdup(name);
+	cname = sdb_plugin_cname(cname);
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "store: strdup failed");
+		return NULL;
+	}
+
+	host = HOST(sdb_avltree_lookup(hosts, cname));
+	free(cname);
+	return host;
 } /* lookup_host */
 
 static int
@@ -288,8 +306,9 @@ record_backend(sdb_store_obj_t *obj)
 } /* record_backend */
 
 static int
-store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
-		sdb_time_t last_update, sdb_store_obj_t **updated_obj)
+store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
+		int type, const char *name, sdb_time_t last_update,
+		sdb_store_obj_t **updated_obj)
 {
 	sdb_store_obj_t *old, *new;
 	int status = 0;
@@ -365,6 +384,14 @@ store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
 		return status;
 	assert(new);
 
+	if (new->parent != parent) {
+		// Avoid circular self-references which are not handled
+		// correctly by the ref-count based management layer.
+		//sdb_object_deref(SDB_OBJ(new->parent));
+		//sdb_object_ref(SDB_OBJ(parent));
+		new->parent = parent;
+	}
+
 	if (updated_obj)
 		*updated_obj = new;
 
@@ -374,13 +401,14 @@ store_obj(sdb_avltree_t *parent_tree, int type, const char *name,
 } /* store_obj */
 
 static int
-store_attr(sdb_avltree_t *attributes, const char *key, const sdb_data_t *value,
-		sdb_time_t last_update)
+store_attr(sdb_store_obj_t *parent, sdb_avltree_t *attributes,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
 	sdb_store_obj_t *attr = NULL;
 	int status;
 
-	status = store_obj(attributes, SDB_ATTRIBUTE, key, last_update, &attr);
+	status = store_obj(parent, attributes, SDB_ATTRIBUTE,
+			key, last_update, &attr);
 	if (status)
 		return status;
 
@@ -396,30 +424,14 @@ store_attr(sdb_avltree_t *attributes, const char *key, const sdb_data_t *value,
 
 /* The host_lock has to be acquired before calling this function. */
 static sdb_avltree_t *
-get_host_children(const char *hostname, int type)
+get_host_children(sdb_host_t *host, int type)
 {
-	char *cname = NULL;
-	sdb_host_t *host;
-
-	assert(hostname);
 	assert((type == SDB_SERVICE) || (type == SDB_METRIC)
 			|| (type == SDB_ATTRIBUTE));
 
-	if (! hosts)
-		return NULL;
-
-	cname = sdb_plugin_cname(strdup(hostname));
-	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return NULL;
-	}
-
-	host = lookup_host(cname);
-	free(cname);
 	if (! host)
 		return NULL;
 
-	sdb_object_deref(SDB_OBJ(host));
 	if (type == SDB_ATTRIBUTE)
 		return host->attributes;
 	else if (type == SDB_METRIC)
@@ -617,7 +629,7 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 			status = -1;
 
 	if (! status)
-		status = store_obj(hosts, SDB_HOST, cname, last_update, NULL);
+		status = store_obj(NULL, hosts, SDB_HOST, cname, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
 
 	free(cname);
@@ -632,7 +644,8 @@ sdb_store_has_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = lookup_host(name);
+	host = lookup_host(name, /* canonicalize = */ 0);
+	sdb_object_deref(SDB_OBJ(host));
 	return host != NULL;
 } /* sdb_store_has_host */
 
@@ -644,7 +657,7 @@ sdb_store_get_host(const char *name)
 	if (! name)
 		return NULL;
 
-	host = lookup_host(name);
+	host = lookup_host(name, /* canonicalize = */ 0);
 	if (! host)
 		return NULL;
 
@@ -656,6 +669,7 @@ sdb_store_attribute(const char *hostname,
 		const char *key, const sdb_data_t *value,
 		sdb_time_t last_update)
 {
+	sdb_host_t *host;
 	sdb_avltree_t *attrs;
 	int status = 0;
 
@@ -663,7 +677,8 @@ sdb_store_attribute(const char *hostname,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	attrs = get_host_children(hostname, SDB_ATTRIBUTE);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	attrs = get_host_children(host, SDB_ATTRIBUTE);
 	if (! attrs) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
 				"host '%s' not found", key, hostname);
@@ -671,8 +686,9 @@ sdb_store_attribute(const char *hostname,
 	}
 
 	if (! status)
-		status = store_attr(attrs, key, value, last_update);
+		status = store_attr(STORE_OBJ(host), attrs, key, value, last_update);
 
+	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_attribute */
@@ -681,6 +697,7 @@ int
 sdb_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
+	sdb_host_t *host;
 	sdb_avltree_t *services;
 
 	int status = 0;
@@ -689,7 +706,8 @@ sdb_store_service(const char *hostname, const char *name,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	services = get_host_children(hostname, SDB_SERVICE);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	services = get_host_children(host, SDB_SERVICE);
 	if (! services) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store service '%s' - "
 				"host '%s' not found", name, hostname);
@@ -697,7 +715,10 @@ sdb_store_service(const char *hostname, const char *name,
 	}
 
 	if (! status)
-		status = store_obj(services, SDB_SERVICE, name, last_update, NULL);
+		status = store_obj(STORE_OBJ(host), services, SDB_SERVICE,
+				name, last_update, NULL);
+
+	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_service */
@@ -706,15 +727,18 @@ int
 sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
-	sdb_avltree_t *services;
+	sdb_host_t *host;
 	sdb_service_t *svc;
+	sdb_avltree_t *services;
 	int status = 0;
 
 	if ((! hostname) || (! service) || (! key))
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	services = get_host_children(hostname, SDB_SERVICE);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	services = get_host_children(host, SDB_SERVICE);
+	sdb_object_deref(SDB_OBJ(host));
 	if (! services) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
 				"for service '%s' - host '%ss' not found",
@@ -731,7 +755,8 @@ sdb_store_service_attr(const char *hostname, const char *service,
 	}
 
 	if (! status)
-		status = store_attr(svc->attributes, key, value, last_update);
+		status = store_attr(STORE_OBJ(svc), svc->attributes,
+				key, value, last_update);
 
 	sdb_object_deref(SDB_OBJ(svc));
 	pthread_rwlock_unlock(&host_lock);
@@ -743,6 +768,7 @@ sdb_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
 	sdb_store_obj_t *obj = NULL;
+	sdb_host_t *host;
 	sdb_metric_t *metric;
 
 	sdb_avltree_t *metrics;
@@ -755,7 +781,8 @@ sdb_store_metric(const char *hostname, const char *name,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	metrics = get_host_children(hostname, SDB_METRIC);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	metrics = get_host_children(host, SDB_METRIC);
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store metric '%s' - "
 				"host '%s' not found", name, hostname);
@@ -763,7 +790,9 @@ sdb_store_metric(const char *hostname, const char *name,
 	}
 
 	if (! status)
-		status = store_obj(metrics, SDB_METRIC, name, last_update, &obj);
+		status = store_obj(STORE_OBJ(host), metrics, SDB_METRIC,
+				name, last_update, &obj);
+	sdb_object_deref(SDB_OBJ(host));
 
 	if (status || (! store)) {
 		pthread_rwlock_unlock(&host_lock);
@@ -801,6 +830,7 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
 	sdb_avltree_t *metrics;
+	sdb_host_t *host;
 	sdb_metric_t *m;
 	int status = 0;
 
@@ -808,7 +838,9 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 		return -1;
 
 	pthread_rwlock_wrlock(&host_lock);
-	metrics = get_host_children(hostname, SDB_METRIC);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	metrics = get_host_children(host, SDB_METRIC);
+	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
 				"for metric '%s' - host '%s' not found",
@@ -825,7 +857,8 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 	}
 
 	if (! status)
-		status = store_attr(m->attributes, key, value, last_update);
+		status = store_attr(STORE_OBJ(m), m->attributes,
+				key, value, last_update);
 
 	sdb_object_deref(SDB_OBJ(m));
 	pthread_rwlock_unlock(&host_lock);
@@ -837,6 +870,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf)
 {
 	sdb_avltree_t *metrics;
+	sdb_host_t *host;
 	sdb_metric_t *m;
 
 	sdb_timeseries_t *ts;
@@ -845,7 +879,9 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 		return -1;
 
 	pthread_rwlock_rdlock(&host_lock);
-	metrics = get_host_children(hostname, SDB_METRIC);
+	host = lookup_host(hostname, /* canonicalize = */ 1);
+	metrics = get_host_children(host, SDB_METRIC);
+	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- host '%s' not found", hostname, metric, hostname);
