@@ -390,7 +390,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		return -1;
 	}
-	f = sdb_store_json_formatter(buf);
+	f = sdb_store_json_formatter(buf, SDB_WANT_ARRAY);
 	if (! f) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
@@ -403,7 +403,6 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	}
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	sdb_strbuf_append(buf, "[");
 
 	if (sdb_store_scan(SDB_HOST, m, filter, lookup_tojson, f)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
@@ -413,8 +412,6 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		return -1;
 	}
 	sdb_store_json_finish(f);
-
-	sdb_strbuf_append(buf, "]");
 
 	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));

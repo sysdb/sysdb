@@ -52,6 +52,8 @@ struct sdb_store_json_formatter {
 	 * the path pointing to the current object */
 	int context[8];
 	size_t current;
+
+	int flags;
 };
 
 /*
@@ -105,7 +107,7 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
  */
 
 sdb_store_json_formatter_t *
-sdb_store_json_formatter(sdb_strbuf_t *buf)
+sdb_store_json_formatter(sdb_strbuf_t *buf, int flags)
 {
 	sdb_store_json_formatter_t *f;
 
@@ -119,6 +121,7 @@ sdb_store_json_formatter(sdb_strbuf_t *buf)
 	f->buf = buf;
 	f->context[0] = 0;
 	f->current = 0;
+	f->flags = flags;
 	return f;
 } /* sdb_store_json_formatter */
 
@@ -130,6 +133,8 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 
 	/* first host */
 	if (! f->context[0]) {
+		if (f->flags & SDB_WANT_ARRAY)
+			sdb_strbuf_append(f->buf, "[");
 		assert(f->current == 0);
 		f->context[0] = SDB_HOST;
 		return json_emit(f, obj);
@@ -228,12 +233,21 @@ sdb_store_json_finish(sdb_store_json_formatter_t *f)
 	if (! f)
 		return -1;
 
+	if (! f->context[0]) {
+		/* no content */
+		if (f->flags & SDB_WANT_ARRAY)
+			sdb_strbuf_append(f->buf, "[]");
+		return 0;
+	}
+
 	while (f->current > 0) {
 		sdb_strbuf_append(f->buf, "}]");
 		--f->current;
 	}
-	if (f->context[0])
-		sdb_strbuf_append(f->buf, "}");
+
+	sdb_strbuf_append(f->buf, "}");
+	if (f->flags & SDB_WANT_ARRAY)
+		sdb_strbuf_append(f->buf, "]");
 	return 0;
 } /* sdb_store_json_finish */
 

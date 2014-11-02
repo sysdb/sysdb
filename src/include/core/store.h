@@ -89,7 +89,7 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
 #define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
 
 /*
- * A JSON formatter converts a stored object into the JSON format.
+ * A JSON formatter converts stored objects into the JSON format.
  * See http://www.ietf.org/rfc/rfc4627.txt
  */
 struct sdb_store_json_formatter;
@@ -577,6 +577,8 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
  * out. The SKIP_EMPTY flags may be used to skip host objects entirely.
  */
 enum {
+	SDB_WANT_ARRAY              = 1 << 0,
+
 	SDB_SKIP_ATTRIBUTES         = 1 << 0,
 	SDB_SKIP_SERVICES           = 1 << 1,
 	SDB_SKIP_METRICS            = 1 << 2,
@@ -624,7 +626,7 @@ sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
  * Create a JSON formatter writing to the specified buffer.
  */
 sdb_store_json_formatter_t *
-sdb_store_json_formatter(sdb_strbuf_t *buf);
+sdb_store_json_formatter(sdb_strbuf_t *buf, int flags);
 
 /*
  * sdb_store_json_emit:

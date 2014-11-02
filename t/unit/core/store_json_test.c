@@ -236,6 +236,9 @@ START_TEST(test_store_tojson)
 				"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", "
 					"\"update_interval\": \"0s\", \"backends\": []}"
 			"]" },
+		{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+				{ SDB_TYPE_DATETIME, { .datetime = 0 } } }, scan_tojson_full,
+			"[]" },
 	};
 
 	buf = sdb_strbuf_create(0);
@@ -269,17 +272,15 @@ START_TEST(test_store_tojson)
 		}
 
 		sdb_strbuf_clear(buf);
-		f = sdb_store_json_formatter(buf);
+		f = sdb_store_json_formatter(buf, SDB_WANT_ARRAY);
 		assert(f);
 
-		sdb_strbuf_append(buf, "[");
 		status = sdb_store_scan(SDB_HOST, /* m = */ NULL, filter,
 				golden_data[i].f, f);
 		fail_unless(status == 0,
 				"sdb_store_scan(HOST, ..., tojson) = %d; expected: 0",
 				status);
 		sdb_store_json_finish(f);
-		sdb_strbuf_append(buf, "]");
 
 		verify_json_output(buf, golden_data[i].expected);
 		free(f);
