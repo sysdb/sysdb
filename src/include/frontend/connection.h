@@ -188,7 +188,7 @@ sdb_fe_lookup(sdb_conn_t *conn);
  * sdb_fe_exec_fetch:
  * Execute the 'FETCH' command. Send the named object of the specified type,
  * serialized as JSON, to the client. If specified, only objects matching the
- * filter will be included. See sdb_store_tojson for details.
+ * filter will be included.
  *
  * Returns:
  *  - 0 on success
@@ -203,7 +203,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
  * Execute the 'LIST' command. Send a complete listing of the store,
  * serialized as JSON, to the client. The listing includes all hosts and the
  * specified object type. If specified, only objects matching the filter will
- * be included. See sdb_store_tojson for details.
+ * be included.
  *
  * Returns:
  *  - 0 on success
@@ -216,7 +216,7 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter);
  * sdb_fe_exec_lookup:
  * Execute the 'LOOKUP' command. Send a list of objects of the specified type
  * matching 'm', serialized as JSON, to the client. If specified, only objects
- * matching the filter will be included. See sdb_store_tojson for details.
+ * matching the filter will be included.
  *
  * Returns:
  *  - 0 on success

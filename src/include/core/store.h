@@ -570,56 +570,11 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data);
 
 /*
- * Flags for serialization functions.
- *
- * By default, the full host object will be included in the serialized output.
- * When specifying any of the flags, the respective information will be left
- * out. The SKIP_EMPTY flags may be used to skip host objects entirely.
+ * Flags for JSON formatting.
  */
 enum {
-	SDB_WANT_ARRAY              = 1 << 0,
-
-	SDB_SKIP_ATTRIBUTES         = 1 << 0,
-	SDB_SKIP_SERVICES           = 1 << 1,
-	SDB_SKIP_METRICS            = 1 << 2,
-	SDB_SKIP_SERVICE_ATTRIBUTES = 1 << 3,
-
-	SDB_SKIP_ALL                = (1 << 8) - 1,
-
-	/* skip hosts if they do not reference any services/metrics */
-	SDB_SKIP_EMPTY_SERVICES     = 1 << 8,
-	SDB_SKIP_EMPTY_METRICS      = 1 << 9,
+	SDB_WANT_ARRAY = 1 << 0,
 };
-
-/*
- * sdb_store_tojson:
- * Serialize the entire store to JSON and append the result to the specified
- * buffer. If specified, only objects matching the filter will be included in
- * the result (see sdb_store_host_tojson for details).
- *
- * Returns:
- *  - 0 on success
- *  - a negative value on error
- */
-int
-sdb_store_tojson(sdb_strbuf_t *buf, sdb_store_matcher_t *filter, int flags);
-
-/*
- * sdb_store_host_tojson:
- * Serialize a host object to JSON and append the result to the specified
- * buffer. If specified, only objects matching the filter will be included in
- * the result. The filter is applied to each object individually and, thus,
- * should not be of any object-type specific kind. The filter is never applied
- * to the specified host object; the caller is responsible for this and for
- * correctly handling skipped hosts.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value on error
- */
-int
-sdb_store_host_tojson(sdb_store_obj_t *host, sdb_strbuf_t *buf,
-		sdb_store_matcher_t *filter, int flags);
 
 /*
  * sdb_store_json_formatter:
