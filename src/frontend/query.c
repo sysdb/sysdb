@@ -42,6 +42,15 @@
  */
 
 static int
+list_tojson(sdb_store_obj_t *obj,
+		sdb_store_matcher_t __attribute__((unused)) *filter,
+		void *user_data)
+{
+	sdb_store_json_formatter_t *f = user_data;
+	return sdb_store_json_emit(f, obj);
+} /* list_tojson */
+
+static int
 lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 		void *user_data)
 {
@@ -259,9 +268,11 @@ int
 sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 		sdb_store_matcher_t *filter)
 {
-	sdb_strbuf_t *buf;
 	sdb_store_obj_t *host;
 	uint32_t res_type = htonl(CONNECTION_FETCH);
+
+	sdb_store_json_formatter_t *f;
+	sdb_strbuf_t *buf;
 
 	/* XXX: support other types */
 	if (type != SDB_HOST) {
@@ -294,20 +305,35 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 		sdb_object_deref(SDB_OBJ(host));
 		return -1;
 	}
+	f = sdb_store_json_formatter(buf, type, /* flags = */ 0);
+	if (! f) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"JSON formatter to handle FETCH command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_host_tojson(host, buf, filter, /* flags = */ 0)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
-				"host '%s' to JSON", name);
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
 		sdb_object_deref(SDB_OBJ(host));
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
+	if (sdb_store_json_emit_full(f, host, filter)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+				"host '%s' to JSON", name);
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		free(f);
+		sdb_object_deref(SDB_OBJ(host));
+		return -1;
+	}
+	sdb_store_json_finish(f);
+
 	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
+	free(f);
 	sdb_object_deref(SDB_OBJ(host));
 	return 0;
 } /* sdb_fe_exec_fetch */
@@ -315,26 +341,10 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 int
 sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 {
-	sdb_strbuf_t *buf;
 	uint32_t res_type = htonl(CONNECTION_LIST);
 
-	int flags;
-
-	if (type == SDB_HOST)
-		flags = SDB_SKIP_ALL;
-	else if (type == SDB_SERVICE)
-		flags = (SDB_SKIP_ALL & (~SDB_SKIP_SERVICES))
-			| SDB_SKIP_EMPTY_SERVICES;
-	else if (type == SDB_METRIC)
-		flags = (SDB_SKIP_ALL & (~SDB_SKIP_METRICS))
-			| SDB_SKIP_EMPTY_METRICS;
-	else {
-		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
-				"for LIST command", type);
-		sdb_strbuf_sprintf(conn->errbuf,
-				"LIST: Invalid object type %d", type);
-		return -1;
-	}
+	sdb_store_json_formatter_t *f;
+	sdb_strbuf_t *buf;
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -347,19 +357,33 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 		sdb_strbuf_destroy(buf);
 		return -1;
 	}
+	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
+	if (! f) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
+				"JSON formatter to handle LIST command: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_tojson(buf, filter, flags)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
-				"store to JSON");
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
 		return -1;
 	}
 
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
+	if (sdb_store_scan(type, /* m = */ NULL, filter, list_tojson, f)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+				"store to JSON");
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_strbuf_destroy(buf);
+		free(f);
+		return -1;
+	}
+	sdb_store_json_finish(f);
+
 	sdb_connection_send(conn, CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
+	free(f);
 	return 0;
 } /* sdb_fe_exec_list */
 
