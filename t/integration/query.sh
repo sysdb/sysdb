@@ -93,6 +93,11 @@ echo "$output" | grep -F 'localhost' && exit 1
 echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
+output="$( run_sysdb -H "$SOCKET_FILE" \
+  -c "FETCH host 'host1.example.com' FILTER last_update < 0" )" \
+  && exit 1
+echo "$output" | grep -F 'not found'
+
 (echo 'LIST hosts;'; sleep 1; echo "FETCH host 'host1.example.com'") \
 	| run_sysdb -H "$SOCKET_FILE"
 

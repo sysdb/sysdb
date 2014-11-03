@@ -273,7 +273,8 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 	}
 
 	host = sdb_store_get_host(name);
-	if (! host) {
+	if ((! host) || (filter
+				&& (! sdb_store_matcher_matches(filter, host, NULL)))) {
 		sdb_log(SDB_LOG_DEBUG, "frontend: Failed to fetch host '%s': "
 				"not found", name);
 
