@@ -31,6 +31,7 @@
 
 #include <check.h>
 #include <string.h>
+#include <strings.h>
 
 static void
 populate(void)
@@ -501,6 +502,95 @@ START_TEST(test_get_field)
 }
 END_TEST
 
+START_TEST(test_get_child)
+{
+	struct {
+		const char *host;
+		const char *name;
+		int type;
+		int expected;
+	} golden_data[] = {
+		{ "h1", NULL, SDB_HOST,       0 },
+		{ "h1", NULL, SDB_SERVICE,   -1 },
+		{ "h1", NULL, SDB_METRIC,    -1 },
+		{ "h1", NULL, SDB_ATTRIBUTE, -1 },
+		{ "h2", NULL, SDB_HOST,       0 },
+		{ "h2", NULL, SDB_SERVICE,   -1 },
+		{ "h2", NULL, SDB_METRIC,    -1 },
+		{ "h2", NULL, SDB_ATTRIBUTE, -1 },
+		{ "h3", NULL, SDB_HOST,      -1 },
+		{ "h1", "k1", SDB_ATTRIBUTE,  0 },
+		{ "h1", "x1", SDB_ATTRIBUTE, -1 },
+		{ "h2", "k1", SDB_ATTRIBUTE, -1 },
+		{ "h1", "k1", SDB_SERVICE,   -1 },
+		{ "h1", "k1", SDB_METRIC,    -1 },
+		{ "h1", "s1", SDB_SERVICE,   -1 },
+		{ "h2", "s1", SDB_SERVICE,    0 },
+		{ "h1", "m2", SDB_METRIC,     0 },
+		{ "h2", "m2", SDB_METRIC,    -1 },
+	};
+
+	size_t i;
+
+	populate();
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		sdb_store_obj_t *obj;
+		const char *expected_name = golden_data[i].host;
+
+		obj = sdb_store_get_host(golden_data[i].host);
+		if (golden_data[i].expected && (golden_data[i].type == SDB_HOST))
+			fail_unless(obj == NULL,
+					"sdb_store_get_host(%s) = %p; expected: NULL",
+					golden_data[i].host, obj);
+		else
+			fail_unless(obj != NULL,
+					"sdb_store_get_host(%s) = NULL; expected: <host>",
+					golden_data[i].host);
+
+		if (golden_data[i].type != SDB_HOST) {
+			sdb_store_obj_t *tmp;
+
+			expected_name = golden_data[i].name;
+
+			tmp = sdb_store_get_child(obj,
+					golden_data[i].type, golden_data[i].name);
+			if (golden_data[i].expected)
+				fail_unless(tmp == NULL,
+						"sdb_store_get_child(<%s>, %s, %s) = %p; "
+						"expected: NULL", golden_data[i].host,
+						SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
+						golden_data[i].name, tmp);
+			else
+				fail_unless(tmp != NULL,
+						"sdb_store_get_child(<%s>, %s, %s) = NULL; "
+						"expected: <obj>", golden_data[i].host,
+						SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
+						golden_data[i].name);
+
+			sdb_object_deref(SDB_OBJ(obj));
+			obj = tmp;
+		}
+
+		if (golden_data[i].expected)
+			continue;
+
+		fail_unless(obj->type == golden_data[i].type,
+				"sdb_store_get_<%s>(%s, %s) returned object of type %d; "
+				"expected: %d", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
+				golden_data[i].host, golden_data[i].name, obj->type,
+				golden_data[i].type);
+		fail_unless(! strcasecmp(SDB_OBJ(obj)->name, expected_name),
+				"sdb_store_get_<%s>(%s, %s) returned object named '%s'; "
+				"expected: '%s'", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
+				golden_data[i].host, golden_data[i].name, SDB_OBJ(obj)->name,
+				expected_name);
+
+		sdb_object_deref(SDB_OBJ(obj));
+	}
+}
+END_TEST
+
 START_TEST(test_interval)
 {
 	sdb_store_obj_t *host;
@@ -663,6 +753,7 @@ core_store_suite(void)
 	tcase_add_test(tc, test_store_service);
 	tcase_add_test(tc, test_store_service_attr);
 	tcase_add_test(tc, test_get_field);
+	tcase_add_test(tc, test_get_child);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);

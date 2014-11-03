@@ -426,8 +426,9 @@ store_attr(sdb_store_obj_t *parent, sdb_avltree_t *attributes,
 static sdb_avltree_t *
 get_host_children(sdb_host_t *host, int type)
 {
-	assert((type == SDB_SERVICE) || (type == SDB_METRIC)
-			|| (type == SDB_ATTRIBUTE));
+	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
+			&& (type != SDB_ATTRIBUTE))
+		return NULL;
 
 	if (! host)
 		return NULL;
@@ -761,6 +762,20 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 	pthread_rwlock_unlock(&host_lock);
 	return status;
 } /* sdb_store_metric_attr */
+
+sdb_store_obj_t *
+sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name)
+{
+	sdb_avltree_t *children;
+
+	if ((! host) || (host->type != SDB_HOST) || (! name))
+		return NULL;
+
+	children = get_host_children(HOST(host), type);
+	if (! children)
+		return NULL;
+	return STORE_OBJ(sdb_avltree_lookup(children, name));
+} /* sdb_store_get_child */
 
 int
 sdb_store_fetch_timeseries(const char *hostname, const char *metric,

@@ -217,6 +217,20 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
+ * sdb_store_get_child:
+ * Retrieve a host's child object of the specified type and name. The
+ * reference count of the child object will be incremented before returning
+ * it. The caller is responsible for releasing the object once it's no longer
+ * used.
+ *
+ * Returns:
+ *  - the child object on success
+ *  - NULL else
+ */
+sdb_store_obj_t *
+sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
+
+/*
  * A metric store describes how to access a metric's data.
  */
 typedef struct {
