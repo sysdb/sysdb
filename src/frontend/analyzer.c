@@ -144,9 +144,13 @@ sdb_fe_analyze(sdb_conn_node_t *node)
 	/* For now, this function checks basic matcher attributes only;
 	 * later, this may be turned into one of multiple AST visitors. */
 	if (node->cmd == CONNECTION_FETCH) {
-		if (CONN_FETCH(node)->filter)
-			filter = CONN_FETCH(node)->filter->matcher;
-		context = CONN_FETCH(node)->type;
+		conn_fetch_t *fetch = CONN_FETCH(node);
+		if (((fetch->type == SDB_HOST) && fetch->name)
+				|| ((fetch->type != SDB_HOST) && (! fetch->name)))
+			return -1;
+		if (fetch->filter)
+			filter = fetch->filter->matcher;
+		context = fetch->type;
 	}
 	else if (node->cmd == CONNECTION_LIST) {
 		if (CONN_LIST(node)->filter)
