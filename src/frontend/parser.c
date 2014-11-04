@@ -72,6 +72,7 @@ sdb_fe_parse(const char *query, int len)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
+	sdb_llist_iter_t *iter;
 	int yyres;
 
 	if (scanner_init(query, len, &scanner, &yyextra))
@@ -84,6 +85,18 @@ sdb_fe_parse(const char *query, int len)
 		sdb_llist_destroy(yyextra.parsetree);
 		return NULL;
 	}
+
+	iter = sdb_llist_get_iter(yyextra.parsetree);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_conn_node_t *node;
+		node = SDB_CONN_NODE(sdb_llist_iter_get_next(iter));
+		if (sdb_fe_analyze(node)) {
+			sdb_llist_iter_destroy(iter);
+			sdb_llist_destroy(yyextra.parsetree);
+			return NULL;
+		}
+	}
+	sdb_llist_iter_destroy(iter);
 	return yyextra.parsetree;
 } /* sdb_fe_parse */
 

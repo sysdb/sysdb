@@ -107,16 +107,7 @@ sdb_fe_query(sdb_conn_t *conn)
 	}
 
 	if (node) {
-		if (sdb_fe_analyze(node)) {
-			char query[conn->cmd_len + 1];
-			strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
-			query[sizeof(query) - 1] = '\0';
-			sdb_log(SDB_LOG_ERR, "frontend: Failed to verify query '%s'",
-					query);
-			status = -1;
-		}
-		else
-			status = sdb_fe_exec(conn, node);
+		status = sdb_fe_exec(conn, node);
 		sdb_object_deref(SDB_OBJ(node));
 	}
 
@@ -214,6 +205,8 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	node.type = type;
 	m_node.matcher = m;
 
+	/* run analyzer separately; parse_matcher is missing
+	 * the right context to do so */
 	if (sdb_fe_analyze(SDB_CONN_NODE(&node))) {
 		char expr[matcher_len + 1];
 		strncpy(expr, matcher, sizeof(expr));
