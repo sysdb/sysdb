@@ -133,7 +133,7 @@ sdb_fe_fetch(sdb_conn_t *conn)
 	if ((! conn) || (conn->cmd != CONNECTION_FETCH))
 		return -1;
 
-	if (conn->cmd_len < sizeof(type)) {
+	if (conn->cmd_len < sizeof(uint32_t)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
 				"FETCH command", conn->cmd_len);
 		sdb_strbuf_sprintf(conn->errbuf, "FETCH: Invalid command length %d",
@@ -142,8 +142,8 @@ sdb_fe_fetch(sdb_conn_t *conn)
 	}
 
 	type = sdb_proto_get_int(conn->buf, 0);
-	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(type),
-			conn->cmd_len - sizeof(type));
+	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(uint32_t),
+			conn->cmd_len - sizeof(uint32_t));
 	name[sizeof(name) - 1] = '\0';
 	/* TODO: support other types besides hosts */
 	return sdb_fe_exec_fetch(conn, type, name, NULL, /* filter = */ NULL);
@@ -176,7 +176,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	const char *matcher;
 	size_t matcher_len;
 
-	uint32_t type;
+	int type;
 	int status;
 
 	conn_matcher_t m_node = {
@@ -190,7 +190,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	if ((! conn) || (conn->cmd != CONNECTION_LOOKUP))
 		return -1;
 
-	if (conn->cmd_len < sizeof(type)) {
+	if (conn->cmd_len < sizeof(uint32_t)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
 				"LOOKUP command", conn->cmd_len);
 		sdb_strbuf_sprintf(conn->errbuf, "LOOKUP: Invalid command length %d",
@@ -199,8 +199,8 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	}
 	type = sdb_proto_get_int(conn->buf, 0);
 
-	matcher = sdb_strbuf_string(conn->buf) + sizeof(type);
-	matcher_len = conn->cmd_len - sizeof(type);
+	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
+	matcher_len = conn->cmd_len - sizeof(uint32_t);
 	m = sdb_fe_parse_matcher(matcher, (int)matcher_len);
 	if (! m) {
 		char expr[matcher_len + 1];
