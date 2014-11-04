@@ -55,20 +55,20 @@ START_TEST(test_parse)
 		/* valid commands */
 		{ "FETCH host 'host'",   -1,  1, CONNECTION_FETCH  },
 		{ "FETCH host 'host' FILTER "
-		  "host = 'host'",       -1,  1, CONNECTION_FETCH  },
+		  "age > 60s",           -1,  1, CONNECTION_FETCH  },
 
 		{ "LIST hosts",          -1,  1, CONNECTION_LIST   },
 		{ "LIST hosts -- foo",   -1,  1, CONNECTION_LIST   },
 		{ "LIST hosts;",         -1,  1, CONNECTION_LIST   },
 		{ "LIST hosts; INVALID", 11,  1, CONNECTION_LIST   },
 		{ "LIST hosts FILTER "
-		  "host = 'host'",       -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, CONNECTION_LIST   },
 		{ "LIST services",       -1,  1, CONNECTION_LIST   },
 		{ "LIST services FILTER "
-		  "ANY service = 'svc'", -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, CONNECTION_LIST   },
 		{ "LIST metrics",        -1,  1, CONNECTION_LIST   },
 		{ "LIST metrics FILTER "
-		  "ANY metric = 'm'",    -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, CONNECTION_LIST   },
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
@@ -227,26 +227,27 @@ START_TEST(test_parse)
 		{ "LIST hosts; INVALID", -1, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
 
+		/* invalid commands */
 		{ "LIST",                -1, -1, 0 },
 		{ "LIST foo",            -1, -1, 0 },
 		{ "LIST hosts MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
 		{ "LIST foo FILTER "
-		  "host = 'host'",       -1, -1, 0 },
+		  "age > 60s",           -1, -1, 0 },
 		{ "FETCH host 'host' MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
 		{ "FETCH foo 'host'",    -1, -1, 0 },
 		{ "FETCH foo 'host' FILTER "
-		  "host = 'host'",       -1, -1, 0 },
+		  "age > 60s",           -1, -1, 0 },
 
 		{ "LOOKUP foo",          -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
 		{ "LOOKUP foo FILTER "
-		  "host = 'host'",       -1, -1, 0 },
+		  "age > 60s",           -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
 		  "host = 'host' FILTER "
-		  "host = 'host'",       -1, -1, 0 },
+		  "age > 60s",           -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] <= "
 		  "f || 'oo'",           -1, -1, 0 },
