@@ -56,6 +56,10 @@ START_TEST(test_parse)
 		{ "FETCH host 'host'",   -1,  1, CONNECTION_FETCH  },
 		{ "FETCH host 'host' FILTER "
 		  "age > 60s",           -1,  1, CONNECTION_FETCH  },
+		{ "FETCH service "
+		  "'host'.'service'",    -1,  1, CONNECTION_FETCH  },
+		{ "FETCH metric "
+		  "'host'.'metric'",     -1,  1, CONNECTION_FETCH  },
 
 		{ "LIST hosts",          -1,  1, CONNECTION_LIST   },
 		{ "LIST hosts -- foo",   -1,  1, CONNECTION_LIST   },
@@ -236,6 +240,10 @@ START_TEST(test_parse)
 		  "age > 60s",           -1, -1, 0 },
 		{ "FETCH host 'host' MATCHING "
 		  "host = 'host'",       -1, -1, 0 },
+		{ "FETCH service 'host'",-1, -1, 0 },
+		{ "FETCH metric 'host'", -1, -1, 0 },
+		{ "FETCH host "
+		  "'host'.'localhost'",  -1, -1, 0 },
 		{ "FETCH foo 'host'",    -1, -1, 0 },
 		{ "FETCH foo 'host' FILTER "
 		  "age > 60s",           -1, -1, 0 },

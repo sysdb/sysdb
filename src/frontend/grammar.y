@@ -158,7 +158,7 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
 
 %type <expr> expression
 
-%type <integer> object_type_plural
+%type <integer> object_type object_type_plural
 %type <integer> iterable
 %type <integer> field
 
@@ -281,16 +281,25 @@ statement:
  * Retrieve detailed information about a single host.
  */
 fetch_statement:
-	FETCH HOST_T STRING filter_clause
+	FETCH object_type STRING filter_clause
 		{
-			/* TODO: support other types as well */
-
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
-			CONN_FETCH($$)->type = SDB_HOST;
+			CONN_FETCH($$)->type = $2;
 			CONN_FETCH($$)->host = $3;
 			CONN_FETCH($$)->name = NULL;
 			CONN_FETCH($$)->filter = CONN_MATCHER($4);
+			$$->cmd = CONNECTION_FETCH;
+		}
+	|
+	FETCH object_type STRING '.' STRING filter_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_fetch_t, conn_fetch_destroy));
+			CONN_FETCH($$)->type = $2;
+			CONN_FETCH($$)->host = $3;
+			CONN_FETCH($$)->name = $5;
+			CONN_FETCH($$)->filter = CONN_MATCHER($6);
 			$$->cmd = CONNECTION_FETCH;
 		}
 	;
@@ -534,6 +543,14 @@ expression:
 			$$ = sdb_store_expr_constvalue(&$1);
 			sdb_data_free_datum(&$1);
 		}
+	;
+
+object_type:
+	HOST_T { $$ = SDB_HOST; }
+	|
+	SERVICE_T { $$ = SDB_SERVICE; }
+	|
+	METRIC_T { $$ = SDB_METRIC; }
 	;
 
 object_type_plural:
