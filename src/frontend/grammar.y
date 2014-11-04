@@ -63,6 +63,8 @@ sdb_fe_yyget_extra(sdb_fe_yyscan_t scanner);
 
 void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg);
+void
+sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 
 /* quick access to the current parse tree */
 #define pt sdb_fe_yyget_extra(scanner)->parsetree
@@ -181,11 +183,9 @@ statements:
 		{
 			/* only accepted in default parse mode */
 			if (parser_mode != SDB_PARSE_DEFAULT) {
-				char errmsg[1024];
-				snprintf(errmsg, sizeof(errmsg),
+				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
 							"expecting %s"), MODE_TO_STRING(parser_mode));
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($3));
 				YYABORT;
 			}
@@ -200,11 +200,9 @@ statements:
 		{
 			/* only accepted in default parse mode */
 			if (parser_mode != SDB_PARSE_DEFAULT) {
-				char errmsg[1024];
-				snprintf(errmsg, sizeof(errmsg),
+				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("syntax error, unexpected statement, "
 							"expecting %s"), MODE_TO_STRING(parser_mode));
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -219,11 +217,9 @@ statements:
 		{
 			/* only accepted in condition parse mode */
 			if (! (parser_mode & SDB_PARSE_COND)) {
-				char errmsg[1024];
-				snprintf(errmsg, sizeof(errmsg),
+				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("syntax error, unexpected condition, "
 							"expecting %s"), MODE_TO_STRING(parser_mode));
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -238,11 +234,9 @@ statements:
 		{
 			/* only accepted in expression parse mode */
 			if (! (parser_mode & SDB_PARSE_EXPR)) {
-				char errmsg[1024];
-				snprintf(errmsg, sizeof(errmsg),
+				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("syntax error, unexpected expression, "
 							"expecting %s"), MODE_TO_STRING(parser_mode));
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				sdb_object_deref(SDB_OBJ($1));
 				YYABORT;
 			}
@@ -635,10 +629,8 @@ interval_elem:
 
 			unit = sdb_strpunit($2);
 			if (! unit) {
-				char errmsg[strlen($2) + 32];
-				snprintf(errmsg, sizeof(errmsg),
+				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("invalid time unit %s"), $2);
-				sdb_fe_yyerror(&yylloc, scanner, errmsg);
 				free($2); $2 = NULL;
 				YYABORT;
 			}
@@ -662,6 +654,15 @@ sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
 	sdb_log(SDB_LOG_ERR, "frontend: parse error: %s", msg);
 } /* sdb_fe_yyerror */
+
+void
+sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	sdb_vlog(SDB_LOG_ERR, fmt, ap);
+	va_end(ap);
+} /* sdb_fe_yyerrorf */
 
 static sdb_store_matcher_t *
 name_iter_matcher(int m_type, int type, const char *cmp,
