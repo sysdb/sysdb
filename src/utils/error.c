@@ -195,13 +195,19 @@ sdb_log(int prio, const char *fmt, ...)
 	int ret;
 
 	va_start(ap, fmt);
-	ret = sdb_error_vprintf(fmt, ap);
+	ret = sdb_vlog(prio, fmt, ap);
 	va_end(ap);
+	return ret;
+} /* sdb_log */
 
+int
+sdb_vlog(int prio, const char *fmt, va_list ap)
+{
+	int ret = sdb_error_vprintf(fmt, ap);
 	if (ret > 0)
 		sdb_do_log(prio);
 	return ret;
-} /* sdb_log */
+} /* sdb_vlog */
 
 int
 sdb_error_set(const char *fmt, ...)

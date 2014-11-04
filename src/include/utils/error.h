@@ -37,6 +37,7 @@
 #ifndef SDB_UTILS_ERROR_H
 #define SDB_UTILS_ERROR_H 1
 
+#include <stdarg.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -71,7 +72,7 @@ void
 sdb_error_set_logger(int (*f)(int, const char *));
 
 /*
- * sdb_log:
+ * sdb_log, sdb_vlog:
  * Log the specified message. The string will be formatted in printf-style
  * using the specified format and arguments and logged with the specified
  * priority. In addition, the error message will be stored as the current
@@ -82,6 +83,8 @@ sdb_error_set_logger(int (*f)(int, const char *));
 int
 sdb_log(int prio, const char *fmt, ...)
 		__attribute__((format(printf, 2, 3)));
+int
+sdb_vlog(int prio, const char *fmt, va_list ap);
 
 /*
  * sdb_error_set, sdb_error_append:
