@@ -195,8 +195,8 @@ sdb_fe_lookup(sdb_conn_t *conn);
  *  - a negative value else
  */
 int
-sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
-		sdb_store_matcher_t *filter);
+sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
+		const char *hostname, const char *name, sdb_store_matcher_t *filter);
 
 /*
  * sdb_fe_exec_list:

@@ -288,7 +288,8 @@ fetch_statement:
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_fetch_t, conn_fetch_destroy));
 			CONN_FETCH($$)->type = SDB_HOST;
-			CONN_FETCH($$)->name = $3;
+			CONN_FETCH($$)->host = $3;
+			CONN_FETCH($$)->name = NULL;
 			CONN_FETCH($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_FETCH;
 		}

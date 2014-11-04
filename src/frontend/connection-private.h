@@ -103,7 +103,8 @@ typedef struct {
 typedef struct {
 	sdb_conn_node_t super;
 	int type;
-	char *name;
+	char *host;
+	char *name; /* NULL for type == SDB_HOST */
 	conn_matcher_t *filter;
 } conn_fetch_t;
 #define CONN_FETCH(obj) ((conn_fetch_t *)(obj))
@@ -149,6 +150,8 @@ conn_list_destroy(sdb_object_t *obj)
 static void __attribute__((unused))
 conn_fetch_destroy(sdb_object_t *obj)
 {
+	if (CONN_FETCH(obj)->host)
+		free(CONN_FETCH(obj)->host);
 	if (CONN_FETCH(obj)->name)
 		free(CONN_FETCH(obj)->name);
 	sdb_object_deref(SDB_OBJ(CONN_FETCH(obj)->filter));

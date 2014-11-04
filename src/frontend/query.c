@@ -1,6 +1,6 @@
 /*
  * SysDB - src/frontend/query.c
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2013-2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -145,7 +145,8 @@ sdb_fe_fetch(sdb_conn_t *conn)
 	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(type),
 			conn->cmd_len - sizeof(type));
 	name[sizeof(name) - 1] = '\0';
-	return sdb_fe_exec_fetch(conn, type, name, /* filter = */ NULL);
+	/* TODO: support other types besides hosts */
+	return sdb_fe_exec_fetch(conn, type, name, NULL, /* filter = */ NULL);
 } /* sdb_fe_fetch */
 
 int
@@ -240,7 +241,7 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 			if (CONN_FETCH(node)->filter)
 				filter = CONN_FETCH(node)->filter->matcher;
 			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->type,
-					CONN_FETCH(node)->name, filter);
+					CONN_FETCH(node)->host, CONN_FETCH(node)->name, filter);
 		case CONNECTION_LIST:
 			if (CONN_LIST(node)->filter)
 				filter = CONN_LIST(node)->filter->matcher;
@@ -265,32 +266,47 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 } /* sdb_fe_exec */
 
 int
-sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
-		sdb_store_matcher_t *filter)
+sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
+		const char *hostname, const char *name, sdb_store_matcher_t *filter)
 {
-	sdb_store_obj_t *host;
 	uint32_t res_type = htonl(CONNECTION_FETCH);
+
+	sdb_store_obj_t *host;
+	sdb_store_obj_t *obj;
 
 	sdb_store_json_formatter_t *f;
 	sdb_strbuf_t *buf;
 
-	/* XXX: support other types */
-	if (type != SDB_HOST) {
-		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
-				"in FETCH command", type);
-		sdb_strbuf_sprintf(conn->errbuf,
-				"FETCH: Invalid object type %d", type);
+	if ((! hostname) || ((type == SDB_HOST) && name)
+			|| ((type != SDB_HOST) && (! name))) {
+		/* This is a programming error, not something the client did wrong */
+		sdb_strbuf_sprintf(conn->errbuf, "INTERNAL ERROR: invalid "
+				"arguments to sdb_fe_exec_fetch(%s, %s, %s)",
+				SDB_STORE_TYPE_TO_NAME(type), hostname, name);
 		return -1;
 	}
 
-	host = sdb_store_get_host(name);
+	host = sdb_store_get_host(hostname);
 	if ((! host) || (filter
 				&& (! sdb_store_matcher_matches(filter, host, NULL)))) {
-		sdb_log(SDB_LOG_DEBUG, "frontend: Failed to fetch host '%s': "
-				"not found", name);
-
-		sdb_strbuf_sprintf(conn->errbuf, "Host %s not found", name);
+		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch %s %s: "
+				"host %s not found", SDB_STORE_TYPE_TO_NAME(type),
+				name, hostname);
 		return -1;
+	}
+	if (type == SDB_HOST) {
+		obj = host;
+	}
+	else {
+		obj = sdb_store_get_child(host, type, name);
+		if ((! obj) || (filter
+					&& (! sdb_store_matcher_matches(filter, obj, NULL)))) {
+			sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch %s %s.%s: "
+					"%s not found", SDB_STORE_TYPE_TO_NAME(type),
+					hostname, name, name);
+			return -1;
+		}
+		sdb_object_deref(SDB_OBJ(host));
 	}
 
 	buf = sdb_strbuf_create(1024);
@@ -302,7 +318,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
-		sdb_object_deref(SDB_OBJ(host));
+		sdb_object_deref(SDB_OBJ(obj));
 		return -1;
 	}
 	f = sdb_store_json_formatter(buf, type, /* flags = */ 0);
@@ -314,18 +330,19 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
-		sdb_object_deref(SDB_OBJ(host));
+		sdb_object_deref(SDB_OBJ(obj));
 		return -1;
 	}
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_json_emit_full(f, host, filter)) {
+	if (sdb_store_json_emit_full(f, obj, filter)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
-				"host '%s' to JSON", name);
+				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
+				hostname, name);
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		sdb_strbuf_destroy(buf);
 		free(f);
-		sdb_object_deref(SDB_OBJ(host));
+		sdb_object_deref(SDB_OBJ(obj));
 		return -1;
 	}
 	sdb_store_json_finish(f);
@@ -334,7 +351,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type, const char *name,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	free(f);
-	sdb_object_deref(SDB_OBJ(host));
+	sdb_object_deref(SDB_OBJ(obj));
 	return 0;
 } /* sdb_fe_exec_fetch */
 
