@@ -59,7 +59,14 @@ enum {
 		: ((t) == SDB_TYPE_STRING) ? "STRING" \
 		: ((t) == SDB_TYPE_DATETIME) ? "DATETIME" \
 		: ((t) == SDB_TYPE_BINARY) ? "BINARY" \
-		: ((t) == SDB_TYPE_REGEX) ? "REGEX" : "UNKNOWN")
+		: ((t) == SDB_TYPE_REGEX) ? "REGEX" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_INTEGER)) ? "[]INTEGER" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL)) ? "[]DECIMAL" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_STRING)) ? "[]STRING" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_DATETIME)) ? "[]DATETIME" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_BINARY)) ? "[]BINARY" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_REGEX)) ? "[]REGEX" \
+		: "UNKNOWN")
 
 union sdb_datum;
 typedef union sdb_datum sdb_datum_t;
