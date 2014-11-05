@@ -27,9 +27,11 @@
 
 #include "sysdb.h"
 
-#include <core/store-private.h>
-#include <frontend/connection-private.h>
-#include <frontend/parser.h>
+#include "core/store-private.h"
+#include "frontend/connection-private.h"
+#include "frontend/parser.h"
+#include "utils/error.h"
+#include "utils/strbuf.h"
 
 #include <assert.h>
 
@@ -37,11 +39,25 @@
  * private helper functions
  */
 
-static int
-analyze_matcher(int context, sdb_store_matcher_t *m)
+static void
+iter_error(sdb_strbuf_t *errbuf, int op, int oper, int context)
 {
-	int status = 0;
+	sdb_strbuf_sprintf(errbuf, "Cannot use %s %s in %s context",
+			MATCHER_SYM(op), SDB_STORE_TYPE_TO_NAME(oper),
+			SDB_STORE_TYPE_TO_NAME(context));
+} /* iter_error */
 
+static void
+cmp_error(sdb_strbuf_t *errbuf, int op, int left, int right)
+{
+	sdb_strbuf_sprintf(errbuf, "Invalid operator %s for types %s and %s",
+			MATCHER_SYM(op), SDB_TYPE_TO_STRING(left),
+			SDB_TYPE_TO_STRING(right));
+} /* iter_error */
+
+static int
+analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
+{
 	if (! m)
 		return 0;
 
@@ -49,39 +65,49 @@ analyze_matcher(int context, sdb_store_matcher_t *m)
 		case MATCHER_OR:
 		case MATCHER_AND:
 			assert(OP_M(m)->left && OP_M(m)->right);
-			if (analyze_matcher(context, OP_M(m)->left))
-				status = -1;
-			if (analyze_matcher(context, OP_M(m)->right))
-				status = -1;
+			if (analyze_matcher(context, OP_M(m)->left, errbuf))
+				return -1;
+			if (analyze_matcher(context, OP_M(m)->right, errbuf))
+				return -1;
 			break;
 
 		case MATCHER_NOT:
 			assert(UOP_M(m)->op);
-			if (analyze_matcher(context, UOP_M(m)->op))
-				status = -1;
+			if (analyze_matcher(context, UOP_M(m)->op, errbuf))
+				return -1;
 			break;
 
 		case MATCHER_ANY:
 		case MATCHER_ALL:
 			assert(ITER_M(m)->m);
-			if (ITER_M(m)->type == context)
-				status = -1;
 			if ((context != SDB_HOST)
 					&& (context != SDB_SERVICE)
-					&& (context != SDB_METRIC))
-				status = -1;
+					&& (context != SDB_METRIC)) {
+				iter_error(errbuf, m->type, ITER_M(m)->type, context);
+				return -1;
+			}
+			if (ITER_M(m)->type == context) {
+				iter_error(errbuf, m->type, ITER_M(m)->type, context);
+				return -1;
+			}
 			if ((ITER_M(m)->type != SDB_SERVICE)
 					&& (ITER_M(m)->type != SDB_METRIC)
-					&& (ITER_M(m)->type != SDB_ATTRIBUTE))
-				status = -1;
+					&& (ITER_M(m)->type != SDB_ATTRIBUTE)) {
+				iter_error(errbuf, m->type, ITER_M(m)->type, context);
+				return -1;
+			}
 			if ((context == SDB_SERVICE)
-					&& (ITER_M(m)->type == SDB_METRIC))
-				status = -1;
+					&& (ITER_M(m)->type == SDB_METRIC)) {
+				iter_error(errbuf, m->type, ITER_M(m)->type, context);
+				return -1;
+			}
 			else if ((context == SDB_METRIC)
-					&& (ITER_M(m)->type == SDB_SERVICE))
-				status = -1;
-			if (analyze_matcher(ITER_M(m)->type, ITER_M(m)->m))
-				status = -1;
+					&& (ITER_M(m)->type == SDB_SERVICE)) {
+				iter_error(errbuf, m->type, ITER_M(m)->type, context);
+				return -1;
+			}
+			if (analyze_matcher(ITER_M(m)->type, ITER_M(m)->m, errbuf))
+				return -1;
 			break;
 
 		case MATCHER_LT:
@@ -92,20 +118,32 @@ analyze_matcher(int context, sdb_store_matcher_t *m)
 		case MATCHER_GT:
 			assert(CMP_M(m)->left && CMP_M(m)->right);
 			if ((CMP_M(m)->left->data_type > 0)
-					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY))
-				status = -1;
+					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
+				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+						CMP_M(m)->right->data_type);
+				return -1;
+			}
 			if ((CMP_M(m)->right->data_type > 0)
-					&& (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY))
-				status = -1;
+					&& (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY)) {
+				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+						CMP_M(m)->right->data_type);
+				return -1;
+			}
 			break;
 
 		case MATCHER_IN:
 			if ((CMP_M(m)->left->data_type > 0)
-					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY))
-				status = -1;
+					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
+				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+						CMP_M(m)->right->data_type);
+				return -1;
+			}
 			if ((CMP_M(m)->right->data_type > 0)
-					&& (! (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY)))
-				status = -1;
+					&& (! (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY))) {
+				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+						CMP_M(m)->right->data_type);
+				return -1;
+			}
 			break;
 
 		case MATCHER_REGEX:
@@ -113,8 +151,11 @@ analyze_matcher(int context, sdb_store_matcher_t *m)
 			/* all types are supported for the left operand */
 			if ((CMP_M(m)->right->data_type > 0)
 					&& (CMP_M(m)->right->data_type != SDB_TYPE_REGEX)
-					&& (CMP_M(m)->right->data_type != SDB_TYPE_STRING))
-				status = -1;
+					&& (CMP_M(m)->right->data_type != SDB_TYPE_STRING)) {
+				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+						CMP_M(m)->right->data_type);
+				return -1;
+			}
 			break;
 
 		case MATCHER_ISNULL:
@@ -122,9 +163,10 @@ analyze_matcher(int context, sdb_store_matcher_t *m)
 			break;
 
 		default:
+			sdb_strbuf_sprintf(errbuf, "Unknown matcher type %d", m->type);
 			return -1;
 	}
-	return status;
+	return 0;
 } /* analyze_matcher */
 
 /*
@@ -132,7 +174,7 @@ analyze_matcher(int context, sdb_store_matcher_t *m)
  */
 
 int
-sdb_fe_analyze(sdb_conn_node_t *node)
+sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 {
 	sdb_store_matcher_t *m = NULL, *filter = NULL;
 	int context = -1;
@@ -145,9 +187,15 @@ sdb_fe_analyze(sdb_conn_node_t *node)
 	 * later, this may be turned into one of multiple AST visitors. */
 	if (node->cmd == CONNECTION_FETCH) {
 		conn_fetch_t *fetch = CONN_FETCH(node);
-		if (((fetch->type == SDB_HOST) && fetch->name)
-				|| ((fetch->type != SDB_HOST) && (! fetch->name)))
+		if ((fetch->type == SDB_HOST) && fetch->name) {
+			sdb_strbuf_sprintf(errbuf, "Unexpected STRING '%s'", fetch->name);
 			return -1;
+		}
+		if ((fetch->type != SDB_HOST) && (! fetch->name)) {
+			sdb_strbuf_sprintf(errbuf, "Missing %s name",
+					SDB_STORE_TYPE_TO_NAME(fetch->type));
+			return -1;
+		}
 		if (fetch->filter)
 			filter = fetch->filter->matcher;
 		context = fetch->type;
@@ -169,9 +217,9 @@ sdb_fe_analyze(sdb_conn_node_t *node)
 	else
 		return -1;
 
-	if (analyze_matcher(context, m))
+	if (analyze_matcher(context, m, errbuf))
 		status = -1;
-	if (analyze_matcher(-1, filter))
+	if (analyze_matcher(-1, filter, errbuf))
 		status = -1;
 	return status;
 } /* sdb_fe_analyze */

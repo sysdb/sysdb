@@ -208,12 +208,15 @@ sdb_fe_lookup(sdb_conn_t *conn)
 
 	/* run analyzer separately; parse_matcher is missing
 	 * the right context to do so */
-	if (sdb_fe_analyze(SDB_CONN_NODE(&node))) {
+	if (sdb_fe_analyze(SDB_CONN_NODE(&node), conn->errbuf)) {
 		char expr[matcher_len + 1];
+		char err[sdb_strbuf_len(conn->errbuf) + sizeof(expr) + 64];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
-		sdb_strbuf_sprintf(conn->errbuf, "Failed to verify "
-				"lookup condition '%s'", expr);
+		snprintf(err, sizeof(err), "Failed to parse "
+				"lookup condition '%s': %s", expr,
+				sdb_strbuf_string(conn->errbuf));
+		sdb_strbuf_sprintf(conn->errbuf, "%s", err);
 		status = -1;
 	}
 	else

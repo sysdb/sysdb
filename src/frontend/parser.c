@@ -98,10 +98,7 @@ sdb_fe_parse(const char *query, int len, sdb_strbuf_t *errbuf)
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_conn_node_t *node;
 		node = SDB_CONN_NODE(sdb_llist_iter_get_next(iter));
-		if (sdb_fe_analyze(node)) {
-			/* TODO: pass on errbuf to the analyzer */
-			sdb_strbuf_sprintf(errbuf, "Failed to verify "
-					"query '%s'", query);
+		if (sdb_fe_analyze(node, errbuf)) {
 			sdb_llist_iter_destroy(iter);
 			sdb_llist_destroy(yyextra.parsetree);
 			return NULL;

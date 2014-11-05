@@ -76,14 +76,15 @@ sdb_fe_parse_expr(const char *expr, int len, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_fe_analyze:
- * Analyze a parsed node, checking for semantical errors.
+ * Analyze a parsed node, checking for semantical errors. Error messages will
+ * be written to the string buffer, if provided.
  *
  * Returns:
  *  - 0 if the node is semantically correct
  *  - a negative value else
  */
 int
-sdb_fe_analyze(sdb_conn_node_t *node);
+sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf);
 
 #ifdef __cplusplus
 } /* extern "C" */
