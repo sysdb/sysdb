@@ -410,15 +410,6 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	sdb_store_json_formatter_t *f;
 	sdb_strbuf_t *buf;
 
-	/* XXX: support other types */
-	if (type != SDB_HOST) {
-		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d "
-				"in LOOKUP command", type);
-		sdb_strbuf_sprintf(conn->errbuf,
-				"LOOKUP: Invalid object type %d", type);
-		return -1;
-	}
-
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
 		char errbuf[1024];
@@ -443,9 +434,11 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
 
-	if (sdb_store_scan(SDB_HOST, m, filter, lookup_tojson, f)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup hosts");
-		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup hosts");
+	if (sdb_store_scan(type, m, filter, lookup_tojson, f)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup %ss",
+				SDB_STORE_TYPE_TO_NAME(type));
+		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup %ss",
+				SDB_STORE_TYPE_TO_NAME(type));
 		sdb_strbuf_destroy(buf);
 		free(f);
 		return -1;
