@@ -596,6 +596,7 @@ START_TEST(test_scan)
 		  "AND attribute['y'] !~ 'x'", NULL,   2 },
 	};
 
+	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	int check, n;
 	size_t i;
 
@@ -610,16 +611,18 @@ START_TEST(test_scan)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *m, *filter = NULL;
 
-		m = sdb_fe_parse_matcher(golden_data[i].query, -1);
+		m = sdb_fe_parse_matcher(golden_data[i].query, -1, errbuf);
 		fail_unless(m != NULL,
-				"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher>",
-				golden_data[i].query);
+				"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher> "
+				"(parser error: %s)", golden_data[i].query,
+				sdb_strbuf_string(errbuf));
 
 		if (golden_data[i].filter) {
-			filter = sdb_fe_parse_matcher(golden_data[i].filter, -1);
+			filter = sdb_fe_parse_matcher(golden_data[i].filter, -1, errbuf);
 			fail_unless(filter != NULL,
 					"sdb_fe_parse_matcher(%s, -1) = NULL; "
-					"expected: <matcher>", golden_data[i].filter);
+					"expected: <matcher> (parser error: %s)",
+					golden_data[i].filter, sdb_strbuf_string(errbuf));
 		}
 
 		n = 0;
@@ -631,6 +634,8 @@ START_TEST(test_scan)
 		sdb_object_deref(SDB_OBJ(filter));
 		sdb_object_deref(SDB_OBJ(m));
 	}
+
+	sdb_strbuf_destroy(errbuf);
 }
 END_TEST
 

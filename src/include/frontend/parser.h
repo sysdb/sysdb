@@ -31,6 +31,7 @@
 #include "core/store.h"
 #include "frontend/connection.h"
 #include "utils/llist.h"
+#include "utils/strbuf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +51,9 @@ typedef struct {
 
 	/* parser mode */
 	int mode;
+
+	/* buffer for parser error messages */
+	sdb_strbuf_t *errbuf;
 } sdb_fe_yyextra_t;
 
 /* see yyscan_t */
@@ -65,10 +69,10 @@ int
 sdb_fe_yyparse(sdb_fe_yyscan_t scanner);
 
 sdb_store_matcher_t *
-sdb_fe_parse_matcher(const char *cond, int len);
+sdb_fe_parse_matcher(const char *cond, int len, sdb_strbuf_t *errbuf);
 
 sdb_store_expr_t *
-sdb_fe_parse_expr(const char *expr, int len);
+sdb_fe_parse_expr(const char *expr, int len, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_fe_analyze:

@@ -275,7 +275,7 @@ sdb_fe_scanner_init(const char *str, int len, sdb_fe_yyextra_t *yyext)
 
 	if (sdb_fe_yylex_init(&scanner)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: yylex_init failed: %s",
+		sdb_strbuf_sprintf(yyext->errbuf, "yylex_init_failed: %s",
 			sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return NULL;
 	}

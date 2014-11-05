@@ -264,22 +264,26 @@ START_TEST(test_parse)
 		  "'f' || oo",           -1, -1, 0 },
 	};
 
-	size_t i;
+	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_llist_t *check;
+
+	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_object_t *obj;
 		_Bool ok;
 
-		check = sdb_fe_parse(golden_data[i].query, golden_data[i].len);
+		check = sdb_fe_parse(golden_data[i].query,
+				golden_data[i].len, errbuf);
 		if (golden_data[i].expected < 0)
 			ok = check == 0;
 		else
 			ok = sdb_llist_len(check) == (size_t)golden_data[i].expected;
 
-		fail_unless(ok, "sdb_fe_parse(%s) = %p (len: %zu); expected: %d",
-				golden_data[i].query, check, sdb_llist_len(check),
-				golden_data[i].expected);
+		fail_unless(ok, "sdb_fe_parse(%s) = %p (len: %zu); expected: %d "
+				"(parser error: %s)", golden_data[i].query, check,
+				sdb_llist_len(check), golden_data[i].expected,
+				sdb_strbuf_string(errbuf));
 
 		if (! check)
 			continue;
@@ -298,6 +302,8 @@ START_TEST(test_parse)
 		sdb_object_deref(obj);
 		sdb_llist_destroy(check);
 	}
+
+	sdb_strbuf_destroy(errbuf);
 }
 END_TEST
 
@@ -447,11 +453,13 @@ START_TEST(test_parse_matcher)
 		{ "invalid",                      -1, -1 },
 	};
 
+	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_matcher_t *m;
-		m = sdb_fe_parse_matcher(golden_data[i].expr, golden_data[i].len);
+		m = sdb_fe_parse_matcher(golden_data[i].expr,
+				golden_data[i].len, errbuf);
 
 		if (golden_data[i].expected < 0) {
 			fail_unless(m == NULL,
@@ -461,7 +469,8 @@ START_TEST(test_parse_matcher)
 		}
 
 		fail_unless(m != NULL, "sdb_fe_parse_matcher(%s) = NULL; "
-				"expected: <matcher>", golden_data[i].expr);
+				"expected: <matcher> (parser error: %s)",
+				golden_data[i].expr, sdb_strbuf_string(errbuf));
 		fail_unless(M(m)->type == golden_data[i].expected,
 				"sdb_fe_parse_matcher(%s) returned matcher of type %d; "
 				"expected: %d", golden_data[i].expr, M(m)->type,
@@ -469,6 +478,8 @@ START_TEST(test_parse_matcher)
 
 		sdb_object_deref(SDB_OBJ(m));
 	}
+
+	sdb_strbuf_destroy(errbuf);
 }
 END_TEST
 
@@ -536,11 +547,13 @@ START_TEST(test_parse_expr)
 		{ "invalid",              -1, INT_MAX },
 	};
 
+	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_store_expr_t *e;
-		e = sdb_fe_parse_expr(golden_data[i].expr, golden_data[i].len);
+		e = sdb_fe_parse_expr(golden_data[i].expr,
+				golden_data[i].len, errbuf);
 
 		if (golden_data[i].expected == INT_MAX) {
 			fail_unless(e == NULL,
@@ -550,7 +563,8 @@ START_TEST(test_parse_expr)
 		}
 
 		fail_unless(e != NULL, "sdb_fe_parse_expr(%s) = NULL; "
-				"expected: <expr>", golden_data[i].expr);
+				"expected: <expr> (parser error: %s)",
+				golden_data[i].expr, sdb_strbuf_string(errbuf));
 		fail_unless(e->type == golden_data[i].expected,
 				"sdb_fe_parse_expr(%s) returned expression of type %d; "
 				"expected: %d", golden_data[i].expr, e->type,
@@ -558,6 +572,8 @@ START_TEST(test_parse_expr)
 
 		sdb_object_deref(SDB_OBJ(e));
 	}
+
+	sdb_strbuf_destroy(errbuf);
 }
 END_TEST
 

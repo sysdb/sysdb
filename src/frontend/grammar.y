@@ -72,6 +72,9 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 /* quick access to the parser mode */
 #define parser_mode sdb_fe_yyget_extra(scanner)->mode
 
+/* quick access to the parser's error buffer */
+#define errbuf sdb_fe_yyget_extra(scanner)->errbuf
+
 #define MODE_TO_STRING(m) \
 	(((m) == SDB_PARSE_DEFAULT) ? "statement" \
 		: ((m) == SDB_PARSE_COND) ? "condition" \
@@ -653,14 +656,17 @@ void
 sdb_fe_yyerror(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *msg)
 {
 	sdb_log(SDB_LOG_ERR, "frontend: parse error: %s", msg);
+	sdb_strbuf_sprintf(errbuf, "%s", msg);
 } /* sdb_fe_yyerror */
 
 void
 sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...)
 {
-	va_list ap;
+	va_list ap, aq;
 	va_start(ap, fmt);
+	va_copy(aq, ap);
 	sdb_vlog(SDB_LOG_ERR, fmt, ap);
+	sdb_strbuf_vsprintf(errbuf, "%s", aq);
 	va_end(ap);
 } /* sdb_fe_yyerrorf */
 

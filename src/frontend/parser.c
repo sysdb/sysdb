@@ -34,7 +34,9 @@
 #include "core/store.h"
 
 #include "utils/llist.h"
+#include "utils/strbuf.h"
 
+#include <assert.h>
 #include <string.h>
 
 /*
@@ -43,17 +45,23 @@
 
 static int
 scanner_init(const char *input, int len,
-		sdb_fe_yyscan_t *scanner, sdb_fe_yyextra_t *extra)
+		sdb_fe_yyscan_t *scanner, sdb_fe_yyextra_t *extra,
+		sdb_strbuf_t *errbuf)
 {
-	if (! input)
+	if (! input) {
+		sdb_strbuf_sprintf(errbuf, "Missing scanner input");
 		return -1;
+	}
 
 	memset(extra, 0, sizeof(*extra));
 	extra->parsetree = sdb_llist_create();
 	extra->mode = SDB_PARSE_DEFAULT;
+	extra->errbuf = errbuf;
 
-	if (! extra->parsetree)
+	if (! extra->parsetree) {
+		sdb_strbuf_sprintf(errbuf, "Failed to allocate parse-tree");
 		return -1;
+	}
 
 	*scanner = sdb_fe_scanner_init(input, len, extra);
 	if (! scanner) {
@@ -68,14 +76,14 @@ scanner_init(const char *input, int len,
  */
 
 sdb_llist_t *
-sdb_fe_parse(const char *query, int len)
+sdb_fe_parse(const char *query, int len, sdb_strbuf_t *errbuf)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
 	sdb_llist_iter_t *iter;
 	int yyres;
 
-	if (scanner_init(query, len, &scanner, &yyextra))
+	if (scanner_init(query, len, &scanner, &yyextra, errbuf))
 		return NULL;
 
 	yyres = sdb_fe_yyparse(scanner);
@@ -91,6 +99,9 @@ sdb_fe_parse(const char *query, int len)
 		sdb_conn_node_t *node;
 		node = SDB_CONN_NODE(sdb_llist_iter_get_next(iter));
 		if (sdb_fe_analyze(node)) {
+			/* TODO: pass on errbuf to the analyzer */
+			sdb_strbuf_sprintf(errbuf, "Failed to verify "
+					"query '%s'", query);
 			sdb_llist_iter_destroy(iter);
 			sdb_llist_destroy(yyextra.parsetree);
 			return NULL;
@@ -101,7 +112,7 @@ sdb_fe_parse(const char *query, int len)
 } /* sdb_fe_parse */
 
 sdb_store_matcher_t *
-sdb_fe_parse_matcher(const char *cond, int len)
+sdb_fe_parse_matcher(const char *cond, int len, sdb_strbuf_t *errbuf)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
@@ -111,7 +122,7 @@ sdb_fe_parse_matcher(const char *cond, int len)
 
 	int yyres;
 
-	if (scanner_init(cond, len, &scanner, &yyextra))
+	if (scanner_init(cond, len, &scanner, &yyextra, errbuf))
 		return NULL;
 
 	yyextra.mode = SDB_PARSE_COND;
@@ -126,16 +137,14 @@ sdb_fe_parse_matcher(const char *cond, int len)
 
 	node = SDB_CONN_NODE(sdb_llist_get(yyextra.parsetree, 0));
 	if (! node) {
+		sdb_strbuf_sprintf(errbuf, "Empty matcher expression '%s'", cond);
 		sdb_llist_destroy(yyextra.parsetree);
 		return NULL;
 	}
 
-	if (node->cmd == CONNECTION_MATCHER) {
-		m = CONN_MATCHER(node)->matcher;
-		CONN_MATCHER(node)->matcher = NULL;
-	}
-	else
-		m = NULL;
+	assert(node->cmd == CONNECTION_MATCHER);
+	m = CONN_MATCHER(node)->matcher;
+	CONN_MATCHER(node)->matcher = NULL;
 
 	sdb_llist_destroy(yyextra.parsetree);
 	sdb_object_deref(SDB_OBJ(node));
@@ -143,7 +152,7 @@ sdb_fe_parse_matcher(const char *cond, int len)
 } /* sdb_fe_parse_matcher */
 
 sdb_store_expr_t *
-sdb_fe_parse_expr(const char *expr, int len)
+sdb_fe_parse_expr(const char *expr, int len, sdb_strbuf_t *errbuf)
 {
 	sdb_fe_yyscan_t scanner;
 	sdb_fe_yyextra_t yyextra;
@@ -153,7 +162,7 @@ sdb_fe_parse_expr(const char *expr, int len)
 
 	int yyres;
 
-	if (scanner_init(expr, len, &scanner, &yyextra))
+	if (scanner_init(expr, len, &scanner, &yyextra, errbuf))
 		return NULL;
 
 	yyextra.mode = SDB_PARSE_EXPR;
@@ -168,16 +177,14 @@ sdb_fe_parse_expr(const char *expr, int len)
 
 	node = SDB_CONN_NODE(sdb_llist_get(yyextra.parsetree, 0));
 	if (! node) {
+		sdb_strbuf_sprintf(errbuf, "Empty expression '%s'", expr);
 		sdb_llist_destroy(yyextra.parsetree);
 		return NULL;
 	}
 
-	if (node->cmd == CONNECTION_EXPR) {
-		e = CONN_EXPR(node)->expr;
-		CONN_EXPR(node)->expr = NULL;
-	}
-	else
-		e = NULL;
+	assert(node->cmd == CONNECTION_EXPR);
+	e = CONN_EXPR(node)->expr;
+	CONN_EXPR(node)->expr = NULL;
 
 	sdb_llist_destroy(yyextra.parsetree);
 	sdb_object_deref(SDB_OBJ(node));

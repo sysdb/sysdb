@@ -73,13 +73,13 @@ sdb_fe_query(sdb_conn_t *conn)
 		return -1;
 
 	parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
-			(int)conn->cmd_len);
+			(int)conn->cmd_len, conn->errbuf);
 	if (! parsetree) {
 		char query[conn->cmd_len + 1];
 		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
 		query[sizeof(query) - 1] = '\0';
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s'",
-				query);
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse query '%s': %s",
+				query, sdb_strbuf_string(conn->errbuf));
 		return -1;
 	}
 
@@ -192,13 +192,14 @@ sdb_fe_lookup(sdb_conn_t *conn)
 
 	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
 	matcher_len = conn->cmd_len - sizeof(uint32_t);
-	m = sdb_fe_parse_matcher(matcher, (int)matcher_len);
+	m = sdb_fe_parse_matcher(matcher, (int)matcher_len, conn->errbuf);
 	if (! m) {
 		char expr[matcher_len + 1];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
-				"lookup condition '%s'", expr);
+				"lookup condition '%s': %s", expr,
+				sdb_strbuf_string(conn->errbuf));
 		return -1;
 	}
 
@@ -211,7 +212,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 		char expr[matcher_len + 1];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to verify "
+		sdb_strbuf_sprintf(conn->errbuf, "Failed to verify "
 				"lookup condition '%s'", expr);
 		status = -1;
 	}
