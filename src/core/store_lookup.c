@@ -93,16 +93,20 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
 
-	/* TODO: support all object types */
-	if (obj->type != SDB_HOST)
-		return 0;
-
-	if (ITER_M(m)->type == SDB_SERVICE)
-		iter = sdb_avltree_get_iter(HOST(obj)->services);
-	else if (ITER_M(m)->type == SDB_METRIC)
-		iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-	else if (ITER_M(m)->type == SDB_ATTRIBUTE)
-		iter = sdb_avltree_get_iter(HOST(obj)->attributes);
+	if (obj->type == SDB_HOST) {
+		if (ITER_M(m)->type == SDB_SERVICE)
+			iter = sdb_avltree_get_iter(HOST(obj)->services);
+		else if (ITER_M(m)->type == SDB_METRIC)
+			iter = sdb_avltree_get_iter(HOST(obj)->metrics);
+		else if (ITER_M(m)->type == SDB_ATTRIBUTE)
+			iter = sdb_avltree_get_iter(HOST(obj)->attributes);
+	} else if (obj->type == SDB_SERVICE) {
+		if (ITER_M(m)->type == SDB_ATTRIBUTE)
+			iter = sdb_avltree_get_iter(SVC(obj)->attributes);
+	} else if (obj->type == SDB_METRIC) {
+		if (ITER_M(m)->type == SDB_ATTRIBUTE)
+			iter = sdb_avltree_get_iter(METRIC(obj)->attributes);
+	}
 
 	status = all;
 	while (sdb_avltree_iter_has_next(iter)) {
