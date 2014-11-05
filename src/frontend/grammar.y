@@ -323,13 +323,11 @@ list_statement:
  * Returns detailed information about <type> matching condition.
  */
 lookup_statement:
-	LOOKUP HOSTS_T matching_clause filter_clause
+	LOOKUP object_type_plural matching_clause filter_clause
 		{
-			/* TODO: support other types as well */
-
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_lookup_t, conn_lookup_destroy));
-			CONN_LOOKUP($$)->type = SDB_HOST;
+			CONN_LOOKUP($$)->type = $2;
 			CONN_LOOKUP($$)->matcher = CONN_MATCHER($3);
 			CONN_LOOKUP($$)->filter = CONN_MATCHER($4);
 			$$->cmd = CONNECTION_LOOKUP;
@@ -519,8 +517,9 @@ expression:
 	|
 	HOST_T
 		{
-			/* TODO: this only works as long as queries
-			 * are limited to hosts */
+			/* XXX: this doesn't work correctly when not
+			 * querying hosts => use <type>.<field> instead
+			 * and let the analyzer verify <type> */
 			$$ = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
 		}
 	|
