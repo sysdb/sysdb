@@ -76,35 +76,35 @@ START_TEST(test_parse)
 
 		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
+		  "name = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
-		  "host = 'host'",       -1,  1, CONNECTION_LOOKUP },
+		  "name = 'host'",       -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' AND "
+		  "name =~ 'p' AND "
 		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
-		  "host =~ 'p' AND "
+		  "name =~ 'p' AND "
 		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' AND "
+		  "name =~ 'p' AND "
 		  "ANY service =~ 'p' OR "
 		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
-		  "host =~ 'p' AND "
+		  "name =~ 'p' AND "
 		  "ANY service =~ 'p' OR "
 		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' "
+		  "name =~ 'p' "
 		  "FILTER age > 1D",    -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' "
+		  "name =~ 'p' "
 		  "FILTER age > 1D AND "
 		  "interval < 240s" ,   -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' "
+		  "name =~ 'p' "
 		  "FILTER NOT age>1D",  -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host =~ 'p' "
+		  "name =~ 'p' "
 		  "FILTER age>"
 		  "interval",           -1,   1, CONNECTION_LOOKUP },
 		{ "LOOKUP services",    -1,   1, CONNECTION_LOOKUP },
@@ -128,15 +128,15 @@ START_TEST(test_parse)
 
 		/* string constants */
 		{ "LOOKUP hosts MATCHING "
-		  "host = ''''",         -1,  1, CONNECTION_LOOKUP },
+		  "name = ''''",         -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host = '''foo'",      -1,  1, CONNECTION_LOOKUP },
+		  "name = '''foo'",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host = 'f''oo'",      -1,  1, CONNECTION_LOOKUP },
+		  "name = 'f''oo'",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host = 'foo'''",      -1,  1, CONNECTION_LOOKUP },
+		  "name = 'foo'''",      -1,  1, CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "host = '''",          -1, -1, 0 },
+		  "name = '''",          -1, -1, 0 },
 
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
@@ -241,11 +241,11 @@ START_TEST(test_parse)
 		{ "LIST",                -1, -1, 0 },
 		{ "LIST foo",            -1, -1, 0 },
 		{ "LIST hosts MATCHING "
-		  "host = 'host'",       -1, -1, 0 },
+		  "name = 'host'",       -1, -1, 0 },
 		{ "LIST foo FILTER "
 		  "age > 60s",           -1, -1, 0 },
 		{ "FETCH host 'host' MATCHING "
-		  "host = 'host'",       -1, -1, 0 },
+		  "name = 'host'",       -1, -1, 0 },
 		{ "FETCH service 'host'",-1, -1, 0 },
 		{ "FETCH metric 'host'", -1, -1, 0 },
 		{ "FETCH host "
@@ -256,11 +256,11 @@ START_TEST(test_parse)
 
 		{ "LOOKUP foo",          -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
-		  "host = 'host'",       -1, -1, 0 },
+		  "name = 'host'",       -1, -1, 0 },
 		{ "LOOKUP foo FILTER "
 		  "age > 60s",           -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
-		  "host = 'host' FILTER "
+		  "name = 'host' FILTER "
 		  "age > 60s",           -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] <= "
@@ -339,17 +339,17 @@ START_TEST(test_parse_matcher)
 		{ "",                             -1, -1 },
 
 		/* match hosts by name */
-		{ "host < 'localhost'",           -1,  MATCHER_LT },
-		{ "host <= 'localhost'",          -1,  MATCHER_LE },
-		{ "host = 'localhost'",           -1,  MATCHER_EQ },
-		{ "host != 'localhost'",          -1,  MATCHER_NE },
-		{ "host >= 'localhost'",          -1,  MATCHER_GE },
-		{ "host > 'localhost'",           -1,  MATCHER_GT },
-		{ "host =~ 'host'",               -1,  MATCHER_REGEX },
-		{ "host !~ 'host'",               -1,  MATCHER_NREGEX },
-		{ "host = 'localhost' -- foo",    -1,  MATCHER_EQ },
-		{ "host = 'host' <garbage>",      13,  MATCHER_EQ },
-		{ "host &^ 'localhost'",          -1,  -1 },
+		{ "name < 'localhost'",           -1,  MATCHER_LT },
+		{ "name <= 'localhost'",          -1,  MATCHER_LE },
+		{ "name = 'localhost'",           -1,  MATCHER_EQ },
+		{ "name != 'localhost'",          -1,  MATCHER_NE },
+		{ "name >= 'localhost'",          -1,  MATCHER_GE },
+		{ "name > 'localhost'",           -1,  MATCHER_GT },
+		{ "name =~ 'host'",               -1,  MATCHER_REGEX },
+		{ "name !~ 'host'",               -1,  MATCHER_NREGEX },
+		{ "name = 'localhost' -- foo",    -1,  MATCHER_EQ },
+		{ "name = 'host' <garbage>",      13,  MATCHER_EQ },
+		{ "name &^ 'localhost'",          -1,  -1 },
 		/* match hosts by service */
 		{ "ANY service < 'name'",         -1,  MATCHER_ANY },
 		{ "ANY service <= 'name'",        -1,  MATCHER_ANY },
@@ -380,11 +380,11 @@ START_TEST(test_parse_matcher)
 		{ "ANY attribute !~ 'pattern'",   -1,  MATCHER_ANY },
 		{ "ANY attribute &^ 'pattern'",   -1,  -1 },
 		/* composite expressions */
-		{ "host =~ 'pattern' AND "
+		{ "name =~ 'pattern' AND "
 		  "ANY service =~ 'pattern'",     -1,  MATCHER_AND },
-		{ "host =~ 'pattern' OR "
+		{ "name =~ 'pattern' OR "
 		  "ANY service =~ 'pattern'",     -1,  MATCHER_OR },
-		{ "NOT host = 'host'",            -1,  MATCHER_NOT },
+		{ "NOT name = 'host'",            -1,  MATCHER_NOT },
 		/* numeric expressions */
 		{ "attribute['foo'] < 123",       -1,  MATCHER_LT },
 		{ "attribute['foo'] <= 123",      -1,  MATCHER_LE },
@@ -444,27 +444,27 @@ START_TEST(test_parse_matcher)
 		{ "'be' IN backend",              -1,  MATCHER_IN },
 
 		/* check operator precedence */
-		{ "host = 'name' OR "
+		{ "name = 'name' OR "
 		  "ANY service = 'name' AND "
 		  "ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
-		{ "host = 'name' AND "
+		{ "name = 'name' AND "
 		  "ANY service = 'name' AND "
 		  "ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
-		{ "host = 'name' AND "
+		{ "name = 'name' AND "
 		  "ANY service = 'name' OR "
 		  "ANY attribute = 'name' AND "
 		  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
-		{ "(host = 'name' OR "
+		{ "(name = 'name' OR "
 		  "ANY service = 'name') AND "
 		  "(ANY attribute = 'name' OR "
 		  "attribute['foo'] = 'bar')",    -1,  MATCHER_AND },
-		{ "NOT host = 'name' OR "
+		{ "NOT name = 'name' OR "
 		  "ANY service = 'name'",         -1,  MATCHER_OR },
-		{ "NOT host = 'name' OR "
+		{ "NOT name = 'name' OR "
 		  "NOT ANY service = 'name'",     -1,  MATCHER_OR },
-		{ "NOT (host = 'name' OR "
+		{ "NOT (name = 'name' OR "
 		  "NOT ANY service = 'name')",    -1,  MATCHER_NOT },
 
 		/* syntax errors */

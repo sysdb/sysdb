@@ -515,14 +515,6 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
-	HOST_T
-		{
-			/* XXX: this doesn't work correctly when not
-			 * querying hosts => use <type>.<field> instead
-			 * and let the analyzer verify <type> */
-			$$ = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-		}
-	|
 	field
 		{
 			$$ = sdb_store_expr_fieldvalue($1);

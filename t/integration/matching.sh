@@ -102,7 +102,7 @@ echo "$output" | grep -F 'host1.example.com' && exit 1
 echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING host =~ 'example.com'" )"
+	-c "LOOKUP hosts MATCHING name =~ 'example.com'" )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
 	| grep -F '"host2.example.com"'

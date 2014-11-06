@@ -525,15 +525,15 @@ START_TEST(test_scan)
 		int expected;
 	} golden_data[] = {
 		/* TODO: check the name of the expected hosts */
-		{ "host = 'a'", NULL,                  1 },
-		{ "host = 'a'", "host = 'x'",          0 }, /* filter never matches */
-		{ "host = 'a'",
+		{ "name = 'a'", NULL,                  1 },
+		{ "name = 'a'", "name = 'x'",          0 }, /* filter never matches */
+		{ "name = 'a'",
 			"NOT attribute['x'] = ''",         1 }, /* filter always matches */
-		{ "host =~ 'a|b'", NULL,               2 },
-		{ "host =~ 'host'", NULL,              0 },
-		{ "host =~ '.'", NULL,                 3 },
+		{ "name =~ 'a|b'", NULL,               2 },
+		{ "name =~ 'host'", NULL,              0 },
+		{ "name =~ '.'", NULL,                 3 },
 		{ "ANY metric = 'm1'", NULL,           2 },
-		{ "ANY metric= 'm1'", "host = 'x'",    0 }, /* filter never matches */
+		{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
 		{ "ANY metric = 'm1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY metric =~ 'm'", NULL,           2 },
@@ -546,7 +546,7 @@ START_TEST(test_scan)
 		{ "ALL metric !~ 'm'", NULL,           1 },
 		{ "ANY metric =~ 'x'", NULL,           0 },
 		{ "ANY service = 's1'", NULL,          2 },
-		{ "ANY service = 's1'", "host = 'x'",  0 }, /* filter never matches */
+		{ "ANY service = 's1'", "name = 'x'",  0 }, /* filter never matches */
 		{ "ANY service = 's1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY service =~ 's'", NULL,          2 },
@@ -554,7 +554,7 @@ START_TEST(test_scan)
 		{ "ANY service =~ 's'", "name !~ '1'", 2 },
 		{ "ANY service !~ 's'", NULL,          0 },
 		{ "ANY attribute = 'k1'", NULL,        2 },
-		{ "ANY attribute = 'k1'", "host = 'x'",0 }, /* filter never matches */
+		{ "ANY attribute = 'k1'", "name = 'x'",0 }, /* filter never matches */
 		{ "ANY attribute = 'k1'",
 			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
 		{ "ANY attribute =~ 'k'", NULL,        2 },
