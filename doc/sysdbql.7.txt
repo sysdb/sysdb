@@ -14,8 +14,8 @@ SYNOPSIS
 
   FETCH host 'some.host.name';
 
-  LOOKUP hosts MATCHING attribute[architecture] = 'amd64'
-               FILTER .age < 5 * .interval;
+  LOOKUP hosts MATCHING attribute['architecture'] = 'amd64'
+               FILTER age < 5 * interval;
 
 DESCRIPTION
 -----------
@@ -32,34 +32,33 @@ Each command is terminated by a semicolon. The following commands are
 available to retrieve information from SysDB:
 
 *LIST* hosts|services|metrics [*FILTER* '<filter_condition>']::
-Retrieve a sorted (by name) list of all hosts currently stored in SysDB along
-with their services or metrics if requested. The return value is a list of
-hosts where each host specification includes its name, the timestamp of the
-last update of the object known to SysDB and an approximation of the interval
-with which the host was updated. When listing services or metrics, the
-respective objects will be included for each host as well. If a filter
+Retrieve a sorted (by name) list of all objects of the specified type
+currently stored in SysDB. The return value is a list of objects including
+their names, the timestamp of the last update and an approximation of the
+interval with which the host was updated. When listing services or metrics,
+the respective objects will be grouped by host. If a filter condition is
+specified, only objects matching that filter will be included in the reply.
+See the section "FILTER clause" for more details about how to specify the
+search and filter conditions.
+
+*FETCH* host '<hostname>' [*FILTER* '<filter_condition>']::
+*FETCH* service|metric '<hostname>'.'<name>' [*FILTER* '<filter_condition>']::
+Retrieve detailed information about the specified object. The return value
+includes the full object including all of its attributes and child objects.
+If the named object does not exist, an error is returned. If a filter
 condition is specified, only objects matching that filter will be included in
 the reply. See the section "FILTER clause" for more details about how to
 specify the search and filter conditions.
 
-*FETCH* host '<hostname>' [*FILTER* '<filter_condition>']::
-Retrieve detailed information about the specified host object. The return
-value includes the hostname, a list of services referenced by the host, and a
-list of attributes for the host and each service. If the host does not exist,
-an error is returned. If a filter condition is specified, only objects
-matching that filter will be included in the reply. See the section "FILTER
-clause" for more details about how to specify the search and filter
-conditions.
-
-*LOOKUP* hosts *MATCHING* '<search_condition>' [*FILTER* '<filter_condition>']::
-Retrieve detailed information about all host objects matching the specified
-search condition. The return value is a list of detailed information for each
-matching host providing the same details as returned by the *FETCH* command.
-If no host matches the search criteria, it's not considered an error. Instead,
-an empty list is returned. If a filter condition is specified, only objects
-matching that filter will be included in the reply. See the sections "MATCHING
-clause" and "FILTER clause" for more details about how to specify the search
-and filter conditions.
+*LOOKUP* hosts|services|metrics [*MATCHING* '<search_condition>'] [*FILTER* '<filter_condition>']::
+Retrieve detailed information about all objects matching the specified search
+condition. The return value is a list of detailed information for each
+matching object providing the same details as returned by the *FETCH* command.
+If no object matches the search criteria, it's not considered an error.
+Instead, an empty list is returned. If a filter condition is specified, only
+objects matching that filter will be included in the reply. See the sections
+"MATCHING clause" and "FILTER clause" for more details about how to specify
+the search and filter conditions.
 
 *TIMESERIES* '<hostname>'.'<metric>' [START '<datetime>'] [END '<datetime>']::
 Retrieve a time-series for the specified host's metric. The data is retrieved
@@ -72,75 +71,9 @@ is returned.
 MATCHING clause
 ~~~~~~~~~~~~~~~
 The *MATCHING* clause in a query specifies a boolean expression which is used
-to match host objects based on their names, their attributes, or services
-referenced by the host. Each *MATCHING* clause may be made up of one or
-multiple subexpressions each matching on one criteria. The following
-subexpressions are supported by SysDB:
-
-'<field>' '<operator>' '<value>'::
-	Match a named field against the specified value. See below for what fields
-	and operators are supported.
-
-*NOT* '<subexpression>'::
-	Invert the boolean result of the specified subexpression.
-
-'<subexpression>' *AND* '<subexpression>'::
-'<subexpression>' *OR* '<subexpression>'::
-	Combine multiple subexpressions using logical AND or logical OR.
-
-The following fields may be queried:
-
-*host*::
-	The full name of the host.
-
-*service*::
-	The full service name as referenced by the host.
-
-*attribute*::
-	The full name of a host attribute.
-
-*attribute[*'<name>'*]*::
-	The value of the named host attribute. If an attribute of the specified
-	name does not exist, each comparison is treated as if the value does not
-	match. See the documentation for the *IS NULL* and *IS NOT NULL* operators
-	for ways to check if an attribute exists.
-
-'<value>' may either be a string (when matching by object names) or match the
-type of the attribute's value (when matching attribute values). Attribute
-values may either be a string, integer, decimal number, or a date-time value
-(booleans and binary data are not supported by the frontend yet). See the
-section "DATA TYPES" for more details about how specify each data-type.
-
-When comparing an attribute's value using a regular expression matcher, the
-value will be cast to a string before doing so. No other casts are supported
-at this time.
-
-The following operators may be used to match field values:
-
-*=*::
-	Evaluates to true if the field value exactly matches the specified value.
-
-*!=*::
-	Evaluates to true if the field value does not match the exact specified
-	value.
-
-*=~*::
-	Evaluates to true if the field value matches the specified regular
-	expression. SysDB uses POSIX extended regular expressions.
-
-*!~*::
-	Evalues to true if the field value does not match the specified regular
-	expression.
-
-The following operators may be used, in addition, to match attribute values:
-
-*<*, *\<=*, *>=*, *>*::
-	Evaluates to true if the attribute value is less than, less than or equal
-	to, greater than or equal to or greater than the specified value.
-
-In addition, a named attribute may be checked for existence using the *IS
-NULL* and *IS NOT NULL* operators. An attribute is considered to be *NULL* if
-it is not set for a host.
+to match objects based on their fields, attributes, or child objects. Any
+object for which the expression evaluates to true will be included in the
+result set according to the rules set by the actual query.
 
 FILTER clause
 ~~~~~~~~~~~~~
@@ -148,33 +81,135 @@ The *FILTER* clause in a query specifies a boolean expression which is used to
 filter objects included in the query's response. The filter is applied to
 hosts, services, and attributes alike and, thus, will usually be based on the
 core properties of the stored objects. The basic syntax for filter clauses is
-the same as for matching clauses (see the description about subexpressions
-above).
+the same as for matching clauses.
 
-The following fields (core properties) of stored objects may be queried:
+Expressions
+~~~~~~~~~~~
+Expressions form the basic building block for all queries. Boolean expressions
+select objects based on the values of arithmetic expressions which operate on
+object specific values (fields) or constant values.
 
-*.last_update*::
+Boolean expressions may use the following operators:
+
+'<expression>' *AND* '<expression>'::
+'<expression>' *OR* '<expression>'::
+	Evaluates to the logical AND or logical OR of the specified
+	subexpressions.
+
+*NOT* '<expression>'::
+	Invert the boolean result of the specified subexpression.
+
+'<expression>' '<cmp>' '<expression>'::
+	Compare the values of two expressions using any compare operator (see
+	below). Evaluates to either true or false. Comparing any value with a NULL
+	value always evaluates to false. The data types of the two values have to
+	match except for a few cases as noted in the documentation of the
+	respective operator.
+
+*ANY* '<object_type>' '<cmp>' '<expression>'::
+	Compares the objects of an iterable child using any compare operator.
+	Evaluates to true if any of those child objects matches or false if no
+	such children exist. Otherwise, the same rules as for other comparison
+	operations apply.
+
+*ALL* '<object_type>' '<cmp>' '<expression>'::
+	*ALL* is similar to the *ANY* operator but matches if all child objects
+	match or if no children exist.
+
+'<expression>' *IS NULL*::
+'<expression>' *IS NOT NULL*::
+	Check whether an expression evaluates to a NULL value (or not). An
+	expression evaluates to NULL if the queried object does not exist (e.g.,
+	when accessing an attribute value).
+
+'<expression>' *IN* '<expression>'::
+	Checks whether the value of the first expression is included in the value
+	of the second expression which has to be an array value (e.g., *backend*
+	field). If the second value is not an array or if the type of the first
+	value does not match the array's element type, the expression always
+	evaluates to false.
+
+Parentheses ('()') may be used around subexpressions to group them and enforce
+precedence.
+
+The following fields may be queried:
+
+*name*::
+	The canonicalized name of the object. The type of this field is string.
+
+*last_update*::
 	The timestamp of the last update of the object. This value is based on
-	information provided by the queried backend if possible.
+	information provided by the queried backend if possible. The type of this
+	field is date-time.
 
-*.age*::
-	The amount of time since the last update of the object.
+*age*::
+	The amount of time since the last update of the object. The type of this
+	field is date-time.
 
-*.interval*::
+*interval*::
 	The interval with which the object gets updated. This value is determined
 	automatically based on a moving average determined from the update
 	timestamps of an object. It depends on the update timestamps as provided
-	by the backend (if available) and SysDB's query interval.
+	by the backend (if available) and SysDB's query interval. The type of this
+	field is date-time.
 
-*.backend*::
-	The name of the backend (plugin) providing the data.
+*backend*::
+	The name of the backend (plugin) providing the data. The type of this
+	field is array of strings.
 
-The type of the *last_update*, *age*, and *interval* fields is date-time and
-the type of the *backend* field is string. All conditional operators may be
-used to compare the date-time fields (but not regular expression or *IS NULL*
-operators). The backend field may only be matched by (in)equality. Each object
-may be provided by multiple backends. The filter matches if the specified
-value matches any of them.
+*attribute[*'<name>'*]*::
+	The value of the object's named attribute. If an attribute of the
+	specified name does not exist, each comparison is treated as if the value
+	does not match. See the documentation for the *IS NULL* and *IS NOT NULL*
+	operators for ways to check if an attribute exists. The value of an
+	attribute may be of any of the supported data types. There is no schema
+	specifying each attribute's data type which means that the parser cannot
+	do any type checks. Thus, in case the data types mismatch when comparing
+	an attribute value with some other value, the two values will be cast to
+	strings before comparing them.
+
+The following logical operators are supported by SysDB. Unless otherwise
+noted, the data types of the left hand and right hand side have to match.
+
+*=*::
+	Checks two values for equality.
+
+*!=*::
+	Checks two values for inequality.
+
+*=~*::
+	Checks if a value matches a regular expression. The regex pattern has to
+	be specified as a string but the value may be of any type and will be cast
+	to a string before evaluating the regular expression. SysDB uses POSIX
+	extended regular expressions.
+
+*!~*::
+	Checks if a value does not match a regular expression. The same rules
+	apply as for the *=~* operator.
+
+*<*, *\<=*, *>=*, *>*::
+	Checks whether a value compares less than, less than or equal to, greater
+	than or equal, or greater than some other value.
+
+The following arithmetic operators are supported by SysDB. Unless otherwise 
+noted, the data types of the left hand and right hand side have to match.
+
+*+*::
+*-*::
+	Add or subtract two numeric or date-time values.
+
+***::
+*/*::
+	Multiple or divide two numeric or data-time values. A date-time value may
+	be multiplied with a numeric value or divided by a numeric value. The
+	result will then be a date-time value.
+
+*%*::
+	Modulo operator (remainder of division). Same rules for data types apply
+	as for division.
+
+*||*::
+	Concatenate string or array values.
 
 DATA TYPES
 ----------
@@ -253,7 +288,7 @@ replies look like. The replies are pretty-printed to more easily follow them.
           ...
         }]}
 
-  LOOKUP hosts MATCHING attribute[architecture] = 'amd64';
+  LOOKUP hosts MATCHING attribute['architecture'] = 'amd64';
   [{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
