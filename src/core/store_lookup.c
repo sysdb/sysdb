@@ -53,6 +53,42 @@
  * matcher implementations
  */
 
+/*
+ * cmp_expr:
+ * Compare two values using the specified matcher operator. If strcmp_fallback
+ * is enabled, compare the string values in case of a type mismatch.
+ */
+static int
+cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
+{
+	int status;
+
+	if (sdb_data_isnull(v1) || (sdb_data_isnull(v2)))
+		status = INT_MAX;
+	else if (v1->type == v2->type)
+		status = sdb_data_cmp(v1, v2);
+	else if (! strcmp_fallback)
+		status = INT_MAX;
+	else
+		status = sdb_data_strcmp(v1, v2);
+
+	if (status == INT_MAX)
+		return 0;
+	else if (op == MATCHER_LT)
+		return status < 0;
+	else if (op == MATCHER_LE)
+		return status <= 0;
+	else if (op == MATCHER_EQ)
+		return status == 0;
+	else if (op == MATCHER_NE)
+		return status != 0;
+	else if (op == MATCHER_GE)
+		return status >= 0;
+	else if (op == MATCHER_GT)
+		return status > 0;
+	return 0;
+} /* cmp_value */
+
 static int
 match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
@@ -128,102 +164,36 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return status;
 } /* match_iter */
 
-/*
- * cmp_expr:
- * Compare the values of two expressions when evaluating them using the
- * specified stored object and filter. Returns a value less than, equal to, or
- * greater than zero if the value of the first expression compares less than,
- * equal to, or greater than the value of the second expression. Returns
- * INT_MAX if any of the expressions could not be evaluated or if any of them
- * evaluated to NULL.
- */
 static int
-cmp_expr(sdb_store_expr_t *e1, sdb_store_expr_t *e2,
-		sdb_store_obj_t *obj, sdb_store_matcher_t *filter)
+match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
 {
+	sdb_store_expr_t *e1 = CMP_M(m)->left;
+	sdb_store_expr_t *e2 = CMP_M(m)->right;
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
 	int status;
 
+	assert((m->type == MATCHER_LT)
+			|| (m->type == MATCHER_LE)
+			|| (m->type == MATCHER_EQ)
+			|| (m->type == MATCHER_NE)
+			|| (m->type == MATCHER_GE)
+			|| (m->type == MATCHER_GT));
+
 	if (sdb_store_expr_eval(e1, obj, &v1, filter))
-		return INT_MAX;
+		return 0;
 	if (sdb_store_expr_eval(e2, obj, &v2, filter)) {
 		sdb_data_free_datum(&v1);
-		return INT_MAX;
+		return 0;
 	}
 
-	if (sdb_data_isnull(&v1) || (sdb_data_isnull(&v2)))
-		status = INT_MAX;
-	else if (v1.type == v2.type)
-		status = sdb_data_cmp(&v1, &v2);
-	else if ((e1->data_type >= 0) && (e2->data_type >= 0))
-		status = INT_MAX;
-	else
-		status = sdb_data_strcmp(&v1, &v2);
+	status = cmp_value(m->type, &v1, &v2,
+			(e1->data_type) < 0 || (e2->data_type < 0));
 
 	sdb_data_free_datum(&v1);
 	sdb_data_free_datum(&v2);
 	return status;
-} /* cmp_expr */
-
-static int
-match_lt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_LT);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && (status < 0);
-} /* match_lt */
-
-static int
-match_le(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_LE);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && (status <= 0);
-} /* match_le */
-
-static int
-match_eq(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_EQ);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && (! status);
-} /* match_eq */
-
-static int
-match_ne(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_NE);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && status;
-} /* match_ne */
-
-static int
-match_ge(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_GE);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && (status >= 0);
-} /* match_ge */
-
-static int
-match_gt(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	int status;
-	assert(m->type == MATCHER_GT);
-	status = cmp_expr(CMP_M(m)->left, CMP_M(m)->right, obj, filter);
-	return (status != INT_MAX) && (status > 0);
-} /* match_gt */
+} /* match_cmp */
 
 static int
 match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -341,12 +311,12 @@ matchers[] = {
 	match_unary,
 	match_iter,
 	match_iter,
-	match_lt,
-	match_le,
-	match_eq,
-	match_ne,
-	match_ge,
-	match_gt,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
 	match_in,
 	match_regex,
 	match_regex,
