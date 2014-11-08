@@ -174,6 +174,20 @@ _Bool
 sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array);
 
 /*
+ * sdb_data_array_get:
+ * Get the i-th value stored in the specified array and store an alias in
+ * 'value'. Storing an alias means that the value points to the actual array
+ * element. Do *not* free the value after using it (i.e., don't use
+ * sdb_data_free_datum).
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_data_array_get(const sdb_data_t *array, size_t i, sdb_data_t *value);
+
+/*
  * Operators supported by sdb_data_eval_expr.
  */
 enum {

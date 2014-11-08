@@ -794,6 +794,81 @@ START_TEST(test_inarray)
 }
 END_TEST
 
+START_TEST(test_array_get)
+{
+	int64_t int_values[] = { 47, 11, 64 };
+	double dec_values[] = { 12.3, 47.11, 64.0 };
+	char *string_values[] = { "foo", "bar", "qux", "baz" };
+
+	sdb_data_t int_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+		{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } }
+	};
+	sdb_data_t dec_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+		{ .array = { SDB_STATIC_ARRAY_LEN(dec_values), dec_values } }
+	};
+	sdb_data_t string_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+		{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } }
+	};
+
+	struct {
+		sdb_data_t array;
+		size_t i;
+		sdb_data_t expected;
+	} golden_data[] = {
+		{ int_array, 0, { SDB_TYPE_INTEGER, { .integer = 47 } } },
+		{ int_array, 1, { SDB_TYPE_INTEGER, { .integer = 11 } } },
+		{ int_array, 2, { SDB_TYPE_INTEGER, { .integer = 64 } } },
+		{ int_array, 3, { -1, { .integer = 0 } } },
+		{ dec_array, 0, { SDB_TYPE_DECIMAL, { .decimal = 12.3 } } },
+		{ dec_array, 1, { SDB_TYPE_DECIMAL, { .decimal = 47.11 } } },
+		{ dec_array, 2, { SDB_TYPE_DECIMAL, { .decimal = 64.0 } } },
+		{ dec_array, 3, { -1, { .integer = 0 } } },
+		{ string_array, 0, { SDB_TYPE_STRING, { .string = "foo" } } },
+		{ string_array, 1, { SDB_TYPE_STRING, { .string = "bar" } } },
+		{ string_array, 2, { SDB_TYPE_STRING, { .string = "qux" } } },
+		{ string_array, 3, { SDB_TYPE_STRING, { .string = "baz" } } },
+		{ string_array, 4, { -1, { .integer = 0 } } },
+		{ { SDB_TYPE_INTEGER, { .integer = 666 } }, 0, { -1, { .integer = 0 } } },
+		{ { SDB_TYPE_INTEGER, { .integer = 666 } }, 1, { -1, { .integer = 0 } } },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		char a_str[1024] = "", v_str[1024] = "", exp_str[1024] = "";
+		sdb_data_t value = SDB_DATA_INIT;
+		int check;
+
+		sdb_data_format(&golden_data[i].array,
+				a_str, sizeof(a_str), SDB_UNQUOTED);
+		sdb_data_format(&golden_data[i].expected,
+				exp_str, sizeof(exp_str), SDB_UNQUOTED);
+
+		check = sdb_data_array_get(&golden_data[i].array,
+				golden_data[i].i, &value);
+
+		sdb_data_format(&value, v_str, sizeof(v_str), SDB_UNQUOTED);
+
+		if (golden_data[i].expected.type < 0) {
+			fail_unless(check < 0,
+					"sdb_data_array_get(%s, %zu) = %d (%s); expected: <0",
+					a_str, golden_data[i].i, check, v_str);
+			continue;
+		}
+
+		fail_unless(check == 0,
+				"sdb_data_array_get(%s, %zu) = %d; expected: 0",
+				a_str, golden_data[i].i, check);
+		fail_unless(! sdb_data_cmp(&value, &golden_data[i].expected),
+				"sdb_data_array_get(%s, %zu) -> '%s'; expected: '%s'",
+				a_str, golden_data[i].i, v_str, exp_str);
+	}
+}
+END_TEST
+
 START_TEST(test_parse_op)
 {
 	struct {
@@ -1670,6 +1745,7 @@ core_data_suite(void)
 	tcase_add_test(tc, test_cmp);
 	tcase_add_test(tc, test_strcmp);
 	tcase_add_test(tc, test_inarray);
+	tcase_add_test(tc, test_array_get);
 	tcase_add_test(tc, test_parse_op);
 	tcase_add_test(tc, test_expr_eval);
 	tcase_add_test(tc, test_format);

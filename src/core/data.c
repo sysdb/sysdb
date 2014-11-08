@@ -651,6 +651,43 @@ sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array)
 } /* sdb_data_inarray */
 
 int
+sdb_data_array_get(const sdb_data_t *array, size_t i, sdb_data_t *value)
+{
+	sdb_data_t tmp = SDB_DATA_INIT;
+	int type;
+
+	if ((! array) || (! (array->type & SDB_TYPE_ARRAY)))
+		return -1;
+	if (i >= array->data.array.length)
+		return -1;
+
+	type = array->type & 0xff;
+	if (type == SDB_TYPE_INTEGER) {
+		int64_t *v = array->data.array.values;
+		tmp.data.integer = v[i];
+	}
+	else if (type == SDB_TYPE_DECIMAL) {
+		double *v = array->data.array.values;
+		tmp.data.decimal = v[i];
+	}
+	else if (type == SDB_TYPE_STRING) {
+		char **v = array->data.array.values;
+		tmp.data.string = v[i];
+	}
+	else {
+		/* TODO */
+		errno = ENOTSUP;
+		return -1;
+	}
+
+	if (value) {
+		*value = tmp;
+		value->type = type;
+	}
+	return 0;
+} /* sdb_data_array_get */
+
+int
 sdb_data_parse_op(const char *op)
 {
 	if (! strcmp(op, "+"))
