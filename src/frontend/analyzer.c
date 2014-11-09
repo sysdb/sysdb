@@ -127,7 +127,9 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 						&& (ITER_M(m)->m->type != MATCHER_EQ)
 						&& (ITER_M(m)->m->type != MATCHER_NE)
 						&& (ITER_M(m)->m->type != MATCHER_GE)
-						&& (ITER_M(m)->m->type != MATCHER_GT)) {
+						&& (ITER_M(m)->m->type != MATCHER_GT)
+						&& (ITER_M(m)->m->type != MATCHER_REGEX)
+						&& (ITER_M(m)->m->type != MATCHER_NREGEX)) {
 					iter_array_error(errbuf, m->type,
 							CMP_M(ITER_M(m)->m)->left->data_type,
 							ITER_M(m)->m->type,

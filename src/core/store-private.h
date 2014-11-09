@@ -138,17 +138,21 @@ enum {
 	MATCHER_NOT,
 	MATCHER_ANY,
 	MATCHER_ALL,
+	MATCHER_IN,
+
+	/* unary operators */
+	MATCHER_ISNULL,
+	MATCHER_ISNNULL,
+
+	/* ary operators */
 	MATCHER_LT,
 	MATCHER_LE,
 	MATCHER_EQ,
 	MATCHER_NE,
 	MATCHER_GE,
 	MATCHER_GT,
-	MATCHER_IN,
 	MATCHER_REGEX,
 	MATCHER_NREGEX,
-	MATCHER_ISNULL,
-	MATCHER_ISNNULL,
 };
 
 #define MATCHER_SYM(t) \
@@ -157,17 +161,17 @@ enum {
 		: ((t) == MATCHER_NOT) ? "NOT" \
 		: ((t) == MATCHER_ANY) ? "ANY" \
 		: ((t) == MATCHER_ALL) ? "ALL" \
+		: ((t) == MATCHER_IN) ? "IN" \
+		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
+		: ((t) == MATCHER_ISNNULL) ? "IS NOT NULL" \
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \
 		: ((t) == MATCHER_NE) ? "!=" \
 		: ((t) == MATCHER_GE) ? ">=" \
 		: ((t) == MATCHER_GT) ? ">" \
-		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \
-		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
-		: ((t) == MATCHER_ISNNULL) ? "IS NOT NULL" \
 		: "UNKNOWN")
 
 /* matcher base type */

@@ -59,7 +59,7 @@
  * is enabled, compare the string values in case of a type mismatch.
  */
 static int
-cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
+match_cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
 {
 	int status;
 
@@ -87,7 +87,49 @@ cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
 	else if (op == MATCHER_GT)
 		return status > 0;
 	return 0;
-} /* cmp_value */
+} /* match_cmp_value */
+
+static int
+match_regex_value(int op, sdb_data_t *v, sdb_data_t *re)
+{
+	char value[sdb_data_strlen(v) + 1];
+	int status = 0;
+
+	assert((op == MATCHER_REGEX)
+			|| (op == MATCHER_NREGEX));
+
+	if (sdb_data_isnull(v) || sdb_data_isnull(re))
+		return 0;
+
+	if (re->type == SDB_TYPE_STRING) {
+		sdb_data_t tmp = SDB_DATA_INIT;
+
+		if (sdb_data_parse(re->data.string, SDB_TYPE_REGEX, &tmp))
+			return 0;
+
+		sdb_data_free_datum(re);
+		*re = tmp;
+	}
+	else if (re->type != SDB_TYPE_REGEX)
+		return 0;
+
+	if (sdb_data_format(v, value, sizeof(value), SDB_UNQUOTED) < 0)
+		status = 0;
+	else if (! regexec(&re->data.re.regex, value, 0, NULL, 0))
+		status = 1;
+
+	if (op == MATCHER_NREGEX)
+		return !status;
+	return status;
+} /* match_regex_value */
+
+static int
+match_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
+{
+	if ((op == MATCHER_REGEX) || (op == MATCHER_NREGEX))
+		return match_regex_value(op, v1, v2);
+	return match_cmp_value(op, v1, v2, strcmp_fallback);
+} /* match_value */
 
 static int
 match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -130,8 +172,8 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	int status;
 
-	/* TODO: fully support arbitrary operators (?) */
-	if ((ITER_M(m)->m->type < MATCHER_LT) || (MATCHER_GT < ITER_M(m)->m->type))
+	if ((ITER_M(m)->m->type < MATCHER_LT)
+			|| (MATCHER_NREGEX < ITER_M(m)->m->type))
 		return 0;
 
 	e1 = CMP_M(ITER_M(m)->m)->left;
@@ -160,7 +202,7 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 				break;
 			}
 
-			if (cmp_value(ITER_M(m)->m->type, &v, &v2,
+			if (match_value(ITER_M(m)->m->type, &v, &v2,
 						(e1->data_type) < 0 || (e2->data_type < 0))) {
 				if (! all) {
 					status = 1;
@@ -250,7 +292,7 @@ match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		return 0;
 	}
 
-	status = cmp_value(m->type, &v1, &v2,
+	status = match_cmp_value(m->type, &v1, &v2,
 			(e1->data_type) < 0 || (e2->data_type < 0));
 
 	sdb_data_free_datum(&v1);
@@ -283,61 +325,26 @@ static int
 match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
-	sdb_data_t v = SDB_DATA_INIT;
+	sdb_data_t regex = SDB_DATA_INIT, v = SDB_DATA_INIT;
 	int status = 0;
-
-	regex_t regex;
-	_Bool free_regex = 0;
 
 	assert((m->type == MATCHER_REGEX)
 			|| (m->type == MATCHER_NREGEX));
 
-	if (! CMP_M(m)->right->type) {
-		assert(CMP_M(m)->right->data.type == SDB_TYPE_REGEX);
-		regex = CMP_M(m)->right->data.data.re.regex;
-	}
-	else {
-		sdb_data_t tmp = SDB_DATA_INIT;
-		char *raw;
-
-		if (sdb_store_expr_eval(CMP_M(m)->right, obj, &tmp, filter))
-			return 0;
-
-		if (tmp.type != SDB_TYPE_STRING) {
-			sdb_data_free_datum(&tmp);
-			return 0;
-		}
-
-		raw = tmp.data.string;
-		if (sdb_data_parse(raw, SDB_TYPE_REGEX, &tmp)) {
-			free(raw);
-			return 0;
-		}
-
-		regex = tmp.data.re.regex;
-		free_regex = 1;
-		free(tmp.data.re.raw);
-		free(raw);
-	}
-
-	if ((sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
-			|| (sdb_data_isnull(&v)))
-		status = INT_MAX;
-	else {
-		char value[sdb_data_strlen(&v) + 1];
-		if (sdb_data_format(&v, value, sizeof(value), SDB_UNQUOTED) < 0)
-			status = 0;
-		else if (! regexec(&regex, value, 0, NULL, 0))
-			status = 1;
-	}
-
-	if (free_regex)
-		regfree(&regex);
-	sdb_data_free_datum(&v);
-	if (status == INT_MAX)
+	if (sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
 		return 0;
-	if (m->type == MATCHER_NREGEX)
-		return !status;
+	else if (! CMP_M(m)->right->type)
+		regex = CMP_M(m)->right->data;
+	else if (sdb_store_expr_eval(CMP_M(m)->right, obj, &regex, filter)) {
+		sdb_data_free_datum(&v);
+		return 0;
+	}
+
+	status = match_regex_value(m->type, &v, &regex);
+
+	sdb_data_free_datum(&v);
+	if (CMP_M(m)->right->type)
+		sdb_data_free_datum(&regex);
 	return status;
 } /* match_regex */
 
@@ -376,17 +383,21 @@ matchers[] = {
 	match_unary,
 	match_iter,
 	match_iter,
-	match_cmp,
-	match_cmp,
-	match_cmp,
-	match_cmp,
-	match_cmp,
-	match_cmp,
 	match_in,
-	match_regex,
-	match_regex,
+
+	/* unary operators */
 	match_isnull,
 	match_isnull,
+
+	/* ary operators */
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_cmp,
+	match_regex,
+	match_regex,
 };
 
 /*
