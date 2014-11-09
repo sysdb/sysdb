@@ -49,6 +49,39 @@
 
 #include <limits.h>
 
+static int
+expr_eval2(sdb_store_expr_t *e1, sdb_data_t *v1,
+		sdb_store_expr_t *e2, sdb_data_t *v2,
+		sdb_store_obj_t *obj, sdb_store_matcher_t *filter)
+{
+	if (e1->type) {
+		if (sdb_store_expr_eval(e1, obj, v1, filter))
+			return -1;
+	}
+	else
+		*v1 = e1->data;
+	if (e2->type) {
+		if (sdb_store_expr_eval(e2, obj, v2, filter)) {
+			if (e1->type)
+				sdb_data_free_datum(v1);
+			return -1;
+		}
+	}
+	else
+		*v2 = e2->data;
+	return 0;
+} /* expr_eval2 */
+
+static void
+expr_free_datum2(sdb_store_expr_t *e1, sdb_data_t *v1,
+		sdb_store_expr_t *e2, sdb_data_t *v2)
+{
+	if (e1->type)
+		sdb_data_free_datum(v1);
+	if (e2->type)
+		sdb_data_free_datum(v2);
+} /* expr_free_datum2 */
+
 /*
  * matcher implementations
  */
@@ -179,12 +212,8 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	e1 = CMP_M(ITER_M(m)->m)->left;
 	e2 = CMP_M(ITER_M(m)->m)->right;
 
-	if (sdb_store_expr_eval(e1, obj, &v1, filter))
+	if (expr_eval2(e1, &v1, e2, &v2, obj, filter))
 		return 0;
-	if (sdb_store_expr_eval(e2, obj, &v2, filter)) {
-		sdb_data_free_datum(&v1);
-		return 0;
-	}
 
 	if ((! (v1.type & SDB_TYPE_ARRAY)) || (v2.type & SDB_TYPE_ARRAY))
 		status = 0;
@@ -216,8 +245,7 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		}
 	}
 
-	sdb_data_free_datum(&v1);
-	sdb_data_free_datum(&v2);
+	expr_free_datum2(e1, &v1, e2, &v2);
 	return status;
 } /* match_iter_array */
 
@@ -285,18 +313,13 @@ match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 			|| (m->type == MATCHER_GE)
 			|| (m->type == MATCHER_GT));
 
-	if (sdb_store_expr_eval(e1, obj, &v1, filter))
+	if (expr_eval2(e1, &v1, e2, &v2, obj, filter))
 		return 0;
-	if (sdb_store_expr_eval(e2, obj, &v2, filter)) {
-		sdb_data_free_datum(&v1);
-		return 0;
-	}
 
 	status = match_cmp_value(m->type, &v1, &v2,
 			(e1->data_type) < 0 || (e2->data_type < 0));
 
-	sdb_data_free_datum(&v1);
-	sdb_data_free_datum(&v2);
+	expr_free_datum2(e1, &v1, e2, &v2);
 	return status;
 } /* match_cmp */
 
@@ -309,15 +332,14 @@ match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	assert(m->type == MATCHER_IN);
 
-	if ((sdb_store_expr_eval(CMP_M(m)->left, obj, &value, filter))
-			|| (sdb_store_expr_eval(CMP_M(m)->right, obj, &array, filter)))
+	if (expr_eval2(CMP_M(m)->left, &value,
+				CMP_M(m)->right, &array, obj, filter))
 		status = 0;
 
 	if (status)
 		status = sdb_data_inarray(&value, &array);
 
-	sdb_data_free_datum(&value);
-	sdb_data_free_datum(&array);
+	expr_free_datum2(CMP_M(m)->left, &value, CMP_M(m)->right, &array);
 	return status;
 } /* match_in */
 
@@ -331,20 +353,12 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	assert((m->type == MATCHER_REGEX)
 			|| (m->type == MATCHER_NREGEX));
 
-	if (sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
+	if (expr_eval2(CMP_M(m)->left, &v, CMP_M(m)->right, &regex, obj, filter))
 		return 0;
-	else if (! CMP_M(m)->right->type)
-		regex = CMP_M(m)->right->data;
-	else if (sdb_store_expr_eval(CMP_M(m)->right, obj, &regex, filter)) {
-		sdb_data_free_datum(&v);
-		return 0;
-	}
 
 	status = match_regex_value(m->type, &v, &regex);
 
-	sdb_data_free_datum(&v);
-	if (CMP_M(m)->right->type)
-		sdb_data_free_datum(&regex);
+	expr_free_datum2(CMP_M(m)->left, &v, CMP_M(m)->right, &regex);
 	return status;
 } /* match_regex */
 
@@ -357,15 +371,22 @@ match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	assert((m->type == MATCHER_ISNULL) || (m->type == MATCHER_ISNNULL));
 
-	/* TODO: this might hide real errors;
-	 * improve error reporting and propagation */
-	if (sdb_store_expr_eval(ISNULL_M(m)->expr, obj, &v, filter)
-			|| sdb_data_isnull(&v))
+	if (ISNULL_M(m)->expr->type) {
+		/* TODO: this might hide real errors;
+		 * improve error reporting and propagation */
+		if (sdb_store_expr_eval(ISNULL_M(m)->expr, obj, &v, filter))
+			return 1;
+	}
+	else
+		v = ISNULL_M(m)->expr->data;
+
+	if (sdb_data_isnull(&v))
 		status = 1;
 	else
 		status = 0;
 
-	sdb_data_free_datum(&v);
+	if (ISNULL_M(m)->expr->type)
+		sdb_data_free_datum(&v);
 	if (m->type == MATCHER_ISNNULL)
 		return !status;
 	return status;
