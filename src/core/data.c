@@ -607,8 +607,6 @@ sdb_data_isnull(const sdb_data_t *datum)
 		return 1;
 	if ((datum->type == SDB_TYPE_REGEX) && (! datum->data.re.raw))
 		return 1;
-	if ((datum->type & SDB_TYPE_ARRAY) && (! datum->data.array.values))
-		return 1;
 	return 0;
 } /* sdb_data_isnull */
 

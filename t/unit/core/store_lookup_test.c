@@ -532,6 +532,8 @@ START_TEST(test_scan)
 		{ "name =~ 'a|b'", NULL,               2 },
 		{ "name =~ 'host'", NULL,              0 },
 		{ "name =~ '.'", NULL,                 3 },
+		{ "ANY backend = 'backend'", NULL,     0 },
+		{ "ALL backend = ''", NULL,            3 }, /* backend is empty */
 		{ "ANY metric = 'm1'", NULL,           2 },
 		{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
 		{ "ANY metric = 'm1'",
