@@ -119,6 +119,66 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return !sdb_store_matcher_matches(UOP_M(m)->op, obj, filter);
 } /* match_unary */
 
+/* iterate arrays: ANY/ALL <array> <cmp> <value> */
+static int
+match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	sdb_store_expr_t *e1, *e2;
+	sdb_data_t v1 = SDB_DATA_INIT;
+	sdb_data_t v2 = SDB_DATA_INIT;
+
+	int status;
+
+	/* TODO: fully support arbitrary operators (?) */
+	if ((ITER_M(m)->m->type < MATCHER_LT) || (MATCHER_GT < ITER_M(m)->m->type))
+		return 0;
+
+	e1 = CMP_M(ITER_M(m)->m)->left;
+	e2 = CMP_M(ITER_M(m)->m)->right;
+
+	if (sdb_store_expr_eval(e1, obj, &v1, filter))
+		return 0;
+	if (sdb_store_expr_eval(e2, obj, &v2, filter)) {
+		sdb_data_free_datum(&v1);
+		return 0;
+	}
+
+	if ((! (v1.type & SDB_TYPE_ARRAY)) || (v2.type & SDB_TYPE_ARRAY))
+		status = 0;
+	else if (sdb_data_isnull(&v1) || (sdb_data_isnull(&v2)))
+		status = 0;
+	else {
+		size_t i;
+		int all = (int)(m->type == MATCHER_ALL);
+
+		status = all;
+		for (i = 0; i < v1.data.array.length; ++i) {
+			sdb_data_t v = SDB_DATA_INIT;
+			if (sdb_data_array_get(&v1, i, &v)) {
+				status = 0;
+				break;
+			}
+
+			if (cmp_value(ITER_M(m)->m->type, &v, &v2,
+						(e1->data_type) < 0 || (e2->data_type < 0))) {
+				if (! all) {
+					status = 1;
+					break;
+				}
+			}
+			else if (all) {
+				status = 0;
+				break;
+			}
+		}
+	}
+
+	sdb_data_free_datum(&v1);
+	sdb_data_free_datum(&v2);
+	return status;
+} /* match_iter_array */
+
 static int
 match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
@@ -128,6 +188,9 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	int all = (int)(m->type == MATCHER_ALL);
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
+
+	if (ITER_M(m)->type == SDB_FIELD_BACKEND)
+		return match_iter_array(m, obj, filter);
 
 	if (obj->type == SDB_HOST) {
 		if (ITER_M(m)->type == SDB_SERVICE)
@@ -475,7 +538,7 @@ sdb_store_matcher_t *
 sdb_store_any_matcher(int type, sdb_store_matcher_t *m)
 {
 	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
-			&& (type != SDB_ATTRIBUTE))
+			&& (type != SDB_ATTRIBUTE) && (type != SDB_FIELD_BACKEND))
 		return NULL;
 	return M(sdb_object_create("any-matcher", iter_type,
 				MATCHER_ANY, type, m));
@@ -485,7 +548,7 @@ sdb_store_matcher_t *
 sdb_store_all_matcher(int type, sdb_store_matcher_t *m)
 {
 	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
-			&& (type != SDB_ATTRIBUTE))
+			&& (type != SDB_ATTRIBUTE) && (type != SDB_FIELD_BACKEND))
 		return NULL;
 	return M(sdb_object_create("all-matcher", iter_type,
 				MATCHER_ALL, type, m));

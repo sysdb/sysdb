@@ -555,6 +555,8 @@ iterable:
 	METRIC_T { $$ = SDB_METRIC; }
 	|
 	ATTRIBUTE_T { $$ = SDB_ATTRIBUTE; }
+	|
+	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
 	;
 
 field:
@@ -670,13 +672,15 @@ name_iter_matcher(int m_type, int type, const char *cmp,
 	sdb_store_matcher_t *m, *tmp = NULL;
 	assert(cb);
 
-	/* TODO: this only works as long as queries
-	 * are limited to hosts */
+	/* hosts are never iterable */
 	if (type == SDB_HOST) {
 		return NULL;
 	}
 
-	e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+	if (type == SDB_FIELD_BACKEND)
+		e = sdb_store_expr_fieldvalue(type);
+	else
+		e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
 	m = cb(e, expr);
 	if (m_type == MATCHER_ANY)
 		tmp = sdb_store_any_matcher(type, m);
