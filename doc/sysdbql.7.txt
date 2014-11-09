@@ -106,15 +106,15 @@ Boolean expressions may use the following operators:
 	match except for a few cases as noted in the documentation of the
 	respective operator.
 
-*ANY* '<object_type>' '<cmp>' '<expression>'::
-	Compares the objects of an iterable child using any compare operator.
-	Evaluates to true if any of those child objects matches or false if no
-	such children exist. Otherwise, the same rules as for other comparison
-	operations apply.
+*ANY* '<iterable>' '<cmp>' '<expression>'::
+	Compares each element of an iterable using any compare operator. Evaluates
+	to true if any of the elements matches or false if no such elements exist.
+	Otherwise, the same rules as for other comparison operations apply.
+	Attributes, a host's services and metrics, and arrays are iterables.
 
-*ALL* '<object_type>' '<cmp>' '<expression>'::
-	*ALL* is similar to the *ANY* operator but matches if all child objects
-	match or if no children exist.
+*ALL* '<iterable>' '<cmp>' '<expression>'::
+	*ALL* is similar to the *ANY* operator but matches if all elements match
+	or if no elements exist.
 
 '<expression>' *IS NULL*::
 '<expression>' *IS NOT NULL*::
