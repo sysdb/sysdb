@@ -49,12 +49,36 @@ enum {
 	SDB_SERVICE,
 	SDB_METRIC,
 	SDB_ATTRIBUTE,
+
+	/*
+	 * Queryable fields of a stored object.
+	 */
+	SDB_FIELD_NAME = 1 << 8, /* type: string */
+	SDB_FIELD_LAST_UPDATE,   /* type: datetime */
+	SDB_FIELD_AGE,           /* type: datetime */
+	SDB_FIELD_INTERVAL,      /* type: datetime */
+	SDB_FIELD_BACKEND,       /* type: array of strings */
 };
 #define SDB_STORE_TYPE_TO_NAME(t) \
 	(((t) == SDB_HOST) ? "host" \
 		: ((t) == SDB_SERVICE) ? "service" \
 		: ((t) == SDB_METRIC) ? "metric" \
 		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
+
+#define SDB_FIELD_TO_NAME(f) \
+	(((f) == SDB_FIELD_NAME) ? "name" \
+		: ((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
+		: ((f) == SDB_FIELD_AGE) ? "age" \
+		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
+		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")
+
+#define SDB_FIELD_TYPE(f) \
+	(((f) == SDB_FIELD_NAME) ? SDB_TYPE_STRING \
+		: ((f) == SDB_FIELD_LAST_UPDATE) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_AGE) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_INTERVAL) ? SDB_TYPE_DATETIME \
+		: ((f) == SDB_FIELD_BACKEND) ? (SDB_TYPE_ARRAY | SDB_TYPE_STRING) \
+		: -1)
 
 /*
  * sdb_store_obj_t represents the super-class of any object stored in the
@@ -94,32 +118,6 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
  */
 struct sdb_store_json_formatter;
 typedef struct sdb_store_json_formatter sdb_store_json_formatter_t;
-
-/*
- * Queryable fields of a stored object.
- */
-enum {
-	SDB_FIELD_NAME = 1,    /* string */
-	SDB_FIELD_LAST_UPDATE, /* datetime */
-	SDB_FIELD_AGE,         /* datetime */
-	SDB_FIELD_INTERVAL,    /* datetime */
-	SDB_FIELD_BACKEND,     /* string */
-};
-
-#define SDB_FIELD_TO_NAME(f) \
-	(((f) == SDB_FIELD_NAME) ? "name" \
-		: ((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
-		: ((f) == SDB_FIELD_AGE) ? "age" \
-		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
-		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")
-
-#define SDB_FIELD_TYPE(f) \
-	(((f) == SDB_FIELD_NAME) ? SDB_TYPE_STRING \
-		: ((f) == SDB_FIELD_LAST_UPDATE) ? SDB_TYPE_DATETIME \
-		: ((f) == SDB_FIELD_AGE) ? SDB_TYPE_DATETIME \
-		: ((f) == SDB_FIELD_INTERVAL) ? SDB_TYPE_DATETIME \
-		: ((f) == SDB_FIELD_BACKEND) ? (SDB_TYPE_ARRAY | SDB_TYPE_STRING) \
-		: -1)
 
 /*
  * sdb_store_clear:
