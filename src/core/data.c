@@ -714,18 +714,12 @@ sdb_data_expr_eval(int op, const sdb_data_t *d1, const sdb_data_t *d2,
 		return 0;
 	}
 	switch (op) {
-		case SDB_DATA_CONCAT:
-			return data_concat(d1, d2, res);
-		case SDB_DATA_ADD:
-			return data_lin(d1, 1, d2, res);
-		case SDB_DATA_SUB:
-			return data_lin(d1, -1, d2, res);
-		case SDB_DATA_MUL:
-			return data_mul(d1, d2, res);
-		case SDB_DATA_DIV:
-			return data_div(d1, d2, res, NULL);
-		case SDB_DATA_MOD:
-			return data_div(d1, d2, NULL, res);
+		case SDB_DATA_CONCAT: return data_concat(d1, d2, res);
+		case SDB_DATA_ADD: return data_lin(d1, 1, d2, res);
+		case SDB_DATA_SUB: return data_lin(d1, -1, d2, res);
+		case SDB_DATA_MUL: return data_mul(d1, d2, res);
+		case SDB_DATA_DIV: return data_div(d1, d2, res, NULL);
+		case SDB_DATA_MOD: return data_div(d1, d2, NULL, res);
 	}
 	return -1;
 } /* sdb_data_expr_eval */

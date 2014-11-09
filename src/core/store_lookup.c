@@ -107,18 +107,14 @@ match_cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
 
 	if (status == INT_MAX)
 		return 0;
-	else if (op == MATCHER_LT)
-		return status < 0;
-	else if (op == MATCHER_LE)
-		return status <= 0;
-	else if (op == MATCHER_EQ)
-		return status == 0;
-	else if (op == MATCHER_NE)
-		return status != 0;
-	else if (op == MATCHER_GE)
-		return status >= 0;
-	else if (op == MATCHER_GT)
-		return status > 0;
+	switch (op) {
+		case MATCHER_LT: return status < 0;
+		case MATCHER_LE: return status <= 0;
+		case MATCHER_EQ: return status == 0;
+		case MATCHER_NE: return status != 0;
+		case MATCHER_GE: return status >= 0;
+		case MATCHER_GT: return status > 0;
+	}
 	return 0;
 } /* match_cmp_value */
 
