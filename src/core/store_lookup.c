@@ -322,7 +322,7 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	if ((sdb_store_expr_eval(CMP_M(m)->left, obj, &v, filter))
 			|| (sdb_data_isnull(&v)))
-		status = 0;
+		status = INT_MAX;
 	else {
 		char value[sdb_data_strlen(&v) + 1];
 		if (sdb_data_format(&v, value, sizeof(value), SDB_UNQUOTED) < 0)
@@ -334,6 +334,8 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (free_regex)
 		regfree(&regex);
 	sdb_data_free_datum(&v);
+	if (status == INT_MAX)
+		return 0;
 	if (m->type == MATCHER_NREGEX)
 		return !status;
 	return status;

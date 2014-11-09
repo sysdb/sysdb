@@ -576,12 +576,12 @@ START_TEST(test_scan)
 		{ "attribute['k1'] =~ '^v1$'", NULL,   1 },
 		{ "attribute['k1'] =~ 'v'", NULL,      2 },
 		{ "attribute['k1'] =~ '1'", NULL,      1 },
-		{ "attribute['k1'] !~ 'v'", NULL,      1 },
+		{ "attribute['k1'] !~ 'v'", NULL,      0 },
 		{ "attribute['k1'] = 'v2'", NULL,      1 },
 		{ "attribute['k1'] =~ 'v2'", NULL,     1 },
 		{ "attribute['x1'] =~ 'v'", NULL,      0 },
 		{ "attribute['x1'] =~ 'NULL'", NULL,   0 },
-		{ "attribute['x1'] !~ 'v'", NULL,      3 },
+		{ "attribute['x1'] !~ 'v'", NULL,      0 },
 		{ "attribute['k1'] IS NULL", NULL,     1 },
 		{ "attribute['x1'] IS NULL", NULL,     3 },
 		{ "attribute['k1'] IS NOT NULL", NULL, 2 },
@@ -595,7 +595,7 @@ START_TEST(test_scan)
 		{ "attribute['k1'] != 'v1'", NULL,     1 },
 		{ "attribute['k1'] != 'v2'", NULL,     1 },
 		{ "ANY attribute != 'x' "
-		  "AND attribute['y'] !~ 'x'", NULL,   2 },
+		  "AND attribute['k1'] !~ 'x'", NULL,  2 },
 	};
 
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
