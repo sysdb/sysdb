@@ -911,8 +911,12 @@ START_TEST(test_expr_eval)
 	sdb_data_t err = { -1, { .integer = 0 } };
 
 	int64_t int_values[] = { 47, 11, 23 };
+	int64_t expected_int_append[] = { 47, 11, 23, 42 };
+	int64_t expected_int_prepend[] = { 42, 47, 11, 23 };
 	int64_t expected_int_concat[] = { 47, 11, 23, 47, 11, 23 };
 	char *string_values[] = { "foo", "bar", "qux" "baz" };
+	char *expected_string_append[] = { "foo", "bar", "qux" "baz", "bay" };
+	char *expected_string_prepend[] = { "bay", "foo", "bar", "qux" "baz" };
 	char *expected_string_concat[] =
 		{ "foo", "bar", "qux" "baz", "foo", "bar", "qux" "baz" };
 
@@ -1079,6 +1083,44 @@ START_TEST(test_expr_eval)
 		},
 		{
 			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			{ SDB_TYPE_INTEGER, { .integer = 42 }, },
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_int_append),
+						expected_int_append
+				} },
+			},
+		},
+		{
+			{ SDB_TYPE_INTEGER, { .integer = 42 }, },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_int_prepend),
+						expected_int_prepend
+				} },
+			},
+		},
+		{
+			{
 				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
 				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
 			},
@@ -1096,6 +1138,44 @@ START_TEST(test_expr_eval)
 				{ .array = {
 						SDB_STATIC_ARRAY_LEN(expected_string_concat),
 						expected_string_concat
+				} },
+			},
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			{ SDB_TYPE_STRING, { .string = "bay" } },
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_string_append),
+						expected_string_append
+				} },
+			},
+		},
+		{
+			{ SDB_TYPE_STRING, { .string = "bay" } },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_string_prepend),
+						expected_string_prepend
 				} },
 			},
 		},

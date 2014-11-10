@@ -345,31 +345,47 @@ static int
 data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 {
 	unsigned char *new;
-	unsigned char *s1, *s2;
-	size_t len1, len2;
+	const unsigned char *s1, *s2;
+	size_t len1, len2, array1_len = 0, array2_len = 0;
 
-	/* TODO: support array plus element */
-	if (d1->type != d2->type)
+	if ((d1->type & 0xff) != (d2->type & 0xff))
 		return -1;
 
-	if (d1->type == SDB_TYPE_STRING) {
+	if ((d1->type & SDB_TYPE_ARRAY) || (d2->type & SDB_TYPE_ARRAY)) {
+		size_t elem_size = sdb_data_sizeof(d1->type & 0xff);
+		if (d1->type & SDB_TYPE_ARRAY) {
+			s1 = (const unsigned char *)d1->data.array.values;
+			array1_len = d1->data.array.length;
+		}
+		else {
+			/* As per C99, section 6.7.2.1, paragraph 14:
+			 * "A pointer to a union object, suitably converted, points to
+			 * each of its members" */
+			s1 = (const unsigned char *)&d1->data;
+			array1_len = 1;
+		}
+		if (d2->type & SDB_TYPE_ARRAY) {
+			s2 = (const unsigned char *)d2->data.array.values;
+			array2_len = d2->data.array.length;
+		}
+		else {
+			s2 = (const unsigned char *)&d2->data;
+			array2_len = 1;
+		}
+		len1 = array1_len * elem_size;
+		len2 = array2_len * elem_size;
+	}
+	else if (d1->type == SDB_TYPE_STRING) {
 		s1 = (unsigned char *)d1->data.string;
 		s2 = (unsigned char *)d2->data.string;
-		len1 = s1 ? strlen((char *)s1) : 0;
-		len2 = s2 ? strlen((char *)s2) : 0;
+		len1 = s1 ? strlen((const char *)s1) : 0;
+		len2 = s2 ? strlen((const char *)s2) : 0;
 	}
 	else if (d1->type == SDB_TYPE_BINARY) {
 		s1 = d1->data.binary.datum;
 		s2 = d2->data.binary.datum;
 		len1 = d1->data.binary.length;
 		len2 = d2->data.binary.length;
-	}
-	else if (d1->type & SDB_TYPE_ARRAY) {
-		size_t elem_size = sdb_data_sizeof(d1->type & 0xff);
-		s1 = (unsigned char *)d1->data.array.values;
-		s2 = (unsigned char *)d2->data.array.values;
-		len1 = d1->data.array.length * elem_size;
-		len2 = d2->data.array.length * elem_size;
 	}
 	else
 		return -1;
@@ -386,7 +402,9 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 		memcpy(new + len1, s2, len2);
 	new[len1 + len2] = '\0';
 
-	res->type = d1->type;
+	/* element types match and if either datum is an array,
+	 * the result is an array as well */
+	res->type = d1->type | d2->type;
 	if (res->type == SDB_TYPE_STRING) {
 		res->data.string = (char *)new;
 	}
@@ -394,9 +412,9 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 		res->data.binary.datum = new;
 		res->data.binary.length = len1 + len2;
 	}
-	else if (d1->type & SDB_TYPE_ARRAY) {
+	else if (res->type & SDB_TYPE_ARRAY) {
 		res->data.array.values = new;
-		res->data.array.length = d1->data.array.length + d2->data.array.length;
+		res->data.array.length = array1_len + array2_len;
 		if (copy_array_values(res, res, sdb_data_sizeof(res->type & 0xff))) {
 			/* this leaks already copied values but there's not much we can
 			 * do and this should only happen if we're in trouble anyway */
@@ -735,11 +753,11 @@ sdb_data_expr_type(int op, int type1, int type2)
 	if ((op <= 0) || (SDB_STATIC_ARRAY_LEN(op_matrix) < (size_t)op))
 		return -1;
 
-	/* arrays only support concat; type has to match */
+	/* arrays only support concat; element type has to match */
 	if ((type1 & SDB_TYPE_ARRAY) || (type2 & SDB_TYPE_ARRAY)) {
-		if ((type1 != type2) || (op != SDB_DATA_CONCAT))
+		if (((type1 & 0xff) != (type2 & 0xff)) || (op != SDB_DATA_CONCAT))
 			return -1;
-		return type1;
+		return type1 | SDB_TYPE_ARRAY;
 	}
 	if ((type1 < 0) || (types_num < type1)
 			|| (type2 < 0) || (types_num < type2))
