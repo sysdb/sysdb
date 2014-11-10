@@ -787,9 +787,14 @@ sdb_data_strlen(const sdb_data_t *datum)
 		return strlen(datum->data.re.raw) + 4;
 	}
 	else if (datum->type & SDB_TYPE_ARRAY) {
-		/* TODO */
-		errno = ENOTSUP;
-		return 0;
+		size_t len = 2; /* [] */
+		size_t i;
+		for (i = 0; i < datum->data.array.length; ++i) {
+			sdb_data_t v = SDB_DATA_INIT;
+			sdb_data_array_get(datum, i, &v);
+			len += sdb_data_strlen(&v) + 1;
+		}
+		return len;
 	}
 	return 0;
 } /* sdb_data_strlen */
@@ -804,7 +809,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 
 	size_t i, pos;
 
-	if ((! datum) || (! buf))
+	if ((! datum) || (! buf) || (! buflen))
 		return -1;
 
 	if (datum->type == SDB_TYPE_INTEGER) {
@@ -873,9 +878,32 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 		}
 	}
 	else if (datum->type & SDB_TYPE_ARRAY) {
-		/* TODO */
-		errno = ENOTSUP;
-		return -1;
+		ret = 1;
+		buf[0] = '[';
+		for (i = 0; i < datum->data.array.length; ++i) {
+			sdb_data_t v = SDB_DATA_INIT;
+			int n;
+			if ((size_t)ret >= buflen - 1)
+				break;
+
+			if (ret > 1) {
+				buf[ret] = ',';
+				buf[ret + 1] = ' ';
+				ret += 2;
+			}
+
+			sdb_data_array_get(datum, i, &v);
+			n = sdb_data_format(&v, buf + ret, buflen - ret, quoted);
+			if (n > 0)
+				ret += n;
+			else
+				break;
+		}
+		if ((size_t)ret < buflen - 1) {
+			buf[ret] = ']';
+			buf[ret + 1] = '\0';
+			++ret;
+		}
 	}
 
 	if (is_null) {

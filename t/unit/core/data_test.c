@@ -1591,6 +1591,9 @@ END_TEST
 
 START_TEST(test_format)
 {
+	int64_t int_values[] = { 47, 11, 23 };
+	char *string_values[] = { "foo", "bar", "qux", "baz" };
+
 	struct {
 		sdb_data_t datum;
 		const char *expected;
@@ -1637,6 +1640,20 @@ START_TEST(test_format)
 		{
 			{ SDB_TYPE_REGEX, { .re = { "some regex", empty_re } } },
 			"\"/some regex/\"",
+		},
+		{
+			{
+				SDB_TYPE_INTEGER | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			"[47, 11, 23]",
+		},
+		{
+			{
+				SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			"[\"foo\", \"bar\", \"qux\", \"baz\"]",
 		},
 	};
 
