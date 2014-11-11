@@ -114,7 +114,7 @@ connection_init(sdb_object_t *obj, va_list ap)
 	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i",
 			conn->fd);
 
-	conn->cmd = CONNECTION_IDLE;
+	conn->cmd = SDB_CONNECTION_IDLE;
 	conn->cmd_len = 0;
 	conn->skip_len = 0;
 
@@ -241,7 +241,7 @@ connection_log(int prio, const char *msg,
 	memcpy(tmp, &p, sizeof(p));
 	strcpy(tmp + sizeof(p), msg);
 
-	if (sdb_connection_send(conn, CONNECTION_LOG, len, tmp) < 0)
+	if (sdb_connection_send(conn, SDB_CONNECTION_LOG, len, tmp) < 0)
 		return -1;
 	return 0;
 } /* connection_log */
@@ -251,23 +251,23 @@ command_handle(sdb_conn_t *conn)
 {
 	int status = -1;
 
-	assert(conn && (conn->cmd != CONNECTION_IDLE));
+	assert(conn && (conn->cmd != SDB_CONNECTION_IDLE));
 	assert(! conn->skip_len);
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
 			conn->cmd, conn->cmd_len);
 
-	if (conn->cmd == CONNECTION_PING)
+	if (conn->cmd == SDB_CONNECTION_PING)
 		status = sdb_connection_ping(conn);
-	else if (conn->cmd == CONNECTION_STARTUP)
+	else if (conn->cmd == SDB_CONNECTION_STARTUP)
 		status = sdb_fe_session_start(conn);
-	else if (conn->cmd == CONNECTION_QUERY)
+	else if (conn->cmd == SDB_CONNECTION_QUERY)
 		status = sdb_fe_query(conn);
-	else if (conn->cmd == CONNECTION_FETCH)
+	else if (conn->cmd == SDB_CONNECTION_FETCH)
 		status = sdb_fe_fetch(conn);
-	else if (conn->cmd == CONNECTION_LIST)
+	else if (conn->cmd == SDB_CONNECTION_LIST)
 		status = sdb_fe_list(conn);
-	else if (conn->cmd == CONNECTION_LOOKUP)
+	else if (conn->cmd == SDB_CONNECTION_LOOKUP)
 		status = sdb_fe_lookup(conn);
 	else {
 		sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
@@ -279,7 +279,7 @@ command_handle(sdb_conn_t *conn)
 	if (status) {
 		if (! sdb_strbuf_len(conn->errbuf))
 			sdb_strbuf_sprintf(conn->errbuf, "Failed to execute command");
-		sdb_connection_send(conn, CONNECTION_ERROR,
+		sdb_connection_send(conn, SDB_CONNECTION_ERROR,
 				(uint32_t)sdb_strbuf_len(conn->errbuf),
 				sdb_strbuf_string(conn->errbuf));
 	}
@@ -292,7 +292,7 @@ command_init(sdb_conn_t *conn)
 {
 	const char *errmsg = NULL;
 
-	assert(conn && (conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len));
+	assert(conn && (conn->cmd == SDB_CONNECTION_IDLE) && (! conn->cmd_len));
 
 	if (conn->skip_len)
 		return -1;
@@ -305,19 +305,19 @@ command_init(sdb_conn_t *conn)
 
 	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
-	if ((! conn->ready) && (conn->cmd != CONNECTION_STARTUP))
+	if ((! conn->ready) && (conn->cmd != SDB_CONNECTION_STARTUP))
 		errmsg = "Authentication required";
-	else if (conn->cmd == CONNECTION_IDLE)
+	else if (conn->cmd == SDB_CONNECTION_IDLE)
 		errmsg = "Invalid command 0";
 
 	if (errmsg) {
 		size_t len = sdb_strbuf_len(conn->buf);
 
 		sdb_strbuf_sprintf(conn->errbuf, "%s", errmsg);
-		sdb_connection_send(conn, CONNECTION_ERROR,
+		sdb_connection_send(conn, SDB_CONNECTION_ERROR,
 				(uint32_t)strlen(errmsg), errmsg);
 		conn->skip_len += conn->cmd_len;
-		conn->cmd = CONNECTION_IDLE;
+		conn->cmd = SDB_CONNECTION_IDLE;
 		conn->cmd_len = 0;
 
 		if (len > conn->skip_len)
@@ -419,17 +419,17 @@ sdb_connection_read(sdb_conn_t *conn)
 	while (42) {
 		ssize_t status = connection_read(conn);
 
-		if ((conn->cmd == CONNECTION_IDLE) && (! conn->cmd_len)
+		if ((conn->cmd == SDB_CONNECTION_IDLE) && (! conn->cmd_len)
 				&& (sdb_strbuf_len(conn->buf) >= 2 * sizeof(int32_t)))
 			command_init(conn);
-		if ((conn->cmd != CONNECTION_IDLE)
+		if ((conn->cmd != SDB_CONNECTION_IDLE)
 				&& (sdb_strbuf_len(conn->buf) >= conn->cmd_len)) {
 			command_handle(conn);
 
 			/* remove the command from the buffer */
 			if (conn->cmd_len)
 				sdb_strbuf_skip(conn->buf, 0, conn->cmd_len);
-			conn->cmd = CONNECTION_IDLE;
+			conn->cmd = SDB_CONNECTION_IDLE;
 			conn->cmd_len = 0;
 		}
 
@@ -472,11 +472,11 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 int
 sdb_connection_ping(sdb_conn_t *conn)
 {
-	if ((! conn) || (conn->cmd != CONNECTION_PING))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_PING))
 		return -1;
 
 	/* we're alive */
-	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
+	sdb_connection_send(conn, SDB_CONNECTION_OK, 0, NULL);
 	return 0;
 } /* sdb_connection_ping */
 

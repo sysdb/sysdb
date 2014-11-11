@@ -233,7 +233,7 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 
 	/* For now, this function checks basic matcher attributes only;
 	 * later, this may be turned into one of multiple AST visitors. */
-	if (node->cmd == CONNECTION_FETCH) {
+	if (node->cmd == SDB_CONNECTION_FETCH) {
 		conn_fetch_t *fetch = CONN_FETCH(node);
 		if ((fetch->type == SDB_HOST) && fetch->name) {
 			sdb_strbuf_sprintf(errbuf, "Unexpected STRING '%s'", fetch->name);
@@ -248,19 +248,19 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 			filter = fetch->filter->matcher;
 		context = fetch->type;
 	}
-	else if (node->cmd == CONNECTION_LIST) {
+	else if (node->cmd == SDB_CONNECTION_LIST) {
 		if (CONN_LIST(node)->filter)
 			filter = CONN_LIST(node)->filter->matcher;
 		context = CONN_LIST(node)->type;
 	}
-	else if (node->cmd == CONNECTION_LOOKUP) {
+	else if (node->cmd == SDB_CONNECTION_LOOKUP) {
 		if (CONN_LOOKUP(node)->matcher)
 			m = CONN_LOOKUP(node)->matcher->matcher;
 		if (CONN_LOOKUP(node)->filter)
 			filter = CONN_LOOKUP(node)->filter->matcher;
 		context = CONN_LOOKUP(node)->type;
 	}
-	else if (node->cmd == CONNECTION_TIMESERIES)
+	else if (node->cmd == SDB_CONNECTION_TIMESERIES)
 		return 0;
 	else
 		return -1;

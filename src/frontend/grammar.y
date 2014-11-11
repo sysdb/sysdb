@@ -248,7 +248,7 @@ statements:
 				sdb_conn_node_t *n;
 				n = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 							conn_expr_t, conn_expr_destroy));
-				n->cmd = CONNECTION_EXPR;
+				n->cmd = SDB_CONNECTION_EXPR;
 				CONN_EXPR(n)->expr = $1;
 
 				sdb_llist_append(pt, SDB_OBJ(n));
@@ -286,7 +286,7 @@ fetch_statement:
 			CONN_FETCH($$)->host = $3;
 			CONN_FETCH($$)->name = NULL;
 			CONN_FETCH($$)->filter = CONN_MATCHER($4);
-			$$->cmd = CONNECTION_FETCH;
+			$$->cmd = SDB_CONNECTION_FETCH;
 		}
 	|
 	FETCH object_type STRING '.' STRING filter_clause
@@ -297,7 +297,7 @@ fetch_statement:
 			CONN_FETCH($$)->host = $3;
 			CONN_FETCH($$)->name = $5;
 			CONN_FETCH($$)->filter = CONN_MATCHER($6);
-			$$->cmd = CONNECTION_FETCH;
+			$$->cmd = SDB_CONNECTION_FETCH;
 		}
 	;
 
@@ -313,7 +313,7 @@ list_statement:
 						conn_list_t, conn_list_destroy));
 			CONN_LIST($$)->type = $2;
 			CONN_LIST($$)->filter = CONN_MATCHER($3);
-			$$->cmd = CONNECTION_LIST;
+			$$->cmd = SDB_CONNECTION_LIST;
 		}
 	;
 
@@ -330,7 +330,7 @@ lookup_statement:
 			CONN_LOOKUP($$)->type = $2;
 			CONN_LOOKUP($$)->matcher = CONN_MATCHER($3);
 			CONN_LOOKUP($$)->filter = CONN_MATCHER($4);
-			$$->cmd = CONNECTION_LOOKUP;
+			$$->cmd = SDB_CONNECTION_LOOKUP;
 		}
 	;
 
@@ -358,7 +358,7 @@ timeseries_statement:
 			CONN_TS($$)->metric = $4;
 			CONN_TS($$)->opts.start = $5;
 			CONN_TS($$)->opts.end = $6;
-			$$->cmd = CONNECTION_TIMESERIES;
+			$$->cmd = SDB_CONNECTION_TIMESERIES;
 		}
 	;
 
@@ -388,7 +388,7 @@ condition:
 
 			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
 						conn_matcher_t, conn_matcher_destroy));
-			$$->cmd = CONNECTION_MATCHER;
+			$$->cmd = SDB_CONNECTION_MATCHER;
 			CONN_MATCHER($$)->matcher = $1;
 		}
 	;

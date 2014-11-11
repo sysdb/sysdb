@@ -185,7 +185,7 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (sdb_client_send(client, CONNECTION_QUERY,
+		if (sdb_client_send(client, SDB_CONNECTION_QUERY,
 					(uint32_t)strlen(obj->name), obj->name) <= 0) {
 			sdb_log(SDB_LOG_ERR, "Failed to send command '%s' to server",
 					obj->name);
@@ -203,9 +203,10 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 				break;
 			}
 
-			if ((status == CONNECTION_DATA) || (status == CONNECTION_ERROR))
+			if ((status == SDB_CONNECTION_DATA)
+					|| (status == SDB_CONNECTION_ERROR))
 				break;
-			if (status == CONNECTION_OK) {
+			if (status == SDB_CONNECTION_OK) {
 				/* pre 0.4 versions used OK instead of DATA */
 				sdb_log(SDB_LOG_WARNING, "Received unexpected OK status from "
 						"server in response to a QUERY (expected DATA); "
@@ -214,7 +215,7 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 			}
 		}
 
-		if ((status != CONNECTION_OK) && (status != CONNECTION_DATA))
+		if ((status != SDB_CONNECTION_OK) && (status != SDB_CONNECTION_DATA))
 			break; /* error */
 	}
 
@@ -309,7 +310,7 @@ main(int argc, char **argv)
 		int status = execute_commands(input.client, commands);
 		sdb_llist_destroy(commands);
 		sdb_client_destroy(input.client);
-		if ((status != CONNECTION_OK) && (status != CONNECTION_DATA))
+		if ((status != SDB_CONNECTION_OK) && (status != SDB_CONNECTION_DATA))
 			exit(1);
 		exit(0);
 	}

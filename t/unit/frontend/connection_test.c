@@ -99,7 +99,7 @@ mock_conn_create(void)
 
 	unlink(tmp_file);
 
-	conn->cmd = CONNECTION_IDLE;
+	conn->cmd = SDB_CONNECTION_IDLE;
 	conn->cmd_len = 0;
 	return conn;
 } /* mock_conn_create */
@@ -175,7 +175,7 @@ connection_startup(sdb_conn_t *conn)
 	ssize_t check, expected;
 
 	expected = 2 * sizeof(uint32_t) + strlen("fakeuser");
-	check = sdb_connection_send(conn, CONNECTION_STARTUP,
+	check = sdb_connection_send(conn, SDB_CONNECTION_STARTUP,
 			(uint32_t)strlen("fakeuser"), "fakeuser");
 	fail_unless(check == expected,
 			"sdb_connection_send(STARTUP, fakeuser) = %zi; expected: %zi",
@@ -241,14 +241,14 @@ START_TEST(test_conn_setup)
 		const char *err;
 	} golden_data[] = {
 		/* code == UINT32_MAX => no data will be sent */
-		{ UINT32_MAX,         NULL,       NULL },
-		{ CONNECTION_IDLE,    "fakedata", "Authentication required" },
-		{ CONNECTION_PING,    NULL,       "Authentication required" },
-		{ CONNECTION_STARTUP, "fakeuser", NULL },
-		{ CONNECTION_PING,    NULL,       NULL },
-		{ CONNECTION_IDLE,    NULL,       "Invalid command 0" },
-		{ CONNECTION_PING,    "fakedata", NULL },
-		{ CONNECTION_IDLE,    NULL,       "Invalid command 0" },
+		{ UINT32_MAX,             NULL,       NULL },
+		{ SDB_CONNECTION_IDLE,    "fakedata", "Authentication required" },
+		{ SDB_CONNECTION_PING,    NULL,       "Authentication required" },
+		{ SDB_CONNECTION_STARTUP, "fakeuser", NULL },
+		{ SDB_CONNECTION_PING,    NULL,       NULL },
+		{ SDB_CONNECTION_IDLE,    NULL,       "Invalid command 0" },
+		{ SDB_CONNECTION_PING,    "fakedata", NULL },
+		{ SDB_CONNECTION_IDLE,    NULL,       "Invalid command 0" },
 	};
 
 	size_t i;
@@ -312,22 +312,22 @@ START_TEST(test_conn_io)
 		const char *err;
 	} golden_data[] = {
 		/* code == UINT32_MAX => this is a follow-up package */
-		{ CONNECTION_PING,    20, "9876543210",  0, "Authentication required" },
-		{ UINT32_MAX,         -1, "9876543210",  0, "Authentication required" },
-		{ CONNECTION_PING,    10, "9876543210",  0, "Authentication required" },
-		{ CONNECTION_IDLE,    10, "9876543210",  0, "Authentication required" },
-		{ CONNECTION_IDLE,    20, "9876543210",  0, "Authentication required" },
-		{ UINT32_MAX,         -1, "9876543210",  0, "Authentication required" },
-		{ CONNECTION_STARTUP, -1, NULL,          0, NULL },
-		{ CONNECTION_PING,    20, "9876543210", 10, NULL },
-		{ UINT32_MAX,         -1, "9876543210",  0, NULL },
-		{ CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
-		{ UINT32_MAX,         -1, "9876543210",  0, "Invalid command 0" },
-		{ CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
-		{ UINT32_MAX,         -1, "9876543210",  0, "Invalid command 0" },
-		{ CONNECTION_PING,    10, "9876543210",  0, NULL },
-		{ CONNECTION_PING,    20, "9876543210", 10, NULL },
-		{ UINT32_MAX,         -1, "9876543210",  0, NULL },
+		{ SDB_CONNECTION_PING,    20, "9876543210",  0, "Authentication required" },
+		{ UINT32_MAX,             -1, "9876543210",  0, "Authentication required" },
+		{ SDB_CONNECTION_PING,    10, "9876543210",  0, "Authentication required" },
+		{ SDB_CONNECTION_IDLE,    10, "9876543210",  0, "Authentication required" },
+		{ SDB_CONNECTION_IDLE,    20, "9876543210",  0, "Authentication required" },
+		{ UINT32_MAX,             -1, "9876543210",  0, "Authentication required" },
+		{ SDB_CONNECTION_STARTUP, -1, NULL,          0, NULL },
+		{ SDB_CONNECTION_PING,    20, "9876543210", 10, NULL },
+		{ UINT32_MAX,             -1, "9876543210",  0, NULL },
+		{ SDB_CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
+		{ UINT32_MAX,             -1, "9876543210",  0, "Invalid command 0" },
+		{ SDB_CONNECTION_IDLE,    20, "9876543210",  0, "Invalid command 0" },
+		{ UINT32_MAX,             -1, "9876543210",  0, "Invalid command 0" },
+		{ SDB_CONNECTION_PING,    10, "9876543210",  0, NULL },
+		{ SDB_CONNECTION_PING,    20, "9876543210", 10, NULL },
+		{ UINT32_MAX,             -1, "9876543210",  0, NULL },
 	};
 
 	size_t i;
@@ -341,7 +341,7 @@ START_TEST(test_conn_io)
 
 		mock_conn_truncate(conn);
 
-		if (golden_data[i].code == CONNECTION_STARTUP) {
+		if (golden_data[i].code == SDB_CONNECTION_STARTUP) {
 			connection_startup(conn);
 			continue;
 		}
@@ -383,9 +383,9 @@ START_TEST(test_conn_io)
 					golden_data[i].buf_len);
 		}
 		else {
-			fail_unless(conn->cmd == CONNECTION_IDLE,
+			fail_unless(conn->cmd == SDB_CONNECTION_IDLE,
 					"sdb_connection_read() did not reset command; "
-					"got %u; expected: %u", conn->cmd, CONNECTION_IDLE);
+					"got %u; expected: %u", conn->cmd, SDB_CONNECTION_IDLE);
 			fail_unless(conn->cmd_len == 0,
 					"sdb_connection_read() did not reset command length; "
 					"got %u; expected: 0", conn->cmd_len);

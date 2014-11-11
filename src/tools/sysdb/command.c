@@ -87,8 +87,8 @@ static struct {
 	int status;
 	void (*printer)(sdb_strbuf_t *);
 } response_printers[] = {
-	{ CONNECTION_LOG,  log_printer },
-	{ CONNECTION_DATA, data_printer },
+	{ SDB_CONNECTION_LOG,  log_printer },
+	{ SDB_CONNECTION_DATA, data_printer },
 };
 
 /*
@@ -169,7 +169,7 @@ sdb_command_exec(sdb_input_t *input)
 		data = strndup(query, query_len);
 		/* ignore errors; we'll only hide the command from the caller */
 
-		sdb_client_send(input->client, CONNECTION_QUERY, query_len, query);
+		sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
 
 		/* The server will send back *something*, either error/log messages
 		 * and/or the reply to the query. Here, we don't care about what it

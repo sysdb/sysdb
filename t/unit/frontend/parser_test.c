@@ -53,149 +53,149 @@ START_TEST(test_parse)
 		{ ";;",                  -1,  0, 0 },
 
 		/* valid commands */
-		{ "FETCH host 'host'",   -1,  1, CONNECTION_FETCH  },
+		{ "FETCH host 'host'",   -1,  1, SDB_CONNECTION_FETCH  },
 		{ "FETCH host 'host' FILTER "
-		  "age > 60s",           -1,  1, CONNECTION_FETCH  },
+		  "age > 60s",           -1,  1, SDB_CONNECTION_FETCH  },
 		{ "FETCH service "
-		  "'host'.'service'",    -1,  1, CONNECTION_FETCH  },
+		  "'host'.'service'",    -1,  1, SDB_CONNECTION_FETCH  },
 		{ "FETCH metric "
-		  "'host'.'metric'",     -1,  1, CONNECTION_FETCH  },
+		  "'host'.'metric'",     -1,  1, SDB_CONNECTION_FETCH  },
 
-		{ "LIST hosts",          -1,  1, CONNECTION_LIST   },
-		{ "LIST hosts -- foo",   -1,  1, CONNECTION_LIST   },
-		{ "LIST hosts;",         -1,  1, CONNECTION_LIST   },
-		{ "LIST hosts; INVALID", 11,  1, CONNECTION_LIST   },
+		{ "LIST hosts",          -1,  1, SDB_CONNECTION_LIST   },
+		{ "LIST hosts -- foo",   -1,  1, SDB_CONNECTION_LIST   },
+		{ "LIST hosts;",         -1,  1, SDB_CONNECTION_LIST   },
+		{ "LIST hosts; INVALID", 11,  1, SDB_CONNECTION_LIST   },
 		{ "LIST hosts FILTER "
-		  "age > 60s",           -1,  1, CONNECTION_LIST   },
-		{ "LIST services",       -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
+		{ "LIST services",       -1,  1, SDB_CONNECTION_LIST   },
 		{ "LIST services FILTER "
-		  "age > 60s",           -1,  1, CONNECTION_LIST   },
-		{ "LIST metrics",        -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
+		{ "LIST metrics",        -1,  1, SDB_CONNECTION_LIST   },
 		{ "LIST metrics FILTER "
-		  "age > 60s",           -1,  1, CONNECTION_LIST   },
+		  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
 
-		{ "LOOKUP hosts",        -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts",        -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "name = 'host'",       -1,  1, CONNECTION_LOOKUP },
+		  "name = 'host'",       -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
-		  "name = 'host'",       -1,  1, CONNECTION_LOOKUP },
+		  "name = 'host'",       -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' AND "
-		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p'",  -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
 		  "name =~ 'p' AND "
-		  "ANY service =~ 'p'",  -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'p'",  -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' AND "
 		  "ANY service =~ 'p' OR "
-		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'r'",  -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING NOT "
 		  "name =~ 'p' AND "
 		  "ANY service =~ 'p' OR "
-		  "ANY service =~ 'r'",  -1,  1, CONNECTION_LOOKUP },
+		  "ANY service =~ 'r'",  -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' "
-		  "FILTER age > 1D",    -1,   1, CONNECTION_LOOKUP },
+		  "FILTER age > 1D",    -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' "
 		  "FILTER age > 1D AND "
-		  "interval < 240s" ,   -1,   1, CONNECTION_LOOKUP },
+		  "interval < 240s" ,   -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' "
-		  "FILTER NOT age>1D",  -1,   1, CONNECTION_LOOKUP },
+		  "FILTER NOT age>1D",  -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name =~ 'p' "
 		  "FILTER age>"
-		  "interval",           -1,   1, CONNECTION_LOOKUP },
-		{ "LOOKUP services",    -1,   1, CONNECTION_LOOKUP },
+		  "interval",           -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP services",    -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP services MATCHING ANY "
-		  "attribute =~ 'a'",   -1,   1, CONNECTION_LOOKUP },
-		{ "LOOKUP metrics",     -1,   1, CONNECTION_LOOKUP },
+		  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP metrics",     -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP metrics MATCHING ANY "
-		  "attribute =~ 'a'",   -1,   1, CONNECTION_LOOKUP },
+		  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
 
 		{ "TIMESERIES 'host'.'metric' "
 		  "START 2014-01-01 "
 		  "END 2014-12-31 "
-		  "23:59:59",            -1,  1, CONNECTION_TIMESERIES },
+		  "23:59:59",            -1,  1, SDB_CONNECTION_TIMESERIES },
 		{ "TIMESERIES 'host'.'metric' "
 		  "START 2014-02-02 "
-		  "14:02",               -1,  1, CONNECTION_TIMESERIES },
+		  "14:02",               -1,  1, SDB_CONNECTION_TIMESERIES },
 		{ "TIMESERIES 'host'.'metric' "
-		  "END 2014-02-02",      -1,  1, CONNECTION_TIMESERIES },
+		  "END 2014-02-02",      -1,  1, SDB_CONNECTION_TIMESERIES },
 		{ "TIMESERIES "
-		  "'host'.'metric'",     -1,  1, CONNECTION_TIMESERIES },
+		  "'host'.'metric'",     -1,  1, SDB_CONNECTION_TIMESERIES },
 
 		/* string constants */
 		{ "LOOKUP hosts MATCHING "
-		  "name = ''''",         -1,  1, CONNECTION_LOOKUP },
+		  "name = ''''",         -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "name = '''foo'",      -1,  1, CONNECTION_LOOKUP },
+		  "name = '''foo'",      -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "name = 'f''oo'",      -1,  1, CONNECTION_LOOKUP },
+		  "name = 'f''oo'",      -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
-		  "name = 'foo'''",      -1,  1, CONNECTION_LOOKUP },
+		  "name = 'foo'''",      -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name = '''",          -1, -1, 0 },
 
 		/* numeric constants */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "1234",                -1,  1, CONNECTION_LOOKUP },
+		  "1234",                -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] != "
-		  "+234",                -1,  1, CONNECTION_LOOKUP },
+		  "+234",                -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] < "
-		  "-234",                -1,  1, CONNECTION_LOOKUP },
+		  "-234",                -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] > "
-		  "12.4",                -1,  1, CONNECTION_LOOKUP },
+		  "12.4",                -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] <= "
-		  "12. + .3",            -1,  1, CONNECTION_LOOKUP },
+		  "12. + .3",            -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] <= "
-		  "'f' || 'oo'",         -1,  1, CONNECTION_LOOKUP },
+		  "'f' || 'oo'",         -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] >= "
-		  ".4",                  -1,  1, CONNECTION_LOOKUP },
+		  ".4",                  -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "+12e3",               -1,  1, CONNECTION_LOOKUP },
+		  "+12e3",               -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "+12e-3",              -1,  1, CONNECTION_LOOKUP },
+		  "+12e-3",              -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "-12e+3",              -1,  1, CONNECTION_LOOKUP },
+		  "-12e+3",              -1,  1, SDB_CONNECTION_LOOKUP },
 
 		/* date, time, interval constants */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "1 Y 42D",             -1,  1, CONNECTION_LOOKUP },
+		  "1 Y 42D",             -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "1s 42D",              -1,  1, CONNECTION_LOOKUP },
+		  "1s 42D",              -1,  1, SDB_CONNECTION_LOOKUP },
 		/*
 		 * TODO: Something like 1Y42D should work as well but it doesn't since
 		 * the scanner will tokenize it into {digit}{identifier} :-/
 		 *
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] = "
-		  "1Y42D",               -1,  1, CONNECTION_LOOKUP },
+		  "1Y42D",               -1,  1, SDB_CONNECTION_LOOKUP },
 		 */
 
 		/* NULL */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] "
-		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
+		  "IS NULL",             -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] "
-		  "IS NOT NULL",         -1,  1, CONNECTION_LOOKUP },
+		  "IS NOT NULL",         -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "NOT attribute['foo'] "
-		  "IS NULL",             -1,  1, CONNECTION_LOOKUP },
+		  "IS NULL",             -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "ANY service IS NULL", -1, -1, 0 },
 

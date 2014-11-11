@@ -139,7 +139,7 @@ sdb_fe_parse_matcher(const char *cond, int len, sdb_strbuf_t *errbuf)
 		return NULL;
 	}
 
-	assert(node->cmd == CONNECTION_MATCHER);
+	assert(node->cmd == SDB_CONNECTION_MATCHER);
 	m = CONN_MATCHER(node)->matcher;
 	CONN_MATCHER(node)->matcher = NULL;
 
@@ -179,7 +179,7 @@ sdb_fe_parse_expr(const char *expr, int len, sdb_strbuf_t *errbuf)
 		return NULL;
 	}
 
-	assert(node->cmd == CONNECTION_EXPR);
+	assert(node->cmd == SDB_CONNECTION_EXPR);
 	e = CONN_EXPR(node)->expr;
 	CONN_EXPR(node)->expr = NULL;
 
