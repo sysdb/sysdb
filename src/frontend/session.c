@@ -47,7 +47,7 @@ sdb_fe_session_start(sdb_conn_t *conn)
 	if ((! conn) || (conn->username))
 		return -1;
 
-	if (conn->cmd != CONNECTION_STARTUP)
+	if (conn->cmd != SDB_CONNECTION_STARTUP)
 		return -1;
 
 	username = sdb_strbuf_string(conn->buf);
@@ -62,7 +62,7 @@ sdb_fe_session_start(sdb_conn_t *conn)
 		sdb_strbuf_sprintf(conn->errbuf, "Authentication failed");
 		return -1;
 	}
-	sdb_connection_send(conn, CONNECTION_OK, 0, NULL);
+	sdb_connection_send(conn, SDB_CONNECTION_OK, 0, NULL);
 	conn->ready = 1;
 	return 0;
 } /* sdb_fe_session_start */

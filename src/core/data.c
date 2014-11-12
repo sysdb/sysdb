@@ -631,39 +631,58 @@ sdb_data_isnull(const sdb_data_t *datum)
 _Bool
 sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array)
 {
-	size_t i;
+	const void *values;
+	size_t length, i;
+	int type = value->type & 0xff;
 
 	if (sdb_data_isnull(value) || sdb_data_isnull(array))
 		return 0;
-	if ((value->type & SDB_TYPE_ARRAY) || (! (array->type & SDB_TYPE_ARRAY)))
+	if (! (array->type & SDB_TYPE_ARRAY))
 		return 0;
-	if (value->type != (array->type & 0xff))
+	if ((value->type & 0xff) != (array->type & 0xff))
 		return 0;
 
-	if (value->type == SDB_TYPE_INTEGER) {
-		int64_t *v = array->data.array.values;
-		for (i = 0; i < array->data.array.length; ++i)
-			if (value->data.integer == v[i])
-				return 1;
-	}
-	else if (value->type == SDB_TYPE_DECIMAL) {
-		double *v = array->data.array.values;
-		for (i = 0; i < array->data.array.length; ++i)
-			if (value->data.decimal == v[i])
-				return 1;
-	}
-	else if (value->type == SDB_TYPE_STRING) {
-		char **v = array->data.array.values;
-		for (i = 0; i < array->data.array.length; ++i)
-			if (!strcasecmp(value->data.string, v[i]))
-				return 1;
+	if (value->type & SDB_TYPE_ARRAY) {
+		values = value->data.array.values;
+		length = value->data.array.length;
 	}
 	else {
-		/* TODO */
-		errno = ENOTSUP;
-		return 0;
+		values = &value->data;
+		length = 1;
 	}
-	return 0;
+
+	for (i = 0; i < length; ++i) {
+		size_t j;
+
+		if (type == SDB_TYPE_INTEGER) {
+			int64_t *v = array->data.array.values;
+			for (j = 0; j < array->data.array.length; ++j)
+				if (((const int64_t *)values)[i] == v[j])
+					break;
+		}
+		else if (type == SDB_TYPE_DECIMAL) {
+			double *v = array->data.array.values;
+			for (j = 0; j < array->data.array.length; ++j)
+				if (((const double *)values)[i] == v[j])
+					break;
+		}
+		else if (type == SDB_TYPE_STRING) {
+			char **v = array->data.array.values;
+			for (j = 0; j < array->data.array.length; ++j)
+				if (!strcasecmp(((const char * const*)values)[i], v[j]))
+					break;
+		}
+		else {
+			/* TODO */
+			errno = ENOTSUP;
+			return 0;
+		}
+
+		if (j >= array->data.array.length)
+			/* value not found */
+			return 0;
+	}
+	return 1;
 } /* sdb_data_inarray */
 
 int

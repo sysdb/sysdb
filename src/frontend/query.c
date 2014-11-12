@@ -69,7 +69,7 @@ sdb_fe_query(sdb_conn_t *conn)
 	sdb_conn_node_t *node = NULL;
 	int status = 0;
 
-	if ((! conn) || (conn->cmd != CONNECTION_QUERY))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_QUERY))
 		return -1;
 
 	parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
@@ -86,7 +86,7 @@ sdb_fe_query(sdb_conn_t *conn)
 	switch (sdb_llist_len(parsetree)) {
 		case 0:
 			/* skipping empty command; send back an empty reply */
-			sdb_connection_send(conn, CONNECTION_DATA, 0, NULL);
+			sdb_connection_send(conn, SDB_CONNECTION_DATA, 0, NULL);
 			break;
 		case 1:
 			node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
@@ -121,7 +121,7 @@ sdb_fe_fetch(sdb_conn_t *conn)
 	char name[conn->cmd_len + 1];
 	int type;
 
-	if ((! conn) || (conn->cmd != CONNECTION_FETCH))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_FETCH))
 		return -1;
 
 	if (conn->cmd_len < sizeof(uint32_t)) {
@@ -145,7 +145,7 @@ sdb_fe_list(sdb_conn_t *conn)
 {
 	int type = SDB_HOST;
 
-	if ((! conn) || (conn->cmd != CONNECTION_LIST))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_LIST))
 		return -1;
 
 	if (conn->cmd_len == sizeof(uint32_t))
@@ -171,14 +171,14 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	int status;
 
 	conn_matcher_t m_node = {
-		{ SDB_OBJECT_INIT, CONNECTION_MATCHER }, NULL
+		{ SDB_OBJECT_INIT, SDB_CONNECTION_MATCHER }, NULL
 	};
 	conn_lookup_t node = {
-		{ SDB_OBJECT_INIT, CONNECTION_LOOKUP },
+		{ SDB_OBJECT_INIT, SDB_CONNECTION_LOOKUP },
 		-1, &m_node, NULL
 	};
 
-	if ((! conn) || (conn->cmd != CONNECTION_LOOKUP))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_LOOKUP))
 		return -1;
 
 	if (conn->cmd_len < sizeof(uint32_t)) {
@@ -234,23 +234,23 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 		return -1;
 
 	switch (node->cmd) {
-		case CONNECTION_FETCH:
+		case SDB_CONNECTION_FETCH:
 			if (CONN_FETCH(node)->filter)
 				filter = CONN_FETCH(node)->filter->matcher;
 			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->type,
 					CONN_FETCH(node)->host, CONN_FETCH(node)->name, filter);
-		case CONNECTION_LIST:
+		case SDB_CONNECTION_LIST:
 			if (CONN_LIST(node)->filter)
 				filter = CONN_LIST(node)->filter->matcher;
 			return sdb_fe_exec_list(conn, CONN_LIST(node)->type, filter);
-		case CONNECTION_LOOKUP:
+		case SDB_CONNECTION_LOOKUP:
 			if (CONN_LOOKUP(node)->matcher)
 				m = CONN_LOOKUP(node)->matcher->matcher;
 			if (CONN_LOOKUP(node)->filter)
 				filter = CONN_LOOKUP(node)->filter->matcher;
 			return sdb_fe_exec_lookup(conn,
 					CONN_LOOKUP(node)->type, m, filter);
-		case CONNECTION_TIMESERIES:
+		case SDB_CONNECTION_TIMESERIES:
 			return sdb_fe_exec_timeseries(conn,
 					CONN_TS(node)->hostname, CONN_TS(node)->metric,
 					&CONN_TS(node)->opts);
@@ -266,7 +266,7 @@ int
 sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
 		const char *hostname, const char *name, sdb_store_matcher_t *filter)
 {
-	uint32_t res_type = htonl(CONNECTION_FETCH);
+	uint32_t res_type = htonl(SDB_CONNECTION_FETCH);
 
 	sdb_store_obj_t *host;
 	sdb_store_obj_t *obj;
@@ -344,7 +344,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
 	}
 	sdb_store_json_finish(f);
 
-	sdb_connection_send(conn, CONNECTION_DATA,
+	sdb_connection_send(conn, SDB_CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	free(f);
@@ -355,7 +355,7 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
 int
 sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 {
-	uint32_t res_type = htonl(CONNECTION_LIST);
+	uint32_t res_type = htonl(SDB_CONNECTION_LIST);
 
 	sdb_store_json_formatter_t *f;
 	sdb_strbuf_t *buf;
@@ -394,7 +394,7 @@ sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
 	}
 	sdb_store_json_finish(f);
 
-	sdb_connection_send(conn, CONNECTION_DATA,
+	sdb_connection_send(conn, SDB_CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	free(f);
@@ -405,7 +405,7 @@ int
 sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
-	uint32_t res_type = htonl(CONNECTION_LOOKUP);
+	uint32_t res_type = htonl(SDB_CONNECTION_LOOKUP);
 
 	sdb_store_json_formatter_t *f;
 	sdb_strbuf_t *buf;
@@ -445,7 +445,7 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	}
 	sdb_store_json_finish(f);
 
-	sdb_connection_send(conn, CONNECTION_DATA,
+	sdb_connection_send(conn, SDB_CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	free(f);
@@ -458,7 +458,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		sdb_timeseries_opts_t *opts)
 {
 	sdb_strbuf_t *buf;
-	uint32_t res_type = htonl(CONNECTION_TIMESERIES);
+	uint32_t res_type = htonl(SDB_CONNECTION_TIMESERIES);
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
@@ -479,7 +479,7 @@ sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		return -1;
 	}
 
-	sdb_connection_send(conn, CONNECTION_DATA,
+	sdb_connection_send(conn, SDB_CONNECTION_DATA,
 			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 	sdb_strbuf_destroy(buf);
 	return 0;

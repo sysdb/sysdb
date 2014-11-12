@@ -168,7 +168,10 @@ sdb_data_isnull(const sdb_data_t *datum);
  * sdb_data_inarray:
  * Determine whether a datum is included in an array based on the usual
  * comparison function of the value's type. The element type of the array has
- * to match the type of the value.
+ * to match the type of the value. The value may be another array. In that
+ * case, the element types have to match and the function returns true if all
+ * elements of the first array are included in the second where order does not
+ * matter.
  */
 _Bool
 sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array);

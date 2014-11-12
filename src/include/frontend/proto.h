@@ -58,7 +58,7 @@ typedef enum {
 	 */
 
 	/*
-	 * CONNECTION_OK:
+	 * SDB_CONNECTION_OK:
 	 * Indicates that a command was successful. The message body will usually
 	 * be empty but may contain a string providing unformatted information
 	 * providing more details.
@@ -69,10 +69,10 @@ typedef enum {
 	 * +---------------+---------------+
 	 * | optional status message ...   |
 	 */
-	CONNECTION_OK = 0,
+	SDB_CONNECTION_OK = 0,
 
 	/*
-	 * CONNECTION_ERROR:
+	 * SDB_CONNECTION_ERROR:
 	 * Indicates that a command has failed. The message body will contain a
 	 * string describing the error.
 	 *
@@ -82,10 +82,10 @@ typedef enum {
 	 * +---------------+---------------+
 	 * | error message ...             |
 	 */
-	CONNECTION_ERROR,
+	SDB_CONNECTION_ERROR,
 
 	/*
-	 * CONNECTION_LOG:
+	 * SDB_CONNECTION_LOG:
 	 * Indicates an asynchronous log message. The message body will contain
 	 * the log priority (see utils/error.h) and message. Log messages may be
 	 * sent to the client any time.
@@ -98,14 +98,14 @@ typedef enum {
 	 * +---------------+               |
 	 * | ...                           |
 	 */
-	CONNECTION_LOG,
+	SDB_CONNECTION_LOG,
 
 	/*
 	 * Query-result specific messages.
 	 */
 
 	/*
-	 * CONNECTION_DATA:
+	 * SDB_CONNECTION_DATA:
 	 * Indicates that a data query was successful. The message body will
 	 * contain the type of the data and the result encoded as a JSON string.
 	 * The type is the same as the command code of the respective command (see
@@ -122,38 +122,38 @@ typedef enum {
 	 * +---------------+               |
 	 * | ...                           |
 	 */
-	CONNECTION_DATA = 100,
+	SDB_CONNECTION_DATA = 100,
 } sdb_conn_status_t;
 
 /* accepted commands / state of the connection */
 typedef enum {
 	/*
-	 * CONNECTION_IDLE:
+	 * SDB_CONNECTION_IDLE:
 	 * This is an internal state used for idle connections.
 	 */
-	CONNECTION_IDLE = 0,
+	SDB_CONNECTION_IDLE = 0,
 
 	/*
-	 * CONNECTION_PING:
+	 * SDB_CONNECTION_PING:
 	 * Check if the current connection is still alive. The server will reply
-	 * with CONNECTION_OK and an empty message body if it was able to handle
-	 * the command.
+	 * with SDB_CONNECTION_OK and an empty message body if it was able to
+	 * handle the command.
 	 *
 	 * 0               32              64
 	 * +---------------+---------------+
 	 * | PING          | 0             |
 	 * +---------------+---------------+
 	 */
-	CONNECTION_PING,
+	SDB_CONNECTION_PING,
 
 	/*
-	 * CONNECTION_STARTUP:
+	 * SDB_CONNECTION_STARTUP:
 	 * Setup of a client connection. The message body shall include the
 	 * username of the user contacting the server. The server may then send
 	 * further requests to the client for authentication (not implemented
 	 * yet). Once the setup and authentication was successful, the server
-	 * replies with CONNECTION_OK. Further information may be requested from
-	 * the server using special messages specific to the authentication
+	 * replies with SDB_CONNECTION_OK. Further information may be requested
+	 * from the server using special messages specific to the authentication
 	 * method. The server does not send any asynchronous messages before
 	 * startup is complete.
 	 *
@@ -163,11 +163,11 @@ typedef enum {
 	 * +---------------+---------------+
 	 * | username ...                  |
 	 */
-	CONNECTION_STARTUP,
+	SDB_CONNECTION_STARTUP,
 
 	/*
 	 * Querying the server. On success, the server replies with
-	 * CONNECTION_DATA.
+	 * SDB_CONNECTION_DATA.
 	 *
 	 * The command codes listed here are used, both, for sending a query to
 	 * the server and to indicate the response type from a query in a DATA
@@ -175,7 +175,7 @@ typedef enum {
 	 */
 
 	/*
-	 * CONNECTION_QUERY:
+	 * SDB_CONNECTION_QUERY:
 	 * Execute a query in the server. The message body shall include a single
 	 * query command as a text string. Multiple commands are ignored by the
 	 * server entirely to protect against injection attacks.
@@ -186,10 +186,10 @@ typedef enum {
 	 * +---------------+---------------+
 	 * | query string ...              |
 	 */
-	CONNECTION_QUERY,
+	SDB_CONNECTION_QUERY,
 
 	/*
-	 * CONNECTION_FETCH:
+	 * SDB_CONNECTION_FETCH:
 	 * Execute the 'FETCH' command in the server. The message body shall
 	 * include the type and the identifier of the object to be retrieved.
 	 * Hosts are identified by their name. Other types are not supported yet.
@@ -203,10 +203,10 @@ typedef enum {
 	 * +---------------+               |
 	 * | ...                           |
 	 */
-	CONNECTION_FETCH,
+	SDB_CONNECTION_FETCH,
 
 	/*
-	 * CONNECTION_LIST:
+	 * SDB_CONNECTION_LIST:
 	 * Execute the 'LIST' command in the server. The message body may include
 	 * the type of the objects to be listed, encoded as a 32bit integer in
 	 * network byte-order. The response includes all hosts and the respective
@@ -219,10 +219,10 @@ typedef enum {
 	 * | [object type] |
 	 * +---------------+
 	 */
-	CONNECTION_LIST,
+	SDB_CONNECTION_LIST,
 
 	/*
-	 * CONNECTION_LOOKUP:
+	 * SDB_CONNECTION_LOOKUP:
 	 * Execute the 'LOOKUP' command in the server. The message body shall
 	 * include the type of the objects to look up and a string representing
 	 * the conditional expression of the 'MATCHING' clause. The type is
@@ -236,30 +236,30 @@ typedef enum {
 	 * +---------------+               |
 	 * | clause ...                    |
 	 */
-	CONNECTION_LOOKUP,
+	SDB_CONNECTION_LOOKUP,
 
 	/*
-	 * CONNECTION_TIMESERIES:
+	 * SDB_CONNECTION_TIMESERIES:
 	 * Execute the 'TIMESERIES' command in the server. This command is not yet
-	 * supported on the wire. Use CONNECTION_QUERY instead.
+	 * supported on the wire. Use SDB_CONNECTION_QUERY instead.
 	 */
-	CONNECTION_TIMESERIES,
+	SDB_CONNECTION_TIMESERIES,
 
 	/*
 	 * Command subcomponents.
 	 */
 
 	/*
-	 * CONNECTION_MATCHER:
+	 * SDB_CONNECTION_MATCHER:
 	 * A parsed matcher. Only used internally.
 	 */
-	CONNECTION_MATCHER = 100,
+	SDB_CONNECTION_MATCHER = 100,
 
 	/*
-	 * CONNECTION_EXPR:
+	 * SDB_CONNECTION_EXPR:
 	 * A parsed expression. Only used internally.
 	 */
-	CONNECTION_EXPR,
+	SDB_CONNECTION_EXPR,
 } sdb_conn_state_t;
 
 #ifdef __cplusplus

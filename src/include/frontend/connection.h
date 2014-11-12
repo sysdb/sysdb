@@ -168,9 +168,9 @@ sdb_fe_session_start(sdb_conn_t *conn);
 
 /*
  * sdb_fe_query, sdb_fe_fetch, sdb_fe_list, sdb_fe_lookup:
- * Handle the CONNECTION_QUERY, CONNECTION_FETCH, CONNECTION_LIST, and
- * CONNECTION_LOOKUP commands respectively. It is expected that the current
- * command has been initialized already.
+ * Handle the SDB_CONNECTION_QUERY, SDB_CONNECTION_FETCH, SDB_CONNECTION_LIST,
+ * and SDB_CONNECTION_LOOKUP commands respectively. It is expected that the
+ * current command has been initialized already.
  *
  * Returns:
  *  - 0 on success

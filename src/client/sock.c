@@ -166,7 +166,7 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	if (! username)
 		username = "";
 
-	status = sdb_client_send(client, CONNECTION_STARTUP,
+	status = sdb_client_send(client, SDB_CONNECTION_STARTUP,
 			(uint32_t)strlen(username), username);
 	if (status < 0) {
 		char errbuf[1024];
@@ -179,7 +179,7 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	buf = sdb_strbuf_create(64);
 	rstatus = 0;
 	status = sdb_client_recv(client, &rstatus, buf);
-	if ((status > 0) && (rstatus == CONNECTION_OK)) {
+	if ((status > 0) && (rstatus == SDB_CONNECTION_OK)) {
 		sdb_strbuf_destroy(buf);
 		return 0;
 	}
@@ -193,11 +193,11 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 		sdb_log(SDB_LOG_ERR, "Encountered end-of-file while waiting "
 				"for server response");
 
-	if (rstatus == CONNECTION_ERROR) {
+	if (rstatus == SDB_CONNECTION_ERROR) {
 		sdb_log(SDB_LOG_ERR, "Access denied for user '%s'", username);
 		status = -((int)rstatus);
 	}
-	else if (rstatus != CONNECTION_OK) {
+	else if (rstatus != SDB_CONNECTION_OK) {
 		sdb_log(SDB_LOG_ERR, "Received unsupported authentication request "
 				"(status %d) during startup", (int)rstatus);
 		status = -((int)rstatus);
