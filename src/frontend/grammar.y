@@ -171,6 +171,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 
 %type <data> data
 	interval interval_elem
+	array array_elem_list
 
 %type <datetime> datetime
 	start_clause end_clause
@@ -599,6 +600,8 @@ data:
 	datetime { $$.type = SDB_TYPE_DATETIME; $$.data.datetime = $1; }
 	|
 	interval { $$ = $1; }
+	|
+	array { $$ = $1; }
 	;
 
 datetime:
@@ -626,7 +629,7 @@ interval_elem:
 			unit = sdb_strpunit($2);
 			if (! unit) {
 				sdb_fe_yyerrorf(&yylloc, scanner,
-						YY_("invalid time unit %s"), $2);
+						YY_("syntax error, invalid time unit %s"), $2);
 				free($2); $2 = NULL;
 				YYABORT;
 			}
@@ -640,6 +643,69 @@ interval_elem:
 						YY_("syntax error, negative intervals not supported"));
 				YYABORT;
 			}
+		}
+	;
+
+array:
+	'[' array_elem_list ']'
+		{
+			$$ = $2;
+		}
+	;
+
+array_elem_list:
+	array_elem_list ',' data
+		{
+			size_t elem_size;
+
+			if (($3.type & SDB_TYPE_ARRAY) || (($1.type & 0xff) != $3.type)) {
+				sdb_fe_yyerrorf(&yylloc, scanner, YY_("syntax error, "
+						"cannot use element of type %s in array of type %s"),
+						SDB_TYPE_TO_STRING($3.type),
+						SDB_TYPE_TO_STRING($1.type));
+				sdb_data_free_datum(&$1);
+				sdb_data_free_datum(&$3);
+				YYABORT;
+			}
+
+			elem_size = sdb_data_sizeof($3.type);
+			$1.data.array.values = realloc($1.data.array.values,
+					($1.data.array.length + 1) * elem_size);
+			if (! $1.data.array.values) {
+				sdb_fe_yyerror(&yylloc, scanner, YY_("out of memory"));
+				YYABORT;
+			}
+
+			memcpy((char *)$1.data.array.values
+						+ $1.data.array.length * elem_size,
+					&$3.data, elem_size);
+			++$1.data.array.length;
+
+			$$ = $1;
+		}
+	|
+	data
+		{
+			size_t elem_size;
+
+			if ($1.type & SDB_TYPE_ARRAY) {
+				sdb_fe_yyerrorf(&yylloc, scanner, YY_("syntax error, "
+						"cannot construct array of type %s"),
+						SDB_TYPE_TO_STRING($1.type));
+				sdb_data_free_datum(&$1);
+				YYABORT;
+			}
+
+			$$ = $1;
+			$$.type = $1.type | SDB_TYPE_ARRAY;
+			$$.data.array.length = 1;
+			elem_size = sdb_data_sizeof($1.type);
+			$$.data.array.values = malloc(elem_size);
+			if (! $$.data.array.values ) {
+				sdb_fe_yyerror(&yylloc, scanner, YY_("out of memory"));
+				YYABORT;
+			}
+			memcpy($$.data.array.values, &$1.data, elem_size);
 		}
 	;
 

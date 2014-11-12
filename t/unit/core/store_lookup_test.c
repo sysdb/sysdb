@@ -534,6 +534,12 @@ START_TEST(test_scan)
 		{ "name =~ '.'", NULL,                 3 },
 		{ "ANY backend = 'backend'", NULL,     0 },
 		{ "ALL backend = ''", NULL,            3 }, /* backend is empty */
+		{ "backend = ['backend']", NULL,       0 },
+		{ "backend != ['backend']", NULL,      3 },
+		{ "backend < ['backend']", NULL,       3 },
+		{ "backend <= ['backend']", NULL,      3 },
+		{ "backend >= ['backend']", NULL,      0 },
+		{ "backend > ['backend']", NULL,       0 },
 		{ "ANY metric = 'm1'", NULL,           2 },
 		{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
 		{ "ANY metric = 'm1'",

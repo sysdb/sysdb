@@ -166,6 +166,10 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 		case MATCHER_GT:
 			assert(CMP_M(m)->left && CMP_M(m)->right);
 			if ((CMP_M(m)->left->data_type > 0)
+					&& (CMP_M(m)->right->data_type > 0)
+					&& (CMP_M(m)->left->data_type == CMP_M(m)->right->data_type))
+				return 0;
+			if ((CMP_M(m)->left->data_type > 0)
 					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
 				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
 						CMP_M(m)->right->data_type);

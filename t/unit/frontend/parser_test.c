@@ -186,6 +186,12 @@ START_TEST(test_parse)
 		  "1Y42D",               -1,  1, CONNECTION_LOOKUP },
 		 */
 
+		/* array constants */
+		{ "LOOKUP hosts MATCHING "
+		  "backend = ['foo']",   -1,  1, CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "backend = ['a','b']", -1,  1, CONNECTION_LOOKUP },
+
 		/* NULL */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] "
@@ -452,6 +458,14 @@ START_TEST(test_parse_matcher)
 		 * IS NULL currently maps to an equality matcher */
 		{ "attribute['foo'] IS NULL",     -1,  MATCHER_ISNULL },
 		{ "attribute['foo'] IS NOT NULL", -1,  MATCHER_ISNNULL },
+		/* array expressions */
+		{ "backend < ['a']",              -1,  MATCHER_LT },
+		{ "backend <= ['a']",             -1,  MATCHER_LE },
+		{ "backend = ['a']",              -1,  MATCHER_EQ },
+		{ "backend != ['a']",             -1,  MATCHER_NE },
+		{ "backend >= ['a']",             -1,  MATCHER_GE },
+		{ "backend > ['a']",              -1,  MATCHER_GT },
+		{ "backend &^ ['a']",             -1,  -1 },
 
 		/* object field matchers */
 		{ "name < 'a'",                   -1,  MATCHER_LT },
