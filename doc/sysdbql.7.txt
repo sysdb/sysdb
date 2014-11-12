@@ -127,7 +127,9 @@ Boolean expressions may use the following operators:
 	of the second expression which has to be an array value (e.g., *backend*
 	field). If the second value is not an array or if the type of the first
 	value does not match the array's element type, the expression always
-	evaluates to false.
+	evaluates to false. The first value may also be an array. In this case,
+	the expression evaluates to true if all elements of that array are
+	included in the second array where order does not matter.
 
 Parentheses ('()') may be used around subexpressions to group them and enforce
 precedence.
