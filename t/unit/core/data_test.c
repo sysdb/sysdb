@@ -406,6 +406,27 @@ START_TEST(test_cmp)
 			1,
 		},
 		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_INTEGER, { .array = { 0, NULL } } },
+			{ SDB_TYPE_ARRAY | SDB_TYPE_INTEGER, { .array = { 0, NULL } } },
+			0,
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_INTEGER, { .array = { 0, NULL } } },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
+			},
+			{ SDB_TYPE_ARRAY | SDB_TYPE_INTEGER, { .array = { 0, NULL } } },
+			1,
+		},
+		{
 			{
 				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
 				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
@@ -436,6 +457,27 @@ START_TEST(test_cmp)
 				SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
 				{ .array = { SDB_STATIC_ARRAY_LEN(int_values1), int_values1 } },
 			},
+			1,
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
+			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
+			0,
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
 			1,
 		},
 		{
@@ -707,6 +749,7 @@ START_TEST(test_strcmp)
 			{ SDB_TYPE_STRING, { .string = "/regex/" } },
 			0,
 		},
+		/* TODO: add support for arrays */
 	};
 
 	size_t i;
@@ -817,6 +860,30 @@ START_TEST(test_inarray)
 		{ string_array3, string_array, 0 },
 		{ int_array2,    string_array, 0 },
 		{ dec_array2,    string_array, 0 },
+		{
+			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			int_array, 1,
+		},
+		{
+			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			dec_array, 0,
+		},
+		{
+			{ SDB_TYPE_DECIMAL | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			dec_array, 1,
+		},
+		{
+			{ SDB_TYPE_DECIMAL | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			int_array, 0,
+		},
+		{
+			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			string_array, 1,
+		},
+		{
+			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			dec_array, 0,
+		},
 	};
 
 	size_t i;
@@ -877,6 +944,18 @@ START_TEST(test_array_get)
 		{ string_array, 4, { -1, { .integer = 0 } } },
 		{ { SDB_TYPE_INTEGER, { .integer = 666 } }, 0, { -1, { .integer = 0 } } },
 		{ { SDB_TYPE_INTEGER, { .integer = 666 } }, 1, { -1, { .integer = 0 } } },
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_INTEGER, { .array = { 0, NULL } } },
+			0, { -1, { .integer = 0 } },
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL, { .array = { 0, NULL } } },
+			0, { -1, { .integer = 0 } },
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
+			0, { -1, { .integer = 0 } },
+		},
 	};
 
 	size_t i;
@@ -1221,6 +1300,70 @@ START_TEST(test_expr_eval)
 						SDB_STATIC_ARRAY_LEN(expected_string_prepend),
 						expected_string_prepend
 				} },
+			},
+		},
+		{
+			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			{
+				SDB_TYPE_INTEGER | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_INTEGER | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+		},
+		{
+			{
+				SDB_TYPE_INTEGER | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_INTEGER | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } },
+			},
+		},
+		{
+			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			{
+				SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+		},
+		{
+			{
+				SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
+			},
+			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(string_values), string_values } },
 			},
 		},
 		{
@@ -1764,6 +1907,10 @@ START_TEST(test_format)
 		{
 			{ SDB_TYPE_REGEX, { .re = { "some regex", empty_re } } },
 			"\"/some regex/\"",
+		},
+		{
+			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
+			"[]",
 		},
 		{
 			{

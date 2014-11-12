@@ -390,8 +390,6 @@ data_concat(const sdb_data_t *d1, const sdb_data_t *d2, sdb_data_t *res)
 	else
 		return -1;
 
-	assert(s1 && s2);
-
 	new = malloc(len1 + len2 + 1);
 	if (! new)
 		return -1;
