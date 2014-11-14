@@ -27,6 +27,61 @@
 
   <https://sysdb.io/>
 
+Version 0.6.0, Release Date: tba
+--------------------------------
+
+  This release focuses on a clearer query language. The underlying
+  architecture has been refactored to allow for more powerful and generic
+  expressions.
+
+   * core:
+     - Added support for arrays. Elements may be of any other supported
+       data-type but only integers, decimals, and strings are fully supported.
+   * store:
+     - Refactored matchers: all matchers now operate on one or two expressions
+       or other matchers, replacing the old and less flexible conditional
+       matchers.
+     - Attribute values may now be used anywhere in an expression.
+     - On data-type mismatch when comparing attribute values, the values will
+       be cast to string (previously only done for regex matches).
+     - Added support for querying an object's backends (array of strings).
+     - Added support for iterating child objects and array values.
+     - All matchers now return false if any operand is NULL (except for IS
+       NULL).
+     - All operations now return NULL if any operand is NULL.
+     - Fixed behavior of not-operators (!=, !~) and let them not match if any
+       of the operands is NULL.
+     - Add support for looking up all object types (hosts, services, metrics).
+     - Refactored the JSON formatter to be more flexible and powerful.
+     - Record parent objects for each stored object.
+   * frontend:
+     - Added a separate parser mode for expressions.
+     - Added a new queryable field 'name' to be used in place of the rather
+       magical keyword 'host' when looking up hosts.
+     - Improved error reporting in the parser and the (newly introduced)
+       analyzer.
+     - Apply filters to hosts in the FETCH command.
+   * query language:
+     - All operators may now be used in all places if the involved data-types
+       support the respective operation. For example, regular expressions may
+       be used to match any value. Non-string values are cast to strings for
+       that purpose. IS NULL / IS NOT NULL may be applied to arbitrary
+       expressions.
+     - Introduced the 'IN' operator to check if a value or an array of values
+       is included in an array.
+     - Added support for arrays: [<elem1>,<elem2>,...]
+     - Added support for string and array concatenation using the '||'
+       operator.
+     - Attribute names have to be strings instead of identifiers now.
+     - Access object fields using '<field>' rather than '.<field>'.
+     - Let the LOOKUP and FETCH commands support services and metrics.
+     - Introduced 'FETCH service|metric <host>.<name' for fetching services
+       and metrics.
+     - Added support for 'ANY' and 'ALL' operators which apply a matcher to
+       each value emitted by an iterator (a host's services and metrics or
+       arrays). 'MATCHING ANY service|metric|attribute <cmp> <expr>' replaces
+       'MATCHING service|metric|attribute <cmp> <value>' expressions.
+
 Version 0.5.0, Release Date: 2014-10-06
 ---------------------------------------
 
