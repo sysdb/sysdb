@@ -15,6 +15,7 @@ SYNOPSIS
   FETCH host 'some.host.name';
 
   LOOKUP hosts MATCHING attribute['architecture'] = 'amd64'
+                   AND 'backend::collectd::unixsock' in backend
                FILTER age < 5 * interval;
 
 DESCRIPTION
@@ -248,6 +249,12 @@ all types may be used in any place where a value is expected.
 	(minutes), *s* (seconds), *ms* (milliseconds), *us* (microseconds), or
 	*ns* (nanoseconds). Note that years and months are approximations.
 
+*Array constants*::
+	An array stores of one or more values of the same type. It may be
+	specified as a comma-separated list of constant values enclosed in square
+	brackets ('[<elem1>,<elem2>,...]'). For each value, the same rules apply
+	as for a regular constant value of that type.
+
 RESPONSE FORMAT
 ---------------
 The JavaScript Object Notation (JSON) format, as specified in RFC 4627, is
@@ -262,11 +269,13 @@ replies look like. The replies are pretty-printed to more easily follow them.
   [{
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
-      "update_interval": "5m4s"
+      "update_interval": "5m4s",
+      "backend": ['backend::mk-livestatus']
     },{
       "name": "host2.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
-      "update_interval": "5m4s"
+      "update_interval": "10s",
+      "backend": ['backend::mk-livestatus','backend::collectd::unixsock']
     }]
 
   FETCH host 'host1.example.com';
@@ -274,18 +283,21 @@ replies look like. The replies are pretty-printed to more easily follow them.
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
       "update_interval": "5m4s",
+      "backend": ['backend::mk-livestatus'],
       "attributes": [{
           "name": "architecture",
           "value": "amd64",
           "last_update": "2001-02-03 04:05:06 +0700",
-          "update_interval": "5m4s"
+          "update_interval": "5m4s",
+          "backend": ['backend::mk-livestatus']
         },{
           ...
         }],
       "services": [{
           "name": "some service",
           "last_update": "2001-02-03 04:05:06 +0700",
-          "update_interval": "5m4s"
+          "update_interval": "5m4s",
+          "backend": ['backend::mk-livestatus']
         },{
           ...
         }]}
@@ -295,18 +307,21 @@ replies look like. The replies are pretty-printed to more easily follow them.
       "name": "host1.example.com",
       "last_update": "2001-02-03 04:05:06 +0700",
       "update_interval": "5m4s",
+      "backend": ['backend::mk-livestatus'],
       "attributes": [{
           "name": "architecture",
           "value": "amd64",
           "last_update": "2001-02-03 04:05:06 +0700",
-          "update_interval": "5m4s"
+          "update_interval": "5m4s",
+          "backend": ['backend::mk-livestatus']
         },{
           ...
         }],
       "services": [{
           "name": "some service",
           "last_update": "2001-02-03 04:05:06 +0700",
-          "update_interval": "5m4s"
+          "update_interval": "5m4s",
+          "backend": ['backend::mk-livestatus']
         },{
           ...
     }]},{
