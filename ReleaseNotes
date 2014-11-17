@@ -27,8 +27,8 @@
 
   <https://sysdb.io/>
 
-Version 0.6.0, Release Date: tba
---------------------------------
+Version 0.6.0, Release Date: 2014-11-17
+---------------------------------------
 
   This release focuses on a clearer query language. The underlying
   architecture has been refactored to allow for more powerful and generic
