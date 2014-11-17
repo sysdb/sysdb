@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <math.h>
 #include <pthread.h>
 
 /*
@@ -480,8 +481,13 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 
-			sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
-					"\"value\": \"%f\"}", time_str, ts->data[i][j].value);
+			/* Some GNU libc versions may print '-nan' which we dont' want */
+			if (isnan(ts->data[i][j].value))
+				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
+						"\"value\": \"nan\"}", time_str);
+			else
+				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
+						"\"value\": \"%f\"}", time_str, ts->data[i][j].value);
 
 			if (j < ts->data_len - 1)
 				sdb_strbuf_append(buf, ",");

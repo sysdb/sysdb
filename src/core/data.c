@@ -851,7 +851,10 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 		ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
 	}
 	else if (datum->type == SDB_TYPE_DECIMAL) {
-		ret = snprintf(buf, buflen, "%g", datum->data.decimal);
+		if (isnan(datum->data.decimal))
+			ret = snprintf(buf, buflen, "nan");
+		else
+			ret = snprintf(buf, buflen, "%g", datum->data.decimal);
 	}
 	else if (datum->type == SDB_TYPE_STRING) {
 		if (! datum->data.string)
