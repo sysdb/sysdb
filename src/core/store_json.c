@@ -39,7 +39,9 @@
 
 #include <assert.h>
 
+#include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*
  * private data types
@@ -64,11 +66,39 @@ struct sdb_store_json_formatter {
  * private helper functions
  */
 
+static void
+escape_string(const char *src, char *dest)
+{
+	size_t i = 1;
+	dest[0] = '"';
+	for ( ; *src; ++src) {
+		char c = *src;
+		if ((c == '"') || (c == '\\') || iscntrl((int)c)) {
+			dest[i] = '\\';
+			++i;
+		}
+		switch (c) {
+			case '\a': dest[i] = 'a'; break;
+			case '\b': dest[i] = 'b'; break;
+			case '\t': dest[i] = 't'; break;
+			case '\n': dest[i] = 'n'; break;
+			case '\v': dest[i] = 'v'; break;
+			case '\f': dest[i] = 'f'; break;
+			case '\r': dest[i] = 'r'; break;
+			default: dest[i] = c; break;
+		}
+		++i;
+	}
+	dest[i] = '"';
+	dest[i + 1] = '\0';
+} /* escape_string */
+
 static int
 json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 {
 	char time_str[64];
 	char interval_str[64];
+	char name[2 * strlen(SDB_OBJ(obj)->name) + 3];
 	size_t i;
 
 	assert(f && obj);
@@ -84,13 +114,23 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		}
 	}
 
-	sdb_strbuf_append(f->buf, "{\"name\": \"%s\", ", SDB_OBJ(obj)->name);
+	escape_string(SDB_OBJ(obj)->name, name);
+	sdb_strbuf_append(f->buf, "{\"name\": %s, ", name);
 	if (obj->type == SDB_ATTRIBUTE) {
 		char tmp[sdb_data_strlen(&ATTR(obj)->value) + 1];
+		char val[2 * sizeof(tmp) + 3];
 		if (sdb_data_format(&ATTR(obj)->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED) < 0)
 			snprintf(tmp, sizeof(tmp), "<error>");
-		sdb_strbuf_append(f->buf, "\"value\": %s, ", tmp);
+
+		if (tmp[0] == '"') {
+			/* a string; escape_string handles quoting */
+			tmp[strlen(tmp) - 1] = '\0';
+			escape_string(tmp + 1, val);
+			sdb_strbuf_append(f->buf, "\"value\": %s, ", val);
+		}
+		else
+			sdb_strbuf_append(f->buf, "\"value\": %s, ", tmp);
 	}
 
 	/* TODO: make time and interval formats configurable */
