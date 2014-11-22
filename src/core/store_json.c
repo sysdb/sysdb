@@ -132,6 +132,12 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		else
 			sdb_strbuf_append(f->buf, "\"value\": %s, ", tmp);
 	}
+	else if (obj->type == SDB_METRIC) {
+		if (METRIC(obj)->store.type != NULL)
+			sdb_strbuf_append(f->buf, "\"timeseries\": true, ");
+		else
+			sdb_strbuf_append(f->buf, "\"timeseries\": false, ");
+	}
 
 	/* TODO: make time and interval formats configurable */
 	if (! sdb_strftime(time_str, sizeof(time_str),
