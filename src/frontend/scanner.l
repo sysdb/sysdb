@@ -210,6 +210,7 @@ time		([0-9]{1,2}:[0-9]{1,2}(:[0-9]{1,2}(\.[0-9]{1,9})?)?)
 		struct tm tm;
 		char time[9], ns[10];
 		char *tmp;
+		int t;
 
 		memset(&tm, 0, sizeof(tm));
 		memset(time, '\0', sizeof(time));
@@ -246,7 +247,8 @@ time		([0-9]{1,2}:[0-9]{1,2}(:[0-9]{1,2}(\.[0-9]{1,9})?)?)
 			return SCANNER_ERROR;
 		}
 
-		yylval->datetime = SECS_TO_SDB_TIME(mktime(&tm));
+		t = tm.tm_sec + 60 * tm.tm_min + 3600 * tm.tm_hour;
+		yylval->datetime = SECS_TO_SDB_TIME(t);
 		yylval->datetime += (sdb_time_t)strtoll(ns, NULL, 10);
 		return TIME;
 	}
