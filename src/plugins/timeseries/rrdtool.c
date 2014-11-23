@@ -106,6 +106,10 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 		rrd_freemem(data); \
 	} while (0)
 
+	/* limit to about 1000 data-points for now
+	 * TODO: make this configurable */
+	step = (end - start) / 1000;
+
 	if (rrd_fetch_r(id, "AVERAGE", &start, &end, &step,
 				&ds_cnt, &ds_namv, &data)) {
 		char errbuf[1024];
