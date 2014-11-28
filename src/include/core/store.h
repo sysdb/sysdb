@@ -215,20 +215,6 @@ sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
- * sdb_store_get_child:
- * Retrieve a host's child object of the specified type and name. The
- * reference count of the child object will be incremented before returning
- * it. The caller is responsible for releasing the object once it's no longer
- * used.
- *
- * Returns:
- *  - the child object on success
- *  - NULL else
- */
-sdb_store_obj_t *
-sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
-
-/*
  * A metric store describes how to access a metric's data.
  */
 typedef struct {
@@ -287,6 +273,20 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 int
 sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf);
+
+/*
+ * sdb_store_get_child:
+ * Retrieve a host's child object of the specified type and name. The
+ * reference count of the child object will be incremented before returning
+ * it. The caller is responsible for releasing the object once it's no longer
+ * used.
+ *
+ * Returns:
+ *  - the child object on success
+ *  - NULL else
+ */
+sdb_store_obj_t *
+sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
 
 /*
  * sdb_store_get_field:
@@ -386,18 +386,25 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_data_t *res, sdb_store_matcher_t *filter);
 
 /*
- * sdb_store_isnull_matcher:
- * Creates a matcher matching NULL values.
+ * sdb_store_dis_matcher:
+ * Creates a matcher matching the disjunction (logical OR) of two matchers.
  */
 sdb_store_matcher_t *
-sdb_store_isnull_matcher(sdb_store_expr_t *expr);
+sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
 
 /*
- * sdb_store_isnnull_matcher:
- * Creates a matcher matching non-NULL values.
+ * sdb_store_con_matcher:
+ * Creates a matcher matching the conjunction (logical AND) of two matchers.
  */
 sdb_store_matcher_t *
-sdb_store_isnnull_matcher(sdb_store_expr_t *expr);
+sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
+
+/*
+ * sdb_store_con_matcher::
+ * Creates a matcher matching the inverse (logical NOT) of a matcher.
+ */
+sdb_store_matcher_t *
+sdb_store_inv_matcher(sdb_store_matcher_t *m);
 
 /*
  * sdb_store_any_matcher:
@@ -414,6 +421,15 @@ sdb_store_any_matcher(int type, sdb_store_matcher_t *m);
  */
 sdb_store_matcher_t *
 sdb_store_all_matcher(int type, sdb_store_matcher_t *m);
+
+/*
+ * sdb_store_in_matcher:
+ * Creates a matcher which matches if the right value evaluates to an array
+ * value and the left value is included in that array. See sdb_data_inarray
+ * for more details.
+ */
+sdb_store_matcher_t *
+sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
@@ -437,15 +453,6 @@ sdb_store_matcher_t *
 sdb_store_gt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
- * sdb_store_in_matcher:
- * Creates a matcher which matches if the right value evaluates to an array
- * value and the left value is included in that array. See sdb_data_inarray
- * for more details.
- */
-sdb_store_matcher_t *
-sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-
-/*
  * sdb_store_regex_matcher:
  * Creates a matcher which matches the string value the left expression
  * evaluates to against the regular expression the right expression evaluates
@@ -463,6 +470,39 @@ sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
  */
 sdb_store_matcher_t *
 sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+
+/*
+ * sdb_store_isnull_matcher:
+ * Creates a matcher matching NULL values.
+ */
+sdb_store_matcher_t *
+sdb_store_isnull_matcher(sdb_store_expr_t *expr);
+
+/*
+ * sdb_store_isnnull_matcher:
+ * Creates a matcher matching non-NULL values.
+ */
+sdb_store_matcher_t *
+sdb_store_isnnull_matcher(sdb_store_expr_t *expr);
+
+/*
+ * sdb_store_matcher_matches:
+ * Check whether the specified matcher matches the specified store object. If
+ * specified, the filter will be used to preselect objects for further
+ * evaluation. It is applied to any object that's used during the evaluation
+ * of the matcher. Only those objects matching the filter will be considered.
+ *
+ * Note that the filter is applied to all object types (hosts, service,
+ * metric, attribute). Thus, any object-specific matchers are mostly unsuited
+ * for this purpose and, if used, may result in unexpected behavior.
+ *
+ * Returns:
+ *  - 1 if the object matches
+ *  - 0 else
+ */
+int
+sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter);
 
 /*
  * sdb_store_matcher_op_cb:
@@ -515,46 +555,6 @@ sdb_store_parse_object_type_plural(const char *name);
  */
 int
 sdb_store_parse_field_name(const char *name);
-
-/*
- * sdb_store_dis_matcher:
- * Creates a matcher matching the disjunction (logical OR) of two matchers.
- */
-sdb_store_matcher_t *
-sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
-
-/*
- * sdb_store_con_matcher:
- * Creates a matcher matching the conjunction (logical AND) of two matchers.
- */
-sdb_store_matcher_t *
-sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
-
-/*
- * sdb_store_con_matcher::
- * Creates a matcher matching the inverse (logical NOT) of a matcher.
- */
-sdb_store_matcher_t *
-sdb_store_inv_matcher(sdb_store_matcher_t *m);
-
-/*
- * sdb_store_matcher_matches:
- * Check whether the specified matcher matches the specified store object. If
- * specified, the filter will be used to preselect objects for further
- * evaluation. It is applied to any object that's used during the evaluation
- * of the matcher. Only those objects matching the filter will be considered.
- *
- * Note that the filter is applied to all object types (hosts, service,
- * metric, attribute). Thus, any object-specific matchers are mostly unsuited
- * for this purpose and, if used, may result in unexpected behavior.
- *
- * Returns:
- *  - 1 if the object matches
- *  - 0 else
- */
-int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter);
 
 /*
  * sdb_store_lookup_cb:
