@@ -333,6 +333,18 @@ sdb_store_expr_t *
 sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
+ * sdb_store_expr_typed:
+ * Creates an expression which evaluates in the context of an object's sibling
+ * as specified by the given type.
+ *
+ * Returns:
+ *  - an expression object on success
+ *  - NULL else
+ */
+sdb_store_expr_t *
+sdb_store_expr_typed(int typ, sdb_store_expr_t *expr);
+
+/*
  * sdb_store_expr_fieldvalue:
  * Creates an expression which evaluates to the value of the specified
  * queryable field of a stored object.

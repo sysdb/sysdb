@@ -108,6 +108,7 @@ typedef struct {
  */
 
 enum {
+	TYPED_EXPR  = -3, /* obj type stored in data.data.integer */
 	ATTR_VALUE  = -2, /* attr name stored in data.data.string */
 	FIELD_VALUE = -1, /* field type stored in data.data.integer */
 	/*  0: const value (stored in data) */

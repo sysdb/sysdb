@@ -59,6 +59,8 @@ expr_init(sdb_object_t *obj, va_list ap)
 	if (type <= 0) {
 		if (! value)
 			return -1;
+		if ((type == TYPED_EXPR) && (! left))
+			return -1;
 	} else {
 		if (value)
 			return -1;
@@ -128,12 +130,27 @@ sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
 } /* sdb_store_expr_create */
 
 sdb_store_expr_t *
+sdb_store_expr_typed(int typ, sdb_store_expr_t *expr)
+{
+	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = typ } };
+	sdb_store_expr_t *e;
+
+	if ((typ < SDB_HOST) || (SDB_ATTRIBUTE < typ))
+		return NULL;
+
+	e = SDB_STORE_EXPR(sdb_object_create("store-typedexpr", expr_type,
+				TYPED_EXPR, expr, NULL, &value));
+	e->data_type = expr->data_type;
+	return e;
+} /* sdb_store_expr_typed */
+
+sdb_store_expr_t *
 sdb_store_expr_fieldvalue(int field)
 {
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
 	sdb_store_expr_t *e;
 
-	if ((field < 0) || (SDB_FIELD_BACKEND < field))
+	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_BACKEND < field))
 		return NULL;
 	e = SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));
@@ -199,6 +216,18 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 			res->data.string = NULL;
 		}
 		return status;
+	}
+	else if (expr->type == TYPED_EXPR) {
+		int typ = (int)expr->data.data.integer;
+		if (typ != obj->type) {
+			/* we support self-references and { service, metric } -> host */
+			if ((typ != SDB_HOST)
+					|| ((obj->type != SDB_SERVICE)
+						&& (obj->type != SDB_METRIC)))
+				return -1;
+			obj = obj->parent;
+		}
+		return sdb_store_expr_eval(expr->left, obj, res, filter);
 	}
 
 	if (sdb_store_expr_eval(expr->left, obj, &v1, filter))
