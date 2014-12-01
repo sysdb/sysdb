@@ -161,7 +161,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 %type <m> matcher
 	compare_matcher
 
-%type <expr> expression
+%type <expr> expression object_expression
 
 %type <integer> object_type object_type_plural
 %type <integer> iterable
@@ -516,6 +516,25 @@ expression:
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
 		}
 	|
+	object_expression
+		{
+			$$ = $1;
+		}
+	|
+	data
+		{
+			$$ = sdb_store_expr_constvalue(&$1);
+			sdb_data_free_datum(&$1);
+		}
+	;
+
+object_expression:
+	object_type '.' object_expression
+		{
+			$$ = sdb_store_expr_typed($1, $3);
+			sdb_object_deref(SDB_OBJ($3));
+		}
+	|
 	field
 		{
 			$$ = sdb_store_expr_fieldvalue($1);
@@ -525,12 +544,6 @@ expression:
 		{
 			$$ = sdb_store_expr_attrvalue($3);
 			free($3); $3 = NULL;
-		}
-	|
-	data
-		{
-			$$ = sdb_store_expr_constvalue(&$1);
-			sdb_data_free_datum(&$1);
 		}
 	;
 
