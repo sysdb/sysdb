@@ -126,6 +126,13 @@ struct sdb_store_expr {
 
 	sdb_data_t data;
 };
+#define EXPR_TO_STRING(e) \
+	(((e)->type == TYPED_EXPR) ? "<typed>" \
+		: ((e)->type == ATTR_VALUE) ? "attribute" \
+		: ((e)->type == FIELD_VALUE) ? SDB_FIELD_TO_NAME((e)->data.data.integer) \
+		: ((e)->type == 0) ? "<constant>" \
+		: ((e)->type > 0) ? SDB_DATA_OP_TO_STRING((e)->type) \
+		: "<unknown>")
 
 /*
  * matchers

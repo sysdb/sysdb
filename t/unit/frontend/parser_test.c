@@ -107,12 +107,22 @@ START_TEST(test_parse)
 		  "name =~ 'p' "
 		  "FILTER age>"
 		  "interval",           -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "host.name =~ 'p'",   -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP services",    -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP services MATCHING ANY "
 		  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP services MATCHING "
+		  "host.name = 'p'",    -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP services MATCHING "
+		  "service.name = 'p'", -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP metrics",     -1,   1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP metrics MATCHING ANY "
 		  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP metrics MATCHING "
+		  "host.name = 'p'",    -1,   1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP metrics MATCHING "
+		  "metric.name = 'p'",  -1,   1, SDB_CONNECTION_LOOKUP },
 
 		{ "TIMESERIES 'host'.'metric' "
 		  "START 2014-01-01 "
@@ -276,18 +286,24 @@ START_TEST(test_parse)
 		  "'f' || oo",           -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
 		  "ANY host = 'host'",   -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "service.name = 's'",  -1, -1, 0 },
 		{ "LOOKUP services MATCHING "
 		  "ANY host = 'host'",   -1, -1, 0 },
 		{ "LOOKUP services MATCHING "
 		  "ANY service = 'svc'", -1, -1, 0 },
 		{ "LOOKUP services MATCHING "
 		  "ANY metric = 'm'",    -1, -1, 0 },
+		{ "LOOKUP services MATCHING "
+		  "metric.name = 'm'",   -1, -1, 0 },
 		{ "LOOKUP metrics MATCHING "
 		  "ANY host = 'host'",   -1, -1, 0 },
 		{ "LOOKUP metrics MATCHING "
 		  "ANY service = 'svc'", -1, -1, 0 },
 		{ "LOOKUP metrics MATCHING "
 		  "ANY metric = 'm'",    -1, -1, 0 },
+		{ "LOOKUP metrics MATCHING "
+		  "service.name = 'm'",   -1, -1, 0 },
 	};
 
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);

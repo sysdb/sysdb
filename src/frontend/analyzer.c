@@ -69,6 +69,47 @@ cmp_error(sdb_strbuf_t *errbuf, int op, int left, int right)
 } /* cmp_error */
 
 static int
+analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
+{
+	if (! e)
+		return 0;
+
+	if ((e->type < TYPED_EXPR) || (SDB_DATA_CONCAT < e->type)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression of type %d", e->type);
+		return -1;
+	}
+
+	switch (e->type) {
+		case TYPED_EXPR:
+			if (analyze_expr((int)e->data.data.integer, e->left, errbuf))
+				return -1;
+			if (context == (int)e->data.data.integer)
+				return 0;
+			if ((e->data.data.integer == SDB_HOST) &&
+					((context == SDB_SERVICE) || (context == SDB_METRIC)))
+				return 0;
+			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.%s "
+					"in %s context",
+					SDB_STORE_TYPE_TO_NAME(e->data.data.integer),
+					EXPR_TO_STRING(e->left), SDB_STORE_TYPE_TO_NAME(context));
+			return -1;
+
+		case ATTR_VALUE:
+		case FIELD_VALUE:
+		case 0:
+			break;
+
+		default:
+			if (analyze_expr(context, e->left, errbuf))
+				return -1;
+			if (analyze_expr(context, e->right, errbuf))
+				return -1;
+			break;
+	}
+	return 0;
+} /* analyze_expr */
+
+static int
 analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 {
 	if (! m)
@@ -165,6 +206,11 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 		case MATCHER_GE:
 		case MATCHER_GT:
 			assert(CMP_M(m)->left && CMP_M(m)->right);
+			if (analyze_expr(context, CMP_M(m)->left, errbuf))
+				return -1;
+			if (analyze_expr(context, CMP_M(m)->right, errbuf))
+				return -1;
+
 			if ((CMP_M(m)->left->data_type > 0)
 					&& (CMP_M(m)->right->data_type > 0)
 					&& (CMP_M(m)->left->data_type == CMP_M(m)->right->data_type))
@@ -184,6 +230,11 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 			break;
 
 		case MATCHER_IN:
+			if (analyze_expr(context, CMP_M(m)->left, errbuf))
+				return -1;
+			if (analyze_expr(context, CMP_M(m)->right, errbuf))
+				return -1;
+
 			if ((CMP_M(m)->left->data_type > 0)
 					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
 				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
@@ -200,6 +251,11 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 
 		case MATCHER_REGEX:
 		case MATCHER_NREGEX:
+			if (analyze_expr(context, CMP_M(m)->left, errbuf))
+				return -1;
+			if (analyze_expr(context, CMP_M(m)->right, errbuf))
+				return -1;
+
 			/* all types are supported for the left operand */
 			if ((CMP_M(m)->right->data_type > 0)
 					&& (CMP_M(m)->right->data_type != SDB_TYPE_REGEX)
@@ -212,6 +268,8 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 
 		case MATCHER_ISNULL:
 		case MATCHER_ISNNULL:
+			if (analyze_expr(context, ISNULL_M(m)->expr, errbuf))
+				return -1;
 			break;
 
 		default:
