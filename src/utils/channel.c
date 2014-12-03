@@ -32,9 +32,9 @@
 #include "utils/channel.h"
 
 #include <assert.h>
-
 #include <errno.h>
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,9 +60,9 @@ struct sdb_channel {
 
 	size_t head;
 	size_t tail;
-	_Bool full;
+	bool  full;
 
-	_Bool shutdown;
+	bool shutdown;
 };
 
 /*

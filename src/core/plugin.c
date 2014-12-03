@@ -107,7 +107,7 @@ static sdb_plugin_ctx_t  plugin_default_ctx  = SDB_PLUGIN_CTX_INIT;
 static sdb_plugin_info_t plugin_default_info = SDB_PLUGIN_INFO_INIT;
 
 static pthread_key_t     plugin_ctx_key;
-static _Bool             plugin_ctx_key_initialized = 0;
+static bool              plugin_ctx_key_initialized = 0;
 
 /* a list of the plugin contexts of all registered plugins */
 static sdb_llist_t      *all_plugins = NULL;
@@ -1140,7 +1140,7 @@ sdb_plugin_log(int prio, const char *msg)
 	sdb_llist_iter_t *iter;
 	int ret = -1;
 
-	_Bool logged = 0;
+	bool logged = 0;
 
 	if (! msg)
 		return 0;

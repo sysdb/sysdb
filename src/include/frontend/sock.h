@@ -25,6 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <unistd.h>
 
 #ifndef SDB_FRONTEND_SOCK_H
@@ -40,7 +41,7 @@ typedef struct {
 	size_t num_threads;
 
 	/* front-end listener shuts down when this is set to false */
-	_Bool do_loop;
+	bool do_loop;
 } sdb_fe_loop_t;
 #define SDB_FE_LOOP_INIT { 5, 1 }
 

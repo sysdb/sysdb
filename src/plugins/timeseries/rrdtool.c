@@ -47,7 +47,7 @@ SDB_PLUGIN_MAGIC;
 /* Current versions of RRDtool do not support multiple RRDCacheD client
  * connections. Use this to guard against multiple configured RRDCacheD
  * instances. */
-static _Bool rrdcached_in_use = 0;
+static bool rrdcached_in_use = 0;
 
 /*
  * plugin API

@@ -30,6 +30,8 @@
 
 #include "core/object.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -106,7 +108,7 @@ sdb_avltree_get_iter(sdb_avltree_t *tree);
 void
 sdb_avltree_iter_destroy(sdb_avltree_iter_t *iter);
 
-_Bool
+bool
 sdb_avltree_iter_has_next(sdb_avltree_iter_t *iter);
 sdb_object_t *
 sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter);
@@ -128,7 +130,7 @@ sdb_avltree_size(sdb_avltree_t *tree);
  *  - true if the tree is valid
  *  - false else
  */
-_Bool
+bool
 sdb_avltree_valid(sdb_avltree_t *tree);
 
 #ifdef __cplusplus

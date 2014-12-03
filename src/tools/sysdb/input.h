@@ -38,8 +38,8 @@ typedef struct {
 	size_t tokenizer_pos;
 	size_t query_len;
 
-	_Bool interactive;
-	_Bool eof;
+	bool interactive;
+	bool eof;
 } sdb_input_t;
 
 #define SDB_INPUT_INIT { NULL, NULL, 0, 0, 1, 0 }

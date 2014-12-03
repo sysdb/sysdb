@@ -35,10 +35,10 @@
 #include <pthread.h>
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-
 #include <stdlib.h>
+#include <string.h>
 
 /*
  * private data types
@@ -47,7 +47,7 @@
 typedef struct {
 	int   prio;
 	sdb_strbuf_t *msg;
-	_Bool logged;
+	bool logged;
 } sdb_error_ctx_t;
 #define SDB_ERROR_INIT { -1, NULL, 1 }
 
@@ -58,7 +58,7 @@ typedef struct {
 static sdb_error_ctx_t default_error_ctx = SDB_ERROR_INIT;
 
 static pthread_key_t error_ctx_key;
-static _Bool         error_ctx_key_initialized = 0;
+static bool          error_ctx_key_initialized = 0;
 
 static int (*logger)(int prio, const char *msg) = NULL;
 

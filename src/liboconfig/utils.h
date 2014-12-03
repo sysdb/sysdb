@@ -26,6 +26,8 @@
 
 #include "oconfig.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +45,7 @@ oconfig_get_string(oconfig_item_t *ci, char **value);
 int
 oconfig_get_number(oconfig_item_t *ci, double *value);
 int
-oconfig_get_boolean(oconfig_item_t *ci, _Bool *value);
+oconfig_get_boolean(oconfig_item_t *ci, bool *value);
 
 #ifdef __cplusplus
 } /* extern "C" */

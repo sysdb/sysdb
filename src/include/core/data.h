@@ -31,6 +31,7 @@
 #include "core/time.h"
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #include <sys/types.h>
@@ -161,7 +162,7 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2);
  * either datum is NULL or if the type is SDB_TYPE_NULL or if the string or
  * binary datum is NULL.
  */
-_Bool
+bool
 sdb_data_isnull(const sdb_data_t *datum);
 
 /*
@@ -173,7 +174,7 @@ sdb_data_isnull(const sdb_data_t *datum);
  * elements of the first array are included in the second where order does not
  * matter.
  */
-_Bool
+bool
 sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array);
 
 /*

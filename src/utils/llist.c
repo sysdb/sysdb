@@ -469,7 +469,7 @@ sdb_llist_iter_destroy(sdb_llist_iter_t *iter)
 	free(iter);
 } /* sdb_llist_iter_destroy */
 
-_Bool
+bool
 sdb_llist_iter_has_next(sdb_llist_iter_t *iter)
 {
 	if (! iter)

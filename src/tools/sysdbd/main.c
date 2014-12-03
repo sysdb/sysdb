@@ -304,7 +304,7 @@ main_loop(void)
 int
 main(int argc, char **argv)
 {
-	_Bool do_daemonize = 1;
+	bool do_daemonize = 1;
 
 	struct sigaction sa_intterm;
 	struct sigaction sa_hup;

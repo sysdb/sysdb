@@ -49,7 +49,7 @@
  */
 
 static pthread_key_t conn_ctx_key;
-static _Bool         conn_ctx_key_initialized = 0;
+static bool          conn_ctx_key_initialized = 0;
 
 /*
  * private types

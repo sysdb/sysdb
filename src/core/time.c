@@ -34,6 +34,7 @@
 
 #include <time.h>
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -98,7 +99,7 @@ sdb_strfinterval(char *s, size_t len, sdb_time_t interval)
 	size_t i;
 
 	/* special case the optional fractional part for seconds */
-	_Bool have_seconds = 0;
+	bool have_seconds = 0;
 
 	struct {
 		sdb_time_t  interval;

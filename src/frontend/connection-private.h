@@ -73,7 +73,7 @@ struct sdb_conn {
 
 	/* user information */
 	char *username; /* NULL if the user has not been authenticated */
-	_Bool ready; /* indicates that startup finished successfully */
+	bool  ready; /* indicates that startup finished successfully */
 };
 #define CONN(obj) ((sdb_conn_t *)(obj))
 

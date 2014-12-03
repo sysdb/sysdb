@@ -30,6 +30,8 @@
 
 #include "core/object.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -211,7 +213,7 @@ sdb_llist_get_iter(sdb_llist_t *list);
 void
 sdb_llist_iter_destroy(sdb_llist_iter_t *iter);
 
-_Bool
+bool
 sdb_llist_iter_has_next(sdb_llist_iter_t *iter);
 sdb_object_t *
 sdb_llist_iter_get_next(sdb_llist_iter_t *iter);

@@ -610,7 +610,7 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2)
 #undef CMP_NULL
 } /* sdb_data_strcmp */
 
-_Bool
+bool
 sdb_data_isnull(const sdb_data_t *datum)
 {
 	if (! datum)
@@ -626,7 +626,7 @@ sdb_data_isnull(const sdb_data_t *datum)
 	return 0;
 } /* sdb_data_isnull */
 
-_Bool
+bool
 sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array)
 {
 	const void *values;
@@ -839,7 +839,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 {
 	char tmp[sdb_data_strlen(datum) + 1];
 	char *data = NULL;
-	_Bool is_null = 0;
+	bool is_null = 0;
 	int ret = -1;
 
 	size_t i, pos;

@@ -30,13 +30,12 @@
 
 #include "core/object.h"
 #include "core/data.h"
-
 #include "frontend/proto.h"
-
 #include "utils/strbuf.h"
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -134,7 +133,7 @@ sdb_client_recv(sdb_client_t *client,
  * Returns true if end of file on the client connection was reached, that is,
  * if the remote side closed the connection.
  */
-_Bool
+bool
 sdb_client_eof(sdb_client_t *client);
 
 #ifdef __cplusplus

@@ -56,7 +56,7 @@
 struct sdb_client {
 	char *address;
 	int   fd;
-	_Bool eof;
+	bool  eof;
 };
 
 /*
@@ -327,7 +327,7 @@ sdb_client_recv(sdb_client_t *client,
 	return (ssize_t)total;
 } /* sdb_client_recv */
 
-_Bool
+bool
 sdb_client_eof(sdb_client_t *client)
 {
 	if ((! client) || (client->fd < 0))

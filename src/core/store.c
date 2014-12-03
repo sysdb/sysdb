@@ -256,7 +256,7 @@ static sdb_type_t sdb_attribute_type = {
  */
 
 static sdb_host_t *
-lookup_host(const char *name, _Bool canonicalize)
+lookup_host(const char *name, bool canonicalize)
 {
 	sdb_host_t *host;
 	char *cname;
@@ -540,7 +540,7 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	return status;
 } /* sdb_store_host */
 
-_Bool
+bool
 sdb_store_has_host(const char *name)
 {
 	sdb_host_t *host;

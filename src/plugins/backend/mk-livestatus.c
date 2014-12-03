@@ -327,7 +327,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 
 	sdb_plugin_register_config(sdb_livestatus_config);
 	return 0;
-} /* sdb_version_extra */
+} /* sdb_module_init */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

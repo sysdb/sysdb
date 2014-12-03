@@ -435,7 +435,7 @@ sdb_avltree_iter_destroy(sdb_avltree_iter_t *iter)
 	free(iter);
 } /* sdb_avltree_iter_destroy */
 
-_Bool
+bool
 sdb_avltree_iter_has_next(sdb_avltree_iter_t *iter)
 {
 	if (! iter)
@@ -463,12 +463,12 @@ sdb_avltree_size(sdb_avltree_t *tree)
 	return tree ? tree->size : 0;
 } /* sdb_avltree_size */
 
-_Bool
+bool
 sdb_avltree_valid(sdb_avltree_t *tree)
 {
 	node_t *n;
 
-	_Bool status = 1;
+	bool status = 1;
 	size_t size = 0;
 
 	if (! tree)

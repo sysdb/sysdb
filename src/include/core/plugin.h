@@ -36,6 +36,7 @@
 #include "liboconfig/oconfig.h"
 
 #include <stdarg.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +71,7 @@ typedef struct {
 	int sdb_module_init(sdb_plugin_info_t *info)
 
 typedef struct {
-	_Bool do_loop;
+	bool do_loop;
 	sdb_time_t default_interval;
 } sdb_plugin_loop_t;
 #define SDB_PLUGIN_LOOP_INIT { 1, 0 }

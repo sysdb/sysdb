@@ -35,6 +35,7 @@
 #include "core/timeseries.h"
 #include "utils/strbuf.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -151,7 +152,7 @@ sdb_store_host(const char *name, sdb_time_t last_update);
  * sdb_store_get_host increments the ref count of the host object. The caller
  * needs to deref it when no longer using it.
  */
-_Bool
+bool
 sdb_store_has_host(const char *name);
 
 sdb_store_obj_t *

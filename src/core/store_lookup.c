@@ -92,7 +92,7 @@ expr_free_datum2(sdb_store_expr_t *e1, sdb_data_t *v1,
  * is enabled, compare the string values in case of a type mismatch.
  */
 static int
-match_cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
+match_cmp_value(int op, sdb_data_t *v1, sdb_data_t *v2, bool strcmp_fallback)
 {
 	int status;
 
@@ -153,7 +153,7 @@ match_regex_value(int op, sdb_data_t *v, sdb_data_t *re)
 } /* match_regex_value */
 
 static int
-match_value(int op, sdb_data_t *v1, sdb_data_t *v2, _Bool strcmp_fallback)
+match_value(int op, sdb_data_t *v1, sdb_data_t *v2, bool strcmp_fallback)
 {
 	if ((op == MATCHER_REGEX) || (op == MATCHER_NREGEX))
 		return match_regex_value(op, v1, v2);

@@ -22,6 +22,7 @@
  */
 
 #include "oconfig.h"
+#include "utils.h"
 
 int
 oconfig_get_string(oconfig_item_t *ci, char **value)
@@ -52,7 +53,7 @@ oconfig_get_number(oconfig_item_t *ci, double *value)
 } /* oconfig_get_number */
 
 int
-oconfig_get_boolean(oconfig_item_t *ci, _Bool *value)
+oconfig_get_boolean(oconfig_item_t *ci, bool *value)
 {
 	if (! ci)
 		return -1;
