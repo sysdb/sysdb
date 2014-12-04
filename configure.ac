@@ -44,6 +44,7 @@ AC_LANG(C)
 AC_SYS_LARGEFILE
 
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -72,14 +73,25 @@ m4_ifdef([LT_INIT],
 )
 
 test_cc_flags() {
-	AC_LANG_CONFTEST([AC_LANG_PROGRAM([[ ]], [[ ]])])
-	$CC -c conftest.c $CFLAGS $@ > /dev/null 2> /dev/null
+	AC_LANG_CONFTEST([int main(void){}])
+	$CC -c conftest.c $CFLAGS $STRICT_CFLAGS $@ > /dev/null 2> /dev/null
 	ret=$?
 	rm -f conftest.o
 	return $ret
 }
 
+test_cxx_flags() {
+	AC_LANG_PUSH(C++)
+	AC_LANG_CONFTEST([int main(void){}])
+	$CXX -c conftest.c $CXXFLAGS $STRICT_CXXFLAGS $@ > /dev/null 2> /dev/null
+	ret=$?
+	rm -f conftest.o
+	AC_LANG_POP(C++)
+	return $ret
+}
+
 STRICT_CFLAGS=""
+STRICT_CXXFLAGS=""
 
 m4_divert_once([HELP_ENABLE], [
 Build options:])
@@ -130,23 +142,37 @@ AC_ARG_ENABLE([hardening],
 		[enable_hardening="yes"])
 
 if test "x$enable_hardening" = "xyes"; then
-	hardening=0
+	hardening_cc=0
+	hardening_cxx=0
 	hardening_tests=0
 	for flag in -Wformat -Wformat-security; do
 		hardening_tests=$(($hardening_tests + 1))
-		AC_MSG_CHECKING([whether $CC accepts $flag])
 
+		AC_MSG_CHECKING([whether $CC accepts $flag])
 		if test_cc_flags $flag; then
 			STRICT_CFLAGS="$STRICT_CFLAGS $flag"
-			hardening=$(($hardening + 1))
+			hardening_cc=$(($hardening_cc + 1))
+			AC_MSG_RESULT([yes])
+		else
+			AC_MSG_RESULT([no])
+		fi
+
+		AC_MSG_CHECKING([whether $CXX accepts $flag])
+		if test_cxx_flags $flag; then
+			STRICT_CXXFLAGS="$STRICT_CXXFLAGS $flag"
+			hardening_cxx=$(($hardening_cxx + 1))
 			AC_MSG_RESULT([yes])
 		else
 			AC_MSG_RESULT([no])
 		fi
 	done
-	if test $hardening -ne $hardening_tests; then
+	if test $hardening_cc -ne $hardening_tests; then
 		AC_MSG_WARN(
-				[Some hardening options are not supported by your compiler!])
+				[Some hardening options are not supported by your C compiler!])
+	fi
+	if test $hardening_cxx -ne $hardening_tests; then
+		AC_MSG_WARN(
+				[Some hardening options are not supported by your C++ compiler!])
 	fi
 fi
 
@@ -159,9 +185,16 @@ AC_ARG_ENABLE([strict-checks],
 
 for flag in -Wall -Werror; do
 	AC_MSG_CHECKING([whether $CC accepts $flag])
-
 	if test_cc_flags $flag; then
 		STRICT_CFLAGS="$STRICT_CFLAGS $flag"
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([no])
+	fi
+
+	AC_MSG_CHECKING([whether $CXX accepts $flag])
+	if test_cxx_flags $flag; then
+		STRICT_CXXFLAGS="$STRICT_CXXFLAGS $flag"
 		AC_MSG_RESULT([yes])
 	else
 		AC_MSG_RESULT([no])
@@ -182,16 +215,28 @@ if test "x$enable_strict_checks" = "xyes"; then
 			-Wshadow \
 			-Wstrict-prototypes; do
 		AC_MSG_CHECKING([whether $CC accepts $flag])
-
 		if test_cc_flags $flag; then
 			STRICT_CFLAGS="$STRICT_CFLAGS $flag"
 			AC_MSG_RESULT([yes])
 		else
 			AC_MSG_RESULT([no])
 		fi
+
+		dnl -Wshadow produces unnecessary warnings/errors in case a
+		dnl C function name "shadows" a struct constructor.
+		if test "x$flag" != "x-Wshadow"; then
+			AC_MSG_CHECKING([whether $CXX accepts $flag])
+			if test_cxx_flags $flag; then
+				STRICT_CXXFLAGS="$STRICT_CXXFLAGS $flag"
+				AC_MSG_RESULT([yes])
+			else
+				AC_MSG_RESULT([no])
+			fi
+		fi
 	done
 fi
 AC_SUBST([STRICT_CFLAGS])
+AC_SUBST([STRICT_CXXFLAGS])
 
 AC_ARG_ENABLE([gcov],
 		AS_HELP_STRING([--enable-gcov],

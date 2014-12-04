@@ -2,6 +2,7 @@ SUBDIRS = liboconfig
 
 # coverage related flags are only set when gcov is enabled
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@
+AM_CXXFLAGS = @STRICT_CXXFLAGS@ @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@ @PROFILING_LDFLAGS@
 AM_CPPFLAGS  = -I"${top_srcdir}/src/include"
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
