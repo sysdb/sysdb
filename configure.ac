@@ -132,6 +132,16 @@ if test "x$enable_standards" = "xyes"; then
 	done
 fi
 
+dnl We need C++11 for facter.
+AC_MSG_CHECKING([whether $CXX accepts -std=c++11])
+if test_cxx_flags -std=c++11; then
+	CXXFLAGS="$CXXFLAGS -std=c++11"
+	AC_MSG_RESULT([yes])
+else
+	# Oh well, the header check will determine if it works anyway.
+	AC_MSG_RESULT([no])
+fi
+
 dnl Hardening (see e.g. http://wiki.debian.org/Hardening for a motivation).
 AC_DEFINE([_FORTIFY_SOURCE], 2,
 		[Define to enable protection against static sized buffer overflows.])
@@ -454,6 +464,37 @@ AC_SUBST([READLINE_LIBS])
 AC_SUBST([READLINE_CFLAGS])
 AM_CONDITIONAL([BUILD_CLIENT], test "x$readline_support" != "no")
 
+AC_LANG_PUSH(C++)
+AC_ARG_WITH([libfacter],
+		[AS_HELP_STRING([--with-libfacter], [libfacter support (default: auto)])],
+		[with_libfacter="$withval"],
+		[with_libfacter="yes"])
+if test "x$with_libfacter" = "xyes" || test "x$with_libfacter" = "xauto"; then
+	AC_CHECK_HEADERS([facter/facts/collection.hpp],
+			[have_libfacter="yes"],
+			[have_libfacter="no (facter/facts/collection.hpp not found)"])
+else if test "x$with_libfacter" = "xno"; then
+	have_libfacter="$with_libfacter (disabled on command-line)"
+else
+	AC_MSG_ERROR([Invalid value for option --with-libfacter=$with_libfacter (expected "yes", "no", or "auto")])
+fi; fi
+if test "x$have_libfacter" = "xyes"; then
+	AC_MSG_CHECKING([for facter::facts::collection in -lfacter])
+	AC_LINK_IFELSE(
+			[AC_LANG_PROGRAM(
+				[[[ #include <facter/facts/collection.hpp> ]]],
+				[[[
+					facter::facts::collection facts;
+					facts.add_default_facts();
+				]]]
+			)],
+			[TEST_LIBS=$TEST_LIBS -lfacter],
+			[have_libfacter="yes"],
+			[have_libfacter="no (libfacter not found)"])
+	AC_MSG_RESULT([$have_libfacter])
+fi
+AC_LANG_POP(C++)
+
 AC_ARG_WITH([librrd],
 		[AS_HELP_STRING([--with-librrd], [librrd support (default: auto)])],
 		[with_librrd="$withval"],
@@ -500,6 +541,10 @@ fi
 AM_CONDITIONAL([INTEGRATION_TESTING], test "x$integration_tests" = "xyes")
 
 dnl Plugin checks.
+facter_default=$have_libfacter
+if test "x$facter_default" != "xyes"; then
+	facter_default="no (requires libfacter)"
+fi
 puppet_storeconfigs_default=$with_libdbi
 if test "x$puppet_storeconfigs_default" != "xyes"; then
 	puppet_storeconfigs_default="no (requires libdbi)"
@@ -515,6 +560,8 @@ Backends:])
 AC_SDB_PLUGIN_INIT
 AC_SDB_PLUGIN([collectd-unixsock], [yes],
 		[backend accessing the system statistics collection daemon])
+AC_SDB_PLUGIN([facter], [$facter_default],
+		[backend retrieving local facter facts])
 AC_SDB_PLUGIN([mk-livestatus], [yes],
 		[backend accessing Nagios/Icinga/Shinken using MK Livestatus])
 AC_SDB_PLUGIN([puppet-storeconfigs], [$puppet_storeconfigs_default],
@@ -573,6 +620,7 @@ AC_MSG_RESULT([    librrd: . . . . . . . . . . $have_librrd])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd::unixsock: . . . . $enable_collectd_unixsock])
+AC_MSG_RESULT([    facter  . . . . . . . . . . $enable_facter])
 AC_MSG_RESULT([    mk-livestatus:  . . . . . . $enable_mk_livestatus])
 AC_MSG_RESULT([    puppet::storeconfigs: . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()

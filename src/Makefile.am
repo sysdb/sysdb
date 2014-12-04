@@ -171,6 +171,14 @@ sysdbd_LDADD += -dlopen plugins/backend/collectd/unixsock.la
 sysdbd_DEPENDENCIES += plugins/backend/collectd/unixsock.la
 endif
 
+if BUILD_PLUGIN_FACTER
+pkgbackendlib_LTLIBRARIES += plugins/backend/facter.la
+plugins_backend_facter_la_SOURCES = plugins/backend/facter.cc
+plugins_backend_facter_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version -lfacter
+sysdbd_LDADD += -dlopen plugins/backend/facter.la
+sysdbd_DEPENDENCIES += plugins/backend/facter.la
+endif
+
 if BUILD_PLUGIN_MKLIVESTATUS
 pkgbackendlib_LTLIBRARIES += plugins/backend/mk-livestatus.la
 plugins_backend_mk_livestatus_la_SOURCES = plugins/backend/mk-livestatus.c
