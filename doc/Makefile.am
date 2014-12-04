@@ -12,6 +12,7 @@ EXTRA_DIST = \
 		sysdb-description.txt \
 		sysdbd-cname-dns.5.txt \
 		sysdbd-collectd-unixsock.5.txt \
+		sysdbd-facter.5.txt \
 		sysdbd-mk-livestatus.5.txt \
 		sysdbd-puppet-store-configs.5.txt \
 		sysdbd-syslog.5.txt \
@@ -24,6 +25,7 @@ CLEANFILES = \
 		sysdbd.conf.5 \
 		sysdbd-cname-dns.5 \
 		sysdbd-collectd-unixsock.5 \
+		sysdbd-facter.5 \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
@@ -35,6 +37,7 @@ CLEANFILES = \
 		sysdbd.conf.5.html \
 		sysdbd-cname-dns.5.html \
 		sysdbd-collectd-unixsock.5.html \
+		sysdbd-facter.5.html \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
@@ -46,6 +49,7 @@ CLEANFILES = \
 		sysdbd.conf.5.xml \
 		sysdbd-cname-dns.5.xml \
 		sysdbd-collectd-unixsock.5.xml \
+		sysdbd-facter.5.xml \
 		sysdbd-mk-livestatus.5.xml \
 		sysdbd-puppet-store-configs.5.xml \
 		sysdbd-syslog.5.xml \
@@ -59,6 +63,7 @@ man_MANS = \
 		sysdbd.conf.5 \
 		sysdbd-cname-dns.5 \
 		sysdbd-collectd-unixsock.5 \
+		sysdbd-facter.5 \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
 		sysdbd-syslog.5 \
@@ -72,6 +77,7 @@ html_DATA = \
 		sysdbd.conf.5.html \
 		sysdbd-cname-dns.5.html \
 		sysdbd-collectd-unixsock.5.html \
+		sysdbd-facter.5.html \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
 		sysdbd-syslog.5.html \
@@ -92,6 +98,7 @@ sysdbd.1.xml: sysdbd.1.txt $(MAN_DEPS)
 sysdbd.conf.5.xml: sysdbd.conf.5.txt $(MAN_DEPS)
 sysdbd-cname-dns.5.xml: sysdbd-cname-dns.5.txt $(MAN_DEPS)
 sysdbd-collectd-unixsock.5.xml: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
+sysdbd-facter.5.xml: sysdbd-facter.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.xml: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.xml: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.xml: sysdbd-syslog.5.txt $(MAN_DEPS)
@@ -104,6 +111,7 @@ sysdbd.1: sysdbd.1.xml
 sysdbd.conf.5: sysdbd.conf.5.xml
 sysdbd-cname-dns.5: sysdbd-cname-dns.5.xml
 sysdbd-collectd-unixsock.5: sysdbd-collectd-unixsock.5.xml
+sysdbd-facter.5: sysdbd-facter.5.xml
 sysdbd-mk-livestatus.5: sysdbd-mk-livestatus.5.xml
 sysdbd-puppet-store-configs.5: sysdbd-puppet-store-configs.5.xml
 sysdbd-syslog.5: sysdbd-syslog.5.xml
@@ -116,6 +124,7 @@ sysdbd.1.html: sysdbd.1.txt $(MAN_DEPS)
 sysdbd.conf.5.html: sysdbd.conf.5.txt $(MAN_DEPS)
 sysdbd-cname-dns.5.html: sysdbd-cname-dns.5.txt $(MAN_DEPS)
 sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
+sysdbd-facter.5.html: sysdbd-facter.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt $(MAN_DEPS)

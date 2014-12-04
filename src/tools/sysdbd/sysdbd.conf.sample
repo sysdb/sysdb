@@ -43,6 +43,7 @@ LoadPlugin "cname::dns"
 #   </LoadPlugin>                                                            #
 #----------------------------------------------------------------------------#
 LoadBackend "collectd::unixsock"
+LoadBackend "facter"
 LoadBackend "mk-livestatus"
 LoadBackend "puppet::store-configs"
 

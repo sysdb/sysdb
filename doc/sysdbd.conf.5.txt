@@ -105,9 +105,15 @@ Backends:
 *collectd::unixsock*::
 This backend module accesses the system statistics collection daemon
 *collectd* through its UNIX socket interface. It periodically queries all host
-and service information.
+and metric information.
 +
 See also: http://collectd.org
+
+*facter*::
+This backend module retrieves local facter fact values and submits them as
+host attributes.
++
+See also: https://github.com/puppetlabs/cfacter
 
 *mk-livestatus*::
 This backend modules accesses monitoring systems supporting the *livestatus*
@@ -152,8 +158,8 @@ The SysDB homepage: https://sysdb.io/
 Backend documentation:
 ~~~~~~~~~~~~~~~~~~~~~~
 
-manpage:sysdbd-collectd-unixsock[5], manpage:sysdbd-mk-livestatus[5],
-manpage:sysdbd-puppet-store-configs[5]
+manpage:sysdbd-collectd-unixsock[5], manpage:sysdbd-facter[5],
+manpage:sysdbd-mk-livestatus[5], manpage:sysdbd-puppet-store-configs[5]
 
 Time-series fetcher documentation:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
