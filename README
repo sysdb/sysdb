@@ -51,7 +51,7 @@ Prerequisites
 
   To compile the SysDB package from source you need:
 
-  * A build environment: autotools, libtool, C compiler, ...
+  * A build environment: autotools, libtool, C and C++ compilers, ...
 
     <http://www.gnu.org/software/automake/>
     <http://www.gnu.org/software/autoconf/>
@@ -87,9 +87,21 @@ Prerequisites
 
   * libdbi:
     The database independent abstraction layer is used for database access by
-    the puppet::store-configs plugin.
+    the backend::puppet::store-configs plugin.
 
     <http://libdbi.sourceforge.net/>
+
+  * libfacter:
+    The cfacter library for gathering facts about a system is used by the
+    backend::facter plugin to retrieve attributes about the local system.
+
+    <https://github.com/puppetlabs/cfacter>
+
+  * librrd:
+    The RRDtool library is used by the timeseries::rrdtool plugin to retrieve
+    time-series from RRD files.
+
+    <https://oss.oetiker.ch/rrdtool/>
 
 Testing
 -------
