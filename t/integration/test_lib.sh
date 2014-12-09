@@ -50,8 +50,14 @@ SYSDBD_CONF="$TESTDIR/sysdbd.conf"
 SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
 
+SYSDB_USER="$( id -un )"
+
 function run_sysdb() {
-	$MEMCHECK "$TESTDIR/sysdb" -U mockuser "$@"
+	$MEMCHECK "$TESTDIR/sysdb" -U $SYSDB_USER "$@"
+}
+
+function run_sysdb_nouser() {
+	$MEMCHECK "$TESTDIR/sysdb" "$@"
 }
 
 function run_sysdbd() {

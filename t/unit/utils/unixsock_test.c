@@ -30,7 +30,9 @@
 #endif /* HAVE_CONFIG_H */
 
 /* required for fopencookie support */
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+#	define _GNU_SOURCE
+#endif
 
 #include "utils/unixsock.h"
 #include "libsysdb_test.h"

@@ -48,6 +48,11 @@ run_sysdbd -D -C "$SYSDBD_CONF"
 wait_for_sysdbd
 sleep 3
 
+# Invalid user.
+output="$( run_sysdb_nouser -H "$SOCKET_FILE" \
+  -U $SYSDB_USER-invalid -c 'LIST hosts' 2>&1 )" && exit 1
+echo "$output" | grep -F 'Access denied'
+
 # On parse errors, expect a non-zero exit code.
 output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID )" && exit 1
 echo "$output" | grep "Failed to parse query 'INVALID'"

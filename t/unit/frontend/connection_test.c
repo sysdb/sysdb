@@ -32,10 +32,12 @@
 #include "frontend/connection.h"
 #include "frontend/connection-private.h"
 #include "utils/proto.h"
+#include "utils/os.h"
 #include "libsysdb_test.h"
 
 #include "utils/strbuf.h"
 
+#include <assert.h>
 #include <check.h>
 
 #include <stdlib.h>
@@ -47,6 +49,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
+static char username[1024];
 
 /*
  * private helper functions
@@ -98,6 +102,9 @@ mock_conn_create(void)
 	}
 
 	unlink(tmp_file);
+
+	conn->username = strdup(username);
+	assert(conn->username);
 
 	conn->cmd = SDB_CONNECTION_IDLE;
 	conn->cmd_len = 0;
@@ -174,12 +181,12 @@ connection_startup(sdb_conn_t *conn)
 {
 	ssize_t check, expected;
 
-	expected = 2 * sizeof(uint32_t) + strlen("fakeuser");
+	expected = 2 * sizeof(uint32_t) + strlen(username);
 	check = sdb_connection_send(conn, SDB_CONNECTION_STARTUP,
-			(uint32_t)strlen("fakeuser"), "fakeuser");
+			(uint32_t)strlen(username), username);
 	fail_unless(check == expected,
-			"sdb_connection_send(STARTUP, fakeuser) = %zi; expected: %zi",
-			check, expected);
+			"sdb_connection_send(STARTUP, %s) = %zi; expected: %zi",
+			username, check, expected);
 
 	mock_conn_rewind(conn);
 	check = sdb_connection_read(conn);
@@ -189,7 +196,8 @@ connection_startup(sdb_conn_t *conn)
 
 	fail_unless(sdb_strbuf_len(conn->errbuf) == 0,
 			"sdb_connection_read() left %zu bytes in the error "
-			"buffer; expected: 0", sdb_strbuf_len(conn->errbuf));
+			"buffer (%s); expected: 0", sdb_strbuf_len(conn->errbuf),
+			sdb_strbuf_string(conn->errbuf));
 
 	mock_conn_truncate(conn);
 } /* connection_startup */
@@ -244,7 +252,7 @@ START_TEST(test_conn_setup)
 		{ UINT32_MAX,             NULL,       NULL },
 		{ SDB_CONNECTION_IDLE,    "fakedata", "Authentication required" },
 		{ SDB_CONNECTION_PING,    NULL,       "Authentication required" },
-		{ SDB_CONNECTION_STARTUP, "fakeuser", NULL },
+		{ SDB_CONNECTION_STARTUP, username,   NULL },
 		{ SDB_CONNECTION_PING,    NULL,       NULL },
 		{ SDB_CONNECTION_IDLE,    NULL,       "Invalid command 0" },
 		{ SDB_CONNECTION_PING,    "fakedata", NULL },
@@ -292,7 +300,8 @@ START_TEST(test_conn_setup)
 		else
 			fail_unless(sdb_strbuf_len(conn->errbuf) == 0,
 					"sdb_connection_read() left %zu bytes in the error "
-					"buffer; expected: 0", sdb_strbuf_len(conn->errbuf));
+					"buffer (%s); expected: 0", sdb_strbuf_len(conn->errbuf),
+					sdb_strbuf_string(conn->errbuf));
 	}
 
 	mock_conn_destroy(conn);
@@ -417,6 +426,11 @@ fe_conn_suite(void)
 {
 	Suite *s = suite_create("frontend::connection");
 	TCase *tc;
+
+	char *tmp = sdb_get_current_user();
+	assert(tmp);
+	strcpy(username, tmp);
+	free(tmp);
 
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_conn_accept);

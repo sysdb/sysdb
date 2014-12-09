@@ -344,6 +344,46 @@ AC_SUBST([PROFILING_LDFLAGS])
 m4_divert_once([HELP_ENABLE], [
 Build dependencies:])
 
+AC_CHECK_HEADERS([ucred.h])
+dnl On OpenBSD, sys/param.h is required for sys/ucred.h.
+AC_CHECK_HEADERS([sys/ucred.h], [], [],
+		[[ #include <sys/param.h> ]])
+
+AC_CHECK_TYPES([struct ucred],
+		[have_struct_ucred="yes"], [have_struct_ucred="no"],
+		[[
+#include <sys/socket.h>
+#include <sys/param.h>
+#if HAVE_UCRED_H
+#	include <ucred.h>
+#endif
+		]])
+
+if test "x$have_struct_ucred" != "xyes"; then
+	AC_MSG_CHECKING([for struct ucred when using _GNU_SOURCE])
+	orig_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS -D_GNU_SOURCE"
+	dnl Don't reuse AC_CHECK_HEADERS; for one it'll use the cached value
+	dnl but also, it will print the "checking for" message a second time.
+	AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM(
+				[[
+#include <sys/socket.h>
+#include <sys/param.h>
+#if HAVE_UCRED_H
+#	include <ucred.h>
+#endif
+				]],
+				[if (sizeof(struct ucred)) return 0;]
+			)],
+			[have_struct_ucred="yes"], [have_struct_ucred="no"])
+	CFLAGS="$orig_CFLAGS"
+	if test "x$have_struct_ucred" = "xyes"; then
+		AC_DEFINE([_GNU_SOURCE], 1, [Define to enable GNU features.])
+	fi
+	AC_MSG_RESULT([$have_struct_ucred])
+fi
+
 dnl Testing.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
 		[unit_tests="yes"], [unit_tests="no"])
@@ -482,11 +522,11 @@ if test "x$have_libfacter" = "xyes"; then
 	AC_MSG_CHECKING([for facter::facts::collection in -lfacter])
 	AC_LINK_IFELSE(
 			[AC_LANG_PROGRAM(
-				[[[ #include <facter/facts/collection.hpp> ]]],
-				[[[
+				[[ #include <facter/facts/collection.hpp> ]],
+				[[
 					facter::facts::collection facts;
 					facts.add_default_facts();
-				]]]
+				]]
 			)],
 			[TEST_LIBS=$TEST_LIBS -lfacter],
 			[have_libfacter="yes"],

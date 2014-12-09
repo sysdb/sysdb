@@ -42,26 +42,33 @@
 int
 sdb_fe_session_start(sdb_conn_t *conn)
 {
-	const char *username;
+	char username[sdb_strbuf_len(conn->buf) + 1];
+	const char *tmp;
 
-	if ((! conn) || (conn->username))
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_STARTUP))
 		return -1;
 
-	if (conn->cmd != SDB_CONNECTION_STARTUP)
-		return -1;
-
-	username = sdb_strbuf_string(conn->buf);
-	if ((! username) || (! conn->cmd_len) || (! *username)) {
+	tmp = sdb_strbuf_string(conn->buf);
+	if ((! tmp) || (! conn->cmd_len) || (! *tmp)) {
 		sdb_strbuf_sprintf(conn->errbuf, "Invalid empty username");
 		return -1;
 	}
+	strncpy(username, tmp, conn->cmd_len);
+	username[conn->cmd_len] = '\0';
 
-	/* XXX: for now, simply accept all connections */
-	conn->username = strndup(username, conn->cmd_len);
 	if (! conn->username) {
-		sdb_strbuf_sprintf(conn->errbuf, "Authentication failed");
+		/* We couldn't determine the remote peer when setting up the
+		 * connection; TODO: add support for password authentication */
+		sdb_strbuf_sprintf(conn->errbuf, "Password authentication "
+				"not supported");
 		return -1;
 	}
+	if (strcmp(conn->username, username)) {
+		sdb_strbuf_sprintf(conn->errbuf, "%s cannot act on behalf of %s",
+				conn->username, username);
+		return -1;
+	}
+
 	sdb_connection_send(conn, SDB_CONNECTION_OK, 0, NULL);
 	conn->ready = 1;
 	return 0;

@@ -194,7 +194,8 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 				"for server response");
 
 	if (rstatus == SDB_CONNECTION_ERROR) {
-		sdb_log(SDB_LOG_ERR, "Access denied for user '%s'", username);
+		sdb_log(SDB_LOG_ERR, "Access denied for user '%s': %s",
+				username, sdb_strbuf_string(buf));
 		status = -((int)rstatus);
 	}
 	else if (rstatus != SDB_CONNECTION_OK) {
