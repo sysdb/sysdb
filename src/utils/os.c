@@ -30,6 +30,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "utils/os.h"
+#include "utils/error.h"
 
 #include <errno.h>
 
@@ -44,6 +45,7 @@
 #include <unistd.h>
 
 #include <libgen.h>
+#include <pwd.h>
 
 /*
  * public API
@@ -139,6 +141,30 @@ sdb_remove_all(const char *pathname)
 	}
 	return remove(pathname);
 } /* sdb_remove_all */
+
+char *
+sdb_get_current_user(void)
+{
+	struct passwd pw_entry;
+	struct passwd *result = NULL;
+
+	uid_t uid;
+
+	char buf[1024];
+	int status;
+
+	uid = geteuid();
+	memset(&pw_entry, 0, sizeof(pw_entry));
+	status = getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result);
+
+	if (status || (! result)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "Failed to determine current username: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return NULL;
+	}
+	return strdup(result->pw_name);
+} /* sdb_get_current_user */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

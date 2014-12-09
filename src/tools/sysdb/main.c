@@ -37,6 +37,7 @@
 #include "utils/error.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
+#include "utils/os.h"
 
 #include <errno.h>
 
@@ -81,34 +82,6 @@
 #endif
 
 static const char *
-get_current_user(void)
-{
-	struct passwd pw_entry;
-	struct passwd *result = NULL;
-
-	uid_t uid;
-
-	/* needs to be static because we return a pointer into this buffer
-	 * to the caller */
-	static char buf[1024];
-
-	int status;
-
-	uid = geteuid();
-
-	memset(&pw_entry, 0, sizeof(pw_entry));
-	status = getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result);
-
-	if (status || (! result)) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "Failed to determine current username: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		return NULL;
-	}
-	return result->pw_name;
-} /* get_current_user */
-
-static const char *
 get_homedir(const char *username)
 {
 	struct passwd pw_entry;
@@ -136,6 +109,7 @@ get_homedir(const char *username)
 static void
 exit_usage(char *name, int status)
 {
+	char *user = sdb_get_current_user();
 	printf(
 "Usage: %s <options>\n"
 
@@ -150,7 +124,8 @@ exit_usage(char *name, int status)
 "  -V        display the version number and copyright\n"
 
 "\nSysDB client "SDB_CLIENT_VERSION_STRING SDB_CLIENT_VERSION_EXTRA", "
-PACKAGE_URL"\n", basename(name), get_current_user());
+PACKAGE_URL"\n", basename(name), user);
+	free(user);
 	exit(status);
 } /* exit_usage */
 
@@ -227,7 +202,7 @@ int
 main(int argc, char **argv)
 {
 	const char *host = NULL;
-	const char *user = NULL;
+	char *user = NULL;
 
 	const char *homedir;
 	char hist_file[1024] = "";
@@ -289,20 +264,23 @@ main(int argc, char **argv)
 
 	if (! host)
 		host = DEFAULT_SOCKET;
-	if (! user) {
-		user = get_current_user();
-		if (! user)
-			exit(1);
-	}
+	if (! user)
+		user = sdb_get_current_user();
+	else
+		user = strdup(user);
+	if (! user)
+		exit(1);
 
 	input.client = sdb_client_create(host);
 	if (! input.client) {
 		sdb_log(SDB_LOG_ERR, "Failed to create client object");
+		free(user);
 		exit(1);
 	}
 	if (sdb_client_connect(input.client, user)) {
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
 		sdb_client_destroy(input.client);
+		free(user);
 		exit(1);
 	}
 
@@ -310,6 +288,7 @@ main(int argc, char **argv)
 		int status = execute_commands(input.client, commands);
 		sdb_llist_destroy(commands);
 		sdb_client_destroy(input.client);
+		free(user);
 		if ((status != SDB_CONNECTION_OK) && (status != SDB_CONNECTION_DATA))
 			exit(1);
 		exit(0);
@@ -333,6 +312,7 @@ main(int argc, char **argv)
 					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		}
 	}
+	free(user);
 
 	input.input = sdb_strbuf_create(2048);
 	sdb_input_init(&input);

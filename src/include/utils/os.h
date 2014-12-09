@@ -57,6 +57,18 @@ sdb_mkdir_all(const char *pathname, mode_t mode);
 int
 sdb_remove_all(const char *pathname);
 
+/*
+ * sdb_get_current_user:
+ * Returns the name of the current user. The string is allocated dynamically
+ * and has to be freed by the caller.
+ *
+ * Returns:
+ *  - the username on success
+ *  - NULL else
+ */
+char *
+sdb_get_current_user(void);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
