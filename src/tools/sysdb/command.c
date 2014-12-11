@@ -190,12 +190,19 @@ sdb_command_exec(sdb_input_t *input)
 
 	sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
 
-	/* The server will send back *something*, either error/log messages
-	 * and/or the reply to the query. Here, we don't care about what it
-	 * sends back. We'll wait for the first reply and then return to the
-	 * main loop which will handle any subsequent replies, including
-	 * eventually the reply to the query (if it's not the first reply). */
-	sdb_command_print_reply(input->client);
+	/* The server may send back log messages but will eventually reply to the
+	 * query, which is either DATA or ERROR. */
+	while (42) {
+		int status = sdb_command_print_reply(input->client);
+		if (status < 0) {
+			sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
+			break;
+		}
+
+		if ((status == SDB_CONNECTION_DATA)
+				|| (status == SDB_CONNECTION_ERROR))
+			break;
+	}
 	clear_query(input);
 	return data;
 } /* sdb_command_exec */
