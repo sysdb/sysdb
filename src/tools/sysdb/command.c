@@ -176,10 +176,11 @@ sdb_command_exec(sdb_input_t *input)
 		 * sends back. We'll wait for the first reply and then return to the
 		 * main loop which will handle any subsequent replies, including
 		 * eventually the reply to the query (if it's not the first reply). */
+		/* TODO: wait for the actual reply instead */
 		if (sdb_command_print_reply(input->client) < 0) {
 			if (data)
 				free(data);
-			return NULL;
+			data = NULL;
 		}
 	}
 
