@@ -92,6 +92,7 @@ sdb_input_t *sysdb_input = NULL;
  */
 
 static struct termios orig_term_attrs;
+static bool have_orig_term_attrs;
 
 /*
  * private helper functions
@@ -108,12 +109,15 @@ term_rawmode(void)
 {
 	struct termios attrs;
 
+	if (! have_orig_term_attrs) {
+		memset(&orig_term_attrs, 0, sizeof(orig_term_attrs));
+		tcgetattr(STDIN_FILENO, &orig_term_attrs);
+		atexit(reset_term_attrs);
+		have_orig_term_attrs = 1;
+	}
+
 	/* setup terminal to operate in non-canonical mode
 	 * and single character input */
-	memset(&orig_term_attrs, 0, sizeof(orig_term_attrs));
-	tcgetattr(STDIN_FILENO, &orig_term_attrs);
-	atexit(reset_term_attrs);
-
 	memset(&attrs, 0, sizeof(attrs));
 	tcgetattr(STDIN_FILENO, &attrs);
 	attrs.c_lflag &= (tcflag_t)(~ICANON);
