@@ -173,32 +173,28 @@ sdb_command_exec(sdb_input_t *input)
 	while (query_len && (query[query_len - 1]) == '\n')
 		--query_len;
 
-	if (sdb_client_eof(input->client)) {
-		if (sdb_input_reconnect()) {
-			clear_query(input);
-			return NULL;
-		}
-	}
-
 	if (query_len) {
 		data = strndup(query, query_len);
 		/* ignore errors; we'll only hide the command from the caller */
-
-		sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
-
-		/* The server will send back *something*, either error/log messages
-		 * and/or the reply to the query. Here, we don't care about what it
-		 * sends back. We'll wait for the first reply and then return to the
-		 * main loop which will handle any subsequent replies, including
-		 * eventually the reply to the query (if it's not the first reply). */
-		/* TODO: wait for the actual reply instead */
-		if (sdb_command_print_reply(input->client) < 0) {
-			if (data)
-				free(data);
-			data = NULL;
-		}
 	}
 
+	if (sdb_client_eof(input->client)) {
+		if (sdb_input_reconnect()) {
+			clear_query(input);
+			return data;
+		}
+	}
+	else if (! query_len)
+		return NULL;
+
+	sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
+
+	/* The server will send back *something*, either error/log messages
+	 * and/or the reply to the query. Here, we don't care about what it
+	 * sends back. We'll wait for the first reply and then return to the
+	 * main loop which will handle any subsequent replies, including
+	 * eventually the reply to the query (if it's not the first reply). */
+	sdb_command_print_reply(input->client);
 	clear_query(input);
 	return data;
 } /* sdb_command_exec */
