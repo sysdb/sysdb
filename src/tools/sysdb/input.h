@@ -92,6 +92,14 @@ sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars);
 int
 sdb_input_exec_query(void);
 
+/*
+ * sdb_input_reconnect:
+ * Let the client reconnect to the server using the settings stored in
+ * sysdb_input.
+ */
+int
+sdb_input_reconnect(void);
+
 #endif /* SYSDB_INPUT_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

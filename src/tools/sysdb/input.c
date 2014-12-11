@@ -133,6 +133,9 @@ handle_input(char *line)
 		return;
 	}
 
+	if (sdb_client_eof(sysdb_input->client))
+		sdb_input_reconnect();
+
 	sdb_strbuf_append(sysdb_input->input, "%s\n", line);
 	free(line);
 
@@ -293,6 +296,18 @@ sdb_input_exec_query(void)
 	free(query);
 	return 0;
 } /* sdb_input_exec_query */
+
+int
+sdb_input_reconnect(void)
+{
+	sdb_client_close(sysdb_input->client);
+	if (sdb_client_connect(sysdb_input->client, sysdb_input->user)) {
+		printf("Failed to reconnect to SysDBd.\n");
+		return -1;
+	}
+	printf("Successfully reconnected to SysDBd.\n");
+	return 0;
+} /* sdb_input_reconnect */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

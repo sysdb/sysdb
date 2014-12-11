@@ -174,13 +174,10 @@ sdb_command_exec(sdb_input_t *input)
 		--query_len;
 
 	if (sdb_client_eof(input->client)) {
-		sdb_client_close(input->client);
-		if (sdb_client_connect(input->client, input->user)) {
-			printf("Failed to reconnect to SysDBd.\n");
+		if (sdb_input_reconnect()) {
 			clear_query(input);
 			return NULL;
 		}
-		printf("Successfully reconnected to SysDBd.\n");
 	}
 
 	if (query_len) {
