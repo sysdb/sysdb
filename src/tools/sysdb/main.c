@@ -227,7 +227,6 @@ int
 main(int argc, char **argv)
 {
 	const char *host = NULL;
-	const char *user = NULL;
 
 	const char *homedir;
 	char hist_file[1024] = "";
@@ -246,7 +245,7 @@ main(int argc, char **argv)
 				host = optarg;
 				break;
 			case 'U':
-				user = optarg;
+				input.user = optarg;
 				break;
 
 			case 'c':
@@ -289,9 +288,9 @@ main(int argc, char **argv)
 
 	if (! host)
 		host = DEFAULT_SOCKET;
-	if (! user) {
-		user = get_current_user();
-		if (! user)
+	if (! input.user) {
+		input.user = get_current_user();
+		if (! input.user)
 			exit(1);
 	}
 
@@ -300,7 +299,7 @@ main(int argc, char **argv)
 		sdb_log(SDB_LOG_ERR, "Failed to create client object");
 		exit(1);
 	}
-	if (sdb_client_connect(input.client, user)) {
+	if (sdb_client_connect(input.client, input.user)) {
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
 		sdb_client_destroy(input.client);
 		exit(1);
@@ -321,7 +320,7 @@ main(int argc, char **argv)
 
 	using_history();
 
-	if ((homedir = get_homedir(user))) {
+	if ((homedir = get_homedir(input.user))) {
 		snprintf(hist_file, sizeof(hist_file) - 1,
 				"%s/.sysdb_history", homedir);
 		hist_file[sizeof(hist_file) - 1] = '\0';

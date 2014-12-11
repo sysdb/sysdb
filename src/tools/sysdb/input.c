@@ -161,12 +161,15 @@ input_readline(void)
 
 	if (sysdb_input->query_len)
 		prompt = "sysdb-> ";
+	if (sdb_client_eof(sysdb_input->client))
+		prompt = "!-> ";
 
 	rl_callback_handler_install(prompt, handle_input);
 	client_fd = sdb_client_sockfd(sysdb_input->client);
 	while ((sdb_strbuf_len(sysdb_input->input) == len)
 			&& (! sysdb_input->eof)) {
-		int n;
+		bool connected = !sdb_client_eof(sysdb_input->client);
+		int max_fd, n;
 
 		/* XXX: some versions of libedit don't properly reset the terminal in
 		 * rl_callback_read_char(); detect those versions */
@@ -174,9 +177,15 @@ input_readline(void)
 
 		FD_ZERO(&fds);
 		FD_SET(STDIN_FILENO, &fds);
-		FD_SET(client_fd, &fds);
+		max_fd = STDIN_FILENO;
 
-		n = select(client_fd + 1, &fds, NULL, NULL, /* timeout = */ NULL);
+		if (connected) {
+			FD_SET(client_fd, &fds);
+			if (client_fd > max_fd)
+				max_fd = client_fd;
+		}
+
+		n = select(max_fd + 1, &fds, NULL, NULL, /* timeout = */ NULL);
 		if (n < 0)
 			return (ssize_t)n;
 		else if (! n)
@@ -188,22 +197,23 @@ input_readline(void)
 			continue;
 		}
 
-		if (! FD_ISSET(client_fd, &fds))
+		if ((! connected) || (! FD_ISSET(client_fd, &fds)))
 			continue;
-
-		if (sdb_client_eof(sysdb_input->client)) {
-			/* XXX: try to reconnect */
-			printf("\n");
-			sdb_log(SDB_LOG_ERR, "Remote side closed the connection.");
-			/* return EOF */
-			return 0;
-		}
 
 		/* some response / error message from the server pending */
 		/* XXX: clear current line */
 		printf("\n");
 		sdb_command_print_reply(sysdb_input->client);
-		rl_forced_update_display();
+
+		if (sdb_client_eof(sysdb_input->client)) {
+			rl_callback_handler_remove();
+			/* XXX */
+			printf("Remote side closed the connection.\n");
+			/* return EOF -> restart scanner */
+			return 0;
+		}
+		else
+			rl_forced_update_display();
 	}
 
 	/* new data available */
@@ -230,7 +240,8 @@ sdb_input_init(sdb_input_t *input)
 int
 sdb_input_mainloop(void)
 {
-	yylex();
+	while (! sysdb_input->eof)
+		yylex();
 	return 0;
 } /* sdb_input_mainloop */
 

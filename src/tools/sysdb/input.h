@@ -33,6 +33,7 @@
 
 typedef struct {
 	sdb_client_t *client;
+	const char *user;
 
 	sdb_strbuf_t *input;
 	size_t tokenizer_pos;
@@ -42,7 +43,7 @@ typedef struct {
 	bool eof;
 } sdb_input_t;
 
-#define SDB_INPUT_INIT { NULL, NULL, 0, 0, 1, 0 }
+#define SDB_INPUT_INIT { NULL, NULL, NULL, 0, 0, 1, 0 }
 
 /*
  * sysdb_input:

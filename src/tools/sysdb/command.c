@@ -91,6 +91,14 @@ static struct {
 	{ SDB_CONNECTION_DATA, data_printer },
 };
 
+static void
+clear_query(sdb_input_t *input)
+{
+	sdb_strbuf_skip(input->input, 0, input->query_len);
+	input->tokenizer_pos -= input->query_len;
+	input->query_len = 0;
+} /* clear_query */
+
 /*
  * public API
  */
@@ -165,6 +173,16 @@ sdb_command_exec(sdb_input_t *input)
 	while (query_len && (query[query_len - 1]) == '\n')
 		--query_len;
 
+	if (sdb_client_eof(input->client)) {
+		sdb_client_close(input->client);
+		if (sdb_client_connect(input->client, input->user)) {
+			printf("Failed to reconnect to SysDBd.\n");
+			clear_query(input);
+			return NULL;
+		}
+		printf("Successfully reconnected to SysDBd.\n");
+	}
+
 	if (query_len) {
 		data = strndup(query, query_len);
 		/* ignore errors; we'll only hide the command from the caller */
@@ -184,9 +202,7 @@ sdb_command_exec(sdb_input_t *input)
 		}
 	}
 
-	sdb_strbuf_skip(input->input, 0, input->query_len);
-	input->tokenizer_pos -= input->query_len;
-	input->query_len = 0;
+	clear_query(input);
 	return data;
 } /* sdb_command_exec */
 
