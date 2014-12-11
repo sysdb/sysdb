@@ -280,18 +280,18 @@ sdb_input_exec_query(void)
 {
 	char *query = sdb_command_exec(sysdb_input);
 
-	HIST_ENTRY *current_hist;
-	const char *hist_line = NULL;
+	HIST_ENTRY *hist;
+	const char *prev = NULL;
 
 	if (! query)
 		return -1;
 
-	current_hist = current_history();
-	if (current_hist)
-		hist_line = current_hist->line;
+	hist = history_get(history_length);
+	if (hist)
+		prev = hist->line;
 
 	if (*query != ' ')
-		if ((! hist_line) || strcmp(hist_line, query))
+		if ((! prev) || strcmp(prev, query))
 			add_history(query);
 	free(query);
 	return 0;
