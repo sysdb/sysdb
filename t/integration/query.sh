@@ -49,7 +49,7 @@ wait_for_sysdbd
 sleep 3
 
 # On parse errors, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID )" && exit 1
+output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID 2>&1 )" && exit 1
 echo "$output" | grep "Failed to parse query 'INVALID'"
 echo "$output" | grep "parse error: syntax error"
 
@@ -94,7 +94,7 @@ echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-  -c "FETCH host 'host1.example.com' FILTER last_update < 0" )" \
+  -c "FETCH host 'host1.example.com' FILTER last_update < 0" 2>&1 )" \
   && exit 1
 echo "$output" | grep -F 'not found'
 
@@ -102,8 +102,8 @@ echo "$output" | grep -F 'not found'
 	| run_sysdb -H "$SOCKET_FILE"
 
 # When requesting information for unknown hosts, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'does.not.exist'" )" \
-	&& exit 1
+output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "FETCH host 'does.not.exist'" 2>&1 )" && exit 1
 echo "$output" | grep -F 'not found'
 
 run_sysdb -H "$SOCKET_FILE" \

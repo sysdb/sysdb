@@ -208,7 +208,7 @@ input_readline(void)
 		if (sdb_client_eof(sysdb_input->client)) {
 			rl_callback_handler_remove();
 			/* XXX */
-			printf("Remote side closed the connection.\n");
+			sdb_log(SDB_LOG_ERR, "Remote side closed the connection.");
 			/* return EOF -> restart scanner */
 			return 0;
 		}
@@ -307,10 +307,10 @@ sdb_input_reconnect(void)
 {
 	sdb_client_close(sysdb_input->client);
 	if (sdb_client_connect(sysdb_input->client, sysdb_input->user)) {
-		printf("Failed to reconnect to SysDBd.\n");
+		sdb_log(SDB_LOG_ERR, "Failed to reconnect to SysDBd");
 		return -1;
 	}
-	printf("Successfully reconnected to SysDBd.\n");
+	sdb_log(SDB_LOG_INFO, "Successfully reconnected to SysDBd");
 	return 0;
 } /* sdb_input_reconnect */
 

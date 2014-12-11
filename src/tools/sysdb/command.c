@@ -52,14 +52,13 @@ log_printer(sdb_strbuf_t *buf)
 	uint32_t prio = sdb_proto_get_int(buf, 0);
 
 	if (prio == UINT32_MAX) {
-		printf("ERROR: Received a LOG message with invalid "
-				"or missing priority\n");
-		return;
+		sdb_log(SDB_LOG_WARNING, "Received a LOG message with invalid "
+				"or missing priority");
+		prio = (uint32_t)SDB_LOG_ERR;
 	}
 	sdb_strbuf_skip(buf, 0, sizeof(prio));
 
-	printf("%s: %s\n", SDB_LOG_PRIO_TO_STRING((int)prio),
-			sdb_strbuf_string(buf));
+	sdb_log((int)prio, "%s", sdb_strbuf_string(buf));
 } /* log_printer */
 
 static void
@@ -72,8 +71,8 @@ data_printer(sdb_strbuf_t *buf)
 		return;
 	}
 	else if (len < sizeof(uint32_t)) {
-		printf("ERROR: Received a DATA message with invalid "
-				"or missing data-type\n");
+		sdb_log(SDB_LOG_ERR, "Received a DATA message with invalid "
+				"or missing data-type");
 		return;
 	}
 
@@ -111,7 +110,7 @@ sdb_command_print_reply(sdb_client_t *client)
 	const char *result;
 	uint32_t rcode = 0;
 
-	int status = 0;
+	int status = -1;
 	size_t i;
 
 	recv_buf = sdb_strbuf_create(1024);
@@ -126,11 +125,7 @@ sdb_command_print_reply(sdb_client_t *client)
 		return -1;
 	}
 
-	if (rcode == UINT32_MAX) {
-		printf("ERROR: ");
-		status = -1;
-	}
-	else
+	if (rcode != UINT32_MAX)
 		status = (int)rcode;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(response_printers); ++i) {
@@ -143,10 +138,11 @@ sdb_command_print_reply(sdb_client_t *client)
 
 	result = sdb_strbuf_string(recv_buf);
 	if (result && *result)
-		printf("%s\n", result);
+		sdb_log(SDB_LOG_ERR, "%s", result);
 	else if (rcode == UINT32_MAX) {
 		char errbuf[1024];
-		printf("%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "%s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 	}
 
 	sdb_strbuf_destroy(recv_buf);
