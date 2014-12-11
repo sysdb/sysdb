@@ -63,7 +63,7 @@
 
 %x CSC
 
-whitespace		([ \t\n\r\f]+)
+newline			([\n\r]+)
 simple_comment	("--"[^\n\r]*)
 
 /*
@@ -73,11 +73,19 @@ csc_start	\/\*
 csc_inside	([^*/]+|[^*]\/|\*[^/])
 csc_end		\*\/
 
-identifier	([A-Za-z_][A-Za-z_0-9$]*)
+/*
+ * Strings.
+ */
+/* TODO: fully support SQL strings */
+string		('([^']|'')*')
 
 %%
 
-{whitespace}		{ APPEND(); }
+	/*
+	 * Here, we only care about syntax elements that may include semicolons
+	 * and escape their meaning as a query terminator.
+	 */
+
 {simple_comment}	{ APPEND(); }
 
 {csc_start}			{ APPEND(); BEGIN(CSC); }
@@ -85,15 +93,16 @@ identifier	([A-Za-z_][A-Za-z_0-9$]*)
 <CSC>{csc_end}		{ APPEND(); BEGIN(INITIAL); }
 <CSC><<EOF>>		{ return -1; }
 
-{identifier}		{ APPEND(); }
+{string}			{ APPEND(); }
 
 	/*
 	 * The following rules are specific to the command line tool.
 	 */
 
-";"	{ APPEND(); sdb_input_exec_query(); }
+";"			{ APPEND(); sdb_input_exec_query(); }
 
-.	{ APPEND(); }
+.			{ APPEND(); }
+{newline}	{ APPEND(); }
 
 %%
 
