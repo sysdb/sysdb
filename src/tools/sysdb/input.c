@@ -133,9 +133,6 @@ handle_input(char *line)
 		return;
 	}
 
-	if (sdb_client_eof(sysdb_input->client))
-		sdb_input_reconnect();
-
 	sdb_strbuf_append(sysdb_input->input, "%s\n", line);
 	free(line);
 
@@ -162,7 +159,7 @@ input_readline(void)
 		return (ssize_t)(sdb_strbuf_len(sysdb_input->input) - len);
 	}
 
-	if (sysdb_input->query_len)
+	if (sysdb_input->have_input)
 		prompt = "sysdb-> ";
 	if (sdb_client_eof(sysdb_input->client))
 		prompt = "!-> ";
@@ -278,11 +275,19 @@ sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars)
 int
 sdb_input_exec_query(void)
 {
-	char *query = sdb_command_exec(sysdb_input);
+	char *query = NULL;
 
 	HIST_ENTRY *hist;
 	const char *prev = NULL;
 
+	if (! sysdb_input->have_input) {
+		/* empty line */
+		if (sdb_client_eof(sysdb_input->client))
+			sdb_input_reconnect();
+		return 0;
+	}
+
+	query = sdb_command_exec(sysdb_input);
 	if (! query)
 		return -1;
 

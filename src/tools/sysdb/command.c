@@ -97,6 +97,7 @@ clear_query(sdb_input_t *input)
 	sdb_strbuf_skip(input->input, 0, input->query_len);
 	input->tokenizer_pos -= input->query_len;
 	input->query_len = 0;
+	input->have_input = 0;
 } /* clear_query */
 
 /*

@@ -48,6 +48,8 @@
 
 #define APPEND() \
 	do { \
+		if (! isspace((int)yytext[0])) \
+			sysdb_input->have_input = 1; \
 		sysdb_input->query_len += strlen(yytext); \
 	} while (0)
 
@@ -63,7 +65,7 @@
 
 %x CSC
 
-newline			([\n\r]+)
+newline			(\n|\r\n)
 simple_comment	("--"[^\n\r]*)
 
 /*
@@ -99,10 +101,17 @@ string		('([^']|'')*')
 	 * The following rules are specific to the command line tool.
 	 */
 
+";\n"		{ APPEND(); sdb_input_exec_query(); }
 ";"			{ APPEND(); sdb_input_exec_query(); }
 
+{newline}	{
+				APPEND();
+				if (! sysdb_input->have_input)
+					/* give the input module a chance to do stuff on empty lines */
+					sdb_input_exec_query();
+			}
+
 .			{ APPEND(); }
-{newline}	{ APPEND(); }
 
 %%
 

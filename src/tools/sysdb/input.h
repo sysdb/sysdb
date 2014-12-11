@@ -39,11 +39,14 @@ typedef struct {
 	size_t tokenizer_pos;
 	size_t query_len;
 
+	/* indicates that we've had non-empty input */
+	bool have_input;
+
 	bool interactive;
 	bool eof;
 } sdb_input_t;
 
-#define SDB_INPUT_INIT { NULL, NULL, NULL, 0, 0, 1, 0 }
+#define SDB_INPUT_INIT { NULL, NULL, NULL, 0, 0, 0, 1, 0 }
 
 /*
  * sysdb_input:
