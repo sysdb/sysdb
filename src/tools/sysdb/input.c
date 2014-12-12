@@ -92,6 +92,7 @@ sdb_input_t *sysdb_input = NULL;
  */
 
 static struct termios orig_term_attrs;
+static bool have_orig_term_attrs;
 
 /*
  * private helper functions
@@ -108,12 +109,15 @@ term_rawmode(void)
 {
 	struct termios attrs;
 
+	if (! have_orig_term_attrs) {
+		memset(&orig_term_attrs, 0, sizeof(orig_term_attrs));
+		tcgetattr(STDIN_FILENO, &orig_term_attrs);
+		atexit(reset_term_attrs);
+		have_orig_term_attrs = 1;
+	}
+
 	/* setup terminal to operate in non-canonical mode
 	 * and single character input */
-	memset(&orig_term_attrs, 0, sizeof(orig_term_attrs));
-	tcgetattr(STDIN_FILENO, &orig_term_attrs);
-	atexit(reset_term_attrs);
-
 	memset(&attrs, 0, sizeof(attrs));
 	tcgetattr(STDIN_FILENO, &attrs);
 	attrs.c_lflag &= (tcflag_t)(~ICANON);
@@ -155,14 +159,17 @@ input_readline(void)
 		return (ssize_t)(sdb_strbuf_len(sysdb_input->input) - len);
 	}
 
-	if (sysdb_input->query_len)
+	if (sysdb_input->have_input)
 		prompt = "sysdb-> ";
+	if (sdb_client_eof(sysdb_input->client))
+		prompt = "!-> ";
 
 	rl_callback_handler_install(prompt, handle_input);
 	client_fd = sdb_client_sockfd(sysdb_input->client);
 	while ((sdb_strbuf_len(sysdb_input->input) == len)
 			&& (! sysdb_input->eof)) {
-		int n;
+		bool connected = !sdb_client_eof(sysdb_input->client);
+		int max_fd, n;
 
 		/* XXX: some versions of libedit don't properly reset the terminal in
 		 * rl_callback_read_char(); detect those versions */
@@ -170,9 +177,15 @@ input_readline(void)
 
 		FD_ZERO(&fds);
 		FD_SET(STDIN_FILENO, &fds);
-		FD_SET(client_fd, &fds);
+		max_fd = STDIN_FILENO;
 
-		n = select(client_fd + 1, &fds, NULL, NULL, /* timeout = */ NULL);
+		if (connected) {
+			FD_SET(client_fd, &fds);
+			if (client_fd > max_fd)
+				max_fd = client_fd;
+		}
+
+		n = select(max_fd + 1, &fds, NULL, NULL, /* timeout = */ NULL);
 		if (n < 0)
 			return (ssize_t)n;
 		else if (! n)
@@ -184,22 +197,23 @@ input_readline(void)
 			continue;
 		}
 
-		if (! FD_ISSET(client_fd, &fds))
+		if ((! connected) || (! FD_ISSET(client_fd, &fds)))
 			continue;
-
-		if (sdb_client_eof(sysdb_input->client)) {
-			/* XXX: try to reconnect */
-			printf("\n");
-			sdb_log(SDB_LOG_ERR, "Remote side closed the connection.");
-			/* return EOF */
-			return 0;
-		}
 
 		/* some response / error message from the server pending */
 		/* XXX: clear current line */
 		printf("\n");
 		sdb_command_print_reply(sysdb_input->client);
-		rl_forced_update_display();
+
+		if (sdb_client_eof(sysdb_input->client)) {
+			rl_callback_handler_remove();
+			/* XXX */
+			sdb_log(SDB_LOG_ERR, "Remote side closed the connection.");
+			/* return EOF -> restart scanner */
+			return 0;
+		}
+		else
+			rl_forced_update_display();
 	}
 
 	/* new data available */
@@ -226,7 +240,8 @@ sdb_input_init(sdb_input_t *input)
 int
 sdb_input_mainloop(void)
 {
-	yylex();
+	while (! sysdb_input->eof)
+		yylex();
 	return 0;
 } /* sdb_input_mainloop */
 
@@ -260,24 +275,44 @@ sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars)
 int
 sdb_input_exec_query(void)
 {
-	char *query = sdb_command_exec(sysdb_input);
+	char *query = NULL;
 
-	HIST_ENTRY *current_hist;
-	const char *hist_line = NULL;
+	HIST_ENTRY *hist;
+	const char *prev = NULL;
 
+	if (! sysdb_input->have_input) {
+		/* empty line */
+		if (sdb_client_eof(sysdb_input->client))
+			sdb_input_reconnect();
+		return 0;
+	}
+
+	query = sdb_command_exec(sysdb_input);
 	if (! query)
 		return -1;
 
-	current_hist = current_history();
-	if (current_hist)
-		hist_line = current_hist->line;
+	hist = history_get(history_length);
+	if (hist)
+		prev = hist->line;
 
 	if (*query != ' ')
-		if ((! hist_line) || strcmp(hist_line, query))
+		if ((! prev) || strcmp(prev, query))
 			add_history(query);
 	free(query);
 	return 0;
 } /* sdb_input_exec_query */
+
+int
+sdb_input_reconnect(void)
+{
+	sdb_client_close(sysdb_input->client);
+	if (sdb_client_connect(sysdb_input->client, sysdb_input->user)) {
+		sdb_log(SDB_LOG_ERR, "Failed to reconnect to SysDBd");
+		return -1;
+	}
+	sdb_log(SDB_LOG_INFO, "Successfully reconnected to SysDBd");
+	return 0;
+} /* sdb_input_reconnect */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -49,7 +49,8 @@ enum {
 	SDB_HOST = 1,
 	SDB_SERVICE,
 	SDB_METRIC,
-	SDB_ATTRIBUTE,
+
+	SDB_ATTRIBUTE = 1 << 4,
 
 	/*
 	 * Queryable fields of a stored object.

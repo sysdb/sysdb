@@ -33,16 +33,20 @@
 
 typedef struct {
 	sdb_client_t *client;
+	char *user;
 
 	sdb_strbuf_t *input;
 	size_t tokenizer_pos;
 	size_t query_len;
 
+	/* indicates that we've had non-empty input */
+	bool have_input;
+
 	bool interactive;
 	bool eof;
 } sdb_input_t;
 
-#define SDB_INPUT_INIT { NULL, NULL, 0, 0, 1, 0 }
+#define SDB_INPUT_INIT { NULL, NULL, NULL, 0, 0, 0, 1, 0 }
 
 /*
  * sysdb_input:
@@ -90,6 +94,14 @@ sdb_input_readline(char *buf, size_t *n_chars, size_t max_chars);
  */
 int
 sdb_input_exec_query(void);
+
+/*
+ * sdb_input_reconnect:
+ * Let the client reconnect to the server using the settings stored in
+ * sysdb_input.
+ */
+int
+sdb_input_reconnect(void);
 
 #endif /* SYSDB_INPUT_H */
 

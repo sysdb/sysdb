@@ -52,14 +52,13 @@ log_printer(sdb_strbuf_t *buf)
 	uint32_t prio = sdb_proto_get_int(buf, 0);
 
 	if (prio == UINT32_MAX) {
-		printf("ERROR: Received a LOG message with invalid "
-				"or missing priority\n");
-		return;
+		sdb_log(SDB_LOG_WARNING, "Received a LOG message with invalid "
+				"or missing priority");
+		prio = (uint32_t)SDB_LOG_ERR;
 	}
 	sdb_strbuf_skip(buf, 0, sizeof(prio));
 
-	printf("%s: %s\n", SDB_LOG_PRIO_TO_STRING((int)prio),
-			sdb_strbuf_string(buf));
+	sdb_log((int)prio, "%s", sdb_strbuf_string(buf));
 } /* log_printer */
 
 static void
@@ -72,8 +71,8 @@ data_printer(sdb_strbuf_t *buf)
 		return;
 	}
 	else if (len < sizeof(uint32_t)) {
-		printf("ERROR: Received a DATA message with invalid "
-				"or missing data-type\n");
+		sdb_log(SDB_LOG_ERR, "Received a DATA message with invalid "
+				"or missing data-type");
 		return;
 	}
 
@@ -91,6 +90,15 @@ static struct {
 	{ SDB_CONNECTION_DATA, data_printer },
 };
 
+static void
+clear_query(sdb_input_t *input)
+{
+	sdb_strbuf_skip(input->input, 0, input->query_len);
+	input->tokenizer_pos -= input->query_len;
+	input->query_len = 0;
+	input->have_input = 0;
+} /* clear_query */
+
 /*
  * public API
  */
@@ -102,7 +110,7 @@ sdb_command_print_reply(sdb_client_t *client)
 	const char *result;
 	uint32_t rcode = 0;
 
-	int status = 0;
+	int status = -1;
 	size_t i;
 
 	recv_buf = sdb_strbuf_create(1024);
@@ -117,11 +125,7 @@ sdb_command_print_reply(sdb_client_t *client)
 		return -1;
 	}
 
-	if (rcode == UINT32_MAX) {
-		printf("ERROR: ");
-		status = -1;
-	}
-	else
+	if (rcode != UINT32_MAX)
 		status = (int)rcode;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(response_printers); ++i) {
@@ -134,10 +138,11 @@ sdb_command_print_reply(sdb_client_t *client)
 
 	result = sdb_strbuf_string(recv_buf);
 	if (result && *result)
-		printf("%s\n", result);
+		sdb_log(SDB_LOG_ERR, "%s", result);
 	else if (rcode == UINT32_MAX) {
 		char errbuf[1024];
-		printf("%s\n", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "%s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 	}
 
 	sdb_strbuf_destroy(recv_buf);
@@ -168,24 +173,33 @@ sdb_command_exec(sdb_input_t *input)
 	if (query_len) {
 		data = strndup(query, query_len);
 		/* ignore errors; we'll only hide the command from the caller */
-
-		sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
-
-		/* The server will send back *something*, either error/log messages
-		 * and/or the reply to the query. Here, we don't care about what it
-		 * sends back. We'll wait for the first reply and then return to the
-		 * main loop which will handle any subsequent replies, including
-		 * eventually the reply to the query (if it's not the first reply). */
-		if (sdb_command_print_reply(input->client) < 0) {
-			if (data)
-				free(data);
-			return NULL;
-		}
 	}
 
-	sdb_strbuf_skip(input->input, 0, input->query_len);
-	input->tokenizer_pos -= input->query_len;
-	input->query_len = 0;
+	if (sdb_client_eof(input->client)) {
+		if (sdb_input_reconnect()) {
+			clear_query(input);
+			return data;
+		}
+	}
+	else if (! query_len)
+		return NULL;
+
+	sdb_client_send(input->client, SDB_CONNECTION_QUERY, query_len, query);
+
+	/* The server may send back log messages but will eventually reply to the
+	 * query, which is either DATA or ERROR. */
+	while (42) {
+		int status = sdb_command_print_reply(input->client);
+		if (status < 0) {
+			sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
+			break;
+		}
+
+		if ((status == SDB_CONNECTION_DATA)
+				|| (status == SDB_CONNECTION_ERROR))
+			break;
+	}
+	clear_query(input);
 	return data;
 } /* sdb_command_exec */
 
