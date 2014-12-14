@@ -504,12 +504,15 @@ ssize_t
 sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 		uint32_t msg_len, const char *msg)
 {
+	char buf[2 * sizeof(uint32_t) + msg_len];
 	ssize_t status;
 
 	if ((! conn) || (conn->fd < 0))
 		return -1;
+	if (sdb_proto_marshal(buf, sizeof(buf), code, msg_len, msg) < 0)
+		return -1;
 
-	status = sdb_proto_send_msg(conn->fd, code, msg_len, msg);
+	status = sdb_proto_send(conn->fd, sizeof(buf), buf);
 	if (status < 0) {
 		char errbuf[1024];
 

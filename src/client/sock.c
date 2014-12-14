@@ -248,10 +248,14 @@ ssize_t
 sdb_client_send(sdb_client_t *client,
 		uint32_t cmd, uint32_t msg_len, const char *msg)
 {
+	char buf[2 * sizeof(uint32_t) + msg_len];
+
 	if ((! client) || (! client->fd))
 		return -1;
+	if (sdb_proto_marshal(buf, sizeof(buf), cmd, msg_len, msg) < 0)
+		return -1;
 
-	return sdb_proto_send_msg(client->fd, cmd, msg_len, msg);
+	return sdb_proto_send(client->fd, sizeof(buf), buf);
 } /* sdb_client_send */
 
 ssize_t

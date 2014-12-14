@@ -125,24 +125,26 @@ sdb_proto_send(int fd, size_t msg_len, const char *msg)
 } /* sdb_proto_send */
 
 ssize_t
-sdb_proto_send_msg(int fd, uint32_t code,
+sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 		uint32_t msg_len, const char *msg)
 {
 	size_t len = 2 * sizeof(uint32_t) + msg_len;
-	char buffer[len];
-
 	uint32_t tmp;
 
+	if (buf_len < 2 * sizeof(uint32_t))
+		return -1;
+	if (buf_len < len) /* crop message */
+		msg_len -= (uint32_t)(len - buf_len);
+
 	tmp = htonl(code);
-	memcpy(buffer, &tmp, sizeof(tmp));
+	memcpy(buf, &tmp, sizeof(tmp));
 	tmp = htonl(msg_len);
-	memcpy(buffer + sizeof(tmp), &tmp, sizeof(tmp));
+	memcpy(buf + sizeof(tmp), &tmp, sizeof(tmp));
 
 	if (msg_len)
-		memcpy(buffer + 2 * sizeof(tmp), msg, msg_len);
-
-	return sdb_proto_send(fd, len, buffer);
-} /* sdb_proto_send_msg */
+		memcpy(buf + 2 * sizeof(tmp), msg, msg_len);
+	return len;
+} /* sdb_proto_marshal */
 
 uint32_t
 sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)

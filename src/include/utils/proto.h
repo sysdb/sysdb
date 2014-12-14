@@ -59,8 +59,19 @@ sdb_proto_select(int fd, int type);
 ssize_t
 sdb_proto_send(int fd, size_t msg_len, const char *msg);
 
+/*
+ * sdb_proto_marshal:
+ * Encode the message into the wire format by adding an appropriate header.
+ * The encoded message is written to buf which has to be large enough to store
+ * the header (64 bits) and the entire message.
+ *
+ * Returns:
+ *  - the number of bytes of the full encoded message on success (even if less
+ *    than that fit into and was written to the buffer)
+ *  - a negative value on error
+ */
 ssize_t
-sdb_proto_send_msg(int fd, uint32_t code,
+sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 		uint32_t msg_len, const char *msg);
 
 uint32_t
