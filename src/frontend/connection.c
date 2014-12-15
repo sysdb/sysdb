@@ -201,9 +201,7 @@ connection_destroy(sdb_object_t *obj)
 	}
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection %s", obj->name);
-	if (conn->fd >= 0)
-		close(conn->fd);
-	conn->fd = -1;
+	sdb_connection_close(conn);
 
 	if (conn->username)
 		free(conn->username);
@@ -404,8 +402,7 @@ connection_read(sdb_conn_t *conn)
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 				break;
 
-			close(conn->fd);
-			conn->fd = -1;
+			sdb_connection_close(conn);
 			return (int)status;
 		}
 		else if (! status) /* EOF */
@@ -516,8 +513,7 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 
 		/* tell other code that there was a problem and, more importantly,
 		 * make sure we don't try to send further logs to the connection */
-		close(conn->fd);
-		conn->fd = -1;
+		sdb_connection_close(conn);
 		conn->ready = 0;
 
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to send msg "
