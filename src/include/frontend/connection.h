@@ -88,15 +88,16 @@ void
 sdb_connection_close(sdb_conn_t *conn);
 
 /*
- * sdb_connection_read:
- * Read from an open connection until reading would block.
+ * sdb_connection_handle:
+ * Read from an open connection until reading would block and handle all
+ * incoming commands.
  *
  * Returns:
  *  - the number of bytes read (0 on EOF)
  *  - a negative value on error
  */
 ssize_t
-sdb_connection_read(sdb_conn_t *conn);
+sdb_connection_handle(sdb_conn_t *conn);
 
 /*
  * sdb_connection_send:

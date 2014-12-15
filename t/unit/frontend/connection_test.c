@@ -189,13 +189,13 @@ connection_startup(sdb_conn_t *conn)
 			username, check, expected);
 
 	mock_conn_rewind(conn);
-	check = sdb_connection_read(conn);
+	check = sdb_connection_handle(conn);
 	fail_unless(check == expected,
-			"On startup: sdb_connection_read() = %zi; expected: %zi",
+			"On startup: sdb_connection_handle() = %zi; expected: %zi",
 			check, expected);
 
 	fail_unless(sdb_strbuf_len(conn->errbuf) == 0,
-			"sdb_connection_read() left %zu bytes in the error "
+			"sdb_connection_handle() left %zu bytes in the error "
 			"buffer (%s); expected: 0", sdb_strbuf_len(conn->errbuf),
 			sdb_strbuf_string(conn->errbuf));
 
@@ -282,24 +282,24 @@ START_TEST(test_conn_setup)
 		}
 
 		mock_conn_rewind(conn);
-		check = sdb_connection_read(conn);
+		check = sdb_connection_handle(conn);
 		fail_unless(check == expected,
-				"sdb_connection_read() = %zi; expected: %zi",
+				"sdb_connection_handle() = %zi; expected: %zi",
 				check, expected);
 
 		fail_unless(sdb_strbuf_len(conn->buf) == 0,
-				"sdb_connection_read() left %zu bytes in the buffer; "
+				"sdb_connection_handle() left %zu bytes in the buffer; "
 				"expected: 0", sdb_strbuf_len(conn->buf));
 
 		if (golden_data[i].err) {
 			const char *err = sdb_strbuf_string(conn->errbuf);
 			fail_unless(strcmp(err, golden_data[i].err) == 0,
-					"sdb_connection_read(): got error '%s'; "
+					"sdb_connection_handle(): got error '%s'; "
 					"expected: '%s'", err, golden_data[i].err);
 		}
 		else
 			fail_unless(sdb_strbuf_len(conn->errbuf) == 0,
-					"sdb_connection_read() left %zu bytes in the error "
+					"sdb_connection_handle() left %zu bytes in the error "
 					"buffer (%s); expected: 0", sdb_strbuf_len(conn->errbuf),
 					sdb_strbuf_string(conn->errbuf));
 	}
@@ -376,44 +376,44 @@ START_TEST(test_conn_io)
 				check, msg_len);
 
 		mock_conn_rewind(conn);
-		check = sdb_connection_read(conn);
+		check = sdb_connection_handle(conn);
 		fail_unless(check == (ssize_t)msg_len,
-				"sdb_connection_read() = %zi; expected: %zu",
+				"sdb_connection_handle() = %zi; expected: %zu",
 				check, msg_len);
 
 		if (golden_data[i].buf_len) {
 			/* partial commands need to be stored in the object */
 			fail_unless(conn->cmd == golden_data[i].code,
-					"sdb_connection_read() set partial command "
+					"sdb_connection_handle() set partial command "
 					"to %u; expected: %u", conn->cmd, golden_data[i].code);
 			fail_unless(conn->cmd_len > golden_data[i].buf_len,
-					"sdb_connection_read() set partial command length "
+					"sdb_connection_handle() set partial command length "
 					"to %u; expected: > %u", conn->cmd_len,
 					golden_data[i].buf_len);
 		}
 		else {
 			fail_unless(conn->cmd == SDB_CONNECTION_IDLE,
-					"sdb_connection_read() did not reset command; "
+					"sdb_connection_handle() did not reset command; "
 					"got %u; expected: %u", conn->cmd, SDB_CONNECTION_IDLE);
 			fail_unless(conn->cmd_len == 0,
-					"sdb_connection_read() did not reset command length; "
+					"sdb_connection_handle() did not reset command length; "
 					"got %u; expected: 0", conn->cmd_len);
 		}
 
 		fail_unless(sdb_strbuf_len(conn->buf) == golden_data[i].buf_len,
-				"sdb_connection_read() left %zu bytes in the buffer; "
+				"sdb_connection_handle() left %zu bytes in the buffer; "
 				"expected: %zu", sdb_strbuf_len(conn->buf),
 				golden_data[i].buf_len);
 
 		if (golden_data[i].err) {
 			const char *err = sdb_strbuf_string(conn->errbuf);
 			fail_unless(strcmp(err, golden_data[i].err) == 0,
-					"sdb_connection_read(): got error '%s'; "
+					"sdb_connection_handle(): got error '%s'; "
 					"expected: '%s'", err, golden_data[i].err);
 		}
 		else
 			fail_unless(sdb_strbuf_len(conn->errbuf) == 0,
-					"sdb_connection_read() left %zu bytes in the error "
+					"sdb_connection_handle() left %zu bytes in the error "
 					"buffer; expected: 0", sdb_strbuf_len(conn->errbuf));
 	}
 

@@ -467,7 +467,7 @@ sdb_connection_close(sdb_conn_t *conn)
 } /* sdb_connection_close */
 
 ssize_t
-sdb_connection_read(sdb_conn_t *conn)
+sdb_connection_handle(sdb_conn_t *conn)
 {
 	ssize_t n = 0;
 
@@ -498,7 +498,7 @@ sdb_connection_read(sdb_conn_t *conn)
 
 	sdb_conn_set_ctx(NULL);
 	return n;
-} /* sdb_connection_read */
+} /* sdb_connection_handle */
 
 ssize_t
 sdb_connection_send(sdb_conn_t *conn, uint32_t code,
