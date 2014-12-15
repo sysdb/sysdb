@@ -39,6 +39,10 @@
 extern "C" {
 #endif
 
+/*
+ * sdb_conn_t represents an open connection from a client. It inherits from
+ * sdb_object_t and may safely be cast to a generic object.
+ */
 typedef struct sdb_conn sdb_conn_t;
 
 /*
@@ -81,8 +85,8 @@ sdb_connection_accept(int fd);
 
 /*
  * sdb_connection_close:
- * Close a open connection and deallocate any memory. The connection object is
- * no longer valid after calling this function.
+ * Close an open connection. Any subsequent reads from the connection will
+ * fail. Use sdb_object_deref to free the memory used by the object.
  */
 void
 sdb_connection_close(sdb_conn_t *conn);

@@ -462,8 +462,6 @@ sdb_connection_close(sdb_conn_t *conn)
 	if (conn->fd >= 0)
 		close(conn->fd);
 	conn->fd = -1;
-
-	sdb_object_deref(SDB_OBJ(conn));
 } /* sdb_connection_close */
 
 ssize_t

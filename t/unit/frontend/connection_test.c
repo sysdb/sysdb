@@ -234,6 +234,7 @@ START_TEST(test_conn_accept)
 
 	unlink(socket_path);
 	sdb_connection_close(conn);
+	sdb_object_deref(SDB_OBJ(conn));
 	pthread_join(thr, NULL);
 }
 END_TEST
