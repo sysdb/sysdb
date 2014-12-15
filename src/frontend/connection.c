@@ -358,9 +358,8 @@ command_init(sdb_conn_t *conn)
 	/* reset */
 	sdb_strbuf_clear(conn->errbuf);
 
-	conn->cmd = sdb_proto_get_int(conn->buf, 0);
-	conn->cmd_len = sdb_proto_get_int(conn->buf, sizeof(uint32_t));
-
+	if (sdb_proto_unmarshal_header(conn->buf, &conn->cmd, &conn->cmd_len))
+		return -1;
 	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
 	if ((! conn->ready) && (conn->cmd != SDB_CONNECTION_STARTUP))
