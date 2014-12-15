@@ -64,6 +64,24 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 	return len;
 } /* sdb_proto_marshal */
 
+int
+sdb_proto_unmarshal_header(sdb_strbuf_t *buf,
+		uint32_t *code, uint32_t *msg_len)
+{
+	uint32_t tmp;
+
+	if (sdb_strbuf_len(buf) < 2 * sizeof(uint32_t))
+		return -1;
+
+	tmp = sdb_proto_get_int(buf, 0);
+	if (code)
+		*code = tmp;
+	tmp = sdb_proto_get_int(buf, sizeof(uint32_t));
+	if (msg_len)
+		*msg_len = tmp;
+	return 0;
+} /* sdb_proto_unmarshal_header */
+
 uint32_t
 sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)
 {
