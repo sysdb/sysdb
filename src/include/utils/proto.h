@@ -37,28 +37,6 @@
 extern "C" {
 #endif
 
-enum {
-	SDB_PROTO_SELECTIN = 0,
-	SDB_PROTO_SELECTOUT,
-	SDB_PROTO_SELECTERR,
-};
-
-/*
- * sdb_proto_select:
- * Wait for a file-descriptor to become ready for I/O operations of the
- * specified type. This is a simple wrapper around the select() system call.
- * The type argument may be any of the SDB_PROTO_SELECT* constants.
- *
- * Returns:
- *  - the number of file descriptors ready for I/O
- *  - a negative value on error
- */
-int
-sdb_proto_select(int fd, int type);
-
-ssize_t
-sdb_proto_send(int fd, size_t msg_len, const char *msg);
-
 /*
  * sdb_proto_marshal:
  * Encode the message into the wire format by adding an appropriate header.

@@ -166,5 +166,87 @@ sdb_get_current_user(void)
 	return strdup(result->pw_name);
 } /* sdb_get_current_user */
 
+int
+sdb_select(int fd, int type)
+{
+	fd_set fds;
+	fd_set *readfds = NULL;
+	fd_set *writefds = NULL;
+	fd_set *exceptfds = NULL;
+
+	if (fd < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	FD_ZERO(&fds);
+
+	switch (type) {
+		case SDB_SELECTIN:
+			readfds = &fds;
+			break;
+		case SDB_SELECTOUT:
+			writefds = &fds;
+			break;
+		case SDB_SELECTERR:
+			exceptfds = &fds;
+			break;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+
+	FD_SET(fd, &fds);
+
+	while (42) {
+		int n;
+		errno = 0;
+		n = select(fd + 1, readfds, writefds, exceptfds, NULL);
+
+		if ((n < 0) && (errno != EINTR))
+			return n;
+		if (n > 0)
+			break;
+	}
+	return 0;
+} /* sdb_select */
+
+ssize_t
+sdb_write(int fd, size_t msg_len, const void *msg)
+{
+	const char *buf;
+	size_t len;
+
+	if ((fd < 0) || (msg_len && (! msg)))
+		return -1;
+	if (! msg_len)
+		return 0;
+
+	buf = msg;
+	len = msg_len;
+	while (len > 0) {
+		ssize_t status;
+
+		if (sdb_select(fd, SDB_SELECTOUT))
+			return -1;
+
+		errno = 0;
+		status = write(fd, buf, len);
+		if (status < 0) {
+			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+				continue;
+			if (errno == EINTR)
+				continue;
+
+			return status;
+		}
+
+		len -= (size_t)status;
+		buf += status;
+	}
+
+	return (ssize_t)msg_len;
+} /* sdb_write */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -33,6 +33,7 @@
 #include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
+#include "utils/os.h"
 
 #include <arpa/inet.h>
 
@@ -255,7 +256,7 @@ sdb_client_send(sdb_client_t *client,
 	if (sdb_proto_marshal(buf, sizeof(buf), cmd, msg_len, msg) < 0)
 		return -1;
 
-	return sdb_proto_send(client->fd, sizeof(buf), buf);
+	return sdb_write(client->fd, sizeof(buf), buf);
 } /* sdb_client_send */
 
 ssize_t
@@ -281,7 +282,7 @@ sdb_client_recv(sdb_client_t *client,
 	while (42) {
 		ssize_t status;
 
-		if (sdb_proto_select(client->fd, SDB_PROTO_SELECTIN))
+		if (sdb_select(client->fd, SDB_SELECTIN))
 			return -1;
 
 		errno = 0;

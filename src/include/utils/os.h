@@ -69,6 +69,37 @@ sdb_remove_all(const char *pathname);
 char *
 sdb_get_current_user(void);
 
+enum {
+	SDB_SELECTIN = 0,
+	SDB_SELECTOUT,
+	SDB_SELECTERR,
+};
+
+/*
+ * sdb_select:
+ * Wait for a file-descriptor to become ready for I/O operations of the
+ * specified type. This is a simple wrapper around the select() system call.
+ * The type argument may be any of the SDB_SELECT* constants.
+ *
+ * Returns:
+ *  - the number of file descriptors ready for I/O
+ *  - a negative value on error
+ */
+int
+sdb_select(int fd, int type);
+
+/*
+ * sdb_write:
+ * Write a message to a file-descriptor. This is a simple wrapper around the
+ * write() system call ensuring that all data is written on success.
+ *
+ * Returns:
+ *  - the number of bytes written
+ *  - a negative value on error
+ */
+ssize_t
+sdb_write(int fd, size_t msg_len, const void *msg);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

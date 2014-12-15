@@ -36,6 +36,7 @@
 #include "utils/error.h"
 #include "utils/strbuf.h"
 #include "utils/proto.h"
+#include "utils/os.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -510,7 +511,7 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 	if (sdb_proto_marshal(buf, sizeof(buf), code, msg_len, msg) < 0)
 		return -1;
 
-	status = sdb_proto_send(conn->fd, sizeof(buf), buf);
+	status = sdb_write(conn->fd, sizeof(buf), buf);
 	if (status < 0) {
 		char errbuf[1024];
 

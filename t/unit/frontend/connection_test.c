@@ -31,7 +31,6 @@
 
 #include "frontend/connection.h"
 #include "frontend/connection-private.h"
-#include "utils/proto.h"
 #include "utils/os.h"
 #include "libsysdb_test.h"
 
@@ -371,9 +370,9 @@ START_TEST(test_conn_io)
 		memcpy(buffer + offset, golden_data[i].msg,
 				strlen(golden_data[i].msg));
 
-		check = sdb_proto_send(conn->fd, msg_len, buffer);
+		check = sdb_write(conn->fd, msg_len, buffer);
 		fail_unless(check == (ssize_t)msg_len,
-				"sdb_proto_send(%s) = %zi; expected: %zu",
+				"sdb_write(%s) = %zi; expected: %zu",
 				check, msg_len);
 
 		mock_conn_rewind(conn);
