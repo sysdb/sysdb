@@ -73,17 +73,17 @@ sdb_proto_unmarshal_header(sdb_strbuf_t *buf,
 	if (sdb_strbuf_len(buf) < 2 * sizeof(uint32_t))
 		return -1;
 
-	tmp = sdb_proto_get_int(buf, 0);
+	tmp = sdb_proto_unmarshal_int(buf, 0);
 	if (code)
 		*code = tmp;
-	tmp = sdb_proto_get_int(buf, sizeof(uint32_t));
+	tmp = sdb_proto_unmarshal_int(buf, sizeof(uint32_t));
 	if (msg_len)
 		*msg_len = tmp;
 	return 0;
 } /* sdb_proto_unmarshal_header */
 
 uint32_t
-sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)
+sdb_proto_unmarshal_int(sdb_strbuf_t *buf, size_t offset)
 {
 	const char *data;
 	uint32_t n;
@@ -99,7 +99,7 @@ sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset)
 	data += offset;
 	memcpy(&n, data, sizeof(n));
 	return ntohl(n);
-} /* sdb_proto_get_int */
+} /* sdb_proto_unmarshal_int */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

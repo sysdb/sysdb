@@ -304,8 +304,8 @@ sdb_client_recv(sdb_client_t *client,
 
 		if (rstatus == UINT32_MAX) {
 			/* retrieve status and data len */
-			rstatus = sdb_proto_get_int(buf, data_offset);
-			rlen = sdb_proto_get_int(buf, data_offset + sizeof(rstatus));
+			rstatus = sdb_proto_unmarshal_int(buf, data_offset);
+			rlen = sdb_proto_unmarshal_int(buf, data_offset + sizeof(rstatus));
 
 			if (! rlen)
 				break;

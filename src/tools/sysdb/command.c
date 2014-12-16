@@ -49,7 +49,7 @@
 static void
 log_printer(sdb_strbuf_t *buf)
 {
-	uint32_t prio = sdb_proto_get_int(buf, 0);
+	uint32_t prio = sdb_proto_unmarshal_int(buf, 0);
 
 	if (prio == UINT32_MAX) {
 		sdb_log(SDB_LOG_WARNING, "Received a LOG message with invalid "

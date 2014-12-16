@@ -64,8 +64,12 @@ int
 sdb_proto_unmarshal_header(sdb_strbuf_t *buf,
 		uint32_t *code, uint32_t *msg_len);
 
+/*
+ * sdb_proto_unmarshal_int:
+ * Read and decode an integer from the specified string buffer.
+ */
 uint32_t
-sdb_proto_get_int(sdb_strbuf_t *buf, size_t offset);
+sdb_proto_unmarshal_int(sdb_strbuf_t *buf, size_t offset);
 
 #ifdef __cplusplus
 } /* extern "C" */
