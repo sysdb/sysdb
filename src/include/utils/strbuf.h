@@ -46,6 +46,13 @@ extern "C" {
 typedef struct sdb_strbuf sdb_strbuf_t;
 
 /*
+ * SDB_STRBUF_STR:
+ * Return a tuple of a character array and its length representing the content
+ * of the string buffer.
+ */
+#define SDB_STRBUF_STR(buf) sdb_strbuf_string(buf), sdb_strbuf_len(buf)
+
+/*
  * sdb_strbuf_create, sdb_strbuf_destroy:
  * Allocate / deallocate string buffer objects. The initial size of a newly
  * created string buffer is determined by the 'size' argument of the create
