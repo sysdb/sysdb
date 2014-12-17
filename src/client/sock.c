@@ -37,6 +37,7 @@
 
 #include <arpa/inet.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 
@@ -303,9 +304,14 @@ sdb_client_recv(sdb_client_t *client,
 			continue;
 
 		if (rstatus == UINT32_MAX) {
+			const char *str = sdb_strbuf_string(buf) + data_offset;
+			size_t len = sdb_strbuf_len(buf) - data_offset;
+
 			/* retrieve status and data len */
-			rstatus = sdb_proto_unmarshal_int(buf, data_offset);
-			rlen = sdb_proto_unmarshal_int(buf, data_offset + sizeof(rstatus));
+			assert(len >= 2 * sizeof(uint32_t));
+			rstatus = sdb_proto_unmarshal_int(str, len);
+			rlen = sdb_proto_unmarshal_int(str + sizeof(rstatus),
+					len - sizeof(rstatus));
 
 			if (! rlen)
 				break;

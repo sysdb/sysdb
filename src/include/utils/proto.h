@@ -54,22 +54,22 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 
 /*
  * sdb_proto_unmarshal_header:
- * Read and decode a message header from the specified string buffer.
+ * Read and decode a message header from the specified string.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_proto_unmarshal_header(sdb_strbuf_t *buf,
+sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 		uint32_t *code, uint32_t *msg_len);
 
 /*
  * sdb_proto_unmarshal_int:
- * Read and decode an integer from the specified string buffer.
+ * Read and decode an integer from the specified string.
  */
 uint32_t
-sdb_proto_unmarshal_int(sdb_strbuf_t *buf, size_t offset);
+sdb_proto_unmarshal_int(const char *buf, size_t buf_len);
 
 #ifdef __cplusplus
 } /* extern "C" */

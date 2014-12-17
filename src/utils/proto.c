@@ -65,39 +65,34 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 } /* sdb_proto_marshal */
 
 int
-sdb_proto_unmarshal_header(sdb_strbuf_t *buf,
+sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 		uint32_t *code, uint32_t *msg_len)
 {
 	uint32_t tmp;
 
-	if (sdb_strbuf_len(buf) < 2 * sizeof(uint32_t))
+	if (buf_len < 2 * sizeof(uint32_t))
 		return -1;
 
-	tmp = sdb_proto_unmarshal_int(buf, 0);
+	tmp = sdb_proto_unmarshal_int(buf, buf_len);
 	if (code)
 		*code = tmp;
-	tmp = sdb_proto_unmarshal_int(buf, sizeof(uint32_t));
+	tmp = sdb_proto_unmarshal_int(buf + sizeof(uint32_t),
+			buf_len - sizeof(uint32_t));
 	if (msg_len)
 		*msg_len = tmp;
 	return 0;
 } /* sdb_proto_unmarshal_header */
 
 uint32_t
-sdb_proto_unmarshal_int(sdb_strbuf_t *buf, size_t offset)
+sdb_proto_unmarshal_int(const char *buf, size_t buf_len)
 {
-	const char *data;
 	uint32_t n;
 
-	if (! buf)
-		return UINT32_MAX;
-
 	/* not enough data to read */
-	if (offset + sizeof(uint32_t) > sdb_strbuf_len(buf))
+	if (buf_len < sizeof(n))
 		return UINT32_MAX;
 
-	data = sdb_strbuf_string(buf);
-	data += offset;
-	memcpy(&n, data, sizeof(n));
+	memcpy(&n, buf, sizeof(n));
 	return ntohl(n);
 } /* sdb_proto_unmarshal_int */
 
