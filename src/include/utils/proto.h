@@ -28,7 +28,7 @@
 #ifndef SDB_UTILS_PROTO_H
 #define SDB_UTILS_PROTO_H 1
 
-#include "utils/strbuf.h"
+#include "core/data.h"
 
 #include <stdint.h>
 #include <unistd.h>
@@ -44,13 +44,29 @@ extern "C" {
  * the header (64 bits) and the entire message.
  *
  * Returns:
- *  - the number of bytes of the full encoded message on success (even if less
- *    than that fit into and was written to the buffer)
+ *  - The number of bytes of the full encoded message on success. The function
+ *    does not write more than 'buf_len' bytes. If the output was truncated
+ *    then the return value is the number of bytes which would have been
+ *    written if enough space had been available.
  *  - a negative value on error
  */
 ssize_t
 sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 		uint32_t msg_len, const char *msg);
+
+/*
+ * sdb_proto_marshal_data:
+ * Encode a datum into the wire format and write it to buf.
+ *
+ * Returns:
+ *  - The number of bytes of the full encoded datum on success. The function
+ *    does not write more than 'buf_len' bytes. If the output was truncated
+ *    then the return value is the number of bytes which would have been
+ *    written if enough space had been available.
+ *  - a negative value else
+ */
+ssize_t
+sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum);
 
 /*
  * sdb_proto_unmarshal_header:

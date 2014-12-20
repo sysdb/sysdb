@@ -105,6 +105,10 @@ util_llist_suite(void);
 Suite *
 util_os_suite(void);
 
+/* t/utils/proto_test */
+Suite *
+util_proto_suite(void);
+
 /* t/utils/strbuf_test */
 Suite *
 util_strbuf_suite(void);
