@@ -164,6 +164,8 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
 	else if (datum->type == SDB_TYPE_BINARY)
 		n = marshal_binary(buf, buf_len,
 				datum->data.binary.length, datum->data.binary.datum);
+	else if (datum->type == SDB_TYPE_REGEX)
+		n = marshal_string(buf, buf_len, datum->data.re.raw);
 
 	if (n < 0)
 		return n;

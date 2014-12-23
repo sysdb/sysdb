@@ -39,6 +39,7 @@ START_TEST(test_marshal_data)
 #define STRING_TYPE "\0\0\0\3"
 #define DATETIME_TYPE "\0\0\0\4"
 #define BINARY_TYPE "\0\0\0\5"
+#define REGEX_TYPE "\0\0\0\6"
 
 #define NULL_ARRAY "\0\0\1\0"
 #define INT_ARRAY "\0\0\1\1"
@@ -46,6 +47,7 @@ START_TEST(test_marshal_data)
 #define STRING_ARRAY "\0\0\1\3"
 #define DATETIME_ARRAY "\0\0\1\4"
 #define BINARY_ARRAY "\0\0\1\5"
+#define REGEX_ARRAY "\0\0\1\6"
 
 	regex_t dummy_re;
 	int64_t int_values[] = { 47, 11, 23 };
@@ -85,7 +87,7 @@ START_TEST(test_marshal_data)
 		},
 		{
 			{ SDB_TYPE_REGEX, { .re = { "dummy", dummy_re } } },
-			-1, NULL, /* not supported */
+			14, REGEX_TYPE "\0\0\0\x6" "dummy\0",
 		},
 		{
 			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = {
