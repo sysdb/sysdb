@@ -25,14 +25,19 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/data.h"
 #include "core/time.h"
 #include "utils/error.h"
 #include "utils/proto.h"
 
-#include <arpa/inet.h>
+#include <assert.h>
 #include <errno.h>
 
+#include <arpa/inet.h>
 #include <limits.h>
 
 #include <string.h>
@@ -62,13 +67,18 @@ marshal_int(char *buf, size_t buf_len, int64_t v)
 } /* marshal_int */
 
 static ssize_t
-marshal_double(char __attribute__((unused)) *buf,
-		size_t __attribute__((unused)) buf_len,
-		double __attribute__((unused)) v)
+marshal_double(char *buf, size_t buf_len, double v)
 {
-	/* XXX: find a good network representation */
-	errno = ENOTSUP;
-	return -1;
+	uint64_t t = 0;
+	assert(sizeof(v) == sizeof(t));
+	memcpy(&t, &v, sizeof(v));
+#if IEEE754_DOUBLE_BYTE_ORDER != IEEE754_DOUBLE_BIG_ENDIAN
+	t = (((int64_t)ntohl((int32_t)t)) << 32)
+		+ ((int64_t)ntohl((int32_t)(t >> 32)));
+#endif
+	if (buf_len >= sizeof(t))
+		memcpy(buf, &t, sizeof(t));
+	return sizeof(t);
 } /* marshal_double */
 
 static ssize_t

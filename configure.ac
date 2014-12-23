@@ -341,6 +341,66 @@ fi
 AC_SUBST([PROFILING_CFLAGS])
 AC_SUBST([PROFILING_LDFLAGS])
 
+ieee754_layout="unknown"
+AC_MSG_CHECKING([the memory layout of double precision values])
+AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM(
+			[[
+#include <string.h>
+#include <inttypes.h>
+			]],
+			[[
+double d = 3.141592653e130;
+char c[8];
+if (sizeof(d) != 8)
+	return 2;
+memcpy(&c, &d, 8);
+if (c[0] == '\x04' && c[1] == '\x10' && c[2] == '\x1E' && c[3] == '\x66' &&
+	c[4] == '\x40' && c[5] == '\xA9' && c[6] == '\x06' && c[7] == '\x5B')
+	return 0;
+else
+	return 1;
+			]]
+		)],
+		[ieee754_layout="little-endian"], [ieee754_layout="unknown"])
+if test "x$ieee754_layout" = "xunknown"; then
+	AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM(
+				[[
+#include <string.h>
+#include <inttypes.h>
+				]],
+				[[
+double d = 3.141592653e130;
+char c[8];
+if (sizeof(d) != 8)
+	return 2;
+memcpy(&c, &d, 8);
+if (c[7] == '\x04' && c[6] == '\x10' && c[5] == '\x1E' && c[4] == '\x66' &&
+	c[3] == '\x40' && c[2] == '\xA9' && c[1] == '\x06' && c[0] == '\x5B')
+	return 0;
+else
+	return 1;
+				]]
+			)],
+			[ieee754_layout="big-endian"], [ieee754_layout="unknown"])
+fi
+AC_MSG_RESULT([IEEE-754 $ieee754_layout])
+
+AC_DEFINE([IEEE754_DOUBLE_LITTLE_ENDIAN], 1234,
+		[Identifier for IEEE-754 little-endian encoding of double precision values])
+AC_DEFINE([IEEE754_DOUBLE_BIG_ENDIAN], 4321,
+		[Identifier for IEEE-754 big-endian encoding of double precision values])
+if test "x$ieee754_layout" = "xlittle-endian"; then
+	AC_DEFINE([IEEE754_DOUBLE_BYTE_ORDER], 1234,
+			[Define to 1 if double precision values use IEEE-754 little-endian encoding])
+else if test "x$ieee754_layout" = "xbig-endian"; then
+	AC_DEFINE([IEEE754_DOUBLE_BYTE_ORDER], 4321,
+			[Define to 1 if double precision values use IEEE-754 little-endian encoding])
+else
+	AC_MSG_ERROR([Unknown memory layout of double precision values])
+fi; fi
+
 m4_divert_once([HELP_ENABLE], [
 Build dependencies:])
 

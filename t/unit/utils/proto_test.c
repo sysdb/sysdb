@@ -49,6 +49,7 @@ START_TEST(test_marshal_data)
 
 	regex_t dummy_re;
 	int64_t int_values[] = { 47, 11, 23 };
+	double dec_values[] = { 47.11, .5 };
 	char *string_values[] = { "foo", "abcd" };
 
 	struct {
@@ -65,8 +66,8 @@ START_TEST(test_marshal_data)
 			12, INT_TYPE "\0\0\0\0\0\0\x12\x67",
 		},
 		{
-			{ SDB_TYPE_DECIMAL, { .integer = 4711 } },
-			-1, NULL, /* not supported yet */
+			{ SDB_TYPE_DECIMAL, { .decimal = 3.141592653e130 } },
+			12, DECIMAL_TYPE "\x5b\x6\xa9\x40\x66\x1e\x10\x4",
 		},
 		{
 			{ SDB_TYPE_STRING, { .string = "some string" } },
@@ -91,6 +92,12 @@ START_TEST(test_marshal_data)
 				3, int_values } } },
 			32, INT_ARRAY "\0\0\0\x3" "\0\0\0\0\0\0\0\x2f"
 				"\0\0\0\0\0\0\0\xb" "\0\0\0\0\0\0\0\x17"
+		},
+		{
+			{ SDB_TYPE_DECIMAL | SDB_TYPE_ARRAY, { .array = {
+				2, dec_values } } },
+			24, DECIMAL_ARRAY "\0\0\0\x2" "\x40\x47\x8e\x14\x7a\xe1\x47\xae"
+				"\x3f\xe0\0\0\0\0\0\0"
 		},
 		{
 			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = {
