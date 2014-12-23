@@ -53,6 +53,20 @@ START_TEST(test_marshal_data)
 	int64_t int_values[] = { 47, 11, 23 };
 	double dec_values[] = { 47.11, .5 };
 	char *string_values[] = { "foo", "abcd" };
+	sdb_time_t datetime_values[] = { 4711, 1234567890123456789L };
+	struct {
+		size_t length;
+		unsigned char *datum;
+	} binary_values[] = {
+		{ 3, (unsigned char *)"\x1\x2\x3" },
+		{ 4, (unsigned char *)"\x42\x0\xa\x1b" },
+	};
+	struct {
+		char *raw;
+		regex_t regex;
+	} regex_values[] = {
+		{ "dummy regex", dummy_re },
+	};
 
 	struct {
 		sdb_data_t datum;
@@ -106,6 +120,23 @@ START_TEST(test_marshal_data)
 				2, string_values } } },
 			25, STRING_ARRAY "\0\0\0\x2" "\0\0\0\x4" "foo\0"
 				"\0\0\0\x5" "abcd\0"
+		},
+		{
+			{ SDB_TYPE_DATETIME | SDB_TYPE_ARRAY, { .array = {
+				2, datetime_values } } },
+			24, DATETIME_ARRAY "\0\0\0\x2" "\0\0\0\0\0\0\x12\x67"
+				"\x11\x22\x10\xf4\x7d\xe9\x81\x15"
+		},
+		{
+			{ SDB_TYPE_BINARY | SDB_TYPE_ARRAY, { .array = {
+				2, binary_values } } },
+			23, BINARY_ARRAY "\0\0\0\x2" "\0\0\0\x3" "\x1\x2\x3"
+				"\0\0\0\4" "\x42\x0\xa\x1b"
+		},
+		{
+			{ SDB_TYPE_REGEX | SDB_TYPE_ARRAY, { .array = {
+				1, regex_values } } },
+			24, REGEX_ARRAY "\0\0\0\1" "\0\0\0\xc" "dummy regex\0"
 		},
 	};
 

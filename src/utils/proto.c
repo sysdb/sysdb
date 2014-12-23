@@ -202,8 +202,26 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
 			char **v = datum->data.array.values;
 			n = marshal_string(buf, buf_len, v[i]);
 		}
+		else if (type == SDB_TYPE_DATETIME) {
+			sdb_time_t *v = datum->data.array.values;
+			n = marshal_datetime(buf, buf_len, v[i]);
+		}
+		else if (type == SDB_TYPE_BINARY) {
+			struct {
+				size_t length;
+				unsigned char *datum;
+			} *v = datum->data.array.values;
+			n = marshal_binary(buf, buf_len, v[i].length, v[i].datum);
+		}
+		else if (type == SDB_TYPE_REGEX) {
+			struct {
+				char *raw;
+				regex_t regex;
+			} *v = datum->data.array.values;
+			n = marshal_string(buf, buf_len, v[i].raw);
+		}
 		else {
-			errno = ENOTSUP;
+			errno = EINVAL;
 			return -1;
 		}
 
