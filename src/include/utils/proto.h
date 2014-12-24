@@ -81,11 +81,11 @@ sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 		uint32_t *code, uint32_t *msg_len);
 
 /*
- * sdb_proto_unmarshal_int:
- * Read and decode an integer from the specified string.
+ * sdb_proto_unmarshal_int32:
+ * Read and decode a 32-bit integer from the specified string.
  */
 uint32_t
-sdb_proto_unmarshal_int(const char *buf, size_t buf_len);
+sdb_proto_unmarshal_int32(const char *buf, size_t buf_len);
 
 #ifdef __cplusplus
 } /* extern "C" */

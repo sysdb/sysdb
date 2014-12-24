@@ -54,7 +54,7 @@
  * been available. */
 
 static ssize_t
-marshal_int(char *buf, size_t buf_len, int64_t v)
+marshal_int64(char *buf, size_t buf_len, int64_t v)
 {
 	if (buf_len >= sizeof(v)) {
 #if __BYTE_ORDER != __BIG_ENDIAN
@@ -64,7 +64,7 @@ marshal_int(char *buf, size_t buf_len, int64_t v)
 		memcpy(buf, &v, sizeof(v));
 	}
 	return sizeof(v);
-} /* marshal_int */
+} /* marshal_int64 */
 
 static ssize_t
 marshal_double(char *buf, size_t buf_len, double v)
@@ -84,7 +84,7 @@ marshal_double(char *buf, size_t buf_len, double v)
 static ssize_t
 marshal_datetime(char *buf, size_t buf_len, sdb_time_t v)
 {
-	return marshal_int(buf, buf_len, (int64_t)v);
+	return marshal_int64(buf, buf_len, (int64_t)v);
 } /* marshal_datetime */
 
 static ssize_t
@@ -154,7 +154,7 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
 		return len;
 
 	if (datum->type == SDB_TYPE_INTEGER)
-		n = marshal_int(buf, buf_len, datum->data.integer);
+		n = marshal_int64(buf, buf_len, datum->data.integer);
 	else if (datum->type == SDB_TYPE_DECIMAL)
 		n = marshal_double(buf, buf_len, datum->data.decimal);
 	else if (datum->type == SDB_TYPE_STRING)
@@ -192,7 +192,7 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
 	for (i = 0; i < datum->data.array.length; ++i) {
 		if (type == SDB_TYPE_INTEGER) {
 			int64_t *v = datum->data.array.values;
-			n = marshal_int(buf, buf_len, v[i]);
+			n = marshal_int64(buf, buf_len, v[i]);
 		}
 		else if (type == SDB_TYPE_DECIMAL) {
 			double *v = datum->data.array.values;
@@ -247,10 +247,10 @@ sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 	if (buf_len < 2 * sizeof(uint32_t))
 		return -1;
 
-	tmp = sdb_proto_unmarshal_int(buf, buf_len);
+	tmp = sdb_proto_unmarshal_int32(buf, buf_len);
 	if (code)
 		*code = tmp;
-	tmp = sdb_proto_unmarshal_int(buf + sizeof(uint32_t),
+	tmp = sdb_proto_unmarshal_int32(buf + sizeof(uint32_t),
 			buf_len - sizeof(uint32_t));
 	if (msg_len)
 		*msg_len = tmp;
@@ -258,7 +258,7 @@ sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 } /* sdb_proto_unmarshal_header */
 
 uint32_t
-sdb_proto_unmarshal_int(const char *buf, size_t buf_len)
+sdb_proto_unmarshal_int32(const char *buf, size_t buf_len)
 {
 	uint32_t n;
 
@@ -268,7 +268,7 @@ sdb_proto_unmarshal_int(const char *buf, size_t buf_len)
 
 	memcpy(&n, buf, sizeof(n));
 	return ntohl(n);
-} /* sdb_proto_unmarshal_int */
+} /* sdb_proto_unmarshal_int32 */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

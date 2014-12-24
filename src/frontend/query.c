@@ -132,7 +132,7 @@ sdb_fe_fetch(sdb_conn_t *conn)
 		return -1;
 	}
 
-	type = sdb_proto_unmarshal_int(SDB_STRBUF_STR(conn->buf));
+	type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
 	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(uint32_t),
 			conn->cmd_len - sizeof(uint32_t));
 	name[sizeof(name) - 1] = '\0';
@@ -149,7 +149,7 @@ sdb_fe_list(sdb_conn_t *conn)
 		return -1;
 
 	if (conn->cmd_len == sizeof(uint32_t))
-		type = sdb_proto_unmarshal_int(SDB_STRBUF_STR(conn->buf));
+		type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
 	else if (conn->cmd_len) {
 		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
 				"LIST command", conn->cmd_len);
@@ -188,7 +188,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 				conn->cmd_len);
 		return -1;
 	}
-	type = sdb_proto_unmarshal_int(SDB_STRBUF_STR(conn->buf));
+	type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
 
 	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
 	matcher_len = conn->cmd_len - sizeof(uint32_t);

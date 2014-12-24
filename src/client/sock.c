@@ -309,8 +309,8 @@ sdb_client_recv(sdb_client_t *client,
 
 			/* retrieve status and data len */
 			assert(len >= 2 * sizeof(uint32_t));
-			rstatus = sdb_proto_unmarshal_int(str, len);
-			rlen = sdb_proto_unmarshal_int(str + sizeof(rstatus),
+			rstatus = sdb_proto_unmarshal_int32(str, len);
+			rlen = sdb_proto_unmarshal_int32(str + sizeof(rstatus),
 					len - sizeof(rstatus));
 
 			if (! rlen)
