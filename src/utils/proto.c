@@ -91,7 +91,7 @@ static ssize_t
 marshal_binary(char *buf, size_t buf_len, size_t len, const unsigned char *v)
 {
 	uint32_t tmp = htonl((uint32_t)len);
-	if (buf_len >= len) {
+	if (buf_len >= sizeof(tmp) + len) {
 		memcpy(buf, &tmp, sizeof(tmp));
 		memcpy(buf + sizeof(tmp), v, len);
 	}
@@ -102,8 +102,10 @@ static ssize_t
 marshal_string(char *buf, size_t buf_len, const char *v)
 {
 	/* The actual string including the terminating null byte. */
-	return marshal_binary(buf, buf_len,
-			strlen(v) + 1, (const unsigned char *)v);
+	size_t len = strlen(v) + 1;
+	if (buf_len >= len)
+		memcpy(buf, v, len);
+	return len;
 } /* marshal_string */
 
 /*

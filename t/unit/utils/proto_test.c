@@ -87,8 +87,7 @@ START_TEST(test_marshal_data)
 		},
 		{
 			{ SDB_TYPE_STRING, { .string = "some string" } },
-			/* length includes the null byte */
-			20, STRING_TYPE "\0\0\0\xc" "some string\0",
+			16, STRING_TYPE "some string\0",
 		},
 		{
 			{ SDB_TYPE_DATETIME, { .datetime = 1418923804000000 } },
@@ -101,7 +100,7 @@ START_TEST(test_marshal_data)
 		},
 		{
 			{ SDB_TYPE_REGEX, { .re = { "dummy", dummy_re } } },
-			14, REGEX_TYPE "\0\0\0\x6" "dummy\0",
+			10, REGEX_TYPE "dummy\0",
 		},
 		{
 			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = {
@@ -118,8 +117,7 @@ START_TEST(test_marshal_data)
 		{
 			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = {
 				2, string_values } } },
-			25, STRING_ARRAY "\0\0\0\x2" "\0\0\0\x4" "foo\0"
-				"\0\0\0\x5" "abcd\0"
+			17, STRING_ARRAY "\0\0\0\x2" "foo\0" "abcd\0"
 		},
 		{
 			{ SDB_TYPE_DATETIME | SDB_TYPE_ARRAY, { .array = {
@@ -136,7 +134,7 @@ START_TEST(test_marshal_data)
 		{
 			{ SDB_TYPE_REGEX | SDB_TYPE_ARRAY, { .array = {
 				1, regex_values } } },
-			24, REGEX_ARRAY "\0\0\0\1" "\0\0\0\xc" "dummy regex\0"
+			20, REGEX_ARRAY "\0\0\0\1" "dummy regex\0"
 		},
 	};
 
@@ -159,8 +157,8 @@ START_TEST(test_marshal_data)
 
 		len = sdb_proto_marshal_data(buf, sizeof(buf), &golden_data[i].datum);
 		fail_unless(len == golden_data[i].expected_len,
-				"sdb_proto_marshal_data(<buf>, <size>, %s) = %zi; expected: %zi",
-				v, len, golden_data[i].expected_len);
+				"sdb_proto_marshal_data(<buf>, %zu, %s) = %zi; expected: %zi",
+				sizeof(buf), v, len, golden_data[i].expected_len);
 		if (memcmp(buf, golden_data[i].expected, len) != 0) {
 			size_t pos;
 			for (pos = 0; pos < (size_t)len; ++pos)
