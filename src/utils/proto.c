@@ -69,8 +69,8 @@ marshal_int64(char *buf, size_t buf_len, int64_t v)
 {
 	if (buf_len >= sizeof(v)) {
 #if __BYTE_ORDER != __BIG_ENDIAN
-		v = (((int64_t)ntohl((int32_t)v)) << 32)
-			+ ((int64_t)ntohl((int32_t)(v >> 32)));
+		v = (((int64_t)htonl((int32_t)v)) << 32)
+			+ ((int64_t)htonl((int32_t)(v >> 32)));
 #endif
 		memcpy(buf, &v, sizeof(v));
 	}
@@ -84,8 +84,8 @@ marshal_double(char *buf, size_t buf_len, double v)
 	assert(sizeof(v) == sizeof(t));
 	memcpy(&t, &v, sizeof(v));
 #if IEEE754_DOUBLE_BYTE_ORDER != IEEE754_DOUBLE_BIG_ENDIAN
-	t = (((int64_t)ntohl((int32_t)t)) << 32)
-		+ ((int64_t)ntohl((int32_t)(t >> 32)));
+	t = (((int64_t)htonl((int32_t)t)) << 32)
+		+ ((int64_t)htonl((int32_t)(t >> 32)));
 #endif
 	if (buf_len >= sizeof(t))
 		memcpy(buf, &t, sizeof(t));
