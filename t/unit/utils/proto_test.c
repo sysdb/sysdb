@@ -173,6 +173,176 @@ START_TEST(test_marshal_data)
 }
 END_TEST
 
+#define HOST_TYPE "\0\0\0\1"
+#define SVC_TYPE "\0\0\0\2"
+#define METRIC_TYPE "\0\0\0\3"
+
+START_TEST(test_marshal_host)
+{
+	struct {
+		sdb_proto_host_t host;
+		ssize_t expected_len;
+		char *expected;
+	} golden_data[] = {
+		{
+			{ 4711, "hostA" },
+			18, HOST_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0"
+		},
+		{
+			{ 0, "hostA" },
+			18, HOST_TYPE "\0\0\0\0\0\0\0\0" "hostA\0"
+		},
+		{ { 4711, NULL }, -1, NULL },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		ssize_t len = sdb_proto_marshal_host(NULL, 0, &golden_data[i].host);
+		char buf[len > 0 ? len : 1];
+
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_host(NULL, 0, %s) = %zi; expected: %zi",
+				i, golden_data[i].host.name, len, golden_data[i].expected_len);
+
+		if (len < 0)
+			continue;
+
+		len = sdb_proto_marshal_host(buf, sizeof(buf), &golden_data[i].host);
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_host(<buf>, %zu, %s) = %zi; expected: %zi",
+				i, sizeof(buf), golden_data[i].host.name,
+				len, golden_data[i].expected_len);
+		if (memcmp(buf, golden_data[i].expected, len) != 0) {
+			size_t pos;
+			for (pos = 0; pos < (size_t)len; ++pos)
+				if (buf[pos] != golden_data[i].expected[pos])
+					break;
+			fail("<%zu> sdb_proto_marshal_host(%s) -> \"%s\"; expected: \"%s\" "
+					"(bytes %zu differ: '%x' != '%x')",
+					i, golden_data[i].host.name, buf, golden_data[i].expected,
+					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
+		}
+	}
+}
+END_TEST
+
+START_TEST(test_marshal_service)
+{
+	struct {
+		sdb_proto_service_t svc;
+		ssize_t expected_len;
+		char *expected;
+	} golden_data[] = {
+		{
+			{ 4711, "hostA", "serviceX" },
+			27, SVC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0serviceX\0"
+		},
+		{
+			{ 0, "hostA", "serviceX" },
+			27, SVC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0serviceX\0"
+		},
+		{ { 4711, "hostA", NULL }, -1, NULL },
+		{ { 4711, NULL, "serviceX" }, -1, NULL },
+		{ { 4711, NULL, NULL }, -1, NULL },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		ssize_t len = sdb_proto_marshal_service(NULL, 0, &golden_data[i].svc);
+		char buf[len > 0 ? len : 1];
+
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_service(NULL, 0, %s) = %zi; expected: %zi",
+				i, golden_data[i].svc.name, len, golden_data[i].expected_len);
+
+		if (len < 0)
+			continue;
+
+		len = sdb_proto_marshal_service(buf, sizeof(buf), &golden_data[i].svc);
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_service(<buf>, %zu, %s) = %zi; expected: %zi",
+				i, sizeof(buf), golden_data[i].svc.name,
+				len, golden_data[i].expected_len);
+		if (memcmp(buf, golden_data[i].expected, len) != 0) {
+			size_t pos;
+			for (pos = 0; pos < (size_t)len; ++pos)
+				if (buf[pos] != golden_data[i].expected[pos])
+					break;
+			fail("<%zu> sdb_proto_marshal_service(%s) -> \"%s\"; expected: \"%s\" "
+					"(bytes %zu differ: '%x' != '%x')",
+					i, golden_data[i].svc.name, buf, golden_data[i].expected,
+					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
+		}
+	}
+}
+END_TEST
+
+START_TEST(test_marshal_metric)
+{
+	struct {
+		sdb_proto_metric_t metric;
+		ssize_t expected_len;
+		char *expected;
+	} golden_data[] = {
+		{
+			{ 4711, "hostA", "metricX", NULL, NULL },
+			26, METRIC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0metricX\0"
+		},
+		{
+			{ 0, "hostA", "metricX", NULL, NULL },
+			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
+		},
+		{
+			{ 0, "hostA", "metricX", "type", NULL },
+			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
+		},
+		{
+			{ 0, "hostA", "metricX", NULL, "id" },
+			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
+		},
+		{
+			{ 4711, "hostA", "metricX", "type", "id" },
+			34, METRIC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0metricX\0type\0id\0"
+		},
+		{ { 4711, "hostA", NULL, NULL, NULL }, -1, NULL },
+		{ { 4711, NULL, "metricX", NULL, NULL }, -1, NULL },
+		{ { 4711, NULL, NULL, NULL, NULL }, -1, NULL },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		ssize_t len = sdb_proto_marshal_metric(NULL, 0, &golden_data[i].metric);
+		char buf[len > 0 ? len : 1];
+
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_metric(NULL, 0, %s) = %zi; expected: %zi",
+				i, golden_data[i].metric.name, len, golden_data[i].expected_len);
+
+		if (len < 0)
+			continue;
+
+		len = sdb_proto_marshal_metric(buf, sizeof(buf), &golden_data[i].metric);
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_metric(<buf>, %zu, %s) = %zi; expected: %zi",
+				i, sizeof(buf), golden_data[i].metric.name,
+				len, golden_data[i].expected_len);
+		if (memcmp(buf, golden_data[i].expected, len) != 0) {
+			size_t pos;
+			for (pos = 0; pos < (size_t)len; ++pos)
+				if (buf[pos] != golden_data[i].expected[pos])
+					break;
+			fail("<%zu> sdb_proto_marshal_metric(%s) -> \"%s\"; expected: \"%s\" "
+					"(bytes %zu differ: '%x' != '%x')",
+					i, golden_data[i].metric.name, buf, golden_data[i].expected,
+					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
+		}
+	}
+}
+END_TEST
+
 Suite *
 util_proto_suite(void)
 {
@@ -181,6 +351,9 @@ util_proto_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_test(tc, test_marshal_data);
+	tcase_add_test(tc, test_marshal_host);
+	tcase_add_test(tc, test_marshal_service);
+	tcase_add_test(tc, test_marshal_metric);
 	suite_add_tcase(s, tc);
 
 	return s;

@@ -30,6 +30,7 @@
 #endif
 
 #include "core/data.h"
+#include "core/store.h"
 #include "core/time.h"
 #include "utils/error.h"
 #include "utils/proto.h"
@@ -52,6 +53,16 @@
 /* In case there's not enough buffer space, the marshal functions have to
  * return the number of bytes that would have been written if enough space had
  * been available. */
+
+static ssize_t
+marshal_int32(char *buf, size_t buf_len, uint32_t v)
+{
+	if (buf_len >= sizeof(v)) {
+		v = htonl(v);
+		memcpy(buf, &v, sizeof(v));
+	}
+	return sizeof(v);
+} /* marshal_int32 */
 
 static ssize_t
 marshal_int64(char *buf, size_t buf_len, int64_t v)
@@ -107,6 +118,22 @@ marshal_string(char *buf, size_t buf_len, const char *v)
 		memcpy(buf, v, len);
 	return len;
 } /* marshal_string */
+
+#define OBJ_HEADER_LEN (sizeof(uint32_t) + sizeof(sdb_time_t))
+static ssize_t
+marshal_obj_header(char *buf, size_t buf_len,
+		int type, sdb_time_t last_update)
+{
+	ssize_t n;
+
+	if (buf_len < OBJ_HEADER_LEN)
+		return OBJ_HEADER_LEN;
+
+	n = marshal_int32(buf, buf_len, (uint32_t)type);
+	buf += n; buf_len -= n;
+	marshal_datetime(buf, buf_len, last_update);
+	return OBJ_HEADER_LEN;
+} /* marshal_obj_header */
 
 /*
  * public API
@@ -239,6 +266,78 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
 	}
 	return len;
 } /* sdb_proto_marshal_data */
+
+ssize_t
+sdb_proto_marshal_host(char *buf, size_t buf_len,
+		const sdb_proto_host_t *host)
+{
+	size_t len;
+	ssize_t n;
+
+	if ((! host) || (! host->name))
+		return -1;
+
+	len = OBJ_HEADER_LEN + strlen(host->name) + 1;
+	if (buf_len < len)
+		return len;
+
+	n = marshal_obj_header(buf, buf_len, SDB_HOST, host->last_update);
+	buf += n; buf_len -= n;
+	marshal_string(buf, buf_len, host->name);
+	return len;
+} /* sdb_proto_marshal_host */
+
+ssize_t
+sdb_proto_marshal_service(char *buf, size_t buf_len,
+		const sdb_proto_service_t *svc)
+{
+	size_t len;
+	ssize_t n;
+
+	if ((! svc) || (! svc->hostname) || (! svc->name))
+		return -1;
+
+	len = OBJ_HEADER_LEN + strlen(svc->hostname) + strlen(svc->name) + 2;
+	if (buf_len < len)
+		return len;
+
+	n = marshal_obj_header(buf, buf_len, SDB_SERVICE, svc->last_update);
+	buf += n; buf_len -= n;
+	n = marshal_string(buf, buf_len, svc->hostname);
+	buf += n; buf_len -= n;
+	marshal_string(buf, buf_len, svc->name);
+	return len;
+} /* sdb_proto_marshal_service */
+
+ssize_t
+sdb_proto_marshal_metric(char *buf, size_t buf_len,
+		const sdb_proto_metric_t *metric)
+{
+	size_t len;
+	ssize_t n;
+
+	if ((! metric) || (! metric->hostname) || (! metric->name))
+		return -1;
+
+	len = OBJ_HEADER_LEN + strlen(metric->hostname) + strlen(metric->name) + 2;
+	if (metric->store_type && metric->store_id)
+		len += strlen(metric->store_type) + strlen(metric->store_id) + 2;
+	if (buf_len < len)
+		return len;
+
+	n = marshal_obj_header(buf, buf_len, SDB_METRIC, metric->last_update);
+	buf += n; buf_len -= n;
+	n = marshal_string(buf, buf_len, metric->hostname);
+	buf += n; buf_len -= n;
+	n = marshal_string(buf, buf_len, metric->name);
+	buf += n; buf_len -= n;
+	if (metric->store_type && metric->store_id) {
+		n = marshal_string(buf, buf_len, metric->store_type);
+		buf += n; buf_len -= n;
+		marshal_string(buf, buf_len, metric->store_id);
+	}
+	return len;
+} /* sdb_proto_marshal_metric */
 
 int
 sdb_proto_unmarshal_header(const char *buf, size_t buf_len,

@@ -38,6 +38,30 @@ extern "C" {
 #endif
 
 /*
+ * sdb_proto_host, sdb_proto_service, sdb_proto_metric:
+ * Protocol-specific representations of the basic information of stored
+ * objects.
+ */
+typedef struct {
+	sdb_time_t last_update;
+	const char *name;
+} sdb_proto_host_t;
+
+typedef struct {
+	sdb_time_t last_update;
+	const char *hostname;
+	const char *name;
+} sdb_proto_service_t;
+
+typedef struct {
+	sdb_time_t last_update;
+	const char *hostname;
+	const char *name;
+	const char *store_type; /* optional */
+	const char *store_id;   /* optional */
+} sdb_proto_metric_t;
+
+/*
  * sdb_proto_marshal:
  * Encode the message into the wire format by adding an appropriate header.
  * The encoded message is written to buf which has to be large enough to store
@@ -67,6 +91,30 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
  */
 ssize_t
 sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum);
+
+/*
+ * sdb_proto_marshal_host, sdb_proto_marshal_service,
+ * sdb_proto_marshal_metric:
+ * Encode the basic information of a stored object into the wire format and
+ * write it to buf. These functions are similar to the sdb_store_<type>
+ * functions. See their documentation for details about the arguments.
+ *
+ * Returns:
+ *  - The number of bytes of the full encoded datum on success. The function
+ *    does not write more than 'buf_len' bytes. If the output was truncated
+ *    then the return value is the number of bytes which would have been
+ *    written if enough space had been available.
+ *  - a negative value else
+ */
+ssize_t
+sdb_proto_marshal_host(char *buf, size_t buf_len,
+		const sdb_proto_host_t *host);
+ssize_t
+sdb_proto_marshal_service(char *buf, size_t buf_len,
+		const sdb_proto_service_t *svc);
+ssize_t
+sdb_proto_marshal_metric(char *buf, size_t buf_len,
+		const sdb_proto_metric_t *metric);
 
 /*
  * sdb_proto_unmarshal_header:

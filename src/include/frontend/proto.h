@@ -246,6 +246,37 @@ typedef enum {
 	SDB_CONNECTION_TIMESERIES,
 
 	/*
+	 * SDB_CONNECTION_STORE:
+	 * Execute the 'STORE' command in the server. The message body shall
+	 * include the type of the object to be stored, the timestamp of the last
+	 * update, and a list of fields describing the object depending on the
+	 * object type. Object types are encoded as 32bit integers in network
+	 * byte-order. Timestamps are encoded as 64bit integers in network
+	 * byte-order. Fields are null-terminated strings.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | STORE         | length        |
+	 * +---------------+---------------+
+	 * | object type   | last_update.. |
+	 * +---------------+---------------+
+	 * | ...           | fields        |
+	 * +---------------+               |
+	 * | ...                           |
+	 *
+	 * Fields:
+	 *
+	 *      HOST: name
+	 *   SERVICE: hostname, name
+	 *    METRIC: hostname, name, [store type, store id]
+	 * ATTRIBUTE: parent object type, hostname, [object name], key, <value>
+	 *
+	 * Values are encoded as their type (32bit integer in network byte-order),
+	 * and their content as implemented by sdb_proto_marshal_data.
+	 */
+	SDB_CONNECTION_STORE = 50,
+
+	/*
 	 * Command subcomponents.
 	 */
 
