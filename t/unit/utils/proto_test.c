@@ -25,6 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "core/store.h"
 #include "utils/proto.h"
 #include "libsysdb_test.h"
 
@@ -176,6 +177,9 @@ END_TEST
 #define HOST_TYPE "\0\0\0\1"
 #define SVC_TYPE "\0\0\0\2"
 #define METRIC_TYPE "\0\0\0\3"
+#define HOST_ATTR_TYPE "\0\0\0\x11"
+#define SVC_ATTR_TYPE "\0\0\0\x12"
+#define METRIC_ATTR_TYPE "\0\0\0\x13"
 
 START_TEST(test_marshal_host)
 {
@@ -343,6 +347,67 @@ START_TEST(test_marshal_metric)
 }
 END_TEST
 
+START_TEST(test_marshal_attribute)
+{
+	sdb_data_t v = { SDB_TYPE_NULL, { .integer = 0 } };
+#define VAL "\0\0\0\0"
+	struct {
+		sdb_proto_attribute_t attr;
+		ssize_t expected_len;
+		char *expected;
+	} golden_data[] = {
+		{
+			{ 4711, SDB_HOST, NULL, "hostA", "k1", &v },
+			25, HOST_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "k1\0" VAL
+		},
+		{
+			{ 4711, SDB_SERVICE, "hostA", "svc1", "k1", &v },
+			30, SVC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "svc1\0" "k1\0" VAL
+		},
+		{
+			{ 4711, SDB_METRIC, "hostA", "m1", "k1", &v },
+			28, METRIC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "m1\0" "k1\0" VAL
+		},
+		{ { 4711, SDB_HOST, NULL, NULL, "k1", &v }, -1, NULL },
+		{ { 4711, SDB_HOST, NULL, "hostA", NULL, &v }, -1, NULL },
+		{ { 4711, SDB_HOST, NULL, "hostA", "k1", NULL }, -1, NULL },
+		{ { 4711, SDB_SERVICE, NULL, "svc1", "k1", &v }, -1, NULL },
+		{ { 4711, SDB_METRIC, NULL, "m1", "k1", &v }, -1, NULL },
+		{ { 4711, 0, "hostA", "svc1", "k1", &v }, -1, NULL },
+	};
+
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
+		ssize_t len = sdb_proto_marshal_attribute(NULL, 0, &golden_data[i].attr);
+		char buf[len > 0 ? len : 1];
+
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_attribute(NULL, 0, %s) = %zi; expected: %zi",
+				i, golden_data[i].attr.key, len, golden_data[i].expected_len);
+
+		if (len < 0)
+			continue;
+
+		len = sdb_proto_marshal_attribute(buf, sizeof(buf), &golden_data[i].attr);
+		fail_unless(len == golden_data[i].expected_len,
+				"<%zu> sdb_proto_marshal_attribute(<buf>, %zu, %s) = %zi; expected: %zi",
+				i, sizeof(buf), golden_data[i].attr.key,
+				len, golden_data[i].expected_len);
+		if (memcmp(buf, golden_data[i].expected, len) != 0) {
+			size_t pos;
+			for (pos = 0; pos < (size_t)len; ++pos)
+				if (buf[pos] != golden_data[i].expected[pos])
+					break;
+			fail("<%zu> sdb_proto_marshal_attribute(%s) -> \"%s\"; expected: \"%s\" "
+					"(bytes %zu differ: '%x' != '%x')",
+					i, golden_data[i].attr.key, buf, golden_data[i].expected,
+					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
+		}
+	}
+}
+END_TEST
+
 Suite *
 util_proto_suite(void)
 {
@@ -354,6 +419,7 @@ util_proto_suite(void)
 	tcase_add_test(tc, test_marshal_host);
 	tcase_add_test(tc, test_marshal_service);
 	tcase_add_test(tc, test_marshal_metric);
+	tcase_add_test(tc, test_marshal_attribute);
 	suite_add_tcase(s, tc);
 
 	return s;

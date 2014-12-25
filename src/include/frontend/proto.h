@@ -251,7 +251,8 @@ typedef enum {
 	 * include the type of the object to be stored, the timestamp of the last
 	 * update, and a list of fields describing the object depending on the
 	 * object type. Object types are encoded as 32bit integers in network
-	 * byte-order. Timestamps are encoded as 64bit integers in network
+	 * byte-order where attribute types are bitwise ORed with the appropriate
+	 * parent object type. Timestamps are encoded as 64bit integers in network
 	 * byte-order. Fields are null-terminated strings.
 	 *
 	 * 0               32              64
@@ -269,7 +270,7 @@ typedef enum {
 	 *      HOST: name
 	 *   SERVICE: hostname, name
 	 *    METRIC: hostname, name, [store type, store id]
-	 * ATTRIBUTE: parent object type, hostname, [object name], key, <value>
+	 * ATTRIBUTE: [hostname], parent object name, key, <value>
 	 *
 	 * Values are encoded as their type (32bit integer in network byte-order),
 	 * and their content as implemented by sdb_proto_marshal_data.

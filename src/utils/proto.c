@@ -162,7 +162,7 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 } /* sdb_proto_marshal */
 
 ssize_t
-sdb_proto_marshal_data(char *buf, size_t buf_len, sdb_data_t *datum)
+sdb_proto_marshal_data(char *buf, size_t buf_len, const sdb_data_t *datum)
 {
 	ssize_t len = 0, n = 0;
 	uint32_t tmp;
@@ -338,6 +338,46 @@ sdb_proto_marshal_metric(char *buf, size_t buf_len,
 	}
 	return len;
 } /* sdb_proto_marshal_metric */
+
+ssize_t
+sdb_proto_marshal_attribute(char *buf, size_t buf_len,
+		const sdb_proto_attribute_t *attr)
+{
+	size_t len;
+	ssize_t n;
+
+	if ((! attr) || (! attr->parent) || (! attr->key) || (! attr->value)
+			|| ((attr->parent_type != SDB_HOST) && (! attr->hostname))
+			|| ((attr->parent_type != SDB_HOST)
+				&& (attr->parent_type != SDB_SERVICE)
+				&& (attr->parent_type != SDB_METRIC)))
+		return -1;
+
+	n = sdb_proto_marshal_data(NULL, 0, attr->value);
+	if (n < 0)
+		return -1;
+
+	len = OBJ_HEADER_LEN
+		+ strlen(attr->parent) + strlen(attr->key) + 2 + (size_t)n;
+	if (attr->parent_type != SDB_HOST)
+		len += strlen(attr->hostname) + 1;
+	if (buf_len < len)
+		return len;
+
+	n = marshal_obj_header(buf, buf_len,
+			attr->parent_type | SDB_ATTRIBUTE, attr->last_update);
+	buf += n; buf_len -= n;
+	if (attr->parent_type != SDB_HOST) {
+		n = marshal_string(buf, buf_len, attr->hostname);
+		buf += n; buf_len -= n;
+	}
+	n = marshal_string(buf, buf_len, attr->parent);
+	buf += n; buf_len -= n;
+	n = marshal_string(buf, buf_len, attr->key);
+	buf += n; buf_len -= n;
+	sdb_proto_marshal_data(buf, buf_len, attr->value);
+	return len;
+} /* sdb_proto_marshal_attribute */
 
 int
 sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
