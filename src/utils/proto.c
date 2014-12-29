@@ -379,36 +379,39 @@ sdb_proto_marshal_attribute(char *buf, size_t buf_len,
 	return len;
 } /* sdb_proto_marshal_attribute */
 
-int
+ssize_t
 sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 		uint32_t *code, uint32_t *msg_len)
 {
 	uint32_t tmp;
+	ssize_t n;
 
 	if (buf_len < 2 * sizeof(uint32_t))
 		return -1;
 
-	tmp = sdb_proto_unmarshal_int32(buf, buf_len);
+	n = sdb_proto_unmarshal_int32(buf, buf_len, &tmp);
 	if (code)
 		*code = tmp;
-	tmp = sdb_proto_unmarshal_int32(buf + sizeof(uint32_t),
-			buf_len - sizeof(uint32_t));
+	buf += n; buf_len -= n;
+	sdb_proto_unmarshal_int32(buf, buf_len, &tmp);
 	if (msg_len)
 		*msg_len = tmp;
-	return 0;
+	return 2 * sizeof(uint32_t);
 } /* sdb_proto_unmarshal_header */
 
-uint32_t
-sdb_proto_unmarshal_int32(const char *buf, size_t buf_len)
+ssize_t
+sdb_proto_unmarshal_int32(const char *buf, size_t buf_len, uint32_t *v)
 {
 	uint32_t n;
 
 	/* not enough data to read */
 	if (buf_len < sizeof(n))
-		return UINT32_MAX;
+		return -1;
 
 	memcpy(&n, buf, sizeof(n));
-	return ntohl(n);
+	if (v)
+		*v = ntohl(n);
+	return sizeof(n);
 } /* sdb_proto_unmarshal_int32 */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

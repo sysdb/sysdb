@@ -49,9 +49,9 @@
 static void
 log_printer(sdb_strbuf_t *buf)
 {
-	uint32_t prio = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf));
+	uint32_t prio = 0;
 
-	if (prio == UINT32_MAX) {
+	if (sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &prio) < 0) {
 		sdb_log(SDB_LOG_WARNING, "Received a LOG message with invalid "
 				"or missing priority");
 		prio = (uint32_t)SDB_LOG_ERR;

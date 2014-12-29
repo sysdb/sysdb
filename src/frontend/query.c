@@ -119,7 +119,7 @@ int
 sdb_fe_fetch(sdb_conn_t *conn)
 {
 	char name[conn->cmd_len + 1];
-	int type;
+	uint32_t type;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_FETCH))
 		return -1;
@@ -132,24 +132,24 @@ sdb_fe_fetch(sdb_conn_t *conn)
 		return -1;
 	}
 
-	type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
+	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf), &type);
 	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(uint32_t),
 			conn->cmd_len - sizeof(uint32_t));
 	name[sizeof(name) - 1] = '\0';
 	/* TODO: support other types besides hosts */
-	return sdb_fe_exec_fetch(conn, type, name, NULL, /* filter = */ NULL);
+	return sdb_fe_exec_fetch(conn, (int)type, name, NULL, /* filter = */ NULL);
 } /* sdb_fe_fetch */
 
 int
 sdb_fe_list(sdb_conn_t *conn)
 {
-	int type = SDB_HOST;
+	uint32_t type = SDB_HOST;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_LIST))
 		return -1;
 
 	if (conn->cmd_len == sizeof(uint32_t))
-		type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
+		sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf), &type);
 	else if (conn->cmd_len) {
 		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %d for "
 				"LIST command", conn->cmd_len);
@@ -157,7 +157,7 @@ sdb_fe_list(sdb_conn_t *conn)
 				conn->cmd_len);
 		return -1;
 	}
-	return sdb_fe_exec_list(conn, type, /* filter = */ NULL);
+	return sdb_fe_exec_list(conn, (int)type, /* filter = */ NULL);
 } /* sdb_fe_list */
 
 int
@@ -167,7 +167,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	const char *matcher;
 	size_t matcher_len;
 
-	int type;
+	uint32_t type;
 	int status;
 
 	conn_matcher_t m_node = {
@@ -188,7 +188,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 				conn->cmd_len);
 		return -1;
 	}
-	type = sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf));
+	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf), &type);
 
 	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
 	matcher_len = conn->cmd_len - sizeof(uint32_t);
@@ -203,7 +203,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 		return -1;
 	}
 
-	node.type = type;
+	node.type = (int)type;
 	m_node.matcher = m;
 
 	/* run analyzer separately; parse_matcher is missing
@@ -220,7 +220,7 @@ sdb_fe_lookup(sdb_conn_t *conn)
 		status = -1;
 	}
 	else
-		status = sdb_fe_exec_lookup(conn, type, m, /* filter = */ NULL);
+		status = sdb_fe_exec_lookup(conn, (int)type, m, /* filter = */ NULL);
 	sdb_object_deref(SDB_OBJ(m));
 	return status;
 } /* sdb_fe_lookup */

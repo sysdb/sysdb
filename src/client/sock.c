@@ -306,12 +306,13 @@ sdb_client_recv(sdb_client_t *client,
 		if (rstatus == UINT32_MAX) {
 			const char *str = sdb_strbuf_string(buf) + data_offset;
 			size_t len = sdb_strbuf_len(buf) - data_offset;
+			ssize_t n;
 
 			/* retrieve status and data len */
 			assert(len >= 2 * sizeof(uint32_t));
-			rstatus = sdb_proto_unmarshal_int32(str, len);
-			rlen = sdb_proto_unmarshal_int32(str + sizeof(rstatus),
-					len - sizeof(rstatus));
+			n = sdb_proto_unmarshal_int32(str, len, &rstatus);
+			str += n; len -= (size_t)n;
+			sdb_proto_unmarshal_int32(str, len, &rlen);
 
 			if (! rlen)
 				break;

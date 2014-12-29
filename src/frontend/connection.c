@@ -357,7 +357,7 @@ command_init(sdb_conn_t *conn)
 	sdb_strbuf_clear(conn->errbuf);
 
 	if (sdb_proto_unmarshal_header(SDB_STRBUF_STR(conn->buf),
-				&conn->cmd, &conn->cmd_len))
+				&conn->cmd, &conn->cmd_len) < 0)
 		return -1;
 	sdb_strbuf_skip(conn->buf, 0, 2 * sizeof(uint32_t));
 
