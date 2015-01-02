@@ -67,7 +67,7 @@ typedef struct {
 	const char *hostname; /* optional */
 	const char *parent;
 	const char *key;
-	const sdb_data_t *value;
+	sdb_data_t value;
 } sdb_proto_attribute_t;
 
 /*
@@ -163,6 +163,29 @@ sdb_proto_unmarshal_int32(const char *buf, size_t buf_len, uint32_t *v);
  */
 ssize_t
 sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum);
+
+/*
+ * sdb_proto_unmarshal_host, sdb_proto_unmarshal_service,
+ * sdb_proto_unmarshal_metric, sdb_proto_unmarshal_attribute:
+ * Read and decode a host, service, metric, or attribute object from the
+ * specified string.
+ *
+ * Returns:
+ *  - the number of bytes read on success
+ *  - a negative value else
+ */
+ssize_t
+sdb_proto_unmarshal_host(const char *buf, size_t len,
+		sdb_proto_host_t *host);
+ssize_t
+sdb_proto_unmarshal_service(const char *buf, size_t len,
+		sdb_proto_service_t *svc);
+ssize_t
+sdb_proto_unmarshal_metric(const char *buf, size_t len,
+		sdb_proto_metric_t *metric);
+ssize_t
+sdb_proto_unmarshal_attribute(const char *buf, size_t len,
+		sdb_proto_attribute_t *attr);
 
 #ifdef __cplusplus
 } /* extern "C" */

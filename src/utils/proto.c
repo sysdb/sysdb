@@ -235,6 +235,22 @@ marshal_obj_header(char *buf, size_t buf_len,
 	return OBJ_HEADER_LEN;
 } /* marshal_obj_header */
 
+static ssize_t
+unmarshal_obj_header(const char *buf, size_t len,
+		int *type, sdb_time_t *last_update)
+{
+	ssize_t n;
+
+	if (len < OBJ_HEADER_LEN)
+		return -1;
+
+	n = sdb_proto_unmarshal_int32(buf, len, (uint32_t *)type);
+	buf += n; len -= n;
+	if (unmarshal_datetime(buf, len, last_update) < 0)
+		return -1;
+	return OBJ_HEADER_LEN;
+} /* unmarshal_obj_header */
+
 /*
  * public API
  */
@@ -446,14 +462,14 @@ sdb_proto_marshal_attribute(char *buf, size_t buf_len,
 	size_t len;
 	ssize_t n;
 
-	if ((! attr) || (! attr->parent) || (! attr->key) || (! attr->value)
+	if ((! attr) || (! attr->parent) || (! attr->key)
 			|| ((attr->parent_type != SDB_HOST) && (! attr->hostname))
 			|| ((attr->parent_type != SDB_HOST)
 				&& (attr->parent_type != SDB_SERVICE)
 				&& (attr->parent_type != SDB_METRIC)))
 		return -1;
 
-	n = sdb_proto_marshal_data(NULL, 0, attr->value);
+	n = sdb_proto_marshal_data(NULL, 0, &attr->value);
 	if (n < 0)
 		return -1;
 
@@ -475,7 +491,7 @@ sdb_proto_marshal_attribute(char *buf, size_t buf_len,
 	buf += n; buf_len -= n;
 	n = marshal_string(buf, buf_len, attr->key);
 	buf += n; buf_len -= n;
-	sdb_proto_marshal_data(buf, buf_len, attr->value);
+	sdb_proto_marshal_data(buf, buf_len, &attr->value);
 	return len;
 } /* sdb_proto_marshal_attribute */
 
@@ -652,13 +668,7 @@ sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum)
 				sdb_data_free_datum(&d);
 			return -1;
 		}
-		if (len >= (size_t)n) {
-			buf += n;
-			len -= n;
-			l += n;
-		}
-		else
-			return -1;
+		buf += n; len -= n; l += n;
 	}
 #undef V
 
@@ -666,6 +676,121 @@ sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum)
 		*datum = d;
 	return l;
 } /* sdb_proto_unmarshal_data */
+
+ssize_t
+sdb_proto_unmarshal_host(const char *buf, size_t len,
+		sdb_proto_host_t *host)
+{
+	int type = 0;
+	ssize_t l = 0, n;
+
+	if ((n = unmarshal_obj_header(buf, len,
+					&type, host ? &host->last_update : NULL)) < 0)
+		return n;
+	if (type != SDB_HOST)
+		return -1;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len, host ? &host->name : NULL)) < 0)
+		return n;
+	return l + n;
+} /* sdb_proto_unmarshal_host */
+
+ssize_t
+sdb_proto_unmarshal_service(const char *buf, size_t len,
+		sdb_proto_service_t *svc)
+{
+	int type = 0;
+	ssize_t l = 0, n;
+
+	if ((n = unmarshal_obj_header(buf, len,
+					&type, svc ? &svc->last_update : NULL)) < 0)
+		return n;
+	if (type != SDB_SERVICE)
+		return -1;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len, svc ? &svc->hostname : NULL)) < 0)
+		return n;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len, svc ? &svc->name : NULL)) < 0)
+		return n;
+	return l + n;
+} /* sdb_proto_unmarshal_service */
+
+ssize_t
+sdb_proto_unmarshal_metric(const char *buf, size_t len,
+		sdb_proto_metric_t *metric)
+{
+	int type = 0;
+	ssize_t l = 0, n;
+
+	if ((n = unmarshal_obj_header(buf, len,
+					&type, metric ? &metric->last_update : NULL)) < 0)
+		return n;
+	if (type != SDB_METRIC)
+		return -1;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len,
+					metric ? &metric->hostname : NULL)) < 0)
+		return n;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len, metric ? &metric->name : NULL)) < 0)
+		return n;
+	if (len > (size_t)n) {
+		buf += n; len -= n; l += n;
+		if ((n = unmarshal_string(buf, len,
+						metric ? &metric->store_type : NULL)) < 0)
+			return n;
+		buf += n; len -= n; l += n;
+		if ((n = unmarshal_string(buf, len,
+						metric ? &metric->store_id : NULL)) < 0)
+			return n;
+	}
+	else if (metric) {
+		metric->store_type = NULL;
+		metric->store_id = NULL;
+	}
+	return l + n;
+} /* sdb_proto_unmarshal_metric */
+
+ssize_t
+sdb_proto_unmarshal_attribute(const char *buf, size_t len,
+		sdb_proto_attribute_t *attr)
+{
+	int parent_type, type = 0;
+	ssize_t l = 0, n;
+
+	if ((n = unmarshal_obj_header(buf, len,
+					&type, attr ? &attr->last_update : NULL)) < 0)
+		return n;
+	buf += n; len -= n; l += n;
+	parent_type = type & 0xf;
+	if (type != (parent_type | SDB_ATTRIBUTE))
+		return -1;
+	if ((parent_type != SDB_HOST) && (parent_type != SDB_SERVICE)
+				&& (parent_type != SDB_METRIC))
+		return -1;
+	if (attr)
+		attr->parent_type = parent_type;
+
+	if (parent_type != SDB_HOST) {
+		if ((n = unmarshal_string(buf, len,
+						attr ? &attr->hostname : NULL)) < 0)
+			return n;
+		buf += n; len -= n; l += n;
+	}
+	else if (attr)
+		attr->hostname = NULL;
+	if ((n = unmarshal_string(buf, len, attr ? &attr->parent : NULL)) < 0)
+		return n;
+	buf += n; len -= n; l += n;
+	if ((n = unmarshal_string(buf, len, attr ? &attr->key : NULL)) < 0)
+		return n;
+	buf += n; len -= n; l += n;
+	if ((n = sdb_proto_unmarshal_data(buf, len,
+					attr ? &attr->value : NULL)) < 0)
+		return n;
+	return l + n;
+} /* sdb_proto_unmarshal_attribute */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

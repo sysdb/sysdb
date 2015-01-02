@@ -30,8 +30,17 @@
 #include "libsysdb_test.h"
 
 #include <check.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
+static bool
+streq(const char *s1, const char *s2)
+{
+	if ((! s1) || (! s2))
+		return (s1 == NULL) == (s2 == NULL);
+	return strcmp(s1, s2) == 0;
+} /* streq */
 
 START_TEST(test_marshal_data)
 {
@@ -225,6 +234,9 @@ START_TEST(test_marshal_host)
 		ssize_t len = sdb_proto_marshal_host(NULL, 0, &golden_data[i].host);
 		char buf[len > 0 ? len : 1];
 
+		sdb_proto_host_t host;
+		ssize_t check;
+
 		fail_unless(len == golden_data[i].expected_len,
 				"<%zu> sdb_proto_marshal_host(NULL, 0, %s) = %zi; expected: %zi",
 				i, golden_data[i].host.name, len, golden_data[i].expected_len);
@@ -247,6 +259,17 @@ START_TEST(test_marshal_host)
 					i, golden_data[i].host.name, buf, golden_data[i].expected,
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
+
+		check = sdb_proto_unmarshal_host(buf, len, &host);
+		fail_unless(check == len,
+				"<%zu> sdb_proto_unmarshal_host(buf<%s>) = %zi; expected: %zi",
+				i, golden_data[i].host.name, check, len);
+		fail_unless((host.last_update == golden_data[i].host.last_update)
+				&& streq(host.name, golden_data[i].host.name),
+				"<%zu> sdb_proto_unmarshal_host(buf<%s>) = { %"PRIsdbTIME", %s }; "
+				"expected: { %"PRIsdbTIME", %s }", i, golden_data[i].host.name,
+				host.last_update, host.name, golden_data[i].host.last_update,
+				golden_data[i].host.name);
 	}
 }
 END_TEST
@@ -277,6 +300,9 @@ START_TEST(test_marshal_service)
 		ssize_t len = sdb_proto_marshal_service(NULL, 0, &golden_data[i].svc);
 		char buf[len > 0 ? len : 1];
 
+		sdb_proto_service_t svc;
+		ssize_t check;
+
 		fail_unless(len == golden_data[i].expected_len,
 				"<%zu> sdb_proto_marshal_service(NULL, 0, %s) = %zi; expected: %zi",
 				i, golden_data[i].svc.name, len, golden_data[i].expected_len);
@@ -299,6 +325,18 @@ START_TEST(test_marshal_service)
 					i, golden_data[i].svc.name, buf, golden_data[i].expected,
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
+
+		check = sdb_proto_unmarshal_service(buf, len, &svc);
+		fail_unless(check == len,
+				"<%zu> sdb_proto_unmarshal_service(buf<%s>) = %zi; expected: %zi",
+				i, golden_data[i].svc.name, check, len);
+		fail_unless((svc.last_update == golden_data[i].svc.last_update)
+				&& streq(svc.hostname, golden_data[i].svc.hostname)
+				&& streq(svc.name, golden_data[i].svc.name),
+				"<%zu> sdb_proto_unmarshal_service(buf<%s>) = { %"PRIsdbTIME", %s, %s }; "
+				"expected: { %"PRIsdbTIME", %s, %s }", i, golden_data[i].svc.name,
+				svc.last_update, svc.hostname, svc.name, golden_data[i].svc.last_update,
+				golden_data[i].svc.hostname, golden_data[i].svc.name);
 	}
 }
 END_TEST
@@ -341,6 +379,9 @@ START_TEST(test_marshal_metric)
 		ssize_t len = sdb_proto_marshal_metric(NULL, 0, &golden_data[i].metric);
 		char buf[len > 0 ? len : 1];
 
+		sdb_proto_metric_t metric;
+		ssize_t check;
+
 		fail_unless(len == golden_data[i].expected_len,
 				"<%zu> sdb_proto_marshal_metric(NULL, 0, %s) = %zi; expected: %zi",
 				i, golden_data[i].metric.name, len, golden_data[i].expected_len);
@@ -363,37 +404,61 @@ START_TEST(test_marshal_metric)
 					i, golden_data[i].metric.name, buf, golden_data[i].expected,
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
+
+		if ((! golden_data[i].metric.store_type)
+				|| (! golden_data[i].metric.store_id)) {
+			/* if any of these is NULL, we expect both to be NULL */
+			golden_data[i].metric.store_type = NULL;
+			golden_data[i].metric.store_id = NULL;
+		}
+
+		check = sdb_proto_unmarshal_metric(buf, len, &metric);
+		fail_unless(check == len,
+				"<%zu> sdb_proto_unmarshal_metric(buf<%s>) = %zi; expected: %zi",
+				i, golden_data[i].metric.name, check, len);
+		fail_unless((metric.last_update == golden_data[i].metric.last_update)
+				&& streq(metric.hostname, golden_data[i].metric.hostname)
+				&& streq(metric.name, golden_data[i].metric.name)
+				&& streq(metric.store_type, golden_data[i].metric.store_type)
+				&& streq(metric.store_id, golden_data[i].metric.store_id),
+				"<%zu> sdb_proto_unmarshal_metric(buf<%s>) = "
+				"{ %"PRIsdbTIME", %s, %s, %s, %s }; expected: "
+				"{ %"PRIsdbTIME", %s, %s, %s, %s }", i, golden_data[i].metric.name,
+				metric.last_update, metric.hostname, metric.name,
+				metric.store_type, metric.store_id,
+				golden_data[i].metric.last_update,
+				golden_data[i].metric.hostname, golden_data[i].metric.name,
+				golden_data[i].metric.store_type, golden_data[i].metric.store_id);
 	}
 }
 END_TEST
 
 START_TEST(test_marshal_attribute)
 {
-	sdb_data_t v = { SDB_TYPE_NULL, { .integer = 0 } };
-#define VAL "\0\0\0\0"
+	sdb_data_t v = { SDB_TYPE_INTEGER, { .integer = 4711 } };
+#define VAL "\0\0\0\1" "\0\0\0\0\0\0\x12\x67"
 	struct {
 		sdb_proto_attribute_t attr;
 		ssize_t expected_len;
 		char *expected;
 	} golden_data[] = {
 		{
-			{ 4711, SDB_HOST, NULL, "hostA", "k1", &v },
-			25, HOST_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "k1\0" VAL
+			{ 4711, SDB_HOST, NULL, "hostA", "k1", v },
+			33, HOST_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "k1\0" VAL
 		},
 		{
-			{ 4711, SDB_SERVICE, "hostA", "svc1", "k1", &v },
-			30, SVC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "svc1\0" "k1\0" VAL
+			{ 4711, SDB_SERVICE, "hostA", "svc1", "k1", v },
+			38, SVC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "svc1\0" "k1\0" VAL
 		},
 		{
-			{ 4711, SDB_METRIC, "hostA", "m1", "k1", &v },
-			28, METRIC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "m1\0" "k1\0" VAL
+			{ 4711, SDB_METRIC, "hostA", "m1", "k1", v },
+			36, METRIC_ATTR_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0" "m1\0" "k1\0" VAL
 		},
-		{ { 4711, SDB_HOST, NULL, NULL, "k1", &v }, -1, NULL },
-		{ { 4711, SDB_HOST, NULL, "hostA", NULL, &v }, -1, NULL },
-		{ { 4711, SDB_HOST, NULL, "hostA", "k1", NULL }, -1, NULL },
-		{ { 4711, SDB_SERVICE, NULL, "svc1", "k1", &v }, -1, NULL },
-		{ { 4711, SDB_METRIC, NULL, "m1", "k1", &v }, -1, NULL },
-		{ { 4711, 0, "hostA", "svc1", "k1", &v }, -1, NULL },
+		{ { 4711, SDB_HOST, NULL, NULL, "k1", v }, -1, NULL },
+		{ { 4711, SDB_HOST, NULL, "hostA", NULL, v }, -1, NULL },
+		{ { 4711, SDB_SERVICE, NULL, "svc1", "k1", v }, -1, NULL },
+		{ { 4711, SDB_METRIC, NULL, "m1", "k1", v }, -1, NULL },
+		{ { 4711, 0, "hostA", "svc1", "k1", v }, -1, NULL },
 	};
 
 	size_t i;
@@ -401,6 +466,11 @@ START_TEST(test_marshal_attribute)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		ssize_t len = sdb_proto_marshal_attribute(NULL, 0, &golden_data[i].attr);
 		char buf[len > 0 ? len : 1];
+
+		sdb_proto_attribute_t attr;
+		ssize_t check;
+		char v1[sdb_data_strlen(&golden_data[i].attr.value) + 1];
+		char v2[sdb_data_strlen(&golden_data[i].attr.value) + 1];
 
 		fail_unless(len == golden_data[i].expected_len,
 				"<%zu> sdb_proto_marshal_attribute(NULL, 0, %s) = %zi; expected: %zi",
@@ -424,6 +494,32 @@ START_TEST(test_marshal_attribute)
 					i, golden_data[i].attr.key, buf, golden_data[i].expected,
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
+
+		if (sdb_data_format(&golden_data[i].attr.value, v1, sizeof(v1), 0) < 0)
+			snprintf(v1, sizeof(v1), "<ERR>");
+
+		check = sdb_proto_unmarshal_attribute(buf, len, &attr);
+		fail_unless(check == len,
+				"<%zu> sdb_proto_unmarshal_attribute(buf<%s>) = %zi; expected: %zi",
+				i, golden_data[i].attr.key, check, len);
+
+		if (sdb_data_format(&attr.value, v2, sizeof(v2), 0) < 0)
+			snprintf(v2, sizeof(v2), "<ERR>");
+		fail_unless((attr.last_update == golden_data[i].attr.last_update)
+				&& (attr.parent_type == golden_data[i].attr.parent_type)
+				&& streq(attr.hostname, golden_data[i].attr.hostname)
+				&& streq(attr.parent, golden_data[i].attr.parent)
+				&& streq(attr.key, golden_data[i].attr.key)
+				&& (sdb_data_cmp(&attr.value, &golden_data[i].attr.value) == 0),
+				"<%zu> sdb_proto_unmarshal_attribute(buf<%s>) = "
+				"{ %"PRIsdbTIME", %s, %s, %s, %s, %s }; expected: "
+				"{ %"PRIsdbTIME", %s, %s, %s, %s, %s }", i, golden_data[i].attr.key,
+				attr.last_update, SDB_STORE_TYPE_TO_NAME(attr.parent_type),
+				attr.hostname, attr.parent, attr.key, v1,
+				golden_data[i].attr.last_update,
+				SDB_STORE_TYPE_TO_NAME(golden_data[i].attr.parent_type),
+				golden_data[i].attr.hostname, golden_data[i].attr.parent,
+				golden_data[i].attr.key, v2);
 	}
 }
 END_TEST
