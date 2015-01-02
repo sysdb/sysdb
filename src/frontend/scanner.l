@@ -237,7 +237,7 @@ time		([0-9]{1,2}:[0-9]{1,2}(:[0-9]{1,2}(\.[0-9]{1,9})?)?)
 		assert(tmp);
 		tmp = strchr(tmp + 1, ':');
 		if (! tmp)
-			strncat(time, ":00", sizeof(time));
+			strncat(time, ":00", sizeof(time) - strlen(time) - 1);
 
 		if (! strptime(time, "%H:%M:%S", &tm)) {
 			char errmsg[1024];
