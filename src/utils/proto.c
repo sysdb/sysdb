@@ -41,6 +41,7 @@
 #include <arpa/inet.h>
 #include <limits.h>
 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -49,6 +50,21 @@
 /*
  * private helper functions
  */
+
+/* swap endianess of the specified 64-bit value */
+static uint64_t
+endian_swap64(uint64_t v)
+{
+	return
+		  (((v & 0xff00000000000000LL) >> 56) & 0x00000000000000ffLL)
+		| (((v & 0x00ff000000000000LL) >> 40) & 0x000000000000ff00LL)
+		| (((v & 0x0000ff0000000000LL) >> 24) & 0x0000000000ff0000LL)
+		| (((v & 0x000000ff00000000LL) >> 8)  & 0x00000000ff000000LL)
+		| (((v & 0x00000000ff000000LL) << 8)  & 0x000000ff00000000LL)
+		| (((v & 0x0000000000ff0000LL) << 24) & 0x0000ff0000000000LL)
+		| (((v & 0x000000000000ff00LL) << 40) & 0x00ff000000000000LL)
+		| (((v & 0x00000000000000ffLL) << 56) & 0xff00000000000000LL);
+} /* endian_swap64 */
 
 /* In case there's not enough buffer space, the marshal functions have to
  * return the number of bytes that would have been written if enough space had
@@ -69,8 +85,7 @@ marshal_int64(char *buf, size_t buf_len, int64_t v)
 {
 	if (buf_len >= sizeof(v)) {
 #if __BYTE_ORDER != __BIG_ENDIAN
-		v = (((int64_t)htonl((int32_t)v)) << 32)
-			+ ((int64_t)htonl((int32_t)(v >> 32)));
+		v = endian_swap64(v);
 #endif
 		memcpy(buf, &v, sizeof(v));
 	}
@@ -78,19 +93,50 @@ marshal_int64(char *buf, size_t buf_len, int64_t v)
 } /* marshal_int64 */
 
 static ssize_t
+unmarshal_int64(const char *buf, size_t buf_len, int64_t *v)
+{
+	if (buf_len < sizeof(*v))
+		return -1;
+	if (v) {
+		memcpy(v, buf, sizeof(*v));
+#if __BYTE_ORDER != __BIG_ENDIAN
+		*v = endian_swap64(*v);
+#endif
+	}
+	return sizeof(*v);
+} /* unmarshal_int64 */
+
+static ssize_t
 marshal_double(char *buf, size_t buf_len, double v)
 {
 	uint64_t t = 0;
 	assert(sizeof(v) == sizeof(t));
-	memcpy(&t, &v, sizeof(v));
+	if (buf_len >= sizeof(t)) {
+		memcpy(&t, &v, sizeof(v));
 #if IEEE754_DOUBLE_BYTE_ORDER != IEEE754_DOUBLE_BIG_ENDIAN
-	t = (((int64_t)htonl((int32_t)t)) << 32)
-		+ ((int64_t)htonl((int32_t)(t >> 32)));
+		t = endian_swap64(t);
 #endif
-	if (buf_len >= sizeof(t))
 		memcpy(buf, &t, sizeof(t));
+	}
 	return sizeof(t);
 } /* marshal_double */
+
+static ssize_t
+unmarshal_double(const char *buf, size_t len, double *v)
+{
+	uint64_t t;
+	assert(sizeof(*v) == sizeof(t));
+	if (len < sizeof(*v))
+		return -1;
+	if (v) {
+		memcpy(&t, buf, sizeof(t));
+#if IEEE754_DOUBLE_BYTE_ORDER != IEEE754_DOUBLE_BIG_ENDIAN
+		t = endian_swap64(t);
+#endif
+		memcpy(v, &t, sizeof(t));
+	}
+	return sizeof(*v);
+} /* unmarshal_double */
 
 static ssize_t
 marshal_datetime(char *buf, size_t buf_len, sdb_time_t v)
@@ -99,15 +145,47 @@ marshal_datetime(char *buf, size_t buf_len, sdb_time_t v)
 } /* marshal_datetime */
 
 static ssize_t
+unmarshal_datetime(const char *buf, size_t len, sdb_time_t *v)
+{
+	return unmarshal_int64(buf, len, (int64_t *)v);
+} /* unmarshal_datetime */
+
+static ssize_t
 marshal_binary(char *buf, size_t buf_len, size_t len, const unsigned char *v)
 {
-	uint32_t tmp = htonl((uint32_t)len);
+	uint32_t tmp;
 	if (buf_len >= sizeof(tmp) + len) {
+		tmp = htonl((uint32_t)len);
 		memcpy(buf, &tmp, sizeof(tmp));
 		memcpy(buf + sizeof(tmp), v, len);
 	}
 	return sizeof(tmp) + len;
 } /* marshal_binary */
+
+static ssize_t
+unmarshal_binary(const char *buf, size_t len, size_t *v_len, unsigned char **v)
+{
+	uint32_t l;
+	ssize_t n;
+
+	if ((n = sdb_proto_unmarshal_int32(buf, len, &l)) < 0)
+		return -1;
+	buf += n; len -= n;
+	if (len < (size_t)l)
+		return -1;
+
+	if (v_len)
+		*v_len = (size_t)l;
+	if (v && (l > 0)) {
+		*v = malloc((size_t)l);
+		if (! *v)
+			return -1;
+		memcpy(*v, buf, (size_t)l);
+	}
+	else if (v)
+		*v = NULL;
+	return sizeof(l) + (ssize_t)l;
+} /* unmarshal_binary */
 
 static ssize_t
 marshal_string(char *buf, size_t buf_len, const char *v)
@@ -118,6 +196,25 @@ marshal_string(char *buf, size_t buf_len, const char *v)
 		memcpy(buf, v, len);
 	return len;
 } /* marshal_string */
+
+static ssize_t
+unmarshal_string(const char *buf, size_t len, char **v)
+{
+	size_t l = 0;
+
+	for (l = 0; l < len; ++l)
+		if (buf[l] == '\0')
+			break;
+	if ((! len) || (buf[l] != '\0'))
+		return -1;
+	if (v) {
+		*v = malloc(l + 1);
+		if (! *v)
+			return -1;
+		memcpy(*v, buf, l + 1);
+	}
+	return l + 1;
+} /* unmarshal_string */
 
 #define OBJ_HEADER_LEN (sizeof(uint32_t) + sizeof(sdb_time_t))
 static ssize_t
@@ -413,6 +510,142 @@ sdb_proto_unmarshal_int32(const char *buf, size_t buf_len, uint32_t *v)
 		*v = ntohl(n);
 	return sizeof(n);
 } /* sdb_proto_unmarshal_int32 */
+
+ssize_t
+sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum)
+{
+	sdb_data_t d = SDB_DATA_INIT;
+	ssize_t l = 0, n;
+	uint32_t tmp;
+	size_t i;
+
+	if ((n = sdb_proto_unmarshal_int32(buf, len, &tmp)) < 0)
+		return -1;
+	d.type = (int)tmp;
+	if (d.type == SDB_TYPE_NULL)
+		return sizeof(tmp);
+	buf += n; len -= n; l += n;
+
+/* Don't populate 'd' if 'datum' is NULL. */
+#define D(field) (datum ? &d.data.field : NULL)
+	if (d.type == SDB_TYPE_INTEGER)
+		n = unmarshal_int64(buf, len, D(integer));
+	else if (d.type == SDB_TYPE_DECIMAL)
+		n = unmarshal_double(buf, len, D(decimal));
+	else if (d.type == SDB_TYPE_STRING)
+		n = unmarshal_string(buf, len, D(string));
+	else if (d.type == SDB_TYPE_DATETIME)
+		n = unmarshal_datetime(buf, len, D(datetime));
+	else if (d.type == SDB_TYPE_BINARY)
+		n = unmarshal_binary(buf, len, D(binary.length), D(binary.datum));
+	else if (d.type == SDB_TYPE_REGEX) {
+		if (datum) {
+			char *str = NULL;
+			n = unmarshal_string(buf, len, &str);
+			if (sdb_data_parse(str, SDB_TYPE_REGEX, &d))
+				n = -1;
+			free(str);
+		}
+		else
+			n = unmarshal_string(buf, len, NULL);
+	}
+	else
+		n = 0;
+#undef D
+
+	if (n < 0)
+		return n;
+	else if (n > 0) {
+		if (datum)
+			*datum = d;
+		return l + n;
+	}
+
+	if (! (d.type & SDB_TYPE_ARRAY)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	/* arrays */
+	if ((n = sdb_proto_unmarshal_int32(buf, len, &tmp)) < 0)
+		return -1;
+	buf += n; len -= n; l += n;
+	d.data.array.length = (size_t)tmp;
+
+#define V(field) (datum ? &v[i]field : NULL)
+	if (datum)
+		d.data.array.values = calloc(d.data.array.length,
+				sdb_data_sizeof(d.type & 0xff));
+	for (i = 0; i < d.data.array.length; ++i) {
+		if ((d.type & 0xff) == SDB_TYPE_INTEGER) {
+			int64_t *v = d.data.array.values;
+			n = unmarshal_int64(buf, len, V());
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_DECIMAL) {
+			double *v = d.data.array.values;
+			n = unmarshal_double(buf, len, V());
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_STRING) {
+			char **v = d.data.array.values;
+			n = unmarshal_string(buf, len, V());
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_DATETIME) {
+			sdb_time_t *v = d.data.array.values;
+			n = unmarshal_datetime(buf, len, V());
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_BINARY) {
+			struct {
+				size_t length;
+				unsigned char *datum;
+			} *v = d.data.array.values;
+			n = unmarshal_binary(buf, len, V(.length), V(.datum));
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_REGEX) {
+			struct {
+				char *raw;
+				regex_t regex;
+			} *v = d.data.array.values;
+			if (datum) {
+				sdb_data_t t = SDB_DATA_INIT;
+				char *str = NULL;
+				n = unmarshal_string(buf, len, &str);
+				if (! sdb_data_parse(str, SDB_TYPE_REGEX, &t)) {
+					v[i].raw = t.data.re.raw;
+					v[i].regex = t.data.re.regex;
+				}
+				else
+					n = -1;
+				free(str);
+			}
+			else
+				n = unmarshal_string(buf, len, NULL);
+		}
+		else {
+			if (datum)
+				sdb_data_free_datum(&d);
+			errno = EINVAL;
+			return -1;
+		}
+
+		if (n < 0) {
+			if (datum)
+				sdb_data_free_datum(&d);
+			return -1;
+		}
+		if (len >= (size_t)n) {
+			buf += n;
+			len -= n;
+			l += n;
+		}
+		else
+			return -1;
+	}
+#undef V
+
+	if (datum)
+		*datum = d;
+	return l;
+} /* sdb_proto_unmarshal_data */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

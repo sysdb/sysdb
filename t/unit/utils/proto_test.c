@@ -144,32 +144,52 @@ START_TEST(test_marshal_data)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		ssize_t len = sdb_proto_marshal_data(NULL, 0, &golden_data[i].datum);
 		char buf[len > 0 ? len : 1];
-		char v[sdb_data_strlen(&golden_data[i].datum)];
+		char v1[sdb_data_strlen(&golden_data[i].datum)];
+		char v2[sdb_data_strlen(&golden_data[i].datum)];
 
-		if (sdb_data_format(&golden_data[i].datum, v, sizeof(v), 0) < 0)
-			snprintf(v, sizeof(v), "<ERR>");
+		sdb_data_t datum = SDB_DATA_INIT;
+		ssize_t check;
+
+		if (sdb_data_format(&golden_data[i].datum, v1, sizeof(v1), 0) < 0)
+			snprintf(v1, sizeof(v1), "<ERR>");
 
 		fail_unless(len == golden_data[i].expected_len,
-				"sdb_proto_marshal_data(NULL, 0, %s) = %zi; expected: %zi",
-				v, len, golden_data[i].expected_len);
+				"<%zu> sdb_proto_marshal_data(NULL, 0, %s) = %zi; expected: %zi",
+				i, v1, len, golden_data[i].expected_len);
 
 		if (len < 0)
 			continue;
 
 		len = sdb_proto_marshal_data(buf, sizeof(buf), &golden_data[i].datum);
 		fail_unless(len == golden_data[i].expected_len,
-				"sdb_proto_marshal_data(<buf>, %zu, %s) = %zi; expected: %zi",
-				sizeof(buf), v, len, golden_data[i].expected_len);
+				"<%zu> sdb_proto_marshal_data(<buf>, %zu, %s) = %zi; expected: %zi",
+				i, sizeof(buf), v1, len, golden_data[i].expected_len);
 		if (memcmp(buf, golden_data[i].expected, len) != 0) {
 			size_t pos;
 			for (pos = 0; pos < (size_t)len; ++pos)
 				if (buf[pos] != golden_data[i].expected[pos])
 					break;
-			fail("sdb_proto_marshal_data(%s) -> \"%s\"; expected: \"%s\" "
+			fail("<%zu> sdb_proto_marshal_data(%s) -> \"%s\"; expected: \"%s\" "
 					"(bytes %zu differ: '%x' != '%x')",
-					v, buf, golden_data[i].expected,
+					i, v1, buf, golden_data[i].expected,
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
+
+		check = sdb_proto_unmarshal_data(buf, len, &datum);
+		if (sdb_data_format(&datum, v2, sizeof(v2), 0) < 0)
+			snprintf(v2, sizeof(v2), "<ERR>");
+
+		if (sdb_data_isnull(&golden_data[i].datum))
+			fail_unless(sdb_data_isnull(&datum),
+					"<%zu> sdb_proto_unmarshal_data(buf<%s>) -> \"%s\"", i, v1, v2);
+		else
+			fail_unless(sdb_data_cmp(&golden_data[i].datum, &datum) == 0,
+					"<%zu> sdb_proto_unmarshal_data(buf<%s>) -> \"%s\"", i, v1, v2);
+		fail_unless(check == len,
+				"<%zu> sdb_proto_unmarshal_data(buf<%s>) = %zi; expected: %zi",
+				i, v1, check, len);
+
+		sdb_data_free_datum(&datum);
 	}
 }
 END_TEST

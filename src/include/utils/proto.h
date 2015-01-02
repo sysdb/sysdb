@@ -151,6 +151,19 @@ sdb_proto_unmarshal_header(const char *buf, size_t buf_len,
 ssize_t
 sdb_proto_unmarshal_int32(const char *buf, size_t buf_len, uint32_t *v);
 
+/*
+ * sdb_proto_unmarshal_data:
+ * Read and decode a datum from the specified string. The datum's data will be
+ * allocated dynamically if necessary and will have to be free'd using
+ * sdb_data_free_datum.
+ *
+ * Returns:
+ *  - the number of bytes read on success
+ *  - a negative value else
+ */
+ssize_t
+sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

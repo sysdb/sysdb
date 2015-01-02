@@ -50,6 +50,8 @@ pkgclientinclude_HEADERS = \
 noinst_LTLIBRARIES = libsysdbclient.la libsysdb.la
 
 libsysdbclient_la_SOURCES = \
+		core/data.c include/core/data.h \
+		core/time.c include/core/time.h \
 		client/client.c include/client/sysdb.h \
 		client/sock.c include/client/sock.h \
 		utils/error.c include/utils/error.h \
@@ -57,7 +59,7 @@ libsysdbclient_la_SOURCES = \
 		utils/strbuf.c include/utils/strbuf.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread
+libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread -lm
 libsysdbclient_la_LIBADD = $(LIBLTDL)
 
 # don't use strict CFLAGS for flex code
@@ -76,6 +78,7 @@ libsysdb_la_SOURCES = \
 		core/store_json.c \
 		core/store_lookup.c \
 		core/data.c include/core/data.h \
+		core/time.c include/core/time.h \
 		core/timeseries.c include/core/timeseries.h \
 		frontend/analyzer.c \
 		frontend/connection.c include/frontend/connection.h \
@@ -91,7 +94,6 @@ libsysdb_la_SOURCES = \
 		utils/os.c include/utils/os.h \
 		utils/proto.c include/utils/proto.h \
 		utils/strbuf.c include/utils/strbuf.h \
-		core/time.c include/core/time.h \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
@@ -123,7 +125,7 @@ sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
 		utils/os.c include/utils/os.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
 		$(AM_CFLAGS) @READLINE_CFLAGS@
-sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la @READLINE_LIBS@
+sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la @READLINE_LIBS@ -lm
 endif
 
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
