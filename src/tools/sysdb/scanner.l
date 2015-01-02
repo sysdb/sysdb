@@ -38,6 +38,7 @@
 
 #include "tools/sysdb/input.h"
 
+#include <ctype.h>
 #include <string.h>
 
 #ifdef YY_INPUT
