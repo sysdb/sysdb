@@ -134,6 +134,9 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 
 	if (callback(client, (size_t)column_count, data, user_data))
 		return -1;
+
+	for (i = 0; i < column_count; ++i)
+		sdb_data_free_datum(&data[i]);
 	return 0;
 } /* sdb_unixsock_client_process_one_line */
 

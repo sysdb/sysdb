@@ -2168,19 +2168,18 @@ START_TEST(test_parse)
 				golden_data[i].input, type);
 
 		if (type == SDB_TYPE_STRING)
-			fail_unless(golden_data[i].input == result.data.string,
-					"sdb_data_parse(%s, %d, <d>) modified input string",
+			fail_unless(golden_data[i].input != result.data.string,
+					"sdb_data_parse(%s, %d, <d>) copied input string",
 					golden_data[i].input, type);
 		if (type == SDB_TYPE_BINARY)
-			fail_unless(golden_data[i].input == (char *)result.data.binary.datum,
-					"sdb_data_parse(%s, %d, <d>) modified input string",
+			fail_unless(golden_data[i].input != (char *)result.data.binary.datum,
+					"sdb_data_parse(%s, %d, <d>) copied input string",
 					golden_data[i].input, type);
-		if (type == SDB_TYPE_REGEX) {
+		if (type == SDB_TYPE_REGEX)
 			fail_unless(golden_data[i].input != result.data.re.raw,
 					"sdb_data_parse(%s, %d, <d>) copied input string",
 					golden_data[i].input, type);
-			sdb_data_free_datum(&result);
-		}
+		sdb_data_free_datum(&result);
 	}
 }
 END_TEST

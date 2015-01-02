@@ -302,24 +302,16 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
  * character of the string is "0"), sedecimal (base 16, if the string includes
  * the "0x" prefix), or decimal. Decimal numbers may also be "infinity" or
  * "NaN" or may use a decimal exponent. Date-time values are expected to be
- * specified as (floating point) number of seconds since the epoch. For string
- * and binary data, the input string is passed to the datum. The function does
- * not allocate new memory for that purpose. Use sdb_data_copy() if you want
- * to do that. For regex data, the input string is copied to newly allocated
- * memory and also compiled to a regex. Use sdb_data_free_datum() to free the
- * dynamically allocated memory.
- *
- * The input string may be stored in 'data', that is, the function may be used
- * to do an inline cast from a string to any other type. It is the callers
- * responsibility to free the memory used by the string in case the target
- * type does not keep a reference to it.
+ * specified as (floating point) number of seconds since the epoch. New memory
+ * will be allocated as necessary and will have to be free'd using
+ * sdb_data_free_datum().
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_data_parse(char *str, int type, sdb_data_t *data);
+sdb_data_parse(const char *str, int type, sdb_data_t *data);
 
 /*
  * sdb_data_sizeof:

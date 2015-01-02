@@ -1042,11 +1042,16 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 } /* sdb_data_format */
 
 int
-sdb_data_parse(char *str, int type, sdb_data_t *data)
+sdb_data_parse(const char *str, int type, sdb_data_t *data)
 {
 	sdb_data_t tmp;
 
 	char *endptr = NULL;
+
+	if (! str) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	errno = 0;
 	if (type == SDB_TYPE_INTEGER) {
@@ -1056,16 +1061,20 @@ sdb_data_parse(char *str, int type, sdb_data_t *data)
 		tmp.data.decimal = strtod(str, &endptr);
 	}
 	else if (type == SDB_TYPE_STRING) {
-		tmp.data.string = str;
+		tmp.data.string = strdup(str);
+		if (! tmp.data.string)
+			return -1;
 	}
 	else if (type == SDB_TYPE_DATETIME) {
 		double datetime = strtod(str, &endptr);
 		tmp.data.datetime = DOUBLE_TO_SDB_TIME(datetime);
 	}
 	else if (type == SDB_TYPE_BINARY) {
-		/* we don't support any binary information containing 0-bytes */
+		/* we don't support any binary information containing 0-bytes here */
+		tmp.data.binary.datum = (unsigned char *)strdup(str);
+		if (! tmp.data.binary.datum)
+			return -1;
 		tmp.data.binary.length = strlen(str);
-		tmp.data.binary.datum = (unsigned char *)str;
 	}
 	else if (type == SDB_TYPE_REGEX) {
 		tmp.data.re.raw = strdup(str);
