@@ -166,6 +166,34 @@ free_array_values(sdb_data_t *datum)
 			v[i] = NULL;
 		}
 	}
+	else if (type == SDB_TYPE_BINARY) {
+		struct {
+			size_t length;
+			unsigned char *datum;
+		} *v = datum->data.array.values;
+		size_t i;
+
+		for (i = 0; i < datum->data.array.length; ++i) {
+			if (v[i].datum)
+				free(v[i].datum);
+			v[i].datum = NULL;
+		}
+	}
+	else if (type == SDB_TYPE_REGEX) {
+		struct {
+			char *raw;
+			regex_t regex;
+		} *v = datum->data.array.values;
+		size_t i;
+
+		for (i = 0; i < datum->data.array.length; ++i) {
+			if (v[i].raw) {
+				free(v[i].raw);
+				regfree(&v[i].regex);
+			}
+			v[i].raw = NULL;
+		}
+	}
 } /* free_array_values */
 
 /* compare two arrays element-by-element returning how the first non-equal
