@@ -206,9 +206,61 @@ array_cmp(const sdb_data_t *a1, const sdb_data_t *a2)
 				return diff;
 		}
 	}
+	else if (type == SDB_TYPE_DATETIME) {
+		sdb_time_t *v1 = a1->data.array.values;
+		sdb_time_t *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i)
+			if (v1[i] != v2[i])
+				return SDB_CMP(v1[i], v2[i]);
+	}
+	else if (type == SDB_TYPE_BINARY) {
+		struct {
+			size_t length;
+			unsigned char *datum;
+		} *v1 = a1->data.array.values;
+		struct {
+			size_t length;
+			unsigned char *datum;
+		} *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i) {
+			int diff;
+
+			/* on a common prefix, the shorter datum sorts less */
+			if (v1[i].length < v2[i].length) {
+				diff = memcmp(v1[i].datum, v2[i].datum, v1[i].length);
+				diff = diff ? diff : -1;
+			}
+			else if (v1[i].length > v2[i].length) {
+				diff = memcmp(v1[i].datum, v2[i].datum, v2[i].length);
+				diff = diff ? diff : 1;
+			}
+			else
+				diff = memcmp(v1[i].datum, v2[i].datum, v1[i].length);
+
+			if (diff)
+				return diff;
+		}
+	}
+	else if (type == SDB_TYPE_REGEX) {
+		struct {
+			char *raw;
+			regex_t regex;
+		} *v1 = a1->data.array.values;
+		struct {
+			char *raw;
+			regex_t regex;
+		} *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i) {
+			int diff = strcasecmp(v1[i].raw, v2[i].raw);
+			if (diff)
+				return diff;
+		}
+	}
 	else {
-		/* TODO */
-		errno = ENOTSUP;
+		errno = EINVAL;
 		/* but fall through to ensure stable sorting: */
 	}
 	return SDB_CMP(a1->data.array.length, a2->data.array.length);

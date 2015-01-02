@@ -225,10 +225,41 @@ END_TEST
 
 START_TEST(test_cmp)
 {
+	regex_t dummy_re;
 	int64_t int_values1[] = { 1, 2, 3 };
 	int64_t int_values2[] = { 1, 3, 2 };
+	double dec_values1[] = { 12.34, 47.11 };
+	double dec_values2[] = { 47.11, 12.34 };
 	char *string_values1[] = { "a", "b", "c" };
 	char *string_values2[] = { "a", "c", "b" };
+	sdb_time_t dt_values1[] = { 4711, 1234567890123456789L };
+	sdb_time_t dt_values2[] = { 1234567890123456789L, 4711 };
+	struct {
+		size_t length;
+		unsigned char *datum;
+	} bin_values1[] = {
+		{ 3, (unsigned char *)"\x1\x2\x3" },
+		{ 4, (unsigned char *)"\x42\x0\xa\x1b" },
+	};
+	struct {
+		size_t length;
+		unsigned char *datum;
+	} bin_values2[] = {
+		{ 4, (unsigned char *)"\x42\x0\xa\x1b" },
+		{ 3, (unsigned char *)"\x1\x2\x3" },
+	};
+	struct {
+		char *raw;
+		regex_t regex;
+	} re_values1[] = {
+		{ "dummy regex A", dummy_re },
+	};
+	struct {
+		char *raw;
+		regex_t regex;
+	} re_values2[] = {
+		{ "dummy regex B", dummy_re },
+	};
 
 	struct {
 		sdb_data_t d1;
@@ -460,6 +491,39 @@ START_TEST(test_cmp)
 			1,
 		},
 		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values1), dec_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values1), dec_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values1), dec_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values2), dec_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values2), dec_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dec_values1), dec_values1 } },
+			},
+			1,
+		},
+		{
 			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
 			{ SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } },
 			0,
@@ -510,6 +574,105 @@ START_TEST(test_cmp)
 			{
 				SDB_TYPE_ARRAY | SDB_TYPE_STRING,
 				{ .array = { SDB_STATIC_ARRAY_LEN(string_values1), string_values1 } },
+			},
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values1), dt_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values1), dt_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values1), dt_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values2), dt_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values2), dt_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_DATETIME,
+				{ .array = { SDB_STATIC_ARRAY_LEN(dt_values1), dt_values1 } },
+			},
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values1), bin_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values1), bin_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values1), bin_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values2), bin_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values2), bin_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BINARY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bin_values1), bin_values1 } },
+			},
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values1), re_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values1), re_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values1), re_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values2), re_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values2), re_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_REGEX,
+				{ .array = { SDB_STATIC_ARRAY_LEN(re_values1), re_values1 } },
 			},
 			1,
 		},
