@@ -107,7 +107,7 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 	for (i = 0; i < column_count; ++i) {
 		char *next;
 
-		if (! line) { /* this must no happen */
+		if (! line) { /* this must not happen */
 			sdb_log(SDB_LOG_ERR, "unixsock: Unexpected EOL while "
 					"parsing line (expected %i columns delimited by '%s'; "
 					"got %i): %s", column_count, delim,
@@ -125,9 +125,15 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 			++next;
 		}
 
-		if (sdb_data_parse(line,
-					types ? types[i] : SDB_TYPE_STRING, &data[i]))
-			return -1;
+		if (types && (types[i] != SDB_TYPE_STRING)) {
+			if (sdb_data_parse(line, types[i], &data[i]))
+				return -1;
+		}
+		else {
+			/* Avoid a copy in common cases */
+			data[i].type = SDB_TYPE_STRING;
+			data[i].data.string = line;
+		}
 
 		line = next;
 	}
@@ -136,7 +142,8 @@ sdb_unixsock_client_process_one_line(sdb_unixsock_client_t *client,
 		return -1;
 
 	for (i = 0; i < column_count; ++i)
-		sdb_data_free_datum(&data[i]);
+		if (types && (types[i] != SDB_TYPE_STRING))
+			sdb_data_free_datum(&data[i]);
 	return 0;
 } /* sdb_unixsock_client_process_one_line */
 
