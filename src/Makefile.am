@@ -59,7 +59,8 @@ libsysdbclient_la_SOURCES = \
 		utils/strbuf.c include/utils/strbuf.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread -lm
+libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 \
+		-pthread -lm -lrt
 libsysdbclient_la_LIBADD = $(LIBLTDL)
 
 # don't use strict CFLAGS for flex code
@@ -97,9 +98,10 @@ libsysdb_la_SOURCES = \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS)
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
-libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 -pthread -lm
+libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 \
+		-pthread -lm -lrt
 libsysdb_la_LIBADD = libsysdb_fe_parser.la \
-		$(LIBLTDL) -lrt liboconfig/liboconfig.la
+		$(LIBLTDL) liboconfig/liboconfig.la
 libsysdb_la_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
 
 if BUILD_WITH_LIBDBI
