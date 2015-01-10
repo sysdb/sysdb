@@ -47,6 +47,16 @@
 #include <string.h>
 
 static void
+ok_printer(sdb_strbuf_t *buf)
+{
+	const char *msg = sdb_strbuf_string(buf);
+	if (msg && *msg)
+		printf("%s\n", msg);
+	else
+		printf("OK\n");
+} /* ok_printer */
+
+static void
 log_printer(sdb_strbuf_t *buf)
 {
 	uint32_t prio = 0;
@@ -86,6 +96,7 @@ static struct {
 	int status;
 	void (*printer)(sdb_strbuf_t *);
 } response_printers[] = {
+	{ SDB_CONNECTION_OK,   ok_printer },
 	{ SDB_CONNECTION_LOG,  log_printer },
 	{ SDB_CONNECTION_DATA, data_printer },
 };
@@ -195,7 +206,8 @@ sdb_command_exec(sdb_input_t *input)
 			break;
 		}
 
-		if ((status == SDB_CONNECTION_DATA)
+		if ((status == SDB_CONNECTION_OK)
+				|| (status == SDB_CONNECTION_DATA)
 				|| (status == SDB_CONNECTION_ERROR))
 			break;
 	}
