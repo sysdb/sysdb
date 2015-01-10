@@ -325,6 +325,8 @@ command_handle(sdb_conn_t *conn)
 		status = sdb_fe_list(conn);
 	else if (conn->cmd == SDB_CONNECTION_LOOKUP)
 		status = sdb_fe_lookup(conn);
+	else if (conn->cmd == SDB_CONNECTION_STORE)
+		status = sdb_fe_store(conn);
 	else {
 		sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
 				conn->cmd);

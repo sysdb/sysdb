@@ -65,7 +65,11 @@ enum {
 	(((t) == SDB_HOST) ? "host" \
 		: ((t) == SDB_SERVICE) ? "service" \
 		: ((t) == SDB_METRIC) ? "metric" \
-		: ((t) == SDB_ATTRIBUTE) ? "attribute" : "unknown")
+		: ((t) == SDB_ATTRIBUTE) ? "attribute" \
+		: ((t) == (SDB_ATTRIBUTE | SDB_HOST)) ? "host attribute" \
+		: ((t) == (SDB_ATTRIBUTE | SDB_SERVICE)) ? "service attribute" \
+		: ((t) == (SDB_ATTRIBUTE | SDB_METRIC)) ? "metric attribute" \
+		: "unknown")
 
 #define SDB_FIELD_TO_NAME(f) \
 	(((f) == SDB_FIELD_NAME) ? "name" \

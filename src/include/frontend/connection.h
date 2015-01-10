@@ -32,6 +32,7 @@
 #include "core/store.h"
 #include "utils/llist.h"
 #include "utils/strbuf.h"
+#include "utils/proto.h"
 
 #include <inttypes.h>
 
@@ -172,10 +173,10 @@ sdb_fe_session_start(sdb_conn_t *conn);
  */
 
 /*
- * sdb_fe_query, sdb_fe_fetch, sdb_fe_list, sdb_fe_lookup:
+ * sdb_fe_query, sdb_fe_fetch, sdb_fe_list, sdb_fe_lookup, sdb_fe_store:
  * Handle the SDB_CONNECTION_QUERY, SDB_CONNECTION_FETCH, SDB_CONNECTION_LIST,
- * and SDB_CONNECTION_LOOKUP commands respectively. It is expected that the
- * current command has been initialized already.
+ * SDB_CONNECTION_LOOKUP, and SDB_CONNECTION_STORE commands respectively. It
+ * is expected that the current command has been initialized already.
  *
  * Returns:
  *  - 0 on success
@@ -189,6 +190,8 @@ int
 sdb_fe_list(sdb_conn_t *conn);
 int
 sdb_fe_lookup(sdb_conn_t *conn);
+int
+sdb_fe_store(sdb_conn_t *conn);
 
 /*
  * sdb_fe_exec_fetch:
@@ -246,6 +249,24 @@ int
 sdb_fe_exec_timeseries(sdb_conn_t *conn,
 		const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts);
+
+/*
+ * sdb_fe_store_host, sdb_fe_store_service, sdb_fe_store_metric,
+ * sdb_fe_store_attribute:
+ * Execute the 'STORE' command for the respective object type.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_fe_store_host(sdb_conn_t *conn, const sdb_proto_host_t *host);
+int
+sdb_fe_store_service(sdb_conn_t *conn, const sdb_proto_service_t *svc);
+int
+sdb_fe_store_metric(sdb_conn_t *conn, const sdb_proto_metric_t *metric);
+int
+sdb_fe_store_attribute(sdb_conn_t *conn, const sdb_proto_attribute_t *attr);
 
 #ifdef __cplusplus
 } /* extern "C" */

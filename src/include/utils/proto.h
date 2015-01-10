@@ -46,12 +46,14 @@ typedef struct {
 	sdb_time_t last_update;
 	const char *name;
 } sdb_proto_host_t;
+#define SDB_PROTO_HOST_INIT { 0, NULL }
 
 typedef struct {
 	sdb_time_t last_update;
 	const char *hostname;
 	const char *name;
 } sdb_proto_service_t;
+#define SDB_PROTO_SERVICE_INIT { 0, NULL, NULL }
 
 typedef struct {
 	sdb_time_t last_update;
@@ -60,6 +62,7 @@ typedef struct {
 	const char *store_type; /* optional */
 	const char *store_id;   /* optional */
 } sdb_proto_metric_t;
+#define SDB_PROTO_METRIC_INIT { 0, NULL, NULL, NULL, NULL }
 
 typedef struct {
 	sdb_time_t last_update;
@@ -69,6 +72,7 @@ typedef struct {
 	const char *key;
 	sdb_data_t value;
 } sdb_proto_attribute_t;
+#define SDB_PROTO_ATTRIBUTE_INIT { 0, 0, NULL, NULL, NULL, SDB_DATA_INIT }
 
 /*
  * sdb_proto_marshal:
