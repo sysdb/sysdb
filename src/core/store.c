@@ -681,8 +681,13 @@ sdb_store_metric(const char *hostname, const char *name,
 
 	if ((! hostname) || (! name))
 		return -1;
-	if (store && ((! store->type) || (! store->id)))
-		return -1;
+
+	if (store) {
+		if ((store->type != NULL) != (store->id != NULL))
+			return -1;
+		else if (! store->type)
+			store = NULL;
+	}
 
 	pthread_rwlock_wrlock(&host_lock);
 	host = lookup_host(hostname, /* canonicalize = */ 1);
