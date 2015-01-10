@@ -68,14 +68,15 @@ typedef struct {
 	int   type;
 
 	int sock_fd;
+	int (*accept)(sdb_conn_t *);
 } listener_t;
 
 typedef struct {
 	int type;
 	const char *prefix;
 
-	int (*opener)(listener_t *);
-	void (*closer)(listener_t *);
+	int (*open)(listener_t *);
+	void (*close)(listener_t *);
 } fe_listener_impl_t;
 
 struct sdb_fe_socket {
@@ -200,7 +201,7 @@ listener_listen(listener_t *listener)
 
 	/* try to reopen */
 	if (listener->sock_fd < 0)
-		if (listener_impls[listener->type].opener(listener))
+		if (listener_impls[listener->type].open(listener))
 			return -1;
 	assert(listener->sock_fd >= 0);
 
@@ -218,8 +219,8 @@ listener_close(listener_t *listener)
 {
 	assert(listener);
 
-	if (listener_impls[listener->type].closer)
-		listener_impls[listener->type].closer(listener);
+	if (listener_impls[listener->type].close)
+		listener_impls[listener->type].close(listener);
 
 	if (listener->sock_fd >= 0)
 		close(listener->sock_fd);
@@ -299,8 +300,9 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 		return NULL;
 	}
 	listener->type = type;
+	listener->accept = NULL;
 
-	if (listener_impls[type].opener(listener)) {
+	if (listener_impls[type].open(listener)) {
 		/* prints error */
 		listener_destroy(listener);
 		return NULL;
@@ -395,6 +397,12 @@ connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 	obj = SDB_OBJ(sdb_connection_accept(listener->sock_fd));
 	if (! obj)
 		return -1;
+
+	if (listener->accept && listener->accept(CONN(obj))) {
+		/* accept() is expected to log an error */
+		sdb_object_deref(obj);
+		return -1;
+	}
 
 	status = sdb_llist_append(sock->open_connections, obj);
 	if (status)

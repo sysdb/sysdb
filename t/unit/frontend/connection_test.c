@@ -69,6 +69,18 @@ mock_conn_destroy(sdb_conn_t *conn)
 	free(conn);
 } /* mock_conn_destroy */
 
+static ssize_t
+mock_conn_read(sdb_conn_t *conn, size_t len)
+{
+       return sdb_strbuf_read(conn->buf, conn->fd, len);
+} /* conn_read */
+
+static ssize_t
+mock_conn_write(sdb_conn_t *conn, const void *buf, size_t len)
+{
+       return sdb_write(conn->fd, len, buf);
+} /* conn_write */
+
 static sdb_conn_t *
 mock_conn_create(void)
 {
@@ -101,6 +113,9 @@ mock_conn_create(void)
 	}
 
 	unlink(tmp_file);
+
+	conn->read = mock_conn_read;
+	conn->write = mock_conn_write;
 
 	conn->username = strdup(username);
 	assert(conn->username);

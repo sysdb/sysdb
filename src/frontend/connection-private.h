@@ -58,6 +58,12 @@ struct sdb_conn {
 	struct sockaddr_storage client_addr;
 	socklen_t client_addr_len;
 
+	/* connection handling */
+	ssize_t (*read)(sdb_conn_t *, size_t);
+	ssize_t (*write)(sdb_conn_t *, const void *, size_t);
+	int (*finish)(sdb_conn_t *);
+	void *session;
+
 	/* read buffer */
 	sdb_strbuf_t *buf;
 

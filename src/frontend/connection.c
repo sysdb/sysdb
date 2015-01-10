@@ -107,6 +107,18 @@ peer(int sockfd)
 	return strdup(result->pw_name);
 } /* peer */
 
+static ssize_t
+conn_read(sdb_conn_t *conn, size_t len)
+{
+	return sdb_strbuf_read(conn->buf, conn->fd, len);
+} /* conn_read */
+
+static ssize_t
+conn_write(sdb_conn_t *conn, const void *buf, size_t len)
+{
+	return sdb_write(conn->fd, len, buf);
+} /* conn_write */
+
 static int
 connection_init(sdb_object_t *obj, va_list ap)
 {
@@ -143,6 +155,12 @@ connection_init(sdb_object_t *obj, va_list ap)
 					buf, sizeof(buf)));
 		return -1;
 	}
+
+	/* defaults */
+	conn->read = conn_read;
+	conn->write = conn_write;
+	conn->finish = NULL;
+	conn->session = NULL;
 
 	if (conn->client_addr.ss_family != AF_UNIX) {
 		sdb_log(SDB_LOG_ERR, "frontend: Accepted connection using "
@@ -192,6 +210,10 @@ connection_destroy(sdb_object_t *obj)
 	conn = CONN(obj);
 
 	conn->ready = 0;
+
+	if (conn->finish)
+		conn->finish(conn);
+	conn->finish = NULL;
 
 	if (conn->buf) {
 		len = sdb_strbuf_len(conn->buf);
@@ -400,7 +422,7 @@ connection_read(sdb_conn_t *conn)
 		ssize_t status;
 
 		errno = 0;
-		status = sdb_strbuf_read(conn->buf, conn->fd, 1024);
+		status = conn->read(conn, 1024);
 		if (status < 0) {
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 				break;
@@ -458,6 +480,10 @@ sdb_connection_close(sdb_conn_t *conn)
 	if (! conn)
 		return;
 
+	if (conn->finish)
+		conn->finish(conn);
+	conn->finish = NULL;
+
 	/* close the connection even if someone else still references it */
 	if (conn->fd >= 0)
 		close(conn->fd);
@@ -510,7 +536,7 @@ sdb_connection_send(sdb_conn_t *conn, uint32_t code,
 	if (sdb_proto_marshal(buf, sizeof(buf), code, msg_len, msg) < 0)
 		return -1;
 
-	status = sdb_write(conn->fd, sizeof(buf), buf);
+	status = conn->write(conn, buf, sizeof(buf));
 	if (status < 0) {
 		char errbuf[1024];
 
