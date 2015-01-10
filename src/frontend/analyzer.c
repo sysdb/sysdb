@@ -322,10 +322,20 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 			filter = CONN_LOOKUP(node)->filter->matcher;
 		context = CONN_LOOKUP(node)->type;
 	}
-	else if (node->cmd == SDB_CONNECTION_TIMESERIES)
+	else if ((node->cmd == SDB_CONNECTION_STORE_HOST)
+			|| (node->cmd == SDB_CONNECTION_STORE_SERVICE)
+			|| (node->cmd == SDB_CONNECTION_STORE_METRIC)
+			|| (node->cmd == SDB_CONNECTION_STORE_ATTRIBUTE)) {
 		return 0;
-	else
+	}
+	else if (node->cmd == SDB_CONNECTION_TIMESERIES) {
+		return 0;
+	}
+	else {
+		sdb_strbuf_sprintf(errbuf,
+				"Don't know how to analyze command %#x", node->cmd);
 		return -1;
+	}
 
 	if (analyze_matcher(context, m, errbuf))
 		status = -1;

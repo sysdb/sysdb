@@ -59,6 +59,7 @@ static struct {
 	{ "FILTER",      FILTER },
 	{ "IN",          IN },
 	{ "IS",          IS },
+	{ "LAST",        LAST },
 	{ "LIST",        LIST },
 	{ "LOOKUP",      LOOKUP },
 	{ "MATCHING",    MATCHING },
@@ -66,7 +67,9 @@ static struct {
 	{ "NULL",        NULL_T },
 	{ "OR",          OR },
 	{ "START",       START },
+	{ "STORE",       STORE },
 	{ "TIMESERIES",  TIMESERIES },
+	{ "UPDATE",      UPDATE },
 
 	/* object types */
 	{ "host",        HOST_T },

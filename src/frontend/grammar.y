@@ -104,6 +104,8 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 
 	sdb_store_matcher_t *m;
 	sdb_store_expr_t *expr;
+
+	sdb_metric_store_t metric_store;
 }
 
 %start statements
@@ -119,12 +121,14 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 %token ATTRIBUTE_T ATTRIBUTES_T
 %token NAME_T LAST_UPDATE_T AGE_T INTERVAL_T BACKEND_T
 
+%token LAST UPDATE
+
 %token START END
 
 /* NULL token */
 %token NULL_T
 
-%token FETCH LIST LOOKUP TIMESERIES
+%token FETCH LIST LOOKUP STORE TIMESERIES
 
 %token <str> IDENTIFIER STRING
 
@@ -153,6 +157,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 	fetch_statement
 	list_statement
 	lookup_statement
+	store_statement
 	timeseries_statement
 	matching_clause
 	filter_clause
@@ -175,6 +180,9 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 
 %type <datetime> datetime
 	start_clause end_clause
+	last_update_clause
+
+%type <metric_store> metric_store_clause
 
 %destructor { free($$); } <str>
 %destructor { sdb_object_deref(SDB_OBJ($$)); } <node> <m> <expr>
@@ -265,6 +273,8 @@ statement:
 	|
 	lookup_statement
 	|
+	store_statement
+	|
 	timeseries_statement
 	|
 	/* empty */
@@ -344,6 +354,95 @@ filter_clause:
 	FILTER condition { $$ = $2; }
 	|
 	/* empty */ { $$ = NULL; }
+
+/*
+ * STORE <type> <name>|<host>.<name> [LAST UPDATE <datetime>];
+ * STORE METRIC <host>.<name> STORE <type> <id> [LAST UPDATE <datetime>];
+ * STORE <type> ATTRIBUTE <parent>.<key> <datum> [LAST UPDATE <datetime>];
+ *
+ * Store or update an object in the database.
+ */
+store_statement:
+	STORE HOST_T STRING last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_host_t, conn_store_host_destroy));
+			CONN_STORE_HOST($$)->name = $3;
+			CONN_STORE_HOST($$)->last_update = $4;
+			$$->cmd = SDB_CONNECTION_STORE_HOST;
+		}
+	|
+	STORE SERVICE_T STRING '.' STRING last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_svc_t, conn_store_svc_destroy));
+			CONN_STORE_SVC($$)->hostname = $3;
+			CONN_STORE_SVC($$)->name = $5;
+			CONN_STORE_SVC($$)->last_update = $6;
+			$$->cmd = SDB_CONNECTION_STORE_SERVICE;
+		}
+	|
+	STORE METRIC_T STRING '.' STRING metric_store_clause last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_metric_t, conn_store_metric_destroy));
+			CONN_STORE_METRIC($$)->hostname = $3;
+			CONN_STORE_METRIC($$)->name = $5;
+			CONN_STORE_METRIC($$)->store_type = $6.type;
+			CONN_STORE_METRIC($$)->store_id = $6.id;
+			CONN_STORE_METRIC($$)->last_update = $7;
+			$$->cmd = SDB_CONNECTION_STORE_METRIC;
+		}
+	|
+	STORE HOST_T ATTRIBUTE_T STRING '.' STRING data last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_attr_t, conn_store_attr_destroy));
+			CONN_STORE_ATTR($$)->parent_type = SDB_HOST;
+			CONN_STORE_ATTR($$)->hostname = NULL;
+			CONN_STORE_ATTR($$)->parent = $4;
+			CONN_STORE_ATTR($$)->key = $6;
+			CONN_STORE_ATTR($$)->value = $7;
+			CONN_STORE_ATTR($$)->last_update = $8;
+			$$->cmd = SDB_CONNECTION_STORE_ATTRIBUTE;
+		}
+	|
+	STORE SERVICE_T ATTRIBUTE_T STRING '.' STRING '.' STRING data last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_attr_t, conn_store_attr_destroy));
+			CONN_STORE_ATTR($$)->parent_type = SDB_SERVICE;
+			CONN_STORE_ATTR($$)->hostname = $4;
+			CONN_STORE_ATTR($$)->parent = $6;
+			CONN_STORE_ATTR($$)->key = $8;
+			CONN_STORE_ATTR($$)->value = $9;
+			CONN_STORE_ATTR($$)->last_update = $10;
+			$$->cmd = SDB_CONNECTION_STORE_ATTRIBUTE;
+		}
+	|
+	STORE METRIC_T ATTRIBUTE_T STRING '.' STRING '.' STRING data last_update_clause
+		{
+			$$ = SDB_CONN_NODE(sdb_object_create_dT(/* name = */ NULL,
+						conn_store_attr_t, conn_store_attr_destroy));
+			CONN_STORE_ATTR($$)->parent_type = SDB_METRIC;
+			CONN_STORE_ATTR($$)->hostname = $4;
+			CONN_STORE_ATTR($$)->parent = $6;
+			CONN_STORE_ATTR($$)->key = $8;
+			CONN_STORE_ATTR($$)->value = $9;
+			CONN_STORE_ATTR($$)->last_update = $10;
+			$$->cmd = SDB_CONNECTION_STORE_ATTRIBUTE;
+		}
+	;
+
+last_update_clause:
+	LAST UPDATE datetime { $$ = $3; }
+	|
+	/* empty */ { $$ = sdb_gettime(); }
+
+metric_store_clause:
+	STORE STRING STRING { $$.type = $2; $$.id = $3; }
+	|
+	/* empty */ { $$.type = $$.id = NULL; }
 
 /*
  * TIMESERIES <host>.<metric> [START <datetime>] [END <datetime>];

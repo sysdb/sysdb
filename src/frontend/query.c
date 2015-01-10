@@ -250,6 +250,36 @@ sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
 				filter = CONN_LOOKUP(node)->filter->matcher;
 			return sdb_fe_exec_lookup(conn,
 					CONN_LOOKUP(node)->type, m, filter);
+		case SDB_CONNECTION_STORE_HOST:
+		{
+			conn_store_host_t *n = CONN_STORE_HOST(node);
+			sdb_proto_host_t host = { n->last_update, n->name };
+			return sdb_fe_store_host(conn, &host);
+		}
+		case SDB_CONNECTION_STORE_SERVICE:
+		{
+			conn_store_svc_t *n = CONN_STORE_SVC(node);
+			sdb_proto_service_t svc = { n->last_update, n->hostname, n->name };
+			return sdb_fe_store_service(conn, &svc);
+		}
+		case SDB_CONNECTION_STORE_METRIC:
+		{
+			conn_store_metric_t *n = CONN_STORE_METRIC(node);
+			sdb_proto_metric_t metric = {
+				n->last_update, n->hostname, n->name,
+				n->store_type, n->store_id
+			};
+			return sdb_fe_store_metric(conn, &metric);
+		}
+		case SDB_CONNECTION_STORE_ATTRIBUTE:
+		{
+			conn_store_attr_t *n = CONN_STORE_ATTR(node);
+			sdb_proto_attribute_t attr = {
+				n->last_update, n->parent_type, n->hostname, n->parent,
+				n->key, n->value
+			};
+			return sdb_fe_store_attribute(conn, &attr);
+		}
 		case SDB_CONNECTION_TIMESERIES:
 			return sdb_fe_exec_timeseries(conn,
 					CONN_TS(node)->hostname, CONN_TS(node)->metric,

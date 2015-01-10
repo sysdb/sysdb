@@ -119,6 +119,42 @@ typedef struct {
 
 typedef struct {
 	sdb_conn_node_t super;
+	char *name;
+	sdb_time_t last_update;
+} conn_store_host_t;
+#define CONN_STORE_HOST(obj) ((conn_store_host_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
+	char *hostname;
+	char *name;
+	sdb_time_t last_update;
+} conn_store_svc_t;
+#define CONN_STORE_SVC(obj) ((conn_store_svc_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
+	char *hostname;
+	char *name;
+	char *store_type; /* optional */
+	char *store_id;   /* optional */
+	sdb_time_t last_update;
+} conn_store_metric_t;
+#define CONN_STORE_METRIC(obj) ((conn_store_metric_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
+	int parent_type;
+	char *hostname; /* optional */
+	char *parent;
+	char *key;
+	sdb_data_t value;
+	sdb_time_t last_update;
+} conn_store_attr_t;
+#define CONN_STORE_ATTR(obj) ((conn_store_attr_t *)(obj))
+
+typedef struct {
+	sdb_conn_node_t super;
 	char *hostname;
 	char *metric;
 	sdb_timeseries_opts_t opts;
@@ -163,6 +199,61 @@ conn_lookup_destroy(sdb_object_t *obj)
 	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->matcher));
 	sdb_object_deref(SDB_OBJ(CONN_LOOKUP(obj)->filter));
 } /* conn_lookup_destroy */
+
+static void __attribute__((unused))
+conn_store_host_destroy(sdb_object_t *obj)
+{
+	conn_store_host_t *host = CONN_STORE_HOST(obj);
+	if (host->name)
+		free((void *)host->name);
+	host->name = NULL;
+} /* conn_store_host_destroy */
+
+static void __attribute__((unused))
+conn_store_svc_destroy(sdb_object_t *obj)
+{
+	conn_store_svc_t *svc = CONN_STORE_SVC(obj);
+	if (svc->hostname)
+		free((void *)svc->hostname);
+	svc->hostname = NULL;
+	if (svc->name)
+		free((void *)svc->name);
+	svc->name = NULL;
+} /* conn_store_svc_destroy */
+
+static void __attribute__((unused))
+conn_store_metric_destroy(sdb_object_t *obj)
+{
+	conn_store_metric_t *metric = CONN_STORE_METRIC(obj);
+	if (metric->hostname)
+		free((void *)metric->hostname);
+	metric->hostname = NULL;
+	if (metric->name)
+		free((void *)metric->name);
+	metric->name = NULL;
+	if (metric->store_type)
+		free((void *)metric->store_type);
+	metric->store_type = NULL;
+	if (metric->store_id)
+		free((void *)metric->store_id);
+	metric->store_id = NULL;
+} /* conn_store_metric_destroy */
+
+static void __attribute__((unused))
+conn_store_attr_destroy(sdb_object_t *obj)
+{
+	conn_store_attr_t *attr = CONN_STORE_ATTR(obj);
+	if (attr->hostname)
+		free((void *)attr->hostname);
+	attr->hostname = NULL;
+	if (attr->parent)
+		free((void *)attr->parent);
+	attr->parent = NULL;
+	if (attr->key)
+		free((void *)attr->key);
+	attr->key = NULL;
+	sdb_data_free_datum(&attr->value);
+} /* conn_store_attr_destroy */
 
 static void __attribute__((unused))
 conn_ts_destroy(sdb_object_t *obj)

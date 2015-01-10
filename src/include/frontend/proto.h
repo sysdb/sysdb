@@ -277,6 +277,12 @@ typedef enum {
 	 */
 	SDB_CONNECTION_STORE = 50,
 
+	/* Only used internally: */
+	SDB_CONNECTION_STORE_HOST,
+	SDB_CONNECTION_STORE_SERVICE,
+	SDB_CONNECTION_STORE_METRIC,
+	SDB_CONNECTION_STORE_ATTRIBUTE,
+
 	/*
 	 * Command subcomponents.
 	 */
