@@ -59,11 +59,26 @@ struct sdb_client {
 	char *address;
 	int   fd;
 	bool  eof;
+
+	ssize_t (*read)(sdb_client_t *, sdb_strbuf_t *, size_t);
+	ssize_t (*write)(sdb_client_t *, const void *, size_t);
 };
 
 /*
  * private helper functions
  */
+
+static ssize_t
+client_read(sdb_client_t *client, sdb_strbuf_t *buf, size_t n)
+{
+	return sdb_strbuf_read(buf, client->fd, n);
+} /* client_read */
+
+static ssize_t
+client_write(sdb_client_t *client, const void *buf, size_t n)
+{
+	return sdb_write(client->fd, n, buf);
+} /* client_write */
 
 static int
 connect_unixsock(sdb_client_t *client, const char *address)
@@ -112,6 +127,9 @@ sdb_client_create(const char *address)
 	memset(client, 0, sizeof(*client));
 	client->fd = -1;
 	client->eof = 1;
+
+	client->read = client_read;
+	client->write = client_write;
 
 	client->address = strdup(address);
 	if (! client->address) {
@@ -257,7 +275,7 @@ sdb_client_send(sdb_client_t *client,
 	if (sdb_proto_marshal(buf, sizeof(buf), cmd, msg_len, msg) < 0)
 		return -1;
 
-	return sdb_write(client->fd, sizeof(buf), buf);
+	return client->write(client, buf, sizeof(buf));
 } /* sdb_client_send */
 
 ssize_t
@@ -287,7 +305,7 @@ sdb_client_recv(sdb_client_t *client,
 			return -1;
 
 		errno = 0;
-		status = sdb_strbuf_read(buf, client->fd, req);
+		status = client->read(client, buf, req);
 		if (status < 0) {
 			if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 				continue;
