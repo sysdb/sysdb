@@ -35,6 +35,7 @@
 #include <errno.h>
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 
 #include <dirent.h>
@@ -45,6 +46,7 @@
 #include <unistd.h>
 
 #include <libgen.h>
+#include <netdb.h>
 #include <pwd.h>
 
 /*
@@ -247,6 +249,63 @@ sdb_write(int fd, size_t msg_len, const void *msg)
 
 	return (ssize_t)msg_len;
 } /* sdb_write */
+
+int
+sdb_resolve(int network, const char *address, struct addrinfo **res)
+{
+	struct addrinfo ai_hints;
+	const char *host;
+	char *port;
+	int status;
+
+	if (! res) {
+		errno = EINVAL;
+		return EAI_SYSTEM;
+	}
+
+	if (address) {
+		host = address;
+		port = strchr(host, ':');
+		if (port) {
+			*port = '\0';
+			++port;
+		}
+		if (! *host)
+			host = NULL;
+	}
+	else {
+		host = NULL;
+		port = NULL;
+	}
+
+	memset(&ai_hints, 0, sizeof(ai_hints));
+	ai_hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
+	if (network & SDB_NET_V4)
+		ai_hints.ai_family = AF_INET;
+	else if (network & SDB_NET_V6)
+		ai_hints.ai_family = AF_INET6;
+	else
+		ai_hints.ai_family = AF_UNSPEC;
+	if ((network & SDB_NET_IP) == SDB_NET_IP) {
+		ai_hints.ai_socktype = 0;
+		ai_hints.ai_protocol = 0;
+	}
+	else if (network & SDB_NET_TCP) {
+		ai_hints.ai_socktype = SOCK_STREAM;
+		ai_hints.ai_protocol = IPPROTO_TCP;
+	}
+	else if (network & SDB_NET_UDP) {
+		ai_hints.ai_socktype = SOCK_DGRAM;
+		ai_hints.ai_socktype = IPPROTO_UDP;
+	}
+
+	status = getaddrinfo(host, port, &ai_hints, res);
+	if (port) {
+		--port;
+		*port = ':';
+	}
+	return status;
+} /* sdb_resolve */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

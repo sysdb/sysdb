@@ -29,6 +29,7 @@
 #define SDB_UTILS_OS_H 1
 
 #include <sys/types.h>
+#include <netdb.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,6 +100,30 @@ sdb_select(int fd, int type);
  */
 ssize_t
 sdb_write(int fd, size_t msg_len, const void *msg);
+
+enum {
+	SDB_NET_TCP = 1 << 0,
+	SDB_NET_UDP = 1 << 1,
+	SDB_NET_IP  = SDB_NET_TCP | SDB_NET_UDP,
+
+	SDB_NET_V4  = 1 << 2,
+	SDB_NET_V6  = 1 << 3,
+};
+
+/*
+ * sdb_resolve:
+ * Resolve the specified address on the specified network which may be a
+ * bitwise OR of the SDB_NET constants. The network addresses are returned in
+ * the list pointed to by 'res'. The list is allocated dynamically and has to
+ * be freed using freeaddrinfo().
+ *
+ * Returns:
+ *  - zero on success
+ *  - an error code else; use gai_strerror() to translate the error into a
+ *    human readable string
+ */
+int
+sdb_resolve(int network, const char *address, struct addrinfo **res);
 
 #ifdef __cplusplus
 } /* extern "C" */
