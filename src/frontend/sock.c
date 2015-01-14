@@ -65,6 +65,7 @@
 
 #include <pwd.h>
 
+#include <netdb.h>
 #include <libgen.h>
 #include <pthread.h>
 
@@ -217,6 +218,71 @@ close_unixsock(listener_t *listener)
 	unlink(listener->address);
 } /* close_unixsock */
 
+static int
+open_tcp(listener_t *listener)
+{
+	struct addrinfo *ai, *ai_list = NULL;
+	int status;
+
+	assert(listener);
+
+	if ((status = sdb_resolve(SDB_NET_TCP, listener->address, &ai_list))) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to resolve '%s': %s",
+				listener->address, gai_strerror(status));
+		return -1;
+	}
+
+	for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
+		char errbuf[1024];
+		int reuse = 1;
+
+		listener->sock_fd = socket(ai->ai_family,
+				ai->ai_socktype, ai->ai_protocol);
+		if (listener->sock_fd < 0) {
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to open socket for %s: %s",
+					listener->address,
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			continue;
+		}
+
+		if (setsockopt(listener->sock_fd, SOL_SOCKET, SO_REUSEADDR,
+					&reuse, sizeof(reuse)) < 0) {
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to set socket option: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			close(listener->sock_fd);
+			listener->sock_fd = -1;
+			continue;
+		}
+
+		if (bind(listener->sock_fd, ai->ai_addr, ai->ai_addrlen) < 0) {
+			char host[1024], port[32];
+			getnameinfo(ai->ai_addr, ai->ai_addrlen, host, sizeof(host),
+					port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to bind to %s:%s: %s",
+					host, port, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			close(listener->sock_fd);
+			listener->sock_fd = -1;
+			continue;
+		}
+		break;
+	}
+	freeaddrinfo(ai_list);
+
+	if (listener->sock_fd < 0)
+		return -1;
+	return 0;
+} /* open_tcp */
+
+static void
+close_tcp(listener_t *listener)
+{
+	assert(listener);
+
+	if (listener->sock_fd >= 0)
+		close(listener->sock_fd);
+	listener->sock_fd = -1;
+} /* close_tcp */
+
 /*
  * private variables
  */
@@ -224,9 +290,11 @@ close_unixsock(listener_t *listener)
 /* the enum has to be sorted the same as the implementations array
  * to ensure that the type may be used as index into the array */
 enum {
-	LISTENER_UNIXSOCK = 0, /* this is the default */
+	LISTENER_TCP = 0, /* this is the default */
+	LISTENER_UNIXSOCK,
 };
 static fe_listener_impl_t listener_impls[] = {
+	{ LISTENER_TCP,      "tcp",  open_tcp,      close_tcp },
 	{ LISTENER_UNIXSOCK, "unix", open_unixsock, close_unixsock },
 };
 
@@ -274,6 +342,8 @@ get_type(const char *address)
 	size_t len;
 	size_t i;
 
+	if (*address == '/')
+		return LISTENER_UNIXSOCK;
 	sep = strchr(address, (int)':');
 	if (! sep)
 		return listener_impls[0].type;
@@ -347,6 +417,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	}
 	listener->type = type;
 	listener->accept = NULL;
+	listener->peer = NULL;
 
 	if (listener_impls[type].open(listener)) {
 		/* prints error */

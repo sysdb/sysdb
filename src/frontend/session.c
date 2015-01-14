@@ -57,13 +57,11 @@ sdb_fe_session_start(sdb_conn_t *conn)
 	username[conn->cmd_len] = '\0';
 
 	if (! conn->username) {
-		/* We couldn't determine the remote peer when setting up the
-		 * connection; TODO: add support for password authentication */
-		sdb_strbuf_sprintf(conn->errbuf, "Password authentication "
-				"not supported");
-		return -1;
+		/* We trust the remote peer.
+		 * TODO: make the auth mechanism configurable */
+		conn->username = strdup(username);
 	}
-	if (strcmp(conn->username, username)) {
+	else if (strcmp(conn->username, username)) {
 		sdb_strbuf_sprintf(conn->errbuf, "%s cannot act on behalf of %s",
 				conn->username, username);
 		return -1;

@@ -123,12 +123,6 @@ connection_init(sdb_object_t *obj, va_list ap)
 	conn->finish = NULL;
 	conn->session = NULL;
 
-	if (conn->client_addr.ss_family != AF_UNIX) {
-		sdb_log(SDB_LOG_ERR, "frontend: Accepted connection using "
-				"unexpected family type %d", conn->client_addr.ss_family);
-		return -1;
-	}
-
 	sock_fl = fcntl(conn->fd, F_GETFL);
 	if (fcntl(conn->fd, F_SETFL, sock_fl | O_NONBLOCK)) {
 		char buf[1024];
