@@ -51,6 +51,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <netdb.h>
+
 /*
  * private data types
  */
@@ -106,6 +108,42 @@ connect_unixsock(sdb_client_t *client, const char *address)
 	}
 	return client->fd;
 } /* connect_unixsock */
+
+static int
+connect_tcp(sdb_client_t *client, const char *address)
+{
+	struct addrinfo *ai, *ai_list = NULL;
+	int status;
+
+	if ((status = sdb_resolve(SDB_NET_TCP, address, &ai_list))) {
+		sdb_log(SDB_LOG_ERR, "Failed to resolve '%s': %s",
+				address, gai_strerror(status));
+		return -1;
+	}
+
+	for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
+		client->fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		if (client->fd < 0) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_ERR, "Failed to open socket: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			continue;
+		}
+
+		if (connect(client->fd, ai->ai_addr, ai->ai_addrlen)) {
+			char host[1024], port[32], errbuf[1024];
+			sdb_client_close(client);
+			getnameinfo(ai->ai_addr, ai->ai_addrlen, host, sizeof(host),
+					port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+			sdb_log(SDB_LOG_ERR, "Failed to connect to '%s:%s': %s",
+					host, port, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			continue;
+		}
+		break;
+	}
+	freeaddrinfo(ai_list);
+	return client->fd;
+} /* connect_tcp */
 
 /*
  * public API
@@ -169,14 +207,14 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	if (client->fd >= 0)
 		return -1;
 
-	if (!strncasecmp(client->address, "unix:", strlen("unix:")))
-		connect_unixsock(client, client->address + strlen("unix:"));
-	else if (*client->address == '/')
+	if (*client->address == '/')
 		connect_unixsock(client, client->address);
-	else {
-		sdb_log(SDB_LOG_ERR, "Unknown address type: %s", client->address);
-		return -1;
-	}
+	else if (!strncasecmp(client->address, "unix:", strlen("unix:")))
+		connect_unixsock(client, client->address + strlen("unix:"));
+	else if (!strncasecmp(client->address, "tcp:", strlen("tcp:")))
+		connect_tcp(client, client->address + strlen("tcp:"));
+	else
+		connect_tcp(client, client->address);
 
 	if (client->fd < 0)
 		return -1;
