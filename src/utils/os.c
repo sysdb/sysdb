@@ -286,6 +286,7 @@ sdb_resolve(int network, const char *address, struct addrinfo **res)
 		ai_hints.ai_family = AF_INET6;
 	else
 		ai_hints.ai_family = AF_UNSPEC;
+
 	if ((network & SDB_NET_IP) == SDB_NET_IP) {
 		ai_hints.ai_socktype = 0;
 		ai_hints.ai_protocol = 0;
@@ -296,7 +297,7 @@ sdb_resolve(int network, const char *address, struct addrinfo **res)
 	}
 	else if (network & SDB_NET_UDP) {
 		ai_hints.ai_socktype = SOCK_DGRAM;
-		ai_hints.ai_socktype = IPPROTO_UDP;
+		ai_hints.ai_protocol = IPPROTO_UDP;
 	}
 
 	status = getaddrinfo(host, port, &ai_hints, res);
