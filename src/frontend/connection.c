@@ -156,6 +156,10 @@ connection_init(sdb_object_t *obj, va_list ap)
 		return -1;
 	}
 
+	/* update the object name */
+	snprintf(obj->name + strlen(CONN_FD_PREFIX),
+			strlen(CONN_FD_PLACEHOLDER), "%i", conn->fd);
+
 	/* defaults */
 	conn->read = conn_read;
 	conn->write = conn_write;
@@ -193,10 +197,6 @@ connection_init(sdb_object_t *obj, va_list ap)
 	conn->cmd = SDB_CONNECTION_IDLE;
 	conn->cmd_len = 0;
 	conn->skip_len = 0;
-
-	/* update the object name */
-	snprintf(obj->name + strlen(CONN_FD_PREFIX),
-			strlen(CONN_FD_PLACEHOLDER), "%i", conn->fd);
 	return 0;
 } /* connection_init */
 
