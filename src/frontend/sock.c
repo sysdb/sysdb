@@ -53,10 +53,19 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/param.h>
 #include <sys/un.h>
 
-#include <libgen.h>
+#ifdef HAVE_UCRED_H
+#	include <ucred.h>
+#endif
+#ifdef HAVE_SYS_UCRED_H
+#	include <sys/ucred.h>
+#endif
 
+#include <pwd.h>
+
+#include <libgen.h>
 #include <pthread.h>
 
 /*
@@ -69,6 +78,7 @@ typedef struct {
 
 	int sock_fd;
 	int (*accept)(sdb_conn_t *);
+	int (*peer)(sdb_conn_t *);
 } listener_t;
 
 typedef struct {
@@ -93,6 +103,46 @@ struct sdb_fe_socket {
 /*
  * connection management functions
  */
+
+static int
+unixsock_peer(sdb_conn_t *conn)
+{
+	uid_t uid;
+
+	struct passwd pw_entry;
+	struct passwd *result = NULL;
+	char buf[1024];
+
+#ifdef SO_PEERCRED
+	struct ucred cred;
+	socklen_t len = sizeof(cred);
+
+	if (getsockopt(conn->fd, SOL_SOCKET, SO_PEERCRED, &cred, &len)
+			|| (len != sizeof(cred))) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to determine peer for "
+				"connection conn#%i: %s", conn->fd,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	uid = cred.uid;
+#else /* SO_PEERCRED */
+	sdb_log(SDB_LOG_ERR, "frontend: Failed to determine peer for "
+			"connection conn#%i: operation not supported", conn->fd);
+	return -1;
+#endif
+
+	memset(&pw_entry, 0, sizeof(pw_entry));
+	if (getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result) || (! result)
+			|| (! (conn->username = strdup(result->pw_name)))) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to determine peer for "
+				"connection conn#%i: %s", conn->fd,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	return 0;
+} /* unixsock_peer */
 
 static int
 open_unixsock(listener_t *listener)
@@ -147,6 +197,8 @@ open_unixsock(listener_t *listener)
 				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
+
+	listener->peer = unixsock_peer;
 	return 0;
 } /* open_unixsock */
 
@@ -394,6 +446,11 @@ connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 
 	if (listener->accept && listener->accept(CONN(obj))) {
 		/* accept() is expected to log an error */
+		sdb_object_deref(obj);
+		return -1;
+	}
+	if (listener->peer && listener->peer(CONN(obj))) {
+		/* peer() is expected to log an error */
 		sdb_object_deref(obj);
 		return -1;
 	}

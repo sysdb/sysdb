@@ -47,19 +47,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/param.h>
-
-#ifdef HAVE_UCRED_H
-#	include <ucred.h>
-#endif
-#ifdef HAVE_SYS_UCRED_H
-#	include <sys/ucred.h>
-#endif
-
-#include <pwd.h>
-
 #include <pthread.h>
 
 /*
@@ -76,36 +63,6 @@ static bool          conn_ctx_key_initialized = 0;
 /* name of connection objects */
 #define CONN_FD_PREFIX "conn#"
 #define CONN_FD_PLACEHOLDER "XXXXXXX"
-
-/* XXX: only supports UNIX sockets so far */
-static char *
-peer(int sockfd)
-{
-	uid_t uid;
-
-	struct passwd pw_entry;
-	struct passwd *result = NULL;
-	char buf[1024];
-
-#ifdef SO_PEERCRED
-	struct ucred cred;
-	socklen_t len = sizeof(cred);
-
-	if (getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &cred, &len)
-			|| (len != sizeof(cred)))
-		return NULL;
-	uid = cred.uid;
-#else /* SO_PEERCRED */
-	errno = ENOSYS;
-	return NULL;
-#endif
-
-	memset(&pw_entry, 0, sizeof(pw_entry));
-	if (getpwuid_r(uid, &pw_entry, buf, sizeof(buf), &result)
-			|| (! result))
-		return NULL;
-	return strdup(result->pw_name);
-} /* peer */
 
 static ssize_t
 conn_read(sdb_conn_t *conn, size_t len)
@@ -181,14 +138,7 @@ connection_init(sdb_object_t *obj, va_list ap)
 		return -1;
 	}
 
-	conn->username = peer(conn->fd);
-	if (! conn->username) {
-		char buf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to retrieve peer for "
-				"connection conn#%i: %s", conn->fd,
-				sdb_strerror(errno, buf, sizeof(buf)));
-		return -1;
-	}
+	conn->username = NULL;
 	conn->ready = 0;
 
 	sdb_log(SDB_LOG_DEBUG, "frontend: Accepted connection on fd=%i",
