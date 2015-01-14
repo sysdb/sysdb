@@ -95,9 +95,8 @@ struct sdb_fe_socket {
  */
 
 static int
-open_unix_sock(listener_t *listener)
+open_unixsock(listener_t *listener)
 {
-	const char *addr;
 	char *addr_copy;
 	char *base_dir;
 	struct sockaddr_un sa;
@@ -111,16 +110,11 @@ open_unix_sock(listener_t *listener)
 		return -1;
 	}
 
-	if (*listener->address == '/')
-		addr = listener->address;
-	else
-		addr = listener->address + strlen("unix:");
-
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
-	strncpy(sa.sun_path, addr, sizeof(sa.sun_path));
+	strncpy(sa.sun_path, listener->address, sizeof(sa.sun_path));
 
-	addr_copy = strdup(addr);
+	addr_copy = strdup(listener->address);
 	if (! addr_copy) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: strdup failed: %s",
@@ -139,10 +133,10 @@ open_unix_sock(listener_t *listener)
 	}
 	free(addr_copy);
 
-	if (unlink(addr) && (errno != ENOENT)) {
+	if (unlink(listener->address) && (errno != ENOENT)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_WARNING, "frontend: Failed to remove stale UNIX "
-				"socket %s: %s", listener->address + strlen("unix:"),
+				"socket %s: %s", listener->address,
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 	}
 
@@ -154,28 +148,22 @@ open_unix_sock(listener_t *listener)
 		return -1;
 	}
 	return 0;
-} /* open_unix_sock */
+} /* open_unixsock */
 
 static void
-close_unix_sock(listener_t *listener)
+close_unixsock(listener_t *listener)
 {
-	const char *addr;
 	assert(listener);
 
 	if (! listener->address)
 		return;
 
-	if (*listener->address == '/')
-		addr = listener->address;
-	else
-		addr = listener->address + strlen("unix:");
-
 	if (listener->sock_fd >= 0)
 		close(listener->sock_fd);
 	listener->sock_fd = -1;
 
-	unlink(addr);
-} /* close_unix_sock */
+	unlink(listener->address);
+} /* close_unixsock */
 
 /*
  * private variables
@@ -187,7 +175,7 @@ enum {
 	LISTENER_UNIXSOCK = 0, /* this is the default */
 };
 static fe_listener_impl_t listener_impls[] = {
-	{ LISTENER_UNIXSOCK, "unix", open_unix_sock, close_unix_sock },
+	{ LISTENER_UNIXSOCK, "unix", open_unixsock, close_unixsock },
 };
 
 /*
@@ -269,6 +257,7 @@ static listener_t *
 listener_create(sdb_fe_socket_t *sock, const char *address)
 {
 	listener_t *listener;
+	size_t len;
 	int type;
 
 	type = get_type(address);
@@ -289,6 +278,11 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 
 	sock->listeners = listener;
 	listener = sock->listeners + sock->listeners_num;
+
+	len = strlen(listener_impls[type].prefix);
+	if ((! strncmp(address, listener_impls[type].prefix, len))
+			&& (address[len] == ':'))
+		address += strlen(listener_impls[type].prefix) + 1;
 
 	listener->sock_fd = -1;
 	listener->address = strdup(address);
