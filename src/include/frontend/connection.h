@@ -59,6 +59,12 @@ typedef struct {
 #define SDB_CONN_NODE(obj) ((sdb_conn_node_t *)(obj))
 
 /*
+ * sdb_conn_setup_cb is a callback function used to setup a connection. For
+ * example, it may be used to initialize session information.
+ */
+typedef int (*sdb_conn_setup_cb)(sdb_conn_t *, void *);
+
+/*
  * sdb_connection_enable_logging:
  * Enable logging of connection-related messages to the current client
  * connection. After this function has been called all log messages
@@ -75,14 +81,16 @@ sdb_connection_enable_logging(void);
 /*
  * sdb_connection_accpet:
  * Accept a new connection on the specified file-descriptor 'fd' and return a
- * newly allocated connection object.
+ * newly allocated connection object. If specified, the setup callback is used
+ * to setup the newly created connection. It will receive the connection
+ * object and the specified user data as its arguments.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 sdb_conn_t *
-sdb_connection_accept(int fd);
+sdb_connection_accept(int fd, sdb_conn_setup_cb setup, void *user_data);
 
 /*
  * sdb_connection_close:

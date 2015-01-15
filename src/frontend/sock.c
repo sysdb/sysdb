@@ -78,8 +78,7 @@ typedef struct {
 	int   type;
 
 	int sock_fd;
-	int (*accept)(sdb_conn_t *);
-	int (*peer)(sdb_conn_t *);
+	int (*setup)(sdb_conn_t *, void *);
 } listener_t;
 
 typedef struct {
@@ -106,7 +105,7 @@ struct sdb_fe_socket {
  */
 
 static int
-unixsock_peer(sdb_conn_t *conn)
+setup_unixsock(sdb_conn_t *conn, void __attribute__((unused)) *user_data)
 {
 	uid_t uid;
 
@@ -143,7 +142,7 @@ unixsock_peer(sdb_conn_t *conn)
 		return -1;
 	}
 	return 0;
-} /* unixsock_peer */
+} /* setup_unixsock */
 
 static int
 open_unixsock(listener_t *listener)
@@ -199,7 +198,7 @@ open_unixsock(listener_t *listener)
 		return -1;
 	}
 
-	listener->peer = unixsock_peer;
+	listener->setup = setup_unixsock;
 	return 0;
 } /* open_unixsock */
 
@@ -416,8 +415,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 		return NULL;
 	}
 	listener->type = type;
-	listener->accept = NULL;
-	listener->peer = NULL;
+	listener->setup = NULL;
 
 	if (listener_impls[type].open(listener)) {
 		/* prints error */
@@ -511,20 +509,10 @@ connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 	sdb_object_t *obj;
 	int status;
 
-	obj = SDB_OBJ(sdb_connection_accept(listener->sock_fd));
+	obj = SDB_OBJ(sdb_connection_accept(listener->sock_fd,
+				listener->setup, NULL));
 	if (! obj)
 		return -1;
-
-	if (listener->accept && listener->accept(CONN(obj))) {
-		/* accept() is expected to log an error */
-		sdb_object_deref(obj);
-		return -1;
-	}
-	if (listener->peer && listener->peer(CONN(obj))) {
-		/* peer() is expected to log an error */
-		sdb_object_deref(obj);
-		return -1;
-	}
 
 	status = sdb_llist_append(sock->open_connections, obj);
 	if (status)

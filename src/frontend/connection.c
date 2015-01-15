@@ -407,15 +407,22 @@ sdb_connection_enable_logging(void)
 } /* sdb_connection_enable_logging */
 
 sdb_conn_t *
-sdb_connection_accept(int fd)
+sdb_connection_accept(int fd, sdb_conn_setup_cb setup, void *user_data)
 {
+	sdb_conn_t *conn;
+
 	if (fd < 0)
 		return NULL;
 
 	/* the placeholder will be replaced with the accepted file
 	 * descriptor when initializing the object */
-	return CONN(sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
+	conn = CONN(sdb_object_create(CONN_FD_PREFIX CONN_FD_PLACEHOLDER,
 				connection_type, fd));
+	if (setup && (setup(conn, user_data) < 0)) {
+		sdb_object_deref(SDB_OBJ(conn));
+		return NULL;
+	}
+	return conn;
 } /* sdb_connection_create */
 
 void
