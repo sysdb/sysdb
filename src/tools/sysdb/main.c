@@ -82,8 +82,10 @@
 #endif
 
 static const char *
-get_homedir(const char *username)
+get_homedir(void)
 {
+	char *username = sdb_get_current_user();
+
 	struct passwd pw_entry;
 	struct passwd *result = NULL;
 
@@ -93,16 +95,22 @@ get_homedir(const char *username)
 
 	int status;
 
-	memset(&pw_entry, 0, sizeof(pw_entry));
-	status = getpwnam_r(username, &pw_entry, buf, sizeof(buf), &result);
+	if (username) {
+		memset(&pw_entry, 0, sizeof(pw_entry));
+		status = getpwnam_r(username, &pw_entry, buf, sizeof(buf), &result);
+	}
+	else
+		status = -1;
 
 	if (status || (! result)) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_WARNING, "Failed to determine home directory "
 				"for user %s: %s", username,
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		free(username);
 		return NULL;
 	}
+	free(username);
 	return result->pw_dir;
 } /* get_homedir */
 
@@ -299,7 +307,7 @@ main(int argc, char **argv)
 
 	using_history();
 
-	if ((homedir = get_homedir(input.user))) {
+	if ((homedir = get_homedir())) {
 		snprintf(hist_file, sizeof(hist_file) - 1,
 				"%s/.sysdb_history", homedir);
 		hist_file[sizeof(hist_file) - 1] = '\0';
