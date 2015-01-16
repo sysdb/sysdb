@@ -99,10 +99,10 @@ typedef struct {
 #define SDB_CONST_PLUGIN_CCB(obj) ((const sdb_plugin_collector_cb_t *)(obj))
 
 typedef struct {
-	sdb_object_t super;
+	sdb_plugin_cb_t super; /* cb_callback will always be NULL */
+#define w_user_data super.cb_user_data
+#define w_ctx super.cb_ctx
 	sdb_store_writer_t impl;
-	sdb_object_t *user_data;
-	ctx_t *ctx;
 } sdb_plugin_writer_t;
 #define SDB_PLUGIN_WRITER(obj) ((sdb_plugin_writer_t *)(obj))
 
@@ -435,11 +435,11 @@ plugin_writer_init(sdb_object_t *obj, va_list ap)
 	/* ctx may be NULL if the plugin was not registered by a plugin */
 
 	SDB_PLUGIN_WRITER(obj)->impl = *impl;
-	SDB_PLUGIN_WRITER(obj)->ctx  = ctx_get();
-	sdb_object_ref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->ctx));
+	SDB_PLUGIN_WRITER(obj)->w_ctx  = ctx_get();
+	sdb_object_ref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->w_ctx));
 
 	sdb_object_ref(ud);
-	SDB_PLUGIN_WRITER(obj)->user_data = ud;
+	SDB_PLUGIN_WRITER(obj)->w_user_data = ud;
 	return 0;
 } /* plugin_writer_init */
 
@@ -447,8 +447,8 @@ static void
 plugin_writer_destroy(sdb_object_t *obj)
 {
 	assert(obj);
-	sdb_object_deref(SDB_PLUGIN_WRITER(obj)->user_data);
-	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->ctx));
+	sdb_object_deref(SDB_PLUGIN_WRITER(obj)->w_user_data);
+	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->w_ctx));
 } /* plugin_writer_destroy */
 
 static sdb_type_t sdb_plugin_writer_type = {
@@ -1346,7 +1346,7 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 		sdb_plugin_writer_t *writer;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_host(name, last_update, writer->user_data))
+		if (writer->impl.store_host(name, last_update, writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -1369,7 +1369,7 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		if (writer->impl.store_service(hostname, name, last_update,
-					writer->user_data))
+					writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -1395,7 +1395,7 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		if (writer->impl.store_metric(hostname, name, store, last_update,
-					writer->user_data))
+					writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -1418,7 +1418,7 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		if (writer->impl.store_attribute(hostname, key, value, last_update,
-					writer->user_data))
+					writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -1441,7 +1441,7 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		if (writer->impl.store_service_attr(hostname, service,
-					key, value, last_update, writer->user_data))
+					key, value, last_update, writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
@@ -1464,7 +1464,7 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		if (writer->impl.store_metric_attr(hostname, metric,
-					key, value, last_update, writer->user_data))
+					key, value, last_update, writer->w_user_data))
 			status = -1;
 	}
 	sdb_llist_iter_destroy(iter);
