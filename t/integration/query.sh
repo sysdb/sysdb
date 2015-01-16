@@ -115,8 +115,20 @@ run_sysdb -H "$SOCKET_FILE" \
 		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
 
 # Does not work yet since there is no fetcher plugin.
-run_sysdb -H "$SOCKET_FILE" \
-		-c "TIMESERIES 'some.host.name'.'foo/bar/qux'" && exit 1
+output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "TIMESERIES 'some.host.name'.'foo/bar/qux'" )"
+echo "$output" \
+	| grep -F '"value": "1.000000"' \
+	| grep -F '"value": "2.000000"' \
+	| grep -F '"value": "3.000000"' \
+	| grep -F '"value": "4.000000"' \
+	| grep -F '"value": "5.000000"' \
+	| grep -F '"value": "6.000000"' \
+	| grep -F '"value": "7.000000"' \
+	| grep -F '"value": "8.000000"' \
+	| grep -F '"value": "9.000000"' \
+	| grep -F '"value": "10.000000"'
 
 stop_sysdbd
 
+# vim: set tw=78 sw=4 ts=4 noexpandtab :

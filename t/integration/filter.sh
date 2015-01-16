@@ -77,3 +77,4 @@ echo $output | grep -E '^\[\]$'
 
 stop_sysdbd
 
+# vim: set tw=78 sw=4 ts=4 noexpandtab :

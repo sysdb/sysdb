@@ -57,21 +57,21 @@ static struct {
 	sdb_metric_store_t store;
 } metrics[] = {
 	{ "some.host.name", "foo/bar/qux",
-		{ "dummy", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
 	{ "some.host.name", "foo/bar/baz",
-		{ "dummy", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
 	{ "some.host.name", "foo2/bar/qux",
-		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
 	{ "some.host.name", "foo2/bar/baz",
-		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
 	{ "other.host.name", "foo/bar/qux",
-		{ "dummy", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
 	{ "other.host.name", "foo/bar/baz",
-		{ "dummy", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
 	{ "other.host.name", "foo2/bar/qux",
-		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
 	{ "other.host.name", "foo2/bar/baz",
-		{ "dummy", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
 };
 
 static struct {
@@ -192,6 +192,42 @@ mock_collect(sdb_object_t *user_data)
 	return 0;
 } /* mock_collect */
 
+static sdb_timeseries_t *
+mock_fetch_ts(const char *id, sdb_timeseries_opts_t *opts,
+		sdb_object_t *user_data)
+{
+	sdb_timeseries_t *ts;
+	const char *names[] = { "nameA", "nameB" };
+	size_t i, j;
+
+	if (*id != '/') {
+		sdb_log(SDB_LOG_ERR, "mock::plugin: Invalid time-series %s", id);
+		exit(1);
+	}
+
+	if (SDB_OBJ_WRAPPER(user_data)->data != MAGIC_DATA) {
+		sdb_log(SDB_LOG_ERR, "mock::plugin: Invalid user data %p "
+				"passed to collect", SDB_OBJ_WRAPPER(user_data)->data);
+		exit(1);
+	}
+
+	ts = sdb_timeseries_create(SDB_STATIC_ARRAY_LEN(names), names, 10);
+	if (! ts)
+		return NULL;
+
+	ts->start = opts->start;
+	ts->end = opts->end;
+
+	for (i = 0; i < 10; ++i) {
+		for (j = 0; j < SDB_STATIC_ARRAY_LEN(names); ++j) {
+			ts->data[j][i].timestamp = ts->start
+				+ i * (ts->end - ts->start) / 10;
+			ts->data[j][i].value = (double)(i + j);
+		}
+	}
+	return ts;
+} /* mock_fetch_ts */
+
 static int
 mock_config(oconfig_item_t *ci)
 {
@@ -219,6 +255,8 @@ mock_config(oconfig_item_t *ci)
 	sdb_plugin_register_shutdown("main", mock_shutdown, user_data);
 	sdb_plugin_register_collector("main", mock_collect,
 			/* interval = */ NULL, user_data);
+
+	sdb_plugin_register_ts_fetcher("mock", mock_fetch_ts, user_data);
 
 	sdb_object_deref(user_data);
 	return 0;

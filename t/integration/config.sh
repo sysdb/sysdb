@@ -91,3 +91,4 @@ wait_for_sysdbd
 
 stop_sysdbd
 
+# vim: set tw=78 sw=4 ts=4 noexpandtab :

@@ -94,3 +94,4 @@ function wait_for_sysdbd() {
 	fi
 }
 
+# vim: set tw=78 sw=4 ts=4 noexpandtab :
