@@ -44,10 +44,14 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <stdlib.h>
 #include <string.h>
 
 #include <pthread.h>
+#include <netdb.h>
 
 /*
  * private variables
@@ -410,6 +414,7 @@ sdb_conn_t *
 sdb_connection_accept(int fd, sdb_conn_setup_cb setup, void *user_data)
 {
 	sdb_conn_t *conn;
+	const char *peer = "unknown";
 
 	if (fd < 0)
 		return NULL;
@@ -421,6 +426,22 @@ sdb_connection_accept(int fd, sdb_conn_setup_cb setup, void *user_data)
 	if (setup && (setup(conn, user_data) < 0)) {
 		sdb_object_deref(SDB_OBJ(conn));
 		return NULL;
+	}
+
+	if (conn->username)
+		peer = conn->username;
+
+	if (conn->client_addr.ss_family == AF_UNIX) {
+		sdb_log(SDB_LOG_INFO,
+				"frontend: Accepted connection from peer %s", peer);
+	}
+	else {
+		char host[1024] = "<unknown>", port[32] = "";
+		getnameinfo((struct sockaddr *)&conn->client_addr,
+				conn->client_addr_len, host, sizeof(host), port, sizeof(port),
+				NI_NUMERICHOST | NI_NUMERICSERV);
+		sdb_log(SDB_LOG_INFO, "frontend: Accepted connection from "
+				"peer %s at %s:%s", peer, host, port);
 	}
 	return conn;
 } /* sdb_connection_create */
