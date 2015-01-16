@@ -84,6 +84,8 @@ typedef struct {
 #define SDB_PLUGIN_CB_INIT { SDB_OBJECT_INIT, \
 	/* callback = */ NULL, /* user_data = */ NULL, \
 	SDB_PLUGIN_CTX_INIT }
+#define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
+#define SDB_CONST_PLUGIN_CB(obj) ((const sdb_plugin_cb_t *)(obj))
 
 typedef struct {
 	sdb_plugin_cb_t super;
@@ -93,11 +95,16 @@ typedef struct {
 	sdb_time_t ccb_interval;
 	sdb_time_t ccb_next_update;
 } sdb_plugin_collector_cb_t;
-
-#define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
-#define SDB_CONST_PLUGIN_CB(obj) ((const sdb_plugin_cb_t *)(obj))
 #define SDB_PLUGIN_CCB(obj) ((sdb_plugin_collector_cb_t *)(obj))
 #define SDB_CONST_PLUGIN_CCB(obj) ((const sdb_plugin_collector_cb_t *)(obj))
+
+typedef struct {
+	sdb_object_t super;
+	sdb_store_writer_t impl;
+	sdb_object_t *user_data;
+	ctx_t *ctx;
+} sdb_plugin_writer_t;
+#define SDB_PLUGIN_WRITER(obj) ((sdb_plugin_writer_t *)(obj))
 
 /*
  * private variables
@@ -119,6 +126,7 @@ static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
 static sdb_llist_t      *ts_fetcher_list = NULL;
+static sdb_llist_t      *writer_list = NULL;
 
 static struct {
 	const char   *type;
@@ -131,6 +139,7 @@ static struct {
 	{ "shutdown",           &shutdown_list },
 	{ "log",                &log_list },
 	{ "timeseries fetcher", &ts_fetcher_list },
+	{ "store writer",       &writer_list },
 };
 
 /*
@@ -398,6 +407,55 @@ static sdb_type_t sdb_plugin_collector_cb_type = {
 
 	plugin_cb_init,
 	plugin_cb_destroy
+};
+
+static int
+plugin_writer_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_store_writer_t *impl = va_arg(ap, sdb_store_writer_t *);
+	sdb_object_t       *ud   = va_arg(ap, sdb_object_t *);
+
+	assert(impl);
+
+	if ((! impl->store_host) || (! impl->store_service)
+			|| (! impl->store_metric) || (! impl->store_attribute)
+			|| (! impl->store_service_attr) || (! impl->store_metric_attr)) {
+		sdb_log(SDB_LOG_ERR, "core: store writer callback '%s' "
+				"does not fully implement the writer interface.",
+				obj->name);
+		return -1;
+	}
+	if (sdb_llist_search_by_name(writer_list, obj->name)) {
+		sdb_log(SDB_LOG_WARNING, "core: store writer callback '%s' "
+				"has already been registered. Ignoring newly "
+				"registered version.", obj->name);
+		return -1;
+	}
+
+	/* ctx may be NULL if the plugin was not registered by a plugin */
+
+	SDB_PLUGIN_WRITER(obj)->impl = *impl;
+	SDB_PLUGIN_WRITER(obj)->ctx  = ctx_get();
+	sdb_object_ref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->ctx));
+
+	sdb_object_ref(ud);
+	SDB_PLUGIN_WRITER(obj)->user_data = ud;
+	return 0;
+} /* plugin_writer_init */
+
+static void
+plugin_writer_destroy(sdb_object_t *obj)
+{
+	assert(obj);
+	sdb_object_deref(SDB_PLUGIN_WRITER(obj)->user_data);
+	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->ctx));
+} /* plugin_writer_destroy */
+
+static sdb_type_t sdb_plugin_writer_type = {
+	sizeof(sdb_plugin_writer_t),
+
+	plugin_writer_init,
+	plugin_writer_destroy
 };
 
 static int
@@ -795,6 +853,41 @@ sdb_plugin_register_ts_fetcher(const char *name,
 	return plugin_add_callback(&ts_fetcher_list, "time-series fetcher",
 			name, callback, user_data);
 } /* sdb_plugin_register_ts_fetcher */
+
+int
+sdb_plugin_register_writer(const char *name,
+		sdb_store_writer_t *writer, sdb_object_t *user_data)
+{
+	char cb_name[1024];
+	sdb_object_t *obj;
+
+	if ((! name) || (! writer))
+		return -1;
+
+	if (! writer_list)
+		writer_list = sdb_llist_create();
+	if (! writer_list)
+		return -1;
+
+	plugin_get_name(name, cb_name, sizeof(cb_name));
+
+	obj = sdb_object_create(cb_name, sdb_plugin_writer_type,
+			writer, user_data);
+	if (! obj)
+		return -1;
+
+	if (sdb_llist_append(writer_list, obj)) {
+		sdb_object_deref(obj);
+		return -1;
+	}
+
+	/* pass control to the list */
+	sdb_object_deref(obj);
+
+	sdb_log(SDB_LOG_INFO, "core: Registered store writer callback '%s'.",
+			cb_name);
+	return 0;
+} /* sdb_store_register_writer */
 
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void)

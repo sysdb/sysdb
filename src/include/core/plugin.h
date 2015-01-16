@@ -30,6 +30,7 @@
 
 #include "sysdb.h"
 #include "core/object.h"
+#include "core/store.h"
 #include "core/time.h"
 #include "core/timeseries.h"
 
@@ -257,6 +258,22 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 int
 sdb_plugin_register_ts_fetcher(const char *name,
 		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data);
+
+/*
+ * sdb_plugin_register_writer:
+ * Register a "writer" implementation to be used when adding an object to the
+ * store. It is invalid to register an incomplete writer which does not
+ * implement all of the writer interface.
+ *
+ * Arguments:
+ *  - user_data: If specified, this will be passed on to each call of the
+ *    callback. The function will take ownership of the object, that is,
+ *    increment the reference count by one. In case the caller does not longer
+ *    use the object for other purposes, it should thus deref it.
+ */
+int
+sdb_plugin_register_writer(const char *name,
+		sdb_store_writer_t *writer, sdb_object_t *user_data);
 
 /*
  * sdb_plugin_get_ctx, sdb_plugin_set_ctx:

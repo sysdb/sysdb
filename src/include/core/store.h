@@ -95,6 +95,14 @@ struct sdb_store_obj;
 typedef struct sdb_store_obj sdb_store_obj_t;
 
 /*
+ * A metric store describes how to access a metric's data.
+ */
+typedef struct {
+	const char *type;
+	const char *id;
+} sdb_metric_store_t;
+
+/*
  * Expressions represent arithmetic expressions based on stored objects and
  * their various attributes.
  *
@@ -124,6 +132,28 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
  */
 struct sdb_store_json_formatter;
 typedef struct sdb_store_json_formatter sdb_store_json_formatter_t;
+
+/*
+ * A store writer describes the interface for plugins implementing a store.
+ */
+typedef struct {
+	int (*store_host)(const char *name, sdb_time_t last_update,
+			sdb_object_t *user_data);
+	int (*store_service)(const char *hostname, const char *name,
+			sdb_time_t last_update, sdb_object_t *user_data);
+	int (*store_metric)(const char *hostname, const char *name,
+			sdb_metric_store_t *store, sdb_time_t last_update,
+			sdb_object_t *user_data);
+	int (*store_attribute)(const char *hostname,
+			const char *key, const sdb_data_t *value, sdb_time_t last_update,
+			sdb_object_t *user_data);
+	int (*store_service_attr)(const char *hostname, const char *service,
+			const char *key, const sdb_data_t *value, sdb_time_t last_update,
+			sdb_object_t *user_data);
+	int (*store_metric_attr)(const char *hostname, const char *metric,
+			const char *key, const sdb_data_t *value, sdb_time_t last_update,
+			sdb_object_t *user_data);
+} sdb_store_writer_t;
 
 /*
  * sdb_store_clear:
@@ -219,14 +249,6 @@ sdb_store_service(const char *hostname, const char *name,
 int
 sdb_store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
-
-/*
- * A metric store describes how to access a metric's data.
- */
-typedef struct {
-	const char *type;
-	const char *id;
-} sdb_metric_store_t;
 
 /*
  * sdb_store_metric:
