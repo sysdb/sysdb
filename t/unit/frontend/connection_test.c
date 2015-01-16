@@ -229,7 +229,7 @@ START_TEST(test_conn_accept)
 
 	pthread_t thr;
 
-	conn = sdb_connection_accept(-1);
+	conn = sdb_connection_accept(-1, NULL, NULL);
 	fail_unless(conn == NULL,
 			"sdb_connection_accept(-1) = %p; expected: NULL", conn);
 
@@ -242,7 +242,7 @@ START_TEST(test_conn_accept)
 	fail_unless(check == 0,
 			"INTERNAL ERROR: pthread_create() = %i; expected: 0", check);
 
-	conn = sdb_connection_accept(fd);
+	conn = sdb_connection_accept(fd, NULL, NULL);
 	fail_unless(conn != NULL,
 			"sdb_connection_accept(%d) = %p; expected: <conn>", fd, conn);
 
