@@ -224,30 +224,22 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	if (! username)
 		username = "";
 
-	status = sdb_client_send(client, SDB_CONNECTION_STARTUP,
-			(uint32_t)strlen(username), username);
-	if (status < 0) {
-		char errbuf[1024];
-		sdb_client_close(client);
-		sdb_log(SDB_LOG_ERR, "Failed to send STARTUP message to server: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		return (int)status;
-	}
-
 	buf = sdb_strbuf_create(64);
 	rstatus = 0;
-	status = sdb_client_recv(client, &rstatus, buf);
-	if ((status > 0) && (rstatus == SDB_CONNECTION_OK)) {
+	status = sdb_client_rpc(client, SDB_CONNECTION_STARTUP,
+			(uint32_t)strlen(username), username, &rstatus, buf);
+	if ((status >= 0) && (rstatus == SDB_CONNECTION_OK)) {
 		sdb_strbuf_destroy(buf);
 		return 0;
 	}
 
 	if (status < 0) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "Failed to receive server response: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "%s", sdb_strbuf_string(buf));
+		sdb_client_close(client);
+		sdb_strbuf_destroy(buf);
+		return (int)status;
 	}
-	else if (client->eof)
+	if (client->eof)
 		sdb_log(SDB_LOG_ERR, "Encountered end-of-file while waiting "
 				"for server response");
 
