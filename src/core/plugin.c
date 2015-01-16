@@ -124,12 +124,13 @@ static struct {
 	const char   *type;
 	sdb_llist_t **list;
 } all_lists[] = {
-	{ "config",    &config_list },
-	{ "init",      &init_list },
-	{ "collector", &collector_list },
-	{ "cname",     &cname_list },
-	{ "shutdown",  &shutdown_list },
-	{ "log",       &log_list },
+	{ "config",             &config_list },
+	{ "init",               &init_list },
+	{ "collector",          &collector_list },
+	{ "cname",              &cname_list },
+	{ "shutdown",           &shutdown_list },
+	{ "log",                &log_list },
+	{ "timeseries fetcher", &ts_fetcher_list },
 };
 
 /*
