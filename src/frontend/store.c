@@ -92,7 +92,6 @@ sdb_fe_store(sdb_conn_t *conn)
 				"STORE: Invalid command length %zu", len);
 		return -1;
 	}
-	buf += n; len -= n;
 
 	switch (type) {
 		case SDB_HOST:
