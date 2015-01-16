@@ -82,9 +82,34 @@ run_sysdbd -D -C "$SYSDBD_CONF"
 wait_for_sysdbd
 
 # reconfigure
-SOCKET_FILE="$SOCKET_FILE-2"
+ORIG_SOCKET="$SOCKET_FILE"
+SOCKET_FILE="$ORIG_SOCKET-2"
 cat <<EOF > "$SYSDBD_CONF"
 Listen "${SOCKET_FILE}"
+EOF
+kill -HUP $SYSDBD_PID
+wait_for_sysdbd
+
+# load plugin
+SOCKET_FILE="$ORIG_SOCKET-3"
+cat <<EOF > "$SYSDBD_CONF"
+Listen "${SOCKET_FILE}"
+PluginDir "$PLUGIN_DIR"
+LoadBackend mock_plugin
+<Backend "mock_plugin">
+</Backend>
+EOF
+kill -HUP $SYSDBD_PID
+wait_for_sysdbd
+
+# reload plugin
+SOCKET_FILE="$ORIG_SOCKET-4"
+cat <<EOF > "$SYSDBD_CONF"
+Listen "${SOCKET_FILE}"
+PluginDir "$PLUGIN_DIR"
+LoadBackend mock_plugin
+<Backend "mock_plugin">
+</Backend>
 EOF
 kill -HUP $SYSDBD_PID
 wait_for_sysdbd
