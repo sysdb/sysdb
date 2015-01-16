@@ -413,6 +413,35 @@ sdb_timeseries_t *
 sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		sdb_timeseries_opts_t *opts);
 
+/*
+ * sdb_plugin_store_host, sdb_plugin_store_service, sdb_plugin_store_metric,
+ * sdb_plugin_store_attribute, sdb_plugin_store_service_attribute,
+ * sdb_plugin_store_metric_attribute:
+ * Store an object in the database by sending it to all registered store
+ * writer plugins.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_plugin_store_host(const char *name, sdb_time_t last_update);
+int
+sdb_plugin_store_service(const char *hostname, const char *name,
+		sdb_time_t last_update);
+int
+sdb_plugin_store_metric(const char *hostname, const char *name,
+		sdb_metric_store_t *store, sdb_time_t last_update);
+int
+sdb_plugin_store_attribute(const char *hostname, const char *key,
+		const sdb_data_t *value, sdb_time_t last_update);
+int
+sdb_plugin_store_service_attribute(const char *hostname, const char *service,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+int
+sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

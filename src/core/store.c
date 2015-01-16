@@ -536,6 +536,9 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		status = store_obj(NULL, hosts, SDB_HOST, cname, last_update, NULL);
 	pthread_rwlock_unlock(&host_lock);
 
+	if (sdb_plugin_store_host(name, last_update))
+		status = -1;
+
 	free(cname);
 	return status;
 } /* sdb_store_host */
@@ -594,6 +597,9 @@ sdb_store_attribute(const char *hostname,
 
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&host_lock);
+
+	if (sdb_plugin_store_attribute(hostname, key, value, last_update))
+		status = -1;
 	return status;
 } /* sdb_store_attribute */
 
@@ -624,6 +630,9 @@ sdb_store_service(const char *hostname, const char *name,
 
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&host_lock);
+
+	if (sdb_plugin_store_service(hostname, name, last_update))
+		status = -1;
 	return status;
 } /* sdb_store_service */
 
@@ -664,6 +673,10 @@ sdb_store_service_attr(const char *hostname, const char *service,
 
 	sdb_object_deref(SDB_OBJ(svc));
 	pthread_rwlock_unlock(&host_lock);
+
+	if (sdb_plugin_store_service_attribute(hostname, service,
+				key, value, last_update))
+		status = -1;
 	return status;
 } /* sdb_store_service_attr */
 
@@ -731,6 +744,9 @@ sdb_store_metric(const char *hostname, const char *name,
 		status = -1;
 	}
 	pthread_rwlock_unlock(&host_lock);
+
+	if (sdb_plugin_store_metric(hostname, name, store, last_update))
+		status = -1;
 	return status;
 } /* sdb_store_metric */
 
@@ -771,6 +787,10 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 
 	sdb_object_deref(SDB_OBJ(m));
 	pthread_rwlock_unlock(&host_lock);
+
+	if (sdb_plugin_store_metric_attribute(hostname, metric,
+				key, value, last_update))
+		status = -1;
 	return status;
 } /* sdb_store_metric_attr */
 

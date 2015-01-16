@@ -1332,5 +1332,144 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	return ts;
 } /* sdb_plugin_fetch_timeseries */
 
+int
+sdb_plugin_store_host(const char *name, sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if (! name)
+		return -1;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_host(name, last_update, writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_host */
+
+int
+sdb_plugin_store_service(const char *hostname, const char *name,
+		sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if ((! hostname) || (! name))
+		return -1;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_service(hostname, name, last_update,
+					writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_service */
+
+int
+sdb_plugin_store_metric(const char *hostname, const char *name,
+		sdb_metric_store_t *store, sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if ((! hostname) || (! name))
+		return -1;
+
+	if ((! store->type) || (! store->id))
+		store = NULL;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_metric(hostname, name, store, last_update,
+					writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_metric */
+
+int
+sdb_plugin_store_attribute(const char *hostname, const char *key,
+		const sdb_data_t *value, sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if ((! hostname) || (! key) || (! value))
+		return -1;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_attribute(hostname, key, value, last_update,
+					writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_attribute */
+
+int
+sdb_plugin_store_service_attribute(const char *hostname, const char *service,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if ((! hostname) || (! service) || (! key) || (! value))
+		return -1;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_service_attr(hostname, service,
+					key, value, last_update, writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_service_attribute */
+
+int
+sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+{
+	sdb_llist_iter_t *iter;
+	int status = 0;
+
+	if ((! hostname) || (! metric) || (! key) || (! value))
+		return -1;
+
+	iter = sdb_llist_get_iter(writer_list);
+	while (sdb_llist_iter_has_next(iter)) {
+		sdb_plugin_writer_t *writer;
+		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
+		assert(writer);
+		if (writer->impl.store_metric_attr(hostname, metric,
+					key, value, last_update, writer->user_data))
+			status = -1;
+	}
+	sdb_llist_iter_destroy(iter);
+	return status;
+} /* sdb_plugin_store_metric_attribute */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
