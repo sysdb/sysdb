@@ -18,6 +18,9 @@ SYNOPSIS
                    AND 'backend::collectd::unixsock' in backend
                FILTER age < 5 * interval;
 
+  STORE host attribute 'some.host.name'.'key' 123.45
+                       LAST UPDATE 2001-02-03 04:05:06;
+
 DESCRIPTION
 -----------
 include::sysdb-description.txt[]
@@ -26,6 +29,9 @@ The SysDB query language (SysQL) is a human-readable format for describing a
 request to retrieve data from a SysDB daemon. It is very remotely similar to
 the Standard Query Language (SQL) supported by relational database management
 systems (RDBMS) but specialized for SysDB's use-case.
+
+Besides querying data, SysQL may also be used to store or update objects in
+SysDB.
 
 QUERY COMMANDS
 --------------
@@ -214,6 +220,33 @@ noted, the data types of the left hand and right hand side have to match.
 *||*::
 	Concatenate string or array values.
 
+STORING DATA
+------------
+The *STORE* command may be used to store or update an object in SysDB. Each
+command is terminated by a semicolon. The following variants are available for
+storing the different data types:
+
+*STORE* host '<name>' [*LAST UPDATE* '<datetime>']::
+*STORE* service|metric '<hostname>'.'<name>' [*LAST UPDATE* '<datetime>']::
+*STORE* host attribute '<hostname>'.'<key>' '<value>' [*LAST UPDATE* '<datetime>']::
+*STORE* service|metric attribute '<hostname>'.'<name>'.'<key>' '<value>' [*LAST UPDATE* '<datetime>']::
+	Store an object of the specified type and name. For services, metrics, and
+	attributes, the name is prepended with the parent object name separated by
+	a dot ('.'). Optionally, the time-stamp of the object's last update may be
+	provided as well. If omitted, the current time on the server will be used
+	instead.
+
+*STORE* metric '<hostname>'.'<name>' STORE '<type>' '<id>' [*LAST UPDATE* '<datetime>']::
+	Store a metric and provide information about the metric store associated
+	with it. A metric store describes how to access a metric's data and can be
+	used to retrieve time-series information associated with the metric. See
+	the manpage:sysdb[7] manpage for details.
+.
+	Note that the metric store information will be forwarded to the server
+	unmodified. That is, they need to be specified in a way such that the
+	server can make sense out of them. Else, retrieval of time-series data
+	will fail.
+
 DATA TYPES
 ----------
 The SysDB query language natively supports various data-types. Constants of
@@ -258,7 +291,9 @@ all types may be used in any place where a value is expected.
 RESPONSE FORMAT
 ---------------
 The JavaScript Object Notation (JSON) format, as specified in RFC 4627, is
-used in all replies from the server. http://www.ietf.org/rfc/rfc4627.txt
+used in all query replies from the server. http://www.ietf.org/rfc/rfc4627.txt
+
+For all other commands, the reply will be a message string.
 
 EXAMPLES
 --------
