@@ -300,6 +300,18 @@ typedef enum {
 	SDB_CONNECTION_EXPR,
 } sdb_conn_state_t;
 
+#define SDB_CONN_MSGTYPE_TO_STRING(t) \
+	(((t) == SDB_CONNECTION_IDLE) ? "IDLE" \
+		: ((t) == SDB_CONNECTION_PING) ? "PING" \
+		: ((t) == SDB_CONNECTION_STARTUP) ? "STARTUP" \
+		: ((t) == SDB_CONNECTION_QUERY) ? "QUERY" \
+		: ((t) == SDB_CONNECTION_FETCH) ? "FETCH" \
+		: ((t) == SDB_CONNECTION_LIST) ? "LIST" \
+		: ((t) == SDB_CONNECTION_LOOKUP) ? "LOOKUP" \
+		: ((t) == SDB_CONNECTION_TIMESERIES) ? "TIMESERIES" \
+		: ((t) == SDB_CONNECTION_STORE) ? "STORE" \
+		: "UNKNOWN")
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

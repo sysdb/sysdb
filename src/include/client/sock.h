@@ -98,9 +98,29 @@ void
 sdb_client_close(sdb_client_t *client);
 
 /*
+ * sdb_client_rpc:
+ * Send the specified message to the server and wait for the reply. All
+ * received data is written to the specified buffer. If specified, the
+ * returned status code is written to the memory location pointed to by
+ * 'code'. In case of an error or an incomplete command, the status code is
+ * set to UINT32_MAX. The returned data does not include the status code and
+ * message len as received from the remote side but only the data associated
+ * with the message. The function handles all asynchronous log messages by
+ * logging them at the right log level.
+ *
+ * Returns:
+ *  - the number of bytes read
+ *    (may be zero if the message did not include any data)
+ *  - a negative value on error
+ */
+ssize_t
+sdb_client_rpc(sdb_client_t *client,
+		uint32_t cmd, uint32_t msg_len, const char *msg,
+		uint32_t *code, sdb_strbuf_t *buf);
+
+/*
  * sdb_client_send:
- * Send the specified command and accompanying data to through the client
- * connection.
+ * Send the specified command and accompanying data to the server.
  *
  * Returns:
  *  - the number of bytes send

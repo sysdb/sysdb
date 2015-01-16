@@ -303,6 +303,59 @@ sdb_client_close(sdb_client_t *client)
 } /* sdb_client_close */
 
 ssize_t
+sdb_client_rpc(sdb_client_t *client,
+		uint32_t cmd, uint32_t msg_len, const char *msg,
+		uint32_t *code, sdb_strbuf_t *buf)
+{
+	uint32_t rcode = 0;
+	ssize_t status;
+
+	if (! buf)
+		return -1;
+
+	if (sdb_client_send(client, cmd, msg_len, msg) < 0) {
+		char errbuf[1024];
+		sdb_strbuf_sprintf(buf, "Failed to send %s message to server: %s",
+				SDB_CONN_MSGTYPE_TO_STRING(cmd),
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		if (code)
+			*code = SDB_CONNECTION_ERROR;
+		return -1;
+	}
+
+	while (42) {
+		size_t offset = sdb_strbuf_len(buf);
+
+		status = sdb_client_recv(client, &rcode, buf);
+		if (status < 0) {
+			char errbuf[1024];
+			sdb_strbuf_sprintf(buf, "Failed to receive server response: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			if (code)
+				*code = SDB_CONNECTION_ERROR;
+			return status;
+		}
+
+		if (rcode == SDB_CONNECTION_LOG) {
+			uint32_t prio = 0;
+			if (sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &prio) < 0) {
+				sdb_log(SDB_LOG_WARNING, "Received a LOG message "
+						"with invalid or missing priority");
+				prio = (uint32_t)SDB_LOG_ERR;
+			}
+			sdb_log((int)prio, "%s", sdb_strbuf_string(buf) + offset);
+			sdb_strbuf_skip(buf, offset, sdb_strbuf_len(buf) - offset);
+			continue;
+		}
+		break;
+	}
+
+	if (code)
+		*code = rcode;
+	return status;
+} /* sdb_client_rpc */
+
+ssize_t
 sdb_client_send(sdb_client_t *client,
 		uint32_t cmd, uint32_t msg_len, const char *msg)
 {
