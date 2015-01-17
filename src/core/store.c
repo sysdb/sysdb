@@ -953,7 +953,7 @@ int
 sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data)
 {
-	sdb_avltree_iter_t *host_iter;
+	sdb_avltree_iter_t *host_iter = NULL;
 	int status = 0;
 
 	if (! cb)
@@ -966,9 +966,11 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 
 	pthread_rwlock_rdlock(&host_lock);
 
-	host_iter = sdb_avltree_get_iter(hosts);
-	if (! host_iter)
-		status = -1;
+	if (hosts) {
+		host_iter = sdb_avltree_get_iter(hosts);
+		if (! host_iter)
+			status = -1;
+	}
 
 	/* has_next returns false if the iterator is NULL */
 	while (sdb_avltree_iter_has_next(host_iter)) {

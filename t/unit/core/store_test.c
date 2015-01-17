@@ -693,8 +693,8 @@ START_TEST(test_scan)
 	/* empty store */
 	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
-	fail_unless(check == -1,
-			"sdb_store_scan(HOST), empty store = %d; expected: -1", check);
+	fail_unless(check == 0,
+			"sdb_store_scan(HOST), empty store = %d; expected: 0", check);
 	fail_unless(i == 0,
 			"sdb_store_scan(HOST) called callback %d times; "
 			"expected: 0", (int)i);
