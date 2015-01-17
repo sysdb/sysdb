@@ -153,6 +153,7 @@ pkgbackendcollectdlibdir = $(pkgbackendlibdir)/collectd
 pkgbackendpuppetlibdir = $(pkgbackendlibdir)/puppet
 pkgcnamelibdir = $(pkglibdir)/cname
 pkgtimeserieslibdir = $(pkglibdir)/timeseries
+pkgstorelibdir = $(pkglibdir)/store
 
 pkglib_LTLIBRARIES =
 pkgbackendlib_LTLIBRARIES =
@@ -160,6 +161,7 @@ pkgbackendcollectdlib_LTLIBRARIES =
 pkgbackendpuppetlib_LTLIBRARIES =
 pkgcnamelib_LTLIBRARIES =
 pkgtimeserieslib_LTLIBRARIES =
+pkgstorelib_LTLIBRARIES =
 
 if BUILD_PLUGIN_CNAMEDNS
 pkgcnamelib_LTLIBRARIES += plugins/cname/dns.la
@@ -216,6 +218,14 @@ plugins_timeseries_rrdtool_la_CFLAGS = $(AM_CFLAGS) @RRD_CFLAGS@
 plugins_timeseries_rrdtool_la_LDFLAGS = $(AM_LDFLAGS) @RRD_LIBS@ -module -avoid-version
 sysdbd_LDADD += -dlopen plugins/timeseries/rrdtool.la
 sysdbd_DEPENDENCIES += plugins/timeseries/rrdtool.la
+endif
+
+if BUILD_PLUGIN_STORENETWORK
+pkgstorelib_LTLIBRARIES += plugins/store/network.la
+plugins_store_network_la_SOURCES = plugins/store/network.c
+plugins_store_network_la_LDFLAGS = $(AM_LDFLAGS) libsysdbclient.la -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/store/network.la
+sysdbd_DEPENDENCIES += plugins/store/network.la
 endif
 
 include/client/sysdb.h: include/client/sysdb.h.in ../version

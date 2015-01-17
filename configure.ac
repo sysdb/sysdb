@@ -673,6 +673,11 @@ AC_SDB_PLUGIN([timeseries-rrdtool], [$rrdtool_default],
 		[fetch time-series data from RRD files])
 
 m4_divert_once([HELP_ENABLE], [
+Store writers:])
+AC_SDB_PLUGIN([store-network], [yes],
+		[send stored objects to a remote instance])
+
+m4_divert_once([HELP_ENABLE], [
 Plugins:])
 
 AC_SDB_PLUGIN([cname-dns], [yes],
@@ -726,6 +731,9 @@ AC_MSG_RESULT([    puppet::storeconfigs: . . . $enable_puppet_storeconfigs])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Time-series fetchers:])
 AC_MSG_RESULT([    rrdtool:  . . . . . . . . . $enable_timeseries_rrdtool])
+AC_MSG_RESULT()
+AC_MSG_RESULT([  Store writers:])
+AC_MSG_RESULT([    network:  . . . . . . . . . $enable_store_network])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Plugins:])
 AC_MSG_RESULT([    cname::dns: . . . . . . . . $enable_cname_dns])
