@@ -36,6 +36,9 @@ mkdir "$TESTDIR/backend"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_timeseries.so" "$TESTDIR"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
+mkdir "$TESTDIR/store"
+cp "$TOP_SRCDIR/src/plugins/store/.libs/network.so" "$TESTDIR/store"
+
 cp "$TOP_SRCDIR"/src/sysdb "$TESTDIR"
 cp "$TOP_SRCDIR"/src/sysdbd "$TESTDIR"
 
@@ -82,6 +85,9 @@ function stop_sysdbd() {
 
 function wait_for_sysdbd() {
 	local socket="$SOCKET_FILE"
+	if test -n "$1"; then
+		socket="$1"
+	fi
 	local i
 	for (( i=0; i<10; i++ )); do
 		if test -e "$socket"; then

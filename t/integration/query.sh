@@ -39,15 +39,32 @@ PluginDir "$PLUGIN_DIR"
 Interval 2
 
 LoadPlugin mock_timeseries
+EOF
+
+run_sysdbd -D -C "$SYSDBD_CONF"
+wait_for_sysdbd
+
+cat <<EOF > "${SYSDBD_CONF}.sender"
+Listen "${SOCKET_FILE}.sender"
+PluginDir "$PLUGIN_DIR"
+Interval 2
+
+LoadPlugin "store::network"
+<Plugin "store::network">
+  Server "$SOCKET_FILE"
+</Plugin>
 
 LoadBackend mock_plugin
 <Backend "mock_plugin">
 </Backend>
 EOF
 
-run_sysdbd -D -C "$SYSDBD_CONF"
+run_sysdbd_foreground -D -C "${SYSDBD_CONF}.sender" &
+SYSDBD_PID2=$!
+trap "kill \$SYSDBD_PID2" EXIT
+wait_for_sysdbd "${SOCKET_FILE}.sender"
 
-wait_for_sysdbd
+# wait for initial data
 sleep 3
 
 # Invalid user.
