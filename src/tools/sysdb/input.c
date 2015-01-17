@@ -160,7 +160,7 @@ input_readline(void)
 	}
 
 	if (sysdb_input->have_input)
-		prompt = "sysdb-> ";
+		prompt = "     -> ";
 	if (sdb_client_eof(sysdb_input->client))
 		prompt = "!-> ";
 
