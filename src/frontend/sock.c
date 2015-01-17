@@ -65,6 +65,7 @@
 
 #include <pwd.h>
 
+#include <fcntl.h>
 #include <netdb.h>
 #include <libgen.h>
 #include <pthread.h>
@@ -93,7 +94,14 @@ struct sdb_fe_socket {
 	listener_t *listeners;
 	size_t listeners_num;
 
+	/* list of open, idle connections; active connections will be passed on to
+	 * the connection handler threads which place them back after handling
+	 * pending actions; the trigger pipe is used to notify the main thread
+	 * after adding a connection (back) to the list */
 	sdb_llist_t *open_connections;
+	int trigger[2];
+#define TRIGGER_READ 0
+#define TRIGGER_WRITE 1
 
 	/* channel used for communication between main
 	 * and connection handler threads */
@@ -496,6 +504,7 @@ connection_handler(void *data)
 					"connection %s to list of open connections",
 					SDB_OBJ(conn)->name);
 		}
+		write(sock->trigger[TRIGGER_WRITE], "", 1);
 
 		/* pass ownership back to list; or destroy in case of an error */
 		sdb_object_deref(SDB_OBJ(conn));
@@ -575,13 +584,41 @@ sdb_fe_socket_t *
 sdb_fe_sock_create(void)
 {
 	sdb_fe_socket_t *sock;
+	int flags;
 
 	sock = calloc(1, sizeof(*sock));
 	if (! sock)
 		return NULL;
+	sock->trigger[TRIGGER_READ] = sock->trigger[TRIGGER_WRITE] = -1;
 
 	sock->open_connections = sdb_llist_create();
 	if (! sock->open_connections) {
+		sdb_fe_sock_destroy(sock);
+		return NULL;
+	}
+
+	if (pipe(sock->trigger)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to create pipe: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_fe_sock_destroy(sock);
+		return NULL;
+	}
+	/* TODO: Can we do a zero-byte write as well to trigger select()?
+	 * Linux does not seem to support the I_SWROPT ioctl on a pipe. */
+	flags = fcntl(sock->trigger[TRIGGER_WRITE], F_GETFL);
+	if (fcntl(sock->trigger[TRIGGER_WRITE], F_SETFL, flags | O_NONBLOCK)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to switch pipe to non-blocking "
+				"mode: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_fe_sock_destroy(sock);
+		return NULL;
+	}
+	flags = fcntl(sock->trigger[TRIGGER_READ], F_GETFL);
+	if (fcntl(sock->trigger[TRIGGER_READ], F_SETFL, flags | O_NONBLOCK)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to switch pipe to non-blocking "
+				"mode: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		sdb_fe_sock_destroy(sock);
 		return NULL;
 	}
@@ -595,6 +632,12 @@ sdb_fe_sock_destroy(sdb_fe_socket_t *sock)
 		return;
 
 	socket_clear(sock);
+
+	if (sock->trigger[TRIGGER_WRITE] >= 0)
+		close(sock->trigger[TRIGGER_WRITE]);
+	if (sock->trigger[TRIGGER_READ] >= 0)
+		close(sock->trigger[TRIGGER_READ]);
+	sock->trigger[TRIGGER_READ] = sock->trigger[TRIGGER_WRITE] = -1;
 
 	sdb_llist_destroy(sock->open_connections);
 	sock->open_connections = NULL;
@@ -694,6 +737,7 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		FD_ZERO(&exceptions);
 
 		ready = sockets;
+		FD_SET(sock->trigger[TRIGGER_READ], &ready);
 
 		iter = sdb_llist_get_iter(sock->open_connections);
 		if (! iter) {
@@ -733,6 +777,12 @@ sdb_fe_sock_listen_and_serve(sdb_fe_socket_t *sock, sdb_fe_loop_t *loop)
 		}
 		else if (! n)
 			continue;
+
+		if (FD_ISSET(sock->trigger[TRIGGER_READ], &ready)) {
+			char buf[1024];
+			while (read(sock->trigger[TRIGGER_READ], buf, sizeof(buf)) > 0)
+				/* do nothing */;
+		}
 
 		/* handle new and open connections */
 		if (socket_handle_incoming(sock, &ready, &exceptions))
