@@ -124,16 +124,15 @@ sdb_fe_store(sdb_conn_t *conn)
 			}
 			return sdb_fe_store_metric(conn, &metric);
 		}
-		case SDB_ATTRIBUTE:
-		{
-			sdb_proto_attribute_t attr;
-			if (sdb_proto_unmarshal_attribute(buf, len, &attr) < 0) {
-				sdb_strbuf_sprintf(conn->errbuf,
-						"STORE: Failed to unmarshal attribute object");
-				return -1;
-			}
-			return sdb_fe_store_attribute(conn, &attr);
+	}
+	if (type & SDB_ATTRIBUTE) {
+		sdb_proto_attribute_t attr;
+		if (sdb_proto_unmarshal_attribute(buf, len, &attr) < 0) {
+			sdb_strbuf_sprintf(conn->errbuf,
+					"STORE: Failed to unmarshal attribute object");
+			return -1;
 		}
+		return sdb_fe_store_attribute(conn, &attr);
 	}
 
 	sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d for "
