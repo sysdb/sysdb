@@ -38,6 +38,8 @@ Listen "$SOCKET_FILE"
 PluginDir "$PLUGIN_DIR"
 Interval 2
 
+LoadPlugin mock_timeseries
+
 LoadBackend mock_plugin
 <Backend "mock_plugin">
 </Backend>

@@ -33,6 +33,7 @@ TESTDIR="$( mktemp -d )"
 trap "rm -rf '$TESTDIR'; test -z \$SYSDBD_PID || kill \$SYSDBD_PID" EXIT
 
 mkdir "$TESTDIR/backend"
+cp "$TOP_SRCDIR/t/integration/.libs/mock_timeseries.so" "$TESTDIR"
 cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
 cp "$TOP_SRCDIR"/src/sysdb "$TESTDIR"

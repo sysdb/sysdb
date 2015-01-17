@@ -77,5 +77,11 @@ integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
 integration_mock_plugin_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version \
 		-rpath /nonexistent
 
+check_LTLIBRARIES += integration/mock_timeseries.la
+integration_mock_timeseries_la_SOURCES = integration/mock_timeseries.c
+# -rpath is a work-around to enforce a shared library
+integration_mock_timeseries_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version \
+		-rpath /nonexistent
+
 test: check
 
