@@ -280,9 +280,6 @@ command_handle(sdb_conn_t *conn)
 	assert(conn && (conn->cmd != SDB_CONNECTION_IDLE));
 	assert(! conn->skip_len);
 
-	sdb_log(SDB_LOG_DEBUG, "frontend: Handling command %u (len: %u)",
-			conn->cmd, conn->cmd_len);
-
 	if (conn->cmd == SDB_CONNECTION_PING)
 		status = sdb_connection_ping(conn);
 	else if (conn->cmd == SDB_CONNECTION_STARTUP)
