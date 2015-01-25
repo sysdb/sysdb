@@ -32,3 +32,10 @@
    fun:__nss_database_lookup
    ...
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   fun:dl_open_worker
+   ...
+}
