@@ -75,6 +75,8 @@ user_data_destroy(void *obj)
 	if (ud->username)
 		free(ud->username);
 	ud->username = NULL;
+
+	free(ud);
 } /* user_data_destroy */
 
 /*
