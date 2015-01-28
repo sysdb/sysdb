@@ -60,6 +60,9 @@
 
 #include <pthread.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #ifndef CONFIGFILE
 #	define CONFIGFILE SYSCONFDIR"/sysdb/sysdbd.conf"
 #endif
@@ -366,6 +369,9 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
+
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 
@@ -389,6 +395,8 @@ main(int argc, char **argv)
 	sdb_log(SDB_LOG_INFO, "Shutting down SysDB daemon "SDB_VERSION_STRING
 			SDB_VERSION_EXTRA" (pid %i)", (int)getpid());
 	sdb_plugin_shutdown_all();
+
+	ERR_free_strings();
 	return status;
 } /* main */
 

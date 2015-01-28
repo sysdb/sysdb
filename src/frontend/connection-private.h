@@ -37,6 +37,7 @@
 #include "core/object.h"
 #include "core/store.h"
 #include "core/timeseries.h"
+#include "utils/ssl.h"
 #include "utils/strbuf.h"
 
 #include <inttypes.h>
@@ -62,7 +63,7 @@ struct sdb_conn {
 	ssize_t (*read)(sdb_conn_t *, size_t);
 	ssize_t (*write)(sdb_conn_t *, const void *, size_t);
 	int (*finish)(sdb_conn_t *);
-	void *session;
+	sdb_ssl_session_t *ssl_session;
 
 	/* read buffer */
 	sdb_strbuf_t *buf;

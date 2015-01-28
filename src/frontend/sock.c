@@ -38,6 +38,7 @@
 #include "utils/error.h"
 #include "utils/llist.h"
 #include "utils/os.h"
+#include "utils/ssl.h"
 #include "utils/strbuf.h"
 
 #include <assert.h>
@@ -78,6 +79,10 @@ typedef struct {
 	char *address;
 	int   type;
 
+	/* optional SSL settings */
+	sdb_ssl_server_t *ssl;
+
+	/* listener configuration */
 	int sock_fd;
 	int (*setup)(sdb_conn_t *, void *);
 } listener_t;
@@ -107,6 +112,30 @@ struct sdb_fe_socket {
 	 * and connection handler threads */
 	sdb_channel_t *chan;
 };
+
+/*
+ * SSL helper functions
+ */
+
+static ssize_t
+ssl_read(sdb_conn_t *conn, size_t n)
+{
+	char buf[n];
+	ssize_t ret;
+
+	ret = sdb_ssl_session_read(conn->ssl_session, buf, n);
+	if (ret <= 0)
+		return ret;
+
+	sdb_strbuf_memappend(conn->buf, buf, ret);
+	return ret;
+} /* ssl_read */
+
+static ssize_t
+ssl_write(sdb_conn_t *conn, const void *buf, size_t n)
+{
+	return sdb_ssl_session_write(conn->ssl_session, buf, n);
+} /* ssl_write */
 
 /*
  * connection management functions
@@ -226,12 +255,45 @@ close_unixsock(listener_t *listener)
 } /* close_unixsock */
 
 static int
+finish_tcp(sdb_conn_t *conn)
+{
+	if (! conn->ssl_session)
+		return 0;
+
+	sdb_ssl_session_destroy(conn->ssl_session);
+	conn->ssl_session = NULL;
+	return 0;
+} /* finish_tcp */
+
+static int
+setup_tcp(sdb_conn_t *conn, void *user_data)
+{
+	listener_t *listener = user_data;
+
+	conn->ssl_session = sdb_ssl_server_accept(listener->ssl, conn->fd);
+	if (! conn->ssl_session)
+		return -1;
+
+	conn->username = sdb_ssl_session_peer(conn->ssl_session);
+
+	conn->finish = finish_tcp;
+	conn->read = ssl_read;
+	conn->write = ssl_write;
+	return 0;
+} /* setup_tcp */
+
+static int
 open_tcp(listener_t *listener)
 {
 	struct addrinfo *ai, *ai_list = NULL;
 	int status;
 
 	assert(listener);
+
+	/* TODO: make options configurable */
+	listener->ssl = sdb_ssl_server_create(NULL);
+	if (! listener->ssl)
+		return -1;
 
 	if ((status = sdb_resolve(SDB_NET_TCP, listener->address, &ai_list))) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to resolve '%s': %s",
@@ -277,6 +339,8 @@ open_tcp(listener_t *listener)
 
 	if (listener->sock_fd < 0)
 		return -1;
+
+	listener->setup = setup_tcp;
 	return 0;
 } /* open_tcp */
 
@@ -284,6 +348,9 @@ static void
 close_tcp(listener_t *listener)
 {
 	assert(listener);
+
+	sdb_ssl_server_destroy(listener->ssl);
+	listener->ssl = NULL;
 
 	if (listener->sock_fd >= 0)
 		close(listener->sock_fd);
@@ -424,6 +491,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	}
 	listener->type = type;
 	listener->setup = NULL;
+	listener->ssl = NULL;
 
 	if (listener_impls[type].open(listener)) {
 		/* prints error */
@@ -519,7 +587,7 @@ connection_accept(sdb_fe_socket_t *sock, listener_t *listener)
 	int status;
 
 	obj = SDB_OBJ(sdb_connection_accept(listener->sock_fd,
-				listener->setup, NULL));
+				listener->setup, listener));
 	if (! obj)
 		return -1;
 

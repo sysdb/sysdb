@@ -125,7 +125,7 @@ connection_init(sdb_object_t *obj, va_list ap)
 	conn->read = conn_read;
 	conn->write = conn_write;
 	conn->finish = NULL;
-	conn->session = NULL;
+	conn->ssl_session = NULL;
 
 	sock_fl = fcntl(conn->fd, F_GETFL);
 	if (fcntl(conn->fd, F_SETFL, sock_fl | O_NONBLOCK)) {
