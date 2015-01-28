@@ -39,6 +39,7 @@ pkgutilsinclude_HEADERS = \
 		include/utils/llist.h \
 		include/utils/os.h \
 		include/utils/proto.h \
+		include/utils/ssl.h \
 		include/utils/strbuf.h \
 		include/utils/unixsock.h
 
@@ -95,14 +96,15 @@ libsysdb_la_SOURCES = \
 		utils/llist.c include/utils/llist.h \
 		utils/os.c include/utils/os.h \
 		utils/proto.c include/utils/proto.h \
+		utils/ssl.c include/utils/ssl.h \
 		utils/strbuf.c include/utils/strbuf.h \
 		utils/unixsock.c include/utils/unixsock.h
-libsysdb_la_CFLAGS = $(AM_CFLAGS)
+libsysdb_la_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdb_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 \
 		-pthread -lm -lrt
 libsysdb_la_LIBADD = libsysdb_fe_parser.la \
-		$(LIBLTDL) liboconfig/liboconfig.la
+		$(LIBLTDL) liboconfig/liboconfig.la @OPENSSL_LIBS@
 libsysdb_la_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
 
 if BUILD_WITH_LIBDBI
@@ -134,11 +136,12 @@ endif
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
 		tools/sysdbd/configfile.c tools/sysdbd/configfile.h \
 		$(libsysdb_la_SOURCES)
-sysdbd_CFLAGS = $(AM_CFLAGS) -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
+sysdbd_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@ \
+		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 sysdbd_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 sysdbd_LDFLAGS = $(AM_LDFLAGS) -export-dynamic -pthread -lm
 sysdbd_LDADD = libsysdb_fe_parser.la liboconfig/liboconfig.la \
-		$(LIBLTDL) -lrt
+		$(LIBLTDL) -lrt @OPENSSL_LIBS@
 sysdbd_DEPENDENCIES = libsysdb_fe_parser.la liboconfig/liboconfig.la
 
 if BUILD_WITH_LIBDBI

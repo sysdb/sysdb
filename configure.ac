@@ -483,6 +483,12 @@ if test "x$have_fopencookie" = "xyes"; then
 	AC_DEFINE([HAVE_FOPENCOOKIE], 1)
 fi
 
+dnl OpenSSL support
+PKG_CHECK_MODULES([OPENSSL], [openssl], [have_openssl="yes"], [have_openssl="no"])
+if test "x$have_openssl" != "xyes"; then
+	AC_MSG_ERROR([OpenSSL not found])
+fi
+
 dnl readline support
 AC_ARG_WITH([readline],
 		[AS_HELP_STRING([--with-readline],
@@ -720,6 +726,7 @@ AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])
 AC_MSG_RESULT([    libedit:  . . . . . . . . . $have_libedit])
+AC_MSG_RESULT([    libopenssl: . . . . . . . . $have_openssl])
 AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
 AC_MSG_RESULT([    librrd: . . . . . . . . . . $have_librrd])
 AC_MSG_RESULT()
