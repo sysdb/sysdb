@@ -700,6 +700,32 @@ AC_OUTPUT
 
 BUILD_DATE="`date --utc '+%F %T'` (UTC)"
 
+asciidoc_info="$have_asciidoc"
+if test "x$have_asciidoc" = "xyes"; then
+	asciidoc_info="`$ASCIIDOC --version`"
+fi
+xmlto_info="$have_xmlto"
+if test "x$have_xmlto" = "xyes"; then
+	xmlto_info="`$XMLTO --version`"
+fi
+
+if test "x$unit_tests" = "xyes"; then
+	unit_tests="yes (check `$PKG_CONFIG --modversion check`)"
+fi
+
+openssl_info="$have_openssl"
+if test "x$have_openssl" = "xyes"; then
+	openssl_info="yes (version `$PKG_CONFIG --modversion openssl`)"
+fi
+libedit_info="$have_libedit"
+if test "x$have_libedit" = "xyes"; then
+	libedit_info="yes (version `$PKG_CONFIG --modversion libedit`)"
+fi
+librrd_info="$have_librrd"
+if test "x$have_librrd" = "xyes"; then
+	librrd_info="yes (version `$PKG_CONFIG --modversion librrd`)"
+fi
+
 AC_MSG_RESULT()
 AC_MSG_RESULT([$PACKAGE_NAME has been configured successfully.])
 AC_MSG_RESULT()
@@ -712,8 +738,8 @@ AC_MSG_RESULT([  package version: $PACKAGE_VERSION])
 AC_MSG_RESULT([  build date: $BUILD_DATE])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Tools:])
-AC_MSG_RESULT([    AsciiDoc: . . . . . . . . . $have_asciidoc])
-AC_MSG_RESULT([    xmlto:  . . . . . . . . . . $have_xmlto])
+AC_MSG_RESULT([    AsciiDoc: . . . . . . . . . $asciidoc_info])
+AC_MSG_RESULT([    xmlto:  . . . . . . . . . . $xmlto_info])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Features:])
 AC_MSG_RESULT([    documentation:  . . . . . . $build_documentation])
@@ -725,10 +751,10 @@ AC_MSG_RESULT([    profiling:  . . . . . . . . $enable_gprof])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Libraries:])
 AC_MSG_RESULT([    libdbi: . . . . . . . . . . $with_libdbi])
-AC_MSG_RESULT([    libedit:  . . . . . . . . . $have_libedit])
-AC_MSG_RESULT([    libopenssl: . . . . . . . . $have_openssl])
+AC_MSG_RESULT([    libedit:  . . . . . . . . . $libedit_info])
+AC_MSG_RESULT([    libopenssl: . . . . . . . . $openssl_info])
 AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
-AC_MSG_RESULT([    librrd: . . . . . . . . . . $have_librrd])
+AC_MSG_RESULT([    librrd: . . . . . . . . . . $librrd_info])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd::unixsock: . . . . $enable_collectd_unixsock])
