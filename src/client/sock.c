@@ -34,6 +34,7 @@
 #include "utils/strbuf.h"
 #include "utils/proto.h"
 #include "utils/os.h"
+#include "utils/ssl.h"
 
 #include <arpa/inet.h>
 
@@ -62,6 +63,10 @@ struct sdb_client {
 	int   fd;
 	bool  eof;
 
+	/* optional SSL settings */
+	sdb_ssl_client_t *ssl;
+	sdb_ssl_session_t *ssl_session;
+
 	ssize_t (*read)(sdb_client_t *, sdb_strbuf_t *, size_t);
 	ssize_t (*write)(sdb_client_t *, const void *, size_t);
 };
@@ -69,6 +74,26 @@ struct sdb_client {
 /*
  * private helper functions
  */
+
+static ssize_t
+ssl_read(sdb_client_t *client, sdb_strbuf_t *buf, size_t n)
+{
+	char tmp[n];
+	ssize_t ret;
+
+	ret = sdb_ssl_session_read(client->ssl_session, tmp, n);
+	if (ret <= 0)
+		return ret;
+
+	sdb_strbuf_memappend(buf, tmp, ret);
+	return ret;
+} /* ssl_read */
+
+static ssize_t
+ssl_write(sdb_client_t *client, const void *buf, size_t n)
+{
+	return sdb_ssl_session_write(client->ssl_session, buf, n);
+} /* ssl_write */
 
 static ssize_t
 client_read(sdb_client_t *client, sdb_strbuf_t *buf, size_t n)
@@ -142,6 +167,24 @@ connect_tcp(sdb_client_t *client, const char *address)
 		break;
 	}
 	freeaddrinfo(ai_list);
+
+	if (client->fd < 0)
+		return -1;
+
+	/* TODO: make options configurable */
+	client->ssl = sdb_ssl_client_create(NULL);
+	if (! client->ssl) {
+		sdb_client_close(client);
+		return -1;
+	}
+	client->ssl_session = sdb_ssl_client_connect(client->ssl, client->fd);
+	if (! client->ssl_session) {
+		sdb_client_close(client);
+		return -1;
+	}
+
+	client->read = ssl_read;
+	client->write = ssl_write;
 	return client->fd;
 } /* connect_tcp */
 
@@ -166,6 +209,7 @@ sdb_client_create(const char *address)
 	client->fd = -1;
 	client->eof = 1;
 
+	client->ssl = NULL;
 	client->read = client_read;
 	client->write = client_write;
 
@@ -288,6 +332,15 @@ sdb_client_close(sdb_client_t *client)
 {
 	if (! client)
 		return;
+
+	if (client->ssl_session) {
+		sdb_ssl_session_destroy(client->ssl_session);
+		client->ssl_session = NULL;
+	}
+	if (client->ssl) {
+		sdb_ssl_client_destroy(client->ssl);
+		client->ssl = NULL;
+	}
 
 	close(client->fd);
 	client->fd = -1;

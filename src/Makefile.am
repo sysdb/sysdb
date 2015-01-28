@@ -57,12 +57,13 @@ libsysdbclient_la_SOURCES = \
 		client/sock.c include/client/sock.h \
 		utils/error.c include/utils/error.h \
 		utils/proto.c include/utils/proto.h \
+		utils/ssl.c include/utils/ssl.h \
 		utils/strbuf.c include/utils/strbuf.h
-libsysdbclient_la_CFLAGS = $(AM_CFLAGS)
+libsysdbclient_la_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 \
 		-pthread -lm -lrt
-libsysdbclient_la_LIBADD = $(LIBLTDL)
+libsysdbclient_la_LIBADD = $(LIBLTDL) @OPENSSL_LIBS@
 
 # don't use strict CFLAGS for flex code
 noinst_LTLIBRARIES += libsysdb_fe_parser.la

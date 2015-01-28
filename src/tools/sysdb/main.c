@@ -77,6 +77,9 @@
 #	endif
 #endif /* READLINEs */
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #ifndef DEFAULT_SOCKET
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
@@ -278,6 +281,9 @@ main(int argc, char **argv)
 	if (! input.user)
 		exit(1);
 
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
+
 	input.client = sdb_client_create(host);
 	if (! input.client) {
 		sdb_log(SDB_LOG_ERR, "Failed to create client object");
@@ -342,6 +348,8 @@ main(int argc, char **argv)
 
 	sdb_client_destroy(input.client);
 	sdb_strbuf_destroy(input.input);
+
+	ERR_free_strings();
 	return 0;
 } /* main */
 
