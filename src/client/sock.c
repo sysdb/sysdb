@@ -384,9 +384,6 @@ sdb_client_recv(sdb_client_t *client,
 	while (42) {
 		ssize_t status;
 
-		if (sdb_select(client->fd, SDB_SELECTIN))
-			return -1;
-
 		errno = 0;
 		status = client->read(client, buf, req);
 		if (status < 0) {
