@@ -393,6 +393,7 @@ listener_listen(listener_t *listener)
 				listener->address, sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
+	sdb_log(SDB_LOG_INFO, "frontend: Listening on %s", listener->address);
 	return 0;
 } /* listener_listen */
 
