@@ -120,18 +120,28 @@ exit_usage(char *name, int status)
 	printf(
 "Usage: %s <options>\n"
 
-"\nOptions:\n"
-"  -H HOST   the host to connect to\n"
-"            default: "DEFAULT_SOCKET"\n"
-"  -U USER   the username to connect as\n"
-"            default: %s\n"
-"  -c CMD    execute the specified command and then exit\n"
+"Connection options:\n"
+"  -H HOST      the host to connect to\n"
+"               default: "DEFAULT_SOCKET"\n"
+"  -U USER      the username to connect as\n"
+"               default: %s\n"
+"  -c CMD       execute the specified command and then exit\n"
 "\n"
-"  -h        display this help and exit\n"
-"  -V        display the version number and copyright\n"
+"SSL options:\n"
+"  -K KEYFILE   private key file name\n"
+"               default: %s\n"
+"  -C CERTFILE  client certificate file name\n"
+"               default: %s\n"
+"\n"
+"General options:\n"
+"\n"
+"  -h           display this help and exit\n"
+"  -V           display the version number and copyright\n"
 
 "\nSysDB client "SDB_CLIENT_VERSION_STRING SDB_CLIENT_VERSION_EXTRA", "
-PACKAGE_URL"\n", basename(name), user);
+PACKAGE_URL"\n", basename(name), user,
+			ssl_options.key_file, ssl_options.cert_file);
+
 	free(user);
 	exit(status);
 } /* exit_usage */
@@ -217,7 +227,7 @@ main(int argc, char **argv)
 	sdb_llist_t *commands = NULL;
 
 	while (42) {
-		int opt = getopt(argc, argv, "H:U:c:hV");
+		int opt = getopt(argc, argv, "H:U:c:C:K:hV");
 
 		if (-1 == opt)
 			break;
@@ -252,6 +262,13 @@ main(int argc, char **argv)
 					}
 					sdb_object_deref(obj);
 				}
+				break;
+
+			case 'C':
+				ssl_options.cert_file = optarg;
+				break;
+			case 'K':
+				ssl_options.key_file = optarg;
 				break;
 
 			case 'h':
