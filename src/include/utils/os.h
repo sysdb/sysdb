@@ -36,6 +36,18 @@ extern "C" {
 #endif
 
 /*
+ * sdb_get_homedir:
+ * Returns the home directory of the current user. The buffer to hold the
+ * return value is allocated dynamically and has to be freed by the caller.
+ *
+ * Returns:
+ *  - the current user's home directory on success
+ *  - NULL else
+ */
+char *
+sdb_get_homedir(void);
+
+/*
  * sysdb_mkdir_all:
  * Recursively create the directory 'pathname' (similar to 'mkdir -p' on the
  * command line) using file permissions as specified by 'mode'.

@@ -53,6 +53,37 @@
  * public API
  */
 
+char *
+sdb_get_homedir(void)
+{
+	char *username = sdb_get_current_user();
+
+	struct passwd pw_entry;
+	struct passwd *result = NULL;
+
+	char buf[4096];
+
+	int status;
+
+	if (username) {
+		memset(&pw_entry, 0, sizeof(pw_entry));
+		status = getpwnam_r(username, &pw_entry, buf, sizeof(buf), &result);
+	}
+	else
+		status = -1;
+
+	if (status || (! result)) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_WARNING, "os: Failed to determine home directory "
+				"for user %s: %s", username,
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		free(username);
+		return NULL;
+	}
+	free(username);
+	return strdup(result->pw_dir);
+} /* sdb_get_homedir */
+
 int
 sdb_mkdir_all(const char *pathname, mode_t mode)
 {
@@ -152,7 +183,7 @@ sdb_get_current_user(void)
 
 	uid_t uid;
 
-	char buf[1024];
+	char buf[4096];
 	int status;
 
 	uid = geteuid();

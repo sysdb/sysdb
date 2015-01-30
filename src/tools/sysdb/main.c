@@ -84,38 +84,6 @@
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
 
-static const char *
-get_homedir(void)
-{
-	char *username = sdb_get_current_user();
-
-	struct passwd pw_entry;
-	struct passwd *result = NULL;
-
-	/* needs to be static because we return a pointer into this buffer
-	 * to the caller */
-	static char buf[1024];
-
-	int status;
-
-	if (username) {
-		memset(&pw_entry, 0, sizeof(pw_entry));
-		status = getpwnam_r(username, &pw_entry, buf, sizeof(buf), &result);
-	}
-	else
-		status = -1;
-
-	if (status || (! result)) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_WARNING, "Failed to determine home directory "
-				"for user %s: %s", username,
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-		free(username);
-		return NULL;
-	}
-	free(username);
-	return result->pw_dir;
-} /* get_homedir */
 
 static void
 exit_usage(char *name, int status)
@@ -214,7 +182,7 @@ main(int argc, char **argv)
 {
 	const char *host = NULL;
 
-	const char *homedir;
+	char *homedir;
 	char hist_file[1024] = "";
 
 	sdb_input_t input = SDB_INPUT_INIT;
@@ -313,10 +281,12 @@ main(int argc, char **argv)
 
 	using_history();
 
-	if ((homedir = get_homedir())) {
+	if ((homedir = sdb_get_homedir())) {
 		snprintf(hist_file, sizeof(hist_file) - 1,
 				"%s/.sysdb_history", homedir);
 		hist_file[sizeof(hist_file) - 1] = '\0';
+		free(homedir);
+		homedir = NULL;
 
 		errno = 0;
 		if (read_history(hist_file) && (errno != ENOENT)) {
