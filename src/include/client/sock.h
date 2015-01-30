@@ -31,6 +31,7 @@
 #include "core/object.h"
 #include "core/data.h"
 #include "frontend/proto.h"
+#include "utils/ssl.h"
 #include "utils/strbuf.h"
 
 #include <sys/socket.h>
@@ -59,10 +60,21 @@ sdb_client_create(const char *address);
 
 /*
  * sdb_client_destroy:
- * Destroyes the client connection and deallocates the client object.
+ * Destroys the client connection and deallocates the client object.
  */
 void
 sdb_client_destroy(sdb_client_t *client);
+
+/*
+ * sdb_client_set_ssl_options:
+ * Use the specified options for any SSL connections.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_client_set_ssl_options(sdb_client_t *client, const sdb_ssl_options_t *opts);
 
 /*
  * sdb_client_connect:

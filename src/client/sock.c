@@ -64,6 +64,7 @@ struct sdb_client {
 	bool  eof;
 
 	/* optional SSL settings */
+	sdb_ssl_options_t ssl_opts;
 	sdb_ssl_client_t *ssl;
 	sdb_ssl_session_t *ssl_session;
 
@@ -171,8 +172,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 	if (client->fd < 0)
 		return -1;
 
-	/* TODO: make options configurable */
-	client->ssl = sdb_ssl_client_create(NULL);
+	client->ssl = sdb_ssl_client_create(&client->ssl_opts);
 	if (! client->ssl) {
 		sdb_client_close(client);
 		return -1;
@@ -187,6 +187,20 @@ connect_tcp(sdb_client_t *client, const char *address)
 	client->write = ssl_write;
 	return client->fd;
 } /* connect_tcp */
+
+static void
+free_ssl_options(sdb_ssl_options_t *opts)
+{
+	if (opts->ca_file)
+		free(opts->ca_file);
+	if (opts->key_file)
+		free(opts->key_file);
+	if (opts->cert_file)
+		free(opts->cert_file);
+	if (opts->crl_file)
+		free(opts->crl_file);
+	opts->ca_file = opts->key_file = opts->cert_file = opts->crl_file = NULL;
+} /* free_ssl_options */
 
 /*
  * public API
@@ -235,8 +249,46 @@ sdb_client_destroy(sdb_client_t *client)
 		free(client->address);
 	client->address = NULL;
 
+	free_ssl_options(&client->ssl_opts);
+
 	free(client);
 } /* sdb_client_destroy */
+
+int
+sdb_client_set_ssl_options(sdb_client_t *client, const sdb_ssl_options_t *opts)
+{
+	int ret = 0;
+
+	if ((! client) || (! opts))
+		return -1;
+
+	free_ssl_options(&client->ssl_opts);
+
+	if (opts->ca_file) {
+		client->ssl_opts.ca_file = strdup(opts->ca_file);
+		if (! client->ssl_opts.ca_file)
+			ret = -1;
+	}
+	if (opts->key_file) {
+		client->ssl_opts.key_file = strdup(opts->key_file);
+		if (! client->ssl_opts.key_file)
+			ret = -1;
+	}
+	if (opts->cert_file) {
+		client->ssl_opts.cert_file = strdup(opts->cert_file);
+		if (! client->ssl_opts.cert_file)
+			ret = -1;
+	}
+	if (opts->crl_file) {
+		client->ssl_opts.crl_file = strdup(opts->crl_file);
+		if (! client->ssl_opts.crl_file)
+			ret = -1;
+	}
+
+	if (ret)
+		free_ssl_options(&client->ssl_opts);
+	return ret;
+} /* sdb_client_set_ssl_options */
 
 int
 sdb_client_connect(sdb_client_t *client, const char *username)
