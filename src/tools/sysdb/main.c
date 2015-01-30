@@ -84,6 +84,34 @@
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
 #endif
 
+static sdb_ssl_options_t ssl_options = {
+	/* ca_file */   SDB_SSL_CAFILE,
+	/* key_file */  "~/.config/sysdb/ssl/key.pem",
+	/* cert_file */ "~/.config/sysdb/ssl/cert.pem",
+	/* crl_file */  "~/.config/sysdb/ssl/crl.pem",
+};
+
+static void
+canonicalize_ssl_options(void)
+{
+	char *tmp;
+	if (ssl_options.ca_file) {
+		tmp = sdb_realpath(ssl_options.ca_file);
+		ssl_options.ca_file = tmp ? tmp : strdup(ssl_options.ca_file);
+	}
+	if (ssl_options.key_file) {
+		tmp = sdb_realpath(ssl_options.key_file);
+		ssl_options.key_file = tmp ? tmp : strdup(ssl_options.key_file);
+	}
+	if (ssl_options.cert_file) {
+		tmp = sdb_realpath(ssl_options.cert_file);
+		ssl_options.cert_file = tmp ? tmp : strdup(ssl_options.cert_file);
+	}
+	if (ssl_options.crl_file) {
+		tmp = sdb_realpath(ssl_options.crl_file);
+		ssl_options.crl_file = tmp ? tmp : strdup(ssl_options.crl_file);
+	}
+} /* canonicalize_ssl_options */
 
 static void
 exit_usage(char *name, int status)
@@ -258,6 +286,14 @@ main(int argc, char **argv)
 		sdb_input_reset(&input);
 		exit(1);
 	}
+	canonicalize_ssl_options();
+	if (sdb_client_set_ssl_options(input.client, &ssl_options)) {
+		sdb_log(SDB_LOG_ERR, "Failed to apply SSL options");
+		sdb_input_reset(&input);
+		sdb_ssl_free_options(&ssl_options);
+		exit(1);
+	}
+	sdb_ssl_free_options(&ssl_options);
 	if (sdb_client_connect(input.client, input.user)) {
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
 		sdb_input_reset(&input);
