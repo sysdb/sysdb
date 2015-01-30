@@ -188,20 +188,6 @@ connect_tcp(sdb_client_t *client, const char *address)
 	return client->fd;
 } /* connect_tcp */
 
-static void
-free_ssl_options(sdb_ssl_options_t *opts)
-{
-	if (opts->ca_file)
-		free(opts->ca_file);
-	if (opts->key_file)
-		free(opts->key_file);
-	if (opts->cert_file)
-		free(opts->cert_file);
-	if (opts->crl_file)
-		free(opts->crl_file);
-	opts->ca_file = opts->key_file = opts->cert_file = opts->crl_file = NULL;
-} /* free_ssl_options */
-
 /*
  * public API
  */
@@ -249,7 +235,7 @@ sdb_client_destroy(sdb_client_t *client)
 		free(client->address);
 	client->address = NULL;
 
-	free_ssl_options(&client->ssl_opts);
+	sdb_ssl_free_options(&client->ssl_opts);
 
 	free(client);
 } /* sdb_client_destroy */
@@ -262,7 +248,7 @@ sdb_client_set_ssl_options(sdb_client_t *client, const sdb_ssl_options_t *opts)
 	if ((! client) || (! opts))
 		return -1;
 
-	free_ssl_options(&client->ssl_opts);
+	sdb_ssl_free_options(&client->ssl_opts);
 
 	if (opts->ca_file) {
 		client->ssl_opts.ca_file = strdup(opts->ca_file);
@@ -286,7 +272,7 @@ sdb_client_set_ssl_options(sdb_client_t *client, const sdb_ssl_options_t *opts)
 	}
 
 	if (ret)
-		free_ssl_options(&client->ssl_opts);
+		sdb_ssl_free_options(&client->ssl_opts);
 	return ret;
 } /* sdb_client_set_ssl_options */
 

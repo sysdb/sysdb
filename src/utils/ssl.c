@@ -164,19 +164,6 @@ copy_options(sdb_ssl_options_t *dst, sdb_ssl_options_t *src)
 	return 0;
 } /* copy_options */
 
-static void
-free_options(sdb_ssl_options_t *opts)
-{
-	if (opts->ca_file)
-		free(opts->ca_file);
-	if (opts->key_file)
-		free(opts->key_file);
-	if (opts->cert_file)
-		free(opts->cert_file);
-	if (opts->crl_file)
-		free(opts->crl_file);
-} /* free_options */
-
 /*
  * public API
  */
@@ -243,7 +230,7 @@ sdb_ssl_client_destroy(sdb_ssl_client_t *client)
 
 	if (client->ctx)
 		SSL_CTX_free(client->ctx);
-	free_options(&client->opts);
+	sdb_ssl_free_options(&client->opts);
 	free(client);
 } /* sdb_ssl_client_destroy */
 
@@ -364,7 +351,7 @@ sdb_ssl_server_destroy(sdb_ssl_server_t *server)
 
 	if (server->ctx)
 		SSL_CTX_free(server->ctx);
-	free_options(&server->opts);
+	sdb_ssl_free_options(&server->opts);
 	free(server);
 } /* sdb_ssl_server_destroy */
 
@@ -511,6 +498,24 @@ sdb_ssl_session_read(sdb_ssl_session_t *session, void *buf, size_t n)
 	errno = ECONNRESET;
 	return -1;
 } /* sdb_ssl_session_read */
+
+void
+sdb_ssl_free_options(sdb_ssl_options_t *opts)
+{
+	if (! opts)
+		return;
+
+	if (opts->ca_file)
+		free(opts->ca_file);
+	if (opts->key_file)
+		free(opts->key_file);
+	if (opts->cert_file)
+		free(opts->cert_file);
+	if (opts->crl_file)
+		free(opts->crl_file);
+
+	opts->ca_file = opts->key_file = opts->cert_file = opts->crl_file = NULL;
+} /* sdb_ssl_free_options */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

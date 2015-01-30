@@ -143,6 +143,14 @@ sdb_ssl_session_write(sdb_ssl_session_t *session, const void *buf, size_t n);
 ssize_t
 sdb_ssl_session_read(sdb_ssl_session_t *session, void *buf, size_t n);
 
+/*
+ * sdb_ssl_free_options:
+ * Free all strings stored in the specified options. All fields will be set to
+ * NULL.
+ */
+void
+sdb_ssl_free_options(sdb_ssl_options_t *opts);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
