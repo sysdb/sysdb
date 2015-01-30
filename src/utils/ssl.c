@@ -191,7 +191,8 @@ sdb_ssl_client_create(sdb_ssl_options_t *opts)
 
 	if (! SSL_CTX_load_verify_locations(client->ctx,
 				client->opts.ca_file, NULL)) {
-		ssl_log(SDB_LOG_ERR, "ssl: Failed to load CA file");
+		ssl_log(SDB_LOG_ERR, "ssl: Failed to load CA file '%s'",
+				client->opts.ca_file);
 		sdb_ssl_client_destroy(client);
 		return NULL;
 	}
