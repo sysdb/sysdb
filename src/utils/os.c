@@ -84,6 +84,29 @@ sdb_get_homedir(void)
 	return strdup(result->pw_dir);
 } /* sdb_get_homedir */
 
+char *
+sdb_realpath(const char *path)
+{
+	if (! path)
+		return NULL;
+
+	if ((strlen(path) >= 2) && (path[0] == '~') && (path[1] == '/')) {
+		char *homedir = sdb_get_homedir();
+		char tmp[(homedir ? strlen(homedir) : 0) + strlen(path)];
+		char *ret;
+
+		if (! homedir)
+			return NULL;
+
+		snprintf(tmp, sizeof(tmp), "%s/%s", homedir, path + 2);
+		ret = realpath(tmp, NULL);
+		free(homedir);
+		return ret;
+	}
+
+	return realpath(path, NULL);
+} /* sdb_realpath */
+
 int
 sdb_mkdir_all(const char *pathname, mode_t mode)
 {

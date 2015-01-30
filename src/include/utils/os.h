@@ -48,6 +48,22 @@ char *
 sdb_get_homedir(void);
 
 /*
+ * sdb_realpath:
+ * Returns the canonicalized absolute pathname for the specified path. The
+ * function expands all symbolic links and resolves references to '.', '..',
+ * and extra slash characters (/).
+ *
+ * '~/' at the start of the string will be replaced by the current user's home
+ * directory.
+ *
+ * Returns:
+ *  - the canonicalized absolute pathname on success
+ *  - NULL else
+ */
+char *
+sdb_realpath(const char *path);
+
+/*
  * sysdb_mkdir_all:
  * Recursively create the directory 'pathname' (similar to 'mkdir -p' on the
  * command line) using file permissions as specified by 'mode'.
