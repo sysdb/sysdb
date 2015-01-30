@@ -237,6 +237,24 @@ sdb_input_init(sdb_input_t *input)
 	return 0;
 } /* sdb_input_init */
 
+void
+sdb_input_reset(sdb_input_t *input)
+{
+	sdb_input_t reset = SDB_INPUT_INIT;
+
+	if (! input)
+		return;
+
+	if (input->client)
+		sdb_client_destroy(input->client);
+	if (input->user)
+		free(input->user);
+	if (input->input)
+		sdb_strbuf_destroy(input->input);
+
+	*input = reset;
+} /* sdb_input_reset */
+
 int
 sdb_input_mainloop(void)
 {

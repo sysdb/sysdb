@@ -62,6 +62,14 @@ int
 sdb_input_init(sdb_input_t *input);
 
 /*
+ * sdb_input_reset:
+ * Reset the input handler and free all dynamically allocated memory. The
+ * input handler object itself will not be freed.
+ */
+void
+sdb_input_reset(sdb_input_t *input);
+
+/*
  * sdb_input_mainloop:
  * Wait for and handle all user and server input until end-of-file is read
  * from the user (on the standard input channel).

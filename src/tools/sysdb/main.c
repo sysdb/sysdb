@@ -255,21 +255,19 @@ main(int argc, char **argv)
 	input.client = sdb_client_create(host);
 	if (! input.client) {
 		sdb_log(SDB_LOG_ERR, "Failed to create client object");
-		free(input.user);
+		sdb_input_reset(&input);
 		exit(1);
 	}
 	if (sdb_client_connect(input.client, input.user)) {
 		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDBd");
-		sdb_client_destroy(input.client);
-		free(input.user);
+		sdb_input_reset(&input);
 		exit(1);
 	}
 
 	if (commands) {
 		int status = execute_commands(input.client, commands);
 		sdb_llist_destroy(commands);
-		sdb_client_destroy(input.client);
-		free(input.user);
+		sdb_input_reset(&input);
 		if ((status != SDB_CONNECTION_OK) && (status != SDB_CONNECTION_DATA))
 			exit(1);
 		exit(0);
@@ -295,7 +293,6 @@ main(int argc, char **argv)
 					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		}
 	}
-	free(input.user);
 
 	input.input = sdb_strbuf_create(2048);
 	sdb_input_init(&input);
@@ -316,8 +313,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	sdb_client_destroy(input.client);
-	sdb_strbuf_destroy(input.input);
+	sdb_input_reset(&input);
 
 	ERR_free_strings();
 	return 0;
