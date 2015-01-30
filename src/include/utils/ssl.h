@@ -73,7 +73,7 @@ typedef struct sdb_ssl_session sdb_ssl_session_t;
  * options are specified, default values will be used instead.
  */
 sdb_ssl_client_t *
-sdb_ssl_client_create(sdb_ssl_options_t *opts);
+sdb_ssl_client_create(const sdb_ssl_options_t *opts);
 
 /*
  * sdb_ssl_client_destroy:
@@ -95,7 +95,7 @@ sdb_ssl_client_connect(sdb_ssl_client_t *client, int fd);
  * options are specified, default values will be used instead.
  */
 sdb_ssl_server_t *
-sdb_ssl_server_create(sdb_ssl_options_t *opts);
+sdb_ssl_server_create(const sdb_ssl_options_t *opts);
 
 /*
  * sdb_ssl_server_destroy:

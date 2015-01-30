@@ -137,27 +137,30 @@ ssl_log_err(int prio, SSL *ssl, int status, const char *prefix, ...)
 } /* ssl_log_err */
 
 static int
-copy_options(sdb_ssl_options_t *dst, sdb_ssl_options_t *src)
+copy_options(sdb_ssl_options_t *dst, const sdb_ssl_options_t *src)
 {
+	sdb_ssl_options_t tmp;
 	sdb_ssl_options_t def = SDB_SSL_DEFAULT_OPTIONS;
 
-	if (! src)
-		src = &def;
+	if (src)
+		tmp = *src;
+	else
+		tmp = def;
 
-	if (! src->ca_file)
-		src->ca_file = def.ca_file;
-	if (! src->key_file)
-		src->key_file = def.key_file;
-	if (! src->cert_file)
-		src->cert_file = def.cert_file;
+	if (! tmp.ca_file)
+		tmp.ca_file = def.ca_file;
+	if (! tmp.key_file)
+		tmp.key_file = def.key_file;
+	if (! tmp.cert_file)
+		tmp.cert_file = def.cert_file;
 
-	dst->ca_file = strdup(src->ca_file);
-	dst->key_file = strdup(src->key_file);
-	dst->cert_file = strdup(src->cert_file);
+	dst->ca_file = strdup(tmp.ca_file);
+	dst->key_file = strdup(tmp.key_file);
+	dst->cert_file = strdup(tmp.cert_file);
 	if ((! dst->ca_file) || (! dst->key_file) || (! dst->cert_file))
 		return -1;
-	if (src->crl_file) {
-		dst->crl_file = strdup(src->crl_file);
+	if (tmp.crl_file) {
+		dst->crl_file = strdup(tmp.crl_file);
 		if (! dst->crl_file)
 			return -1;
 	}
@@ -169,7 +172,7 @@ copy_options(sdb_ssl_options_t *dst, sdb_ssl_options_t *src)
  */
 
 sdb_ssl_client_t *
-sdb_ssl_client_create(sdb_ssl_options_t *opts)
+sdb_ssl_client_create(const sdb_ssl_options_t *opts)
 {
 	sdb_ssl_client_t *client;
 
@@ -278,7 +281,7 @@ sdb_ssl_client_connect(sdb_ssl_client_t *client, int fd)
 } /* sdb_ssl_client_connect */
 
 sdb_ssl_server_t *
-sdb_ssl_server_create(sdb_ssl_options_t *opts)
+sdb_ssl_server_create(const sdb_ssl_options_t *opts)
 {
 	sdb_ssl_server_t *server;
 
