@@ -25,6 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "utils/ssl.h"
+
 #include <unistd.h>
 
 #ifndef DAEMON_CONFIG_H
@@ -34,7 +36,12 @@
  * parse result values
  */
 
-extern char **listen_addresses;
+typedef struct {
+	char *address;
+	sdb_ssl_options_t ssl_opts;
+} daemon_listener_t;
+
+extern daemon_listener_t *listen_addresses;
 extern size_t listen_addresses_num;
 
 void

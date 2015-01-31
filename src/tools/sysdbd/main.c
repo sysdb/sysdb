@@ -77,8 +77,8 @@ static sdb_fe_loop_t frontend_main_loop = SDB_FE_LOOP_INIT;
 static char *config_filename = NULL;
 static int reconfigure = 0;
 
-static char *default_listen_addresses[] = {
-	DEFAULT_SOCKET,
+static daemon_listener_t default_listen_addresses[] = {
+	{ DEFAULT_SOCKET, SDB_SSL_DEFAULT_OPTIONS },
 };
 
 static void
@@ -257,7 +257,8 @@ main_loop(void)
 		}
 
 		for (i = 0; i < listen_addresses_num; ++i) {
-			if (sdb_fe_sock_add_listener(sock, listen_addresses[i], NULL)) {
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i].address,
+						&listen_addresses[i].ssl_opts)) {
 				status = 1;
 				break;
 			}

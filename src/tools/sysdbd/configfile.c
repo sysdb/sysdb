@@ -100,7 +100,7 @@ config_get_interval(oconfig_item_t *ci, sdb_time_t *interval)
  * public parse results
  */
 
-char **listen_addresses = NULL;
+daemon_listener_t *listen_addresses = NULL;
 size_t listen_addresses_num = 0;
 
 /*
@@ -115,8 +115,9 @@ typedef struct {
 static int
 daemon_add_listener(oconfig_item_t *ci)
 {
-	char **tmp;
+	daemon_listener_t *listener;
 	char *address;
+	int i, ret = 0;
 
 	if (oconfig_get_string(ci, &address)) {
 		sdb_log(SDB_LOG_ERR, "config: Listen requires a single "
@@ -125,22 +126,62 @@ daemon_add_listener(oconfig_item_t *ci)
 		return ERR_INVALID_ARG;
 	}
 
-	tmp = realloc(listen_addresses,
+	listener = realloc(listen_addresses,
 			(listen_addresses_num + 1) * sizeof(*listen_addresses));
-	if (! tmp) {
+	if (! listener) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "config: Failed to allocate memory: %s",
 				sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
 	}
 
-	listen_addresses = tmp;
-	listen_addresses[listen_addresses_num] = strdup(address);
-	if (! listen_addresses[listen_addresses_num]) {
+	listen_addresses = listener;
+	listener = listen_addresses + listen_addresses_num;
+	memset(listener, 0, sizeof(*listener));
+	listener->address = strdup(address);
+	if (! listener->address) {
 		char buf[1024];
 		sdb_log(SDB_LOG_ERR, "config: Failed to allocate memory: %s",
 				sdb_strerror(errno, buf, sizeof(buf)));
 		return -1;
+	}
+
+	for (i = 0; i < ci->children_num; ++i) {
+		oconfig_item_t *child = ci->children + i;
+		char *tmp = NULL;
+
+		if (! strcasecmp(child->key, "SSLCertificate")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = ERR_INVALID_ARG;
+				break;
+			}
+			listener->ssl_opts.cert_file = strdup(tmp);
+		}
+		else if (! strcasecmp(child->key, "SSLCertificateKey")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = ERR_INVALID_ARG;
+				break;
+			}
+			listener->ssl_opts.key_file = strdup(tmp);
+		}
+		else if (! strcasecmp(child->key, "SSLCACertificates")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = ERR_INVALID_ARG;
+				break;
+			}
+			listener->ssl_opts.ca_file = strdup(tmp);
+		}
+		else {
+			sdb_log(SDB_LOG_WARNING, "config: Unknown option '%s' "
+					"inside 'Listen' -- see the documentation for "
+					"details.", child->key);
+			continue;
+		}
+	}
+
+	if (ret) {
+		sdb_ssl_free_options(&listener->ssl_opts);
+		return ret;
 	}
 
 	++listen_addresses_num;
@@ -278,8 +319,10 @@ daemon_free_listen_addresses(void)
 	if (! listen_addresses)
 		return;
 
-	for (i = 0; i < listen_addresses_num; ++i)
-		free(listen_addresses[i]);
+	for (i = 0; i < listen_addresses_num; ++i) {
+		free(listen_addresses[i].address);
+		sdb_ssl_free_options(&listen_addresses[i].ssl_opts);
+	}
 	free(listen_addresses);
 
 	listen_addresses = NULL;
