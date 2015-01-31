@@ -25,6 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "utils/ssl.h"
+
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -77,12 +79,15 @@ sdb_fe_sock_destroy(sdb_fe_socket_t *sock);
  *
  *  - unix: listen on a UNIX socket
  *
+ * If specified, the SSL options will be used for any SSL connection.
+ *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address);
+sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address,
+		const sdb_ssl_options_t *opts);
 
 /*
  * sdb_fe_sock_clear_listeners:

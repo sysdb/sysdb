@@ -257,7 +257,7 @@ main_loop(void)
 		}
 
 		for (i = 0; i < listen_addresses_num; ++i) {
-			if (sdb_fe_sock_add_listener(sock, listen_addresses[i])) {
+			if (sdb_fe_sock_add_listener(sock, listen_addresses[i], NULL)) {
 				status = 1;
 				break;
 			}

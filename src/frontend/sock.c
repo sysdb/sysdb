@@ -80,6 +80,7 @@ typedef struct {
 	int   type;
 
 	/* optional SSL settings */
+	sdb_ssl_options_t ssl_opts;
 	sdb_ssl_server_t *ssl;
 
 	/* listener configuration */
@@ -290,8 +291,7 @@ open_tcp(listener_t *listener)
 
 	assert(listener);
 
-	/* TODO: make options configurable */
-	listener->ssl = sdb_ssl_server_create(NULL);
+	listener->ssl = sdb_ssl_server_create(&listener->ssl_opts);
 	if (! listener->ssl)
 		return -1;
 
@@ -444,6 +444,7 @@ listener_destroy(listener_t *listener)
 		return;
 
 	listener_close(listener);
+	sdb_ssl_free_options(&listener->ssl_opts);
 
 	if (listener->address)
 		free(listener->address);
@@ -480,6 +481,7 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	if ((! strncmp(address, listener_impls[type].prefix, len))
 			&& (address[len] == ':'))
 		address += strlen(listener_impls[type].prefix) + 1;
+	memset(listener, 0, sizeof(*listener));
 
 	listener->sock_fd = -1;
 	listener->address = strdup(address);
@@ -493,12 +495,6 @@ listener_create(sdb_fe_socket_t *sock, const char *address)
 	listener->type = type;
 	listener->setup = NULL;
 	listener->ssl = NULL;
-
-	if (listener_impls[type].open(listener)) {
-		/* prints error */
-		listener_destroy(listener);
-		return NULL;
-	}
 
 	++sock->listeners_num;
 	return listener;
@@ -714,7 +710,8 @@ sdb_fe_sock_destroy(sdb_fe_socket_t *sock)
 } /* sdb_fe_sock_destroy */
 
 int
-sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address)
+sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address,
+		const sdb_ssl_options_t *opts)
 {
 	listener_t *listener;
 
@@ -724,6 +721,44 @@ sdb_fe_sock_add_listener(sdb_fe_socket_t *sock, const char *address)
 	listener = listener_create(sock, address);
 	if (! listener)
 		return -1;
+
+	if (opts) {
+		int ret = 0;
+
+		if (opts->ca_file) {
+			listener->ssl_opts.ca_file = strdup(opts->ca_file);
+			if (! listener->ssl_opts.ca_file)
+				ret = -1;
+		}
+		if (opts->key_file) {
+			listener->ssl_opts.key_file = strdup(opts->key_file);
+			if (! listener->ssl_opts.key_file)
+				ret = -1;
+		}
+		if (opts->cert_file) {
+			listener->ssl_opts.cert_file = strdup(opts->cert_file);
+			if (! listener->ssl_opts.cert_file)
+				ret = -1;
+		}
+		if (opts->crl_file) {
+			listener->ssl_opts.crl_file = strdup(opts->crl_file);
+			if (! listener->ssl_opts.crl_file)
+				ret = -1;
+		}
+
+		if (ret) {
+			listener_destroy(listener);
+			--sock->listeners_num;
+			return ret;
+		}
+	}
+
+	if (listener_impls[listener->type].open(listener)) {
+		/* prints error */
+		listener_destroy(listener);
+		--sock->listeners_num;
+		return -1;
+	}
 	return 0;
 } /* sdb_fe_sock_add_listener */
 

@@ -75,7 +75,7 @@ sock_listen(char *tmp_file)
 	int check;
 
 	sprintf(sock_addr, "unix:%s", tmp_file);
-	check = sdb_fe_sock_add_listener(sock, sock_addr);
+	check = sdb_fe_sock_add_listener(sock, sock_addr, NULL);
 	fail_unless(check == 0,
 			"sdb_fe_sock_add_listener(%s) = %i; expected: 0",
 			sock_addr, check);
