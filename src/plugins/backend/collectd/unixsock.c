@@ -90,6 +90,8 @@ user_data_destroy(void *obj)
 	if (ud->ts_base)
 		free(ud->ts_base);
 	ud->ts_type = ud->ts_base = NULL;
+
+	free(ud);
 } /* user_data_destroy */
 
 /* store the specified host-name (once per iteration) */
