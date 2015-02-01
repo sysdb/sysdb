@@ -132,6 +132,17 @@ int
 sdb_error_get_prio(void);
 
 /*
+ * sdb_error_parse_priority:
+ * Parse the name of a log priority.
+ *
+ * Returns:
+ *  - the numeric log priority on success
+ *  - a negative value else
+ */
+int
+sdb_error_parse_priority(char *prio);
+
+/*
  * sdb_strerror:
  * This is a wrapper around the system's strerror function which ensures that
  * a pointer to the formatted error message is returned.

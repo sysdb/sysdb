@@ -276,6 +276,24 @@ sdb_error_get_prio(void)
 	return ctx->prio;
 } /* sdb_error_get_prio */
 
+int
+sdb_error_parse_priority(char *prio)
+{
+	if (! strcasecmp(prio, "EMERG"))
+		return SDB_LOG_EMERG;
+	else if (! strcasecmp(prio, "ERROR"))
+		return SDB_LOG_ERR;
+	else if (! strcasecmp(prio, "WARNING"))
+		return SDB_LOG_WARNING;
+	else if (! strcasecmp(prio, "NOTICE"))
+		return SDB_LOG_NOTICE;
+	else if (! strcasecmp(prio, "INFO"))
+		return SDB_LOG_INFO;
+	else if (! strcasecmp(prio, "DEBUG"))
+		return SDB_LOG_DEBUG;
+	return -1;
+} /* sdb_error_parse_priority */
+
 char *
 sdb_strerror(int errnum, char *strerrbuf, size_t buflen)
 {
