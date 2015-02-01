@@ -187,7 +187,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 	}
 
 	strncpy(host, address, sizeof(host));
-	if ((tmp = strchr(host, (int)':')))
+	if ((tmp = strrchr(host, (int)':')))
 		*tmp = '\0';
 	if (! host[0])
 		strncpy(host, "localhost", sizeof(host));

@@ -434,7 +434,8 @@ get_type(const char *address)
 			return impl->type;
 		}
 	}
-	return -1;
+	/* don't report an error, this could be an IPv6 address */
+	return listener_impls[0].type;
 } /* get_type */
 
 static void

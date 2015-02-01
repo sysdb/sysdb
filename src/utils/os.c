@@ -319,7 +319,7 @@ sdb_resolve(int network, const char *address, struct addrinfo **res)
 
 	if (address) {
 		host = address;
-		port = strchr(host, ':');
+		port = strrchr(host, ':');
 		if (port) {
 			*port = '\0';
 			++port;
