@@ -742,7 +742,7 @@ sdb_plugin_register_config(sdb_plugin_config_cb callback)
 				"config callback from outside a plugin");
 		return -1;
 	}
-	return plugin_add_callback(&config_list, "init", ctx->info.plugin_name,
+	return plugin_add_callback(&config_list, "config", ctx->info.plugin_name,
 			(void *)callback, NULL);
 } /* sdb_plugin_register_config */
 
