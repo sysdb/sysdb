@@ -1,6 +1,6 @@
 /*
  * SysDB - src/plugins/syslog.c
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2013, 2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,10 @@
 #include "core/plugin.h"
 #include "utils/error.h"
 
+#include "liboconfig/utils.h"
+
 #include <assert.h>
+#include <strings.h>
 #include <syslog.h>
 
 SDB_PLUGIN_MAGIC;
@@ -51,27 +54,66 @@ SDB_PLUGIN_MAGIC;
 #	define SDB_LOG_PRIO_TO_SYSLOG(prio) (prio)
 #endif
 
+static int loglevel = SDB_DEFAULT_LOGLEVEL;
+
 /*
  * plugin API
  */
 
 static int
-sdb_syslog_log(int prio, const char *msg,
+syslog_log(int prio, const char *msg,
 		sdb_object_t __attribute__((unused)) *user_data)
 {
-	/* XXX: make the log-level configurable */
-	if (prio >= SDB_LOG_DEBUG)
+	if (prio > loglevel)
 		return 0;
 	syslog(SDB_LOG_PRIO_TO_SYSLOG(prio), "%s", msg);
 	return 0;
-} /* sdb_syslog_log */
+} /* syslog_log */
 
 static int
-sdb_syslog_shutdown(sdb_object_t __attribute__((unused)) *user_data)
+syslog_shutdown(sdb_object_t __attribute__((unused)) *user_data)
 {
 	closelog();
 	return 0;
-} /* sdb_syslog_shutdown */
+} /* syslog_shutdown */
+
+static int
+syslog_config(oconfig_item_t *ci)
+{
+	int i;
+
+	if (! ci) {
+		/* reset loglevel on deconfigure */
+		loglevel = SDB_DEFAULT_LOGLEVEL;
+		return 0;
+	}
+
+	for (i = 0; i < ci->children_num; ++i) {
+		oconfig_item_t *child = ci->children + i;
+
+		if (! strcasecmp(child->key, "LogLevel")) {
+			char *level = NULL;
+			if (oconfig_get_string(child, &level)) {
+				sdb_log(SDB_LOG_ERR, "syslog plugin: LogLevel requires "
+						"a single string argument\n\tUsage: Loglevel LEVEL");
+				return -1;
+			}
+			loglevel = sdb_error_parse_priority(level);
+			if (loglevel < 0) {
+				loglevel = SDB_DEFAULT_LOGLEVEL;
+				sdb_log(SDB_LOG_ERR,
+						"syslog plugin: Invalid loglevel: '%s'", level);
+				return -1;
+			}
+			sdb_log(SDB_LOG_INFO, "syslog plugin: Log-level set to %s",
+					SDB_LOG_PRIO_TO_STRING(loglevel));
+		}
+		else
+			sdb_log(SDB_LOG_WARNING, "syslog plugin: Ignoring unknown config "
+					"option '%s'.", child->key);
+	}
+	return 0;
+} /* syslog_config */
 
 int
 sdb_module_init(sdb_plugin_info_t *info)
@@ -87,8 +129,9 @@ sdb_module_init(sdb_plugin_info_t *info)
 	if (info)
 		openlog("sysdbd", LOG_NDELAY | LOG_NOWAIT | LOG_PID, LOG_DAEMON);
 
-	sdb_plugin_register_log("main", sdb_syslog_log, NULL);
-	sdb_plugin_register_shutdown("main", sdb_syslog_shutdown, NULL);
+	sdb_plugin_register_log("main", syslog_log, NULL);
+	sdb_plugin_register_config(syslog_config);
+	sdb_plugin_register_shutdown("main", syslog_shutdown, NULL);
 	return 0;
 } /* sdb_module_init */
 

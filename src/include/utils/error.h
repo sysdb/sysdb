@@ -62,6 +62,10 @@ enum {
 		: ((prio) == SDB_LOG_INFO) ? "INFO" \
 		: ((prio) == SDB_LOG_DEBUG) ? "DEBUG" : "UNKNOWN")
 
+#ifndef SDB_DEFAULT_LOGLEVEL
+#	define SDB_DEFAULT_LOGLEVEL SDB_LOG_INFO
+#endif
+
 /*
  * sdb_error_set_logger:
  * Set the logging callback to be used for logging messages. By default (or
