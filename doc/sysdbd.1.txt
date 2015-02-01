@@ -41,6 +41,11 @@ OPTIONS
 *-V*::
 	Display the version number and copyright information.
 
+CLIENT AUTHENTICATION
+---------------------
+
+include::sysdb-auth.txt[]
+
 FILES
 -----
 

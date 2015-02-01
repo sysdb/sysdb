@@ -9,6 +9,7 @@ EXTRA_DIST = \
 		sysdb.1.txt \
 		sysdbd.1.txt \
 		sysdbd.conf.5.txt \
+		sysdb-auth.txt \
 		sysdb-description.txt \
 		sysdbd-cname-dns.5.txt \
 		sysdbd-collectd-unixsock.5.txt \
@@ -93,8 +94,8 @@ ADOC_FLAGS = \
 
 MAN_DEPS = asciidoc.conf ../version
 
-sysdb.1.xml: sysdb.1.txt $(MAN_DEPS)
-sysdbd.1.xml: sysdbd.1.txt $(MAN_DEPS)
+sysdb.1.xml: sysdb.1.txt sysdb-auth.txt $(MAN_DEPS)
+sysdbd.1.xml: sysdbd.1.txt sysdb-auth.txt $(MAN_DEPS)
 sysdbd.conf.5.xml: sysdbd.conf.5.txt $(MAN_DEPS)
 sysdbd-cname-dns.5.xml: sysdbd-cname-dns.5.txt $(MAN_DEPS)
 sysdbd-collectd-unixsock.5.xml: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
@@ -119,8 +120,8 @@ sysdbd-timeseries-rrdtool.5: sysdbd-timeseries-rrdtool.5.xml
 sysdb.7: sysdb.7.xml
 sysdbql.7: sysdbql.7.xml
 
-sysdb.1.html: sysdb.1.txt $(MAN_DEPS)
-sysdbd.1.html: sysdbd.1.txt $(MAN_DEPS)
+sysdb.1.html: sysdb.1.txt sysdb-auth.txt $(MAN_DEPS)
+sysdbd.1.html: sysdbd.1.txt sysdb-auth.txt $(MAN_DEPS)
 sysdbd.conf.5.html: sysdbd.conf.5.txt $(MAN_DEPS)
 sysdbd-cname-dns.5.html: sysdbd-cname-dns.5.txt $(MAN_DEPS)
 sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
@@ -129,8 +130,8 @@ sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt $(MAN_DEPS)
 sysdbd-timeseries-rrdtool.5.html: sysdbd-timeseries-rrdtool.5.txt $(MAN_DEPS)
-sysdb.7.html: sysdb.7.txt sysdb-description.txt $(MAN_DEPS)
-sysdbql.7.html: sysdbql.7.txt sysdb-description.txt $(MAN_DEPS)
+sysdb.7.html: sysdb.7.txt sysdb-auth.txt sysdb-description.txt $(MAN_DEPS)
+sysdbql.7.html: sysdbql.7.txt sysdb-auth.txt sysdb-description.txt $(MAN_DEPS)
 
 html-local: $(html_DATA)
 install-html-local: install-htmlDATA

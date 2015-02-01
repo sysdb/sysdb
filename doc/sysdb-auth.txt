@@ -1,0 +1,18 @@
+SysDB requires all client connections to a database server to be
+authenticated. The following authentication mechanism are supported at this
+time:
+
+*Peer authentication for UNIX domain socket connections*::
+	Connections via UNIX domain sockets are authenticated by obtaining the
+	client's operating system user name from the kernel. The name has to match
+	the username used to connect to the server.
+
+*SSL certificate authentication for TCP connection*::
+	SSL client certificates will be used to authenticate TCP connections. The
+	'cn' (common name) attribute of the certificate has to match the username
+	used to connect to the server.
+	Note that full client and server verification is currently enforced on all
+	TCP connections.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+

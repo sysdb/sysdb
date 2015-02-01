@@ -61,6 +61,11 @@ General options:
 *-V*::
 	Display the version number and copyright information.
 
+AUTHENTICATION
+--------------
+
+include::sysdb-auth.txt[]
+
 EXIT CODES
 ----------
 *0*::
