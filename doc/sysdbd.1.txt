@@ -41,6 +41,17 @@ OPTIONS
 *-V*::
 	Display the version number and copyright information.
 
+FILES
+-----
+
+*/etc/sysdb/sysdbd.conf*::
+	The default main configuration file for the SysDB daemon.
+
+*/etc/sysdb/ssl/key.pem*::
+*/etc/sysdb/ssl/cert.pem*::
+	The default SSL private key and certificate files to use for SSL
+	connections.
+
 SIGNALS
 -------
 

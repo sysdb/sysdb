@@ -70,6 +70,17 @@ EXIT CODES
 	Failure (syntax or usage error). When using the *-c* option, sysdb exits
 	with status 1 if the specified command failed.
 
+FILES
+-----
+
+*~/.config/sysdb/ssl/key.pem*::
+*~/.config/sysdb/ssl/cert.pem*::
+	The default SSL private key and certificate files to use for SSL
+	connections.
+
+*~/.sysdb_history*::
+	The command-line history is stored in this file.
+
 BUGS
 ----
 None known.
