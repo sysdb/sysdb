@@ -1,6 +1,6 @@
 /*
  * SysDB - t/unit/frontend/parser_test.c
- * Copyright (C) 2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2013-2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ START_TEST(test_parse)
 		{ ";",                   -1,  0, 0 },
 		{ ";;",                  -1,  0, 0 },
 
-		/* valid commands */
+		/* FETCH commands */
 		{ "FETCH host 'host'",   -1,  1, SDB_CONNECTION_FETCH  },
 		{ "FETCH host 'host' FILTER "
 		  "age > 60s",           -1,  1, SDB_CONNECTION_FETCH  },
@@ -61,6 +61,7 @@ START_TEST(test_parse)
 		{ "FETCH metric "
 		  "'host'.'metric'",     -1,  1, SDB_CONNECTION_FETCH  },
 
+		/* LIST commands */
 		{ "LIST hosts",          -1,  1, SDB_CONNECTION_LIST   },
 		{ "LIST hosts -- foo",   -1,  1, SDB_CONNECTION_LIST   },
 		{ "LIST hosts;",         -1,  1, SDB_CONNECTION_LIST   },
@@ -74,6 +75,7 @@ START_TEST(test_parse)
 		{ "LIST metrics FILTER "
 		  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
 
+		/* LOOKUP commands */
 		{ "LOOKUP hosts",        -1,  1, SDB_CONNECTION_LOOKUP },
 		{ "LOOKUP hosts MATCHING "
 		  "name = 'host'",       -1,  1, SDB_CONNECTION_LOOKUP },
@@ -124,6 +126,7 @@ START_TEST(test_parse)
 		{ "LOOKUP metrics MATCHING "
 		  "metric.name = 'p'",  -1,   1, SDB_CONNECTION_LOOKUP },
 
+		/* TIMESERIES commands */
 		{ "TIMESERIES 'host'.'metric' "
 		  "START 2014-01-01 "
 		  "END 2014-12-31 "
@@ -135,6 +138,51 @@ START_TEST(test_parse)
 		  "END 2014-02-02",      -1,  1, SDB_CONNECTION_TIMESERIES },
 		{ "TIMESERIES "
 		  "'host'.'metric'",     -1,  1, SDB_CONNECTION_TIMESERIES },
+
+		/* STORE commands */
+		{ "STORE host 'host'",   -1,  1, SDB_CONNECTION_STORE_HOST },
+		{ "STORE host 'host' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_HOST },
+		{ "STORE host attribute "
+		  "'host'.'key' 123",    -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
+		{ "STORE host attribute "
+		  "'host'.'key' 123 "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
+		{ "STORE service "
+		  "'host'.'svc'",        -1,  1, SDB_CONNECTION_STORE_SERVICE },
+		{ "STORE service "
+		  "'host'.'svc' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_SERVICE },
+		{ "STORE service attribute "
+		  "'host'.'svc'.'key' "
+		  "123",                 -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
+		{ "STORE service attribute "
+		  "'host'.'svc'.'key' "
+		  "123 "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
+		{ "STORE metric "
+		  "'host'.'metric'",     -1,  1, SDB_CONNECTION_STORE_METRIC },
+		{ "STORE metric "
+		  "'host'.'metric' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_METRIC },
+		{ "STORE metric "
+		  "'host'.'metric' "
+		  "STORE 'typ' 'id' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_METRIC },
+		{ "STORE metric attribute "
+		  "'host'.'metric'.'key' "
+		  "123",                 -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
+		{ "STORE metric attribute "
+		  "'host'.'metric'.'key' "
+		  "123 "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1,  1, SDB_CONNECTION_STORE_ATTRIBUTE },
 
 		/* string constants */
 		{ "LOOKUP hosts MATCHING "
@@ -253,13 +301,15 @@ START_TEST(test_parse)
 		{ "LIST hosts; INVALID", -1, -1, 0 },
 		{ "/* some incomplete",  -1, -1, 0 },
 
-		/* invalid commands */
+		/* invalid LIST commands */
 		{ "LIST",                -1, -1, 0 },
 		{ "LIST foo",            -1, -1, 0 },
 		{ "LIST hosts MATCHING "
 		  "name = 'host'",       -1, -1, 0 },
 		{ "LIST foo FILTER "
 		  "age > 60s",           -1, -1, 0 },
+
+		/* invalid FETCH commands */
 		{ "FETCH host 'host' MATCHING "
 		  "name = 'host'",       -1, -1, 0 },
 		{ "FETCH service 'host'",-1, -1, 0 },
@@ -270,6 +320,7 @@ START_TEST(test_parse)
 		{ "FETCH foo 'host' FILTER "
 		  "age > 60s",           -1, -1, 0 },
 
+		/* invalid LOOKUP commands */
 		{ "LOOKUP foo",          -1, -1, 0 },
 		{ "LOOKUP foo MATCHING "
 		  "name = 'host'",       -1, -1, 0 },
@@ -303,7 +354,31 @@ START_TEST(test_parse)
 		{ "LOOKUP metrics MATCHING "
 		  "ANY metric = 'm'",    -1, -1, 0 },
 		{ "LOOKUP metrics MATCHING "
-		  "service.name = 'm'",   -1, -1, 0 },
+		  "service.name = 'm'",  -1, -1, 0 },
+
+		/* invalid STORE commands */
+		{ "STORE host "
+		  "'obj'.'host'",        -1, -1, 0 },
+		{ "STORE host attribute "
+		  ".'key' 123",          -1, -1, 0 },
+		{ "STORE host attribute "
+		  "'o'.'h'.'key' 123",   -1, -1, 0 },
+		{ "STORE service 'svc'", -1, -1, 0 },
+		{ "STORE service "
+		  "'host'.'svc' "
+		  "STORE 'typ' 'id' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1, -1, 0 },
+		{ "STORE service attribute "
+		  "'svc'.'key' 123",     -1, -1, 0 },
+		{ "STORE metric 'm'",    -1, -1, 0 },
+		{ "STORE metric "
+		  "'host'.'metric' "
+		  "STORE 'typ'.'id' "
+		  "LAST UPDATE "
+		  "2015-02-01",          -1, -1, 0 },
+		{ "STORE metric attribute "
+		  "'metric'.'key' 123",  -1, -1, 0 },
 	};
 
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
