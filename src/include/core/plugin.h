@@ -276,6 +276,13 @@ sdb_plugin_register_writer(const char *name,
 		sdb_store_writer_t *writer, sdb_object_t *user_data);
 
 /*
+ * sdb_plugin_unregister_all:
+ * Unregister all registered plugins and destruct their user-data objects.
+ */
+void
+sdb_plugin_unregister_all(void);
+
+/*
  * sdb_plugin_get_ctx, sdb_plugin_set_ctx:
  * The plugin context defines a set of settings that are available whenever a
  * plugin has been called. It may be used to pass around various information

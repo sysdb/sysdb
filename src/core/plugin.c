@@ -251,26 +251,6 @@ plugin_unregister_by_name(const char *plugin_name)
 	/* else: other callbacks still reference it */
 } /* plugin_unregister_by_name */
 
-static void
-plugin_unregister_all(void)
-{
-	size_t i;
-
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
-		const char  *type =  all_lists[i].type;
-		sdb_llist_t *list = *all_lists[i].list;
-
-		size_t len = sdb_llist_len(list);
-
-		if (! len)
-			continue;
-
-		sdb_llist_clear(list);
-		sdb_log(SDB_LOG_INFO, "core: Unregistered %zu %s callback%s",
-				len, type, len == 1 ? "" : "s");
-	}
-} /* plugin_unregister_all */
-
 /*
  * private types
  */
@@ -889,6 +869,26 @@ sdb_plugin_register_writer(const char *name,
 	return 0;
 } /* sdb_store_register_writer */
 
+void
+sdb_plugin_unregister_all(void)
+{
+	size_t i;
+
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(all_lists); ++i) {
+		const char  *type =  all_lists[i].type;
+		sdb_llist_t *list = *all_lists[i].list;
+
+		size_t len = sdb_llist_len(list);
+
+		if (! len)
+			continue;
+
+		sdb_llist_clear(list);
+		sdb_log(SDB_LOG_INFO, "core: Unregistered %zu %s callback%s",
+				len, type, len == 1 ? "" : "s");
+	}
+} /* sdb_plugin_unregister_all */
+
 sdb_plugin_ctx_t
 sdb_plugin_get_ctx(void)
 {
@@ -997,7 +997,7 @@ sdb_plugin_reconfigure_init(void)
 		CTX(sdb_llist_iter_get_next(iter))->use_cnt = 0;
 	sdb_llist_iter_destroy(iter);
 
-	plugin_unregister_all();
+	sdb_plugin_unregister_all();
 	return 0;
 } /* sdb_plugin_reconfigure_init */
 
