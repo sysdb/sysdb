@@ -103,6 +103,12 @@ Prerequisites
 
     <https://oss.oetiker.ch/rrdtool/>
 
+  * libssl:
+    The Secure Sockets Layer toolkit library is used to encrypt and
+    authenticate TCP connections.
+
+    <http://openssl.org/>
+
 Testing
 -------
 
