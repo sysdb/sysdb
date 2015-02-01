@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include "sysdb.h"
 #include "client/sock.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
@@ -138,7 +139,9 @@ connect_unixsock(sdb_client_t *client, const char *address)
 static int
 connect_tcp(sdb_client_t *client, const char *address)
 {
+	char host[SDB_MAX(strlen("localhost"), (address ? strlen(address) : 0)) + 1];
 	struct addrinfo *ai, *ai_list = NULL;
+	char *peer, *tmp;
 	int status;
 
 	if ((status = sdb_resolve(SDB_NET_TCP, address, &ai_list))) {
@@ -157,12 +160,12 @@ connect_tcp(sdb_client_t *client, const char *address)
 		}
 
 		if (connect(client->fd, ai->ai_addr, ai->ai_addrlen)) {
-			char host[1024], port[32], errbuf[1024];
+			char h[1024], p[32], errbuf[1024];
 			sdb_client_close(client);
-			getnameinfo(ai->ai_addr, ai->ai_addrlen, host, sizeof(host),
-					port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+			getnameinfo(ai->ai_addr, ai->ai_addrlen, h, sizeof(h),
+					p, sizeof(p), NI_NUMERICHOST | NI_NUMERICSERV);
 			sdb_log(SDB_LOG_ERR, "Failed to connect to '%s:%s': %s",
-					host, port, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+					h, p, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			continue;
 		}
 		break;
@@ -182,6 +185,24 @@ connect_tcp(sdb_client_t *client, const char *address)
 		sdb_client_close(client);
 		return -1;
 	}
+
+	strncpy(host, address, sizeof(host));
+	if ((tmp = strchr(host, (int)':')))
+		*tmp = '\0';
+	if (! host[0])
+		strncpy(host, "localhost", sizeof(host));
+	peer = sdb_ssl_session_peer(client->ssl_session);
+	if ((! peer) || strcasecmp(peer, host)) {
+		/* TODO: also check alt-name */
+		sdb_log(SDB_LOG_ERR, "Failed to connect to '%s': "
+				"peer name '%s' does not match host address",
+				address, peer);
+		sdb_client_close(client);
+		if (peer)
+			free(peer);
+		return -1;
+	}
+	free(peer);
 
 	client->read = ssl_read;
 	client->write = ssl_write;
