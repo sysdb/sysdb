@@ -54,6 +54,13 @@ SYSDBD_CONF="$TESTDIR/sysdbd.conf"
 SOCKET_FILE="$TESTDIR/sock"
 PLUGIN_DIR="$TESTDIR"
 
+CA_KEY=""
+CA_CERT=""
+SERVER_KEY=""
+SERVER_CERT=""
+CLIENT_KEY=""
+CLIENT_CERT=""
+
 SYSDB_USER="$( id -un )"
 
 function run_sysdb() {
@@ -99,6 +106,46 @@ function wait_for_sysdbd() {
 		echo 'SysDBd did not start within 10 seconds' >&2
 		exit 1
 	fi
+}
+
+function wait_for_sysdbd_tcp() {
+	local host="$1"
+	local port="$2"
+	local i
+	for (( i=0; i<10; i++ )); do
+		if echo | nc "$host" "$port"; then
+			break
+		fi
+		sleep 1
+	done
+	if test $i -eq 10; then
+		echo 'SysDBd did not start within 10 seconds' >&2
+		exit 1
+	fi
+}
+
+function setup_ssl() {
+	CA_KEY="$TESTDIR/cacert.key"
+	CA_CERT="$TESTDIR/cacert.cert"
+	openssl genrsa -out "$CA_KEY" 2048
+	openssl req -batch -subj '/CN=Some CA' \
+		-x509 -new -key "$CA_KEY" -out "$CA_CERT" -days 1
+
+	SERVER_KEY="$TESTDIR/server.key"
+	SERVER_CERT="$TESTDIR/server.cert"
+	openssl genrsa -out "$SERVER_KEY" 2048
+	openssl req -batch -subj '/CN=localhost' \
+		-new -out "${SERVER_CERT}.csr" -key "$SERVER_KEY"
+	openssl x509 -req -in "${SERVER_CERT}.csr" -out "$SERVER_CERT" -days 1 \
+		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial -CAserial serial
+
+	CLIENT_KEY="$TESTDIR/client.key"
+	CLIENT_CERT="$TESTDIR/client.cert"
+	openssl genrsa -out "$CLIENT_KEY" 2048
+	openssl req -batch -subj "/CN=$SYSDB_USER" \
+		-new -out "${CLIENT_CERT}.csr" -key "$CLIENT_KEY"
+	openssl x509 -req -in "${CLIENT_CERT}.csr" -out "$CLIENT_CERT" -days 1 \
+		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial -CAserial serial
 }
 
 # vim: set tw=78 sw=4 ts=4 noexpandtab :

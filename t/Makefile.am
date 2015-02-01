@@ -2,6 +2,7 @@ EXTRA_DIST = \
 		coverage.sh \
 		testwrapper.sh \
 		integration/config.sh \
+		integration/ssl.sh \
 		integration/query.sh \
 		integration/matching.sh \
 		integration/filter.sh \
@@ -66,6 +67,7 @@ unit_libsysdb_net_test_LDADD = $(top_builddir)/src/libsysdb.la @CHECK_LIBS@
 if INTEGRATION_TESTING
 TESTS += \
 		integration/config.sh \
+		integration/ssl.sh \
 		integration/query.sh \
 		integration/matching.sh \
 		integration/filter.sh
