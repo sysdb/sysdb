@@ -117,7 +117,7 @@ connect_unixsock(sdb_client_t *client, const char *address)
 	client->fd = socket(AF_UNIX, SOCK_STREAM, /* protocol = */ 0);
 	if (client->fd < 0) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "Failed to open socket: %s",
+		sdb_log(SDB_LOG_ERR, "client: Failed to open socket: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -129,7 +129,7 @@ connect_unixsock(sdb_client_t *client, const char *address)
 	if (connect(client->fd, (struct sockaddr *)&sa, sizeof(sa))) {
 		char errbuf[1024];
 		sdb_client_close(client);
-		sdb_log(SDB_LOG_ERR, "Failed to connect to '%s': %s",
+		sdb_log(SDB_LOG_ERR, "client: Failed to connect to '%s': %s",
 				sa.sun_path, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -145,7 +145,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 	int status;
 
 	if ((status = sdb_resolve(SDB_NET_TCP, address, &ai_list))) {
-		sdb_log(SDB_LOG_ERR, "Failed to resolve '%s': %s",
+		sdb_log(SDB_LOG_ERR, "client: Failed to resolve '%s': %s",
 				address, gai_strerror(status));
 		return -1;
 	}
@@ -154,7 +154,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 		client->fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if (client->fd < 0) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "Failed to open socket: %s",
+			sdb_log(SDB_LOG_ERR, "client: Failed to open socket: %s",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			continue;
 		}
@@ -164,7 +164,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 			sdb_client_close(client);
 			getnameinfo(ai->ai_addr, ai->ai_addrlen, h, sizeof(h),
 					p, sizeof(p), NI_NUMERICHOST | NI_NUMERICSERV);
-			sdb_log(SDB_LOG_ERR, "Failed to connect to '%s:%s': %s",
+			sdb_log(SDB_LOG_ERR, "client: Failed to connect to '%s:%s': %s",
 					h, p, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			continue;
 		}
@@ -194,7 +194,7 @@ connect_tcp(sdb_client_t *client, const char *address)
 	peer = sdb_ssl_session_peer(client->ssl_session);
 	if ((! peer) || strcasecmp(peer, host)) {
 		/* TODO: also check alt-name */
-		sdb_log(SDB_LOG_ERR, "Failed to connect to '%s': "
+		sdb_log(SDB_LOG_ERR, "client: Failed to connect to '%s': "
 				"peer name '%s' does not match host address",
 				address, peer);
 		sdb_client_close(client);
@@ -223,7 +223,7 @@ sdb_client_create(const char *address)
 
 	client = malloc(sizeof(*client));
 	if (! client) {
-		sdb_log(SDB_LOG_ERR, "Out of memory");
+		sdb_log(SDB_LOG_ERR, "client: Out of memory");
 		return NULL;
 	}
 	memset(client, 0, sizeof(*client));
@@ -237,7 +237,7 @@ sdb_client_create(const char *address)
 	client->address = strdup(address);
 	if (! client->address) {
 		sdb_client_destroy(client);
-		sdb_log(SDB_LOG_ERR, "Out of memory");
+		sdb_log(SDB_LOG_ERR, "client: Out of memory");
 		return NULL;
 	}
 
@@ -337,23 +337,23 @@ sdb_client_connect(sdb_client_t *client, const char *username)
 	}
 
 	if (status < 0) {
-		sdb_log(SDB_LOG_ERR, "%s", sdb_strbuf_string(buf));
+		sdb_log(SDB_LOG_ERR, "client: %s", sdb_strbuf_string(buf));
 		sdb_client_close(client);
 		sdb_strbuf_destroy(buf);
 		return (int)status;
 	}
 	if (client->eof)
-		sdb_log(SDB_LOG_ERR, "Encountered end-of-file while waiting "
+		sdb_log(SDB_LOG_ERR, "client: Encountered end-of-file while waiting "
 				"for server response");
 
 	if (rstatus == SDB_CONNECTION_ERROR) {
-		sdb_log(SDB_LOG_ERR, "Access denied for user '%s': %s",
+		sdb_log(SDB_LOG_ERR, "client: Access denied for user '%s': %s",
 				username, sdb_strbuf_string(buf));
 		status = -((int)rstatus);
 	}
 	else if (rstatus != SDB_CONNECTION_OK) {
-		sdb_log(SDB_LOG_ERR, "Received unsupported authentication request "
-				"(status %d) during startup", (int)rstatus);
+		sdb_log(SDB_LOG_ERR, "client: Received unsupported authentication "
+				"request (status %d) during startup", (int)rstatus);
 		status = -((int)rstatus);
 	}
 
@@ -443,11 +443,11 @@ sdb_client_rpc(sdb_client_t *client,
 		if (rcode == SDB_CONNECTION_LOG) {
 			uint32_t prio = 0;
 			if (sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &prio) < 0) {
-				sdb_log(SDB_LOG_WARNING, "Received a LOG message "
+				sdb_log(SDB_LOG_WARNING, "client: Received a LOG message "
 						"with invalid or missing priority");
 				prio = (uint32_t)SDB_LOG_ERR;
 			}
-			sdb_log((int)prio, "%s", sdb_strbuf_string(buf) + offset);
+			sdb_log((int)prio, "client: %s", sdb_strbuf_string(buf) + offset);
 			sdb_strbuf_skip(buf, offset, sdb_strbuf_len(buf) - offset);
 			continue;
 		}
