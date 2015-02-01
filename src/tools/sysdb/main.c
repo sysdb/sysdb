@@ -132,6 +132,8 @@ exit_usage(char *name, int status)
 "               default: %s\n"
 "  -C CERTFILE  client certificate file name\n"
 "               default: %s\n"
+"  -A CAFILE    CA certificates file name\n"
+"               default: %s\n"
 "\n"
 "General options:\n"
 "\n"
@@ -140,7 +142,7 @@ exit_usage(char *name, int status)
 
 "\nSysDB client "SDB_CLIENT_VERSION_STRING SDB_CLIENT_VERSION_EXTRA", "
 PACKAGE_URL"\n", basename(name), user,
-			ssl_options.key_file, ssl_options.cert_file);
+			ssl_options.key_file, ssl_options.cert_file, ssl_options.ca_file);
 
 	free(user);
 	exit(status);
@@ -227,7 +229,7 @@ main(int argc, char **argv)
 	sdb_llist_t *commands = NULL;
 
 	while (42) {
-		int opt = getopt(argc, argv, "H:U:c:C:K:hV");
+		int opt = getopt(argc, argv, "H:U:c:C:K:A:hV");
 
 		if (-1 == opt)
 			break;
@@ -269,6 +271,9 @@ main(int argc, char **argv)
 				break;
 			case 'K':
 				ssl_options.key_file = optarg;
+				break;
+			case 'A':
+				ssl_options.ca_file = optarg;
 				break;
 
 			case 'h':
