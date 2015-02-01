@@ -12,6 +12,10 @@ SYNOPSIS
   Interval 300
 
   Listen "unix:/var/run/sysdbd.sock"
+  <Listen "tcp:some.host.name:12345">
+      SSLCertificate "/etc/sysdb/ssl/cert.pem"
+      SSLCertificateKey "/etc/sysdb/ssl/key.pem"
+  </Listen>
 
   LoadPlugin "syslog"
 
@@ -38,12 +42,12 @@ any real (user-facing) functionality, the most important part of the
 configuration is loading and configuring plugins.
 
 The syntax of this configuration file is similar to that of the Apache
-webserver. It is made up of _options_ and _sections_. Each option contains a
+webserver. It is made up of _options_ and _blocks_. Each option contains a
 _key_ and one or more _values_ separated by spaces and terminated by a newline
-character. Sections are enclosed in a start- and end-tag, each on a line of
+character. Blocks are enclosed in a start- and end-tag, each on a line of
 their own. These tags are enclosed in angle brackets and also contain a key
-and value. Section end-tags only contain the key of the start-tag prepended by
-a forward-slash ("/"). Empty lines are ignored as well as any unquoted hash
+and value. A block's end-tag only contain the key of the start-tag prepended
+by a forward-slash ("/"). Empty lines are ignored as well as any unquoted hash
 symbol ("#") including anything following up to the following newline. Keys
 are unquoted strings consisting only of alphanumeric characters and the
 underscore character ("_"). Values may either be unquoted strings, quoted
@@ -70,13 +74,28 @@ GLOBAL SETTINGS
 
 *Listen* '<socket>'::
 	Sets the address on which sysdbd is to listen for client connections. It
-	supports UNIX domain sockets. The path name needs to be prefixed by
-	'unix:'.
+	supports UNIX domain sockets and TCP sockets using TLS encryption. UNIX
+	socket addresses are specified by the path name of the socket, optionally
+	prefixed with 'unix:'. TCP listen addresses may be specified as
+	'<host>:<port>', optionally prefixed with 'tcp:'. The host may be a
+	hostname, an IPv4 address or and IPv6 address. It may be empty or
+	'0.0.0.0' / '::' to listen on all local addresses. *Listen* may optionally
+	be a block containing any of the following options:
+
+	*SSLCertificate* '<filename>';;
+		Specify the SSL server certificate file to use for SSL connections.
+
+	*SSLCertificateKey* '<filename>';;
+		Specify the SSL server private key file to use for SSL connections.
+
+	*SSLCACertificates* '<filename>';;
+		Specify the file containing CA certificates for client verification
+		purposes to use for SSL connnections.
 
 *LoadBackend* '<name>'::
 	Loads the backend named '<name>'. Backends are special plugins taking care
-	of collecting values from external systems. This may optionally be a
-	section containing any of the following options:
+	of collecting values from external systems. This may optionally be a block
+	containing any of the following options:
 
 	*Interval* '<seconds>';;
 		Overwrite the global interval setting by setting a custom interval to
