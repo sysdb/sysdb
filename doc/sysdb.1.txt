@@ -22,6 +22,9 @@ OPTIONS
 -------
 *sysdb* accepts the following command-line options.
 
+Connection options:
+~~~~~~~~~~~~~~~~~~~
+
 *-H* '<host>'::
 	The SysDB host to connect to. May be specified as the path to a UNIX
 	socket opened by the daemon. Defaults to {localstatedir}/run/sysdbd.sock.
@@ -35,6 +38,22 @@ OPTIONS
 	may be used multiple times. Each command will be send to the server
 	separately. Exit the process after handling the reply from the last
 	command.
+
+SSL options:
+~~~~~~~~~~~~
+
+*-K* '<keyfile>'::
+	The SSL private key file to use for SSL connections.
+
+*-C* '<certfile>'::
+	The SSL certificate file to use for SSL connections.
+
+*-A* '<cafile>'::
+	The certificate authority (CA) certificates file for server certificate
+	verification to use for SSL connection.
+
+General options:
+~~~~~~~~~~~~~~~~
 
 *-h*::
 	Display a usage and help summary and exit.

@@ -89,8 +89,8 @@ GLOBAL SETTINGS
 		Specify the SSL server private key file to use for SSL connections.
 
 	*SSLCACertificates* '<filename>';;
-		Specify the file containing CA certificates for client verification
-		purposes to use for SSL connnections.
+		Specify the file containing certificate authority (CA) certificates
+		for client verification purposes to use for SSL connnections.
 
 *LoadBackend* '<name>'::
 	Loads the backend named '<name>'. Backends are special plugins taking care
