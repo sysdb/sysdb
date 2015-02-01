@@ -17,7 +17,13 @@ all log messages to it.
 
 CONFIGURATION
 -------------
-*syslog* does not currently accept any configuration options.
+*syslog* accepts the following configuration options:
+
+*LogLevel* *DEBUG*|*INFO*|*NOTICE*|*WARNING*|*ERROR*|*EMERG*::
+	Set the minimum log level. Only messages logged at the specified level and
+	above will actually be logged. Note that this only affects how SysDB
+	behaves. Whether or where the log message shows up also depends on your
+	syslog daemon configuration. Defaults to *INFO*.
 
 SEE ALSO
 --------
