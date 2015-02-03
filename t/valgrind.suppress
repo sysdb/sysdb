@@ -39,3 +39,10 @@
    fun:dl_open_worker
    ...
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:ASN1_item_ex_d2i
+   ...
+}
