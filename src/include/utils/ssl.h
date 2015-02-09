@@ -68,6 +68,16 @@ struct sdb_ssl_session;
 typedef struct sdb_ssl_session sdb_ssl_session_t;
 
 /*
+ * sdb_ssl_init, sdb_ssl_shutdown:
+ * Global setup and shutdown of SSL/TLS. This is required before any other
+ * function can be used.
+ */
+void
+sdb_ssl_init(void);
+void
+sdb_ssl_shutdown(void);
+
+/*
  * sdb_ssl_client_create:
  * Allocate and initialize a TLS/SSL client using the specified options. If no
  * options are specified, default values will be used instead.

@@ -38,6 +38,7 @@
 #include "utils/llist.h"
 #include "utils/strbuf.h"
 #include "utils/os.h"
+#include "utils/ssl.h"
 
 #include <errno.h>
 
@@ -76,9 +77,6 @@
 #		include <history.h>
 #	endif
 #endif /* READLINEs */
-
-#include <openssl/ssl.h>
-#include <openssl/err.h>
 
 #ifndef DEFAULT_SOCKET
 #	define DEFAULT_SOCKET "unix:"LOCALSTATEDIR"/run/sysdbd.sock"
@@ -299,8 +297,7 @@ main(int argc, char **argv)
 	if (! input.user)
 		exit(1);
 
-	SSL_load_error_strings();
-	OpenSSL_add_ssl_algorithms();
+	sdb_ssl_init();
 
 	input.client = sdb_client_create(host);
 	if (! input.client) {
@@ -372,8 +369,7 @@ main(int argc, char **argv)
 	}
 
 	sdb_input_reset(&input);
-
-	ERR_free_strings();
+	sdb_ssl_shutdown();
 	return 0;
 } /* main */
 

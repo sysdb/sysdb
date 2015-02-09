@@ -33,6 +33,7 @@
 #include "core/plugin.h"
 #include "core/store.h"
 #include "utils/error.h"
+#include "utils/ssl.h"
 
 #include "frontend/connection.h"
 #include "frontend/sock.h"
@@ -59,9 +60,6 @@
 #include <unistd.h>
 
 #include <pthread.h>
-
-#include <openssl/ssl.h>
-#include <openssl/err.h>
 
 #ifndef CONFIGFILE
 #	define CONFIGFILE SYSCONFDIR"/sysdb/sysdbd.conf"
@@ -370,9 +368,7 @@ main(int argc, char **argv)
 		if (daemonize())
 			exit(1);
 
-	SSL_load_error_strings();
-	OpenSSL_add_ssl_algorithms();
-
+	sdb_ssl_init();
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 
@@ -397,8 +393,7 @@ main(int argc, char **argv)
 			SDB_VERSION_EXTRA" (pid %i)", (int)getpid());
 	sdb_plugin_shutdown_all();
 	sdb_plugin_unregister_all();
-
-	ERR_free_strings();
+	sdb_ssl_shutdown();
 	return status;
 } /* main */
 

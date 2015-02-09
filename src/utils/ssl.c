@@ -171,6 +171,19 @@ copy_options(sdb_ssl_options_t *dst, const sdb_ssl_options_t *src)
  * public API
  */
 
+void
+sdb_ssl_init(void)
+{
+	SSL_load_error_strings();
+	OpenSSL_add_ssl_algorithms();
+} /* sdb_ssl_init */
+
+void
+sdb_ssl_shutdown(void)
+{
+	ERR_free_strings();
+} /* sdb_ssl_shutdown */
+
 sdb_ssl_client_t *
 sdb_ssl_client_create(const sdb_ssl_options_t *opts)
 {
