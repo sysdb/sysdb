@@ -37,8 +37,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
+
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
+#include <openssl/crypto.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 
@@ -59,6 +62,40 @@ struct sdb_ssl_server {
 struct sdb_ssl_session {
 	SSL *ssl;
 };
+
+/*
+ * OpenSSL helper functions
+ */
+
+static pthread_mutex_t *mutexes = NULL;
+static int mutexes_num = 0;
+
+static void
+locking_callback(int mode, int n, const char *file, int line)
+{
+	if (! mutexes) {
+		sdb_log(SDB_LOG_EMERG, "ssl: CRYPTO_lock called from %s:%d "
+				"before initializing SSL", file, line);
+		return;
+	}
+	if (n >= mutexes_num) {
+		sdb_log(SDB_LOG_EMERG, "ssl: CRYPTO_lock called from %s:%d "
+				"for mutex %d but only %d are available",
+				file, line, n, mutexes_num);
+		return;
+	}
+
+	if (mode & CRYPTO_LOCK)
+		pthread_mutex_lock(&mutexes[n]);
+	else
+		pthread_mutex_unlock(&mutexes[n]);
+} /* locking_callback */
+
+static void
+threadid_callback(CRYPTO_THREADID *id)
+{
+	CRYPTO_THREADID_set_numeric(id, (unsigned long)pthread_self());
+} /* threadid_callback */
 
 /*
  * private helper functions
@@ -171,16 +208,49 @@ copy_options(sdb_ssl_options_t *dst, const sdb_ssl_options_t *src)
  * public API
  */
 
-void
+int
 sdb_ssl_init(void)
 {
+	int i;
+
 	SSL_load_error_strings();
 	OpenSSL_add_ssl_algorithms();
+
+	mutexes = calloc(CRYPTO_num_locks(), sizeof(*mutexes));
+	if (! mutexes) {
+		char errbuf[1024];
+		sdb_log(SDB_LOG_ERR, "ssl: Failed to allocate mutexes: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	for (i = 0; i < CRYPTO_num_locks(); ++i) {
+		errno = pthread_mutex_init(&mutexes[i], /* attr = */ NULL);
+		if (errno) {
+			char errbuf[1024];
+			sdb_log(SDB_LOG_ERR, "ssl: Failed to initialize mutex: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+			return -1;
+		}
+		mutexes_num = i + 1;
+	}
+
+	CRYPTO_set_locking_callback(locking_callback);
+	CRYPTO_THREADID_set_callback(threadid_callback);
+	return 0;
 } /* sdb_ssl_init */
 
 void
 sdb_ssl_shutdown(void)
 {
+	int i;
+
+	for (i = 0; i < mutexes_num; ++i)
+		pthread_mutex_destroy(&mutexes[i]);
+	if (mutexes)
+		free(mutexes);
+	mutexes = NULL;
+	mutexes_num = 0;
+
 	ERR_free_strings();
 } /* sdb_ssl_shutdown */
 

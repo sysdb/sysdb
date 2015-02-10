@@ -297,7 +297,8 @@ main(int argc, char **argv)
 	if (! input.user)
 		exit(1);
 
-	sdb_ssl_init();
+	if (sdb_ssl_init())
+		exit(1);
 
 	input.client = sdb_client_create(host);
 	if (! input.client) {
