@@ -213,7 +213,7 @@ store_init(sdb_object_t *user_data)
 		return -1;
 	}
 
-	sdb_log(SDB_LOG_ERR, "store::network: Successfully connected "
+	sdb_log(SDB_LOG_INFO, "store::network: Successfully connected "
 			"to SysDB at %s as user %s", ud->addr, ud->username);
 	return 0;
 } /* store_init */
