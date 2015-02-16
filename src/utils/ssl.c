@@ -244,14 +244,14 @@ sdb_ssl_shutdown(void)
 {
 	int i;
 
+	ERR_free_strings();
+
 	for (i = 0; i < mutexes_num; ++i)
 		pthread_mutex_destroy(&mutexes[i]);
 	if (mutexes)
 		free(mutexes);
 	mutexes = NULL;
 	mutexes_num = 0;
-
-	ERR_free_strings();
 } /* sdb_ssl_shutdown */
 
 sdb_ssl_client_t *
