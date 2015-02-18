@@ -57,13 +57,12 @@ typedef struct {
 	char *username;
 	sdb_ssl_options_t ssl_opts;
 } user_data_t;
-#define UD(obj) ((user_data_t *)(obj))
-#define CLIENT(obj) UD(SDB_OBJ_WRAPPER(obj)->data)->client
+#define UD(obj) SDB_OBJ_WRAPPER(obj)->data
 
 static void
 user_data_destroy(void *obj)
 {
-	user_data_t *ud = UD(obj);
+	user_data_t *ud = obj;
 
 	if (! ud)
 		return;
@@ -88,13 +87,24 @@ user_data_destroy(void *obj)
  */
 
 static int
-store_rpc(sdb_client_t *client, const char *msg, size_t msg_len)
+store_rpc(user_data_t *ud, const char *msg, size_t msg_len)
 {
 	sdb_strbuf_t *buf = sdb_strbuf_create(128);
 	uint32_t rstatus = 0;
 	ssize_t status;
 
-	status = sdb_client_rpc(client, SDB_CONNECTION_STORE,
+	if (sdb_client_eof(ud->client)) {
+		sdb_client_close(ud->client);
+		if (sdb_client_connect(ud->client, ud->username)) {
+			sdb_log(SDB_LOG_ERR, "store::network: Failed to reconnect "
+					"to SysDB at %s as user %s", ud->addr, ud->username);
+			return -1;
+		}
+		sdb_log(SDB_LOG_INFO, "store::network: Successfully reconnected "
+				"to SysDB at %s as user %s", ud->addr, ud->username);
+	}
+
+	status = sdb_client_rpc(ud->client, SDB_CONNECTION_STORE,
 			(uint32_t)msg_len, msg, &rstatus, buf);
 	if (status < 0)
 		sdb_log(SDB_LOG_ERR, "store::network: %s", sdb_strbuf_string(buf));
@@ -118,7 +128,7 @@ store_host(const char *name, sdb_time_t last_update, sdb_object_t *user_data)
 	char buf[len];
 
 	sdb_proto_marshal_host(buf, len, &host);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_host */
 
 static int
@@ -130,7 +140,7 @@ store_service(const char *hostname, const char *name, sdb_time_t last_update,
 	char buf[len];
 
 	sdb_proto_marshal_service(buf, len, &svc);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_service */
 
 static int
@@ -146,7 +156,7 @@ store_metric(const char *hostname, const char *name,
 	char buf[len];
 
 	sdb_proto_marshal_metric(buf, len, &metric);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_metric */
 
 static int
@@ -160,7 +170,7 @@ store_attr(const char *hostname, const char *key, const sdb_data_t *value,
 	char buf[len];
 
 	sdb_proto_marshal_attribute(buf, len, &attr);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_attr */
 
 static int
@@ -175,7 +185,7 @@ store_service_attr(const char *hostname, const char *service,
 	char buf[len];
 
 	sdb_proto_marshal_attribute(buf, len, &attr);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_service_attr */
 
 static int
@@ -190,7 +200,7 @@ store_metric_attr(const char *hostname, const char *metric,
 	char buf[len];
 
 	sdb_proto_marshal_attribute(buf, len, &attr);
-	return store_rpc(CLIENT(user_data), buf, len);
+	return store_rpc(UD(user_data), buf, len);
 } /* store_metric_attr */
 
 static sdb_store_writer_t store_impl = {
