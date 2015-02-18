@@ -35,6 +35,7 @@
 #include "utils/error.h"
 #include "utils/proto.h"
 #include "utils/os.h"
+#include "utils/ssl.h"
 
 #include "liboconfig/utils.h"
 
@@ -54,6 +55,7 @@ typedef struct {
 	sdb_client_t *client;
 	char *addr;
 	char *username;
+	sdb_ssl_options_t ssl_opts;
 } user_data_t;
 #define UD(obj) ((user_data_t *)(obj))
 #define CLIENT(obj) UD(SDB_OBJ_WRAPPER(obj)->data)->client
@@ -75,6 +77,8 @@ user_data_destroy(void *obj)
 	if (ud->username)
 		free(ud->username);
 	ud->username = NULL;
+
+	sdb_ssl_free_options(&ud->ssl_opts);
 
 	free(ud);
 } /* user_data_destroy */
@@ -223,7 +227,7 @@ store_config_server(oconfig_item_t *ci)
 {
 	sdb_object_t *user_data;
 	user_data_t *ud;
-
+	int ret = 0;
 	int i;
 
 	ud = calloc(1, sizeof(*ud));
@@ -261,19 +265,54 @@ store_config_server(oconfig_item_t *ci)
 
 	for (i = 0; i < ci->children_num; ++i) {
 		oconfig_item_t *child = ci->children + i;
+		char *tmp = NULL;
 
-		if (! strcasecmp(child->key, "Username"))
-			oconfig_get_string(child, &ud->username);
+		if (! strcasecmp(child->key, "Username")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = -1;
+				break;
+			}
+			ud->username = strdup(tmp);
+		}
+		else if (! strcasecmp(child->key, "SSLCertificate")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = -1;
+				break;
+			}
+			ud->ssl_opts.cert_file = strdup(tmp);
+		}
+		else if (! strcasecmp(child->key, "SSLCertificateKey")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = -1;
+				break;
+			}
+			ud->ssl_opts.key_file = strdup(tmp);
+		}
+		else if (! strcasecmp(child->key, "SSLCACertificates")) {
+			if (oconfig_get_string(child, &tmp)) {
+				ret = -1;
+				break;
+			}
+			ud->ssl_opts.ca_file = strdup(tmp);
+		}
 		else
 			sdb_log(SDB_LOG_WARNING, "store::network: Ignoring "
 					"unknown config option '%s' inside <Server %s>.",
 					child->key, ud->addr);
 	}
 
-	if (ud->username)
-		ud->username = strdup(ud->username);
+	if (ret) {
+		user_data_destroy(ud);
+		return ret;
+	}
 	if (! ud->username)
 		ud->username = sdb_get_current_user();
+
+	if (sdb_client_set_ssl_options(ud->client, &ud->ssl_opts)) {
+		sdb_log(SDB_LOG_ERR, "store::network: Failed to apply SSL options");
+		user_data_destroy(ud);
+		return -1;
+	}
 
 	user_data = sdb_object_create_wrapper("store-network-userdata", ud,
 			user_data_destroy);
