@@ -27,6 +27,86 @@
 
   <https://sysdb.io/>
 
+Version 0.7.0, Release Date: 2015-02-XX
+---------------------------------------
+
+  This release introduces various features related to running SysDB as an
+  agent. Objects may now also be submitted by arbitrary applications using the
+  network protocol. Two new plugins are available to collect local facter fact
+  values and to mirror all store operations to another instance. Various fixes
+  and improvements have been applied to the client program (sysdb).
+
+   * build system:
+     - Added support for C++.
+   * sysdb:
+     - Fixed terminal resets on exit.
+     - Don't exit if the server closed the connection; instead reconnect
+       automatically on the next user input.
+     - Fixed string parsing: previously, quoted strings were not handled at
+       all and might have been terminated by an embedded semicolon.
+     - Also store failed commands in the history to enable history editing in
+       such cases.
+     - Improved program output: don't mix log messages with prompts after
+       sending a command; print log messages to the standard error channel.
+     - Fixed lookup of the .sysdb_history file for cases where the SysDB user
+       does not match the current operating system user.
+   * sysdbd:
+     - SSL options can be specified inside a <Listen> block.
+     - Unload all plugins on exit to ensure a clean shutdown.
+   * client:
+     - Simplified RPC handling by providing a helper function.
+     - Added support for TCP connections using SSL/TLS and supporting, both,
+       IPv4 and IPv6. Remote peer verification is required for any such
+       connection.
+     - New command line flags -K, -C, and -A to specify the SSL private key,
+       client certificate, and CA certificates file names.
+   * core:
+     - Fully support arrays of all types.
+     - Fixed (implemented) reloading of time-series fetcher plugins.
+     - Added new callback type for "store-writers", making that part of the
+       store pluggable (queries are not supported).
+   * store:
+     - Added support for querying an object's siblings.
+     - Send all stored objects to store-writer plugins in addition to storing
+       them in the in-memory store.
+   * frontend:
+     - Fixed parsing of time values.
+     - Add support for storing hosts, services, metrics, and attributes using
+       the new 'STORE' command.
+     - Fixed handling of subsequent requests on the same connection by
+       avoiding unnecessary pauses of up to one second, thus, greatly speeding
+       up request handling.
+     - Added support for TCP connections supporting, both, IPv4 and IPv6.
+       SSL/TLS is enforced for any such connection.
+     - Added support for and require actual client authentication:
+       UNIX socket connections require peer authentication.
+       TCP connections require client SSL certificate authentication.
+   * query language:
+     - Added support for expressions accessing an object's siblings by using
+       the '<object_type>.<sibling_type>' syntax.
+   * JSON format:
+     - Fixed handling of special characters which are now being escaped.
+     - Include a flag indicating whether time-series data are available for a
+       metric.
+   * utils:
+     - os: This utility module provides some Operating System related helper
+       functions: access user information (current user, homedir), manage
+       directories (create, delete, resolve), I/O helpers (select, read,
+       write), networking helpers (DNS resolution).
+     - proto: Added support for marshaling and unmarshaling messages encoding
+       a datum of any type, hosts, services, metrics, and attributes.
+     - ssl: This new module provides convenience functions for SSL/TLS
+       servers, clients, and sessions using OpenSSL.
+
+  Backends:
+   * facter: Added a plugin collecting local facter fact values using
+     libcfacter (C++).
+   * store::network: Added a store-writer plugin sending all data to another
+     SysDB instance using the client library and low-level STORE commands.
+
+  Plugins:
+   * syslog: The log-level is now configurable using the "LogLevel" option.
+
 Version 0.6.0, Release Date: 2014-11-17
 ---------------------------------------
 
