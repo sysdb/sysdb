@@ -1,0 +1,86 @@
+sysdbd-store-network(5)
+=======================
+:doctype: manpage
+
+NAME
+----
+sysdbd-store-network - store::network plugin sending to remote instances
+
+SYNOPSIS
+--------
+  LoadPlugin "store::network"
+
+  <Plugin "store::network">
+      <Server "some.host.name:12345">
+          Username "my.host.name"
+          SSLCertificate "/etc/sysdb/ssl/cert.pem"
+          SSLCertificateKey "/etc/sysdb/ssl/key.pem"
+          SSLCACertificates "/etc/ssl/certs/ca-certificates.crt"
+      </Server>
+  </Plugin>
+
+DESCRIPTION
+-----------
+*store::network* is a plugin which connects to a remote SysDB instance and
+sends all locally collected stored objects to that instance. It uses the
+low-level binary protocol to efficiently transmit the data.
+
+CONFIGURATION
+-------------
+*store::network* accepts the following configuration options:
+
+*Server* '<address>'::
+	A server block specifies the connection settings. Multiple servers may be
+	specified to send all data to multiple instances. The specified
+	'<address>' may be a local path-name of a UNIX domain socket, a hostname,
+	an IPv4 address, or and IPv6 address along with the remote port, separated
+	by a colon (":").
+	+
+	All TCP connections are encrypted with SSL/TLS. See the *SSL*
+	configuration options for details about how to configure this.
+	+
+	All clients need to authenticate against the remote SysDB instance. See
+	the section *AUTHENTICATION* for details.
+	+
+	A server block accepts the following configuration options:
+
+	*Username* '<name>';;
+		The username used for authentication against the remote instance.
+
+	*SSLCertificate* '<filename>';;
+		The SSL certificate file to use for SSL connections and
+		authentication.
+
+	*SSLCertificateKey* '<filename>';;
+		The SSL private key file to use for SSL connections and
+		authentication.
+
+	*SSLCACertificates* '<filename>';;
+		The certificate authority (CA) certificates file for server
+		certificate verification to use for SSL connection.
+
+AUTHENTICATION
+--------------
+
+include::sysdb-auth.txt[]
+
+SEE ALSO
+--------
+manpage:sysdbd[1], manpage:sysdbd.conf[5]
+
+The SysDB homepage: https://sysdb.io/
+
+AUTHOR
+------
+SysDB was written by Sebastian "tokkee" Harl <sh@tokkee.org>.
+
+COPYRIGHT
+---------
+Copyright (C) 2012-2015 Sebastian "tokkee" Harl <sh@tokkee.org>
+
+This is free software under the terms of the BSD license, see the source for
+copying conditions. There is NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+// vim: set tw=78 sw=4 ts=4 noexpandtab spell spelllang=en_us :
+
