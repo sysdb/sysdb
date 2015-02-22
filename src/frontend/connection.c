@@ -170,7 +170,18 @@ connection_destroy(sdb_object_t *obj)
 					"(%zu byte%s left in buffer)", len, len == 1 ? "" : "s");
 	}
 
-	sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection %s", obj->name);
+	if (conn->client_addr.ss_family == AF_UNIX) {
+		sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection %s from peer %s",
+				obj->name, conn->username);
+	}
+	else {
+		char host[1024] = "<unknown>", port[32] = "";
+		getnameinfo((struct sockaddr *)&conn->client_addr,
+				conn->client_addr_len, host, sizeof(host), port, sizeof(port),
+				NI_NUMERICHOST | NI_NUMERICSERV);
+		sdb_log(SDB_LOG_DEBUG, "frontend: Closing connection %s from peer %s "
+				"at %s:%s", obj->name, conn->username, host, port);
+	}
 	sdb_connection_close(conn);
 
 	if (conn->username)
