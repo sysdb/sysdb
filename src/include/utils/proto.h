@@ -92,6 +92,20 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 		uint32_t msg_len, const char *msg);
 
 /*
+ * sdb_proto_marshal_int32:
+ * Encode the 32-bit integer into the wire format and write it to buf.
+ *
+ * Returns:
+ *  - The number of bytes of the encoded value on success. The function does
+ *    not write more than 'buf_len' bytes. If the output was truncated then
+ *    the return value is the number of bytes which would have been written if
+ *    enough space had been available.
+ *  - a negative value else
+ */
+ssize_t
+sdb_proto_marshal_int32(char *buf, size_t buf_len, uint32_t v);
+
+/*
  * sdb_proto_marshal_data:
  * Encode a datum into the wire format and write it to buf.
  *

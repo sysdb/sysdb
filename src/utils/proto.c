@@ -81,16 +81,6 @@ memdup(const unsigned char *d, size_t length)
  * been available. */
 
 static ssize_t
-marshal_int32(char *buf, size_t buf_len, uint32_t v)
-{
-	if (buf_len >= sizeof(v)) {
-		v = htonl(v);
-		memcpy(buf, &v, sizeof(v));
-	}
-	return sizeof(v);
-} /* marshal_int32 */
-
-static ssize_t
 marshal_int64(char *buf, size_t buf_len, int64_t v)
 {
 	if (buf_len >= sizeof(v)) {
@@ -229,7 +219,7 @@ marshal_obj_header(char *buf, size_t buf_len,
 	if (buf_len < OBJ_HEADER_LEN)
 		return OBJ_HEADER_LEN;
 
-	n = marshal_int32(buf, buf_len, (uint32_t)type);
+	n = sdb_proto_marshal_int32(buf, buf_len, (uint32_t)type);
 	buf += n; buf_len -= n;
 	marshal_datetime(buf, buf_len, last_update);
 	return OBJ_HEADER_LEN;
@@ -276,6 +266,16 @@ sdb_proto_marshal(char *buf, size_t buf_len, uint32_t code,
 		memcpy(buf + 2 * sizeof(tmp), msg, msg_len);
 	return len;
 } /* sdb_proto_marshal */
+
+ssize_t
+sdb_proto_marshal_int32(char *buf, size_t buf_len, uint32_t v)
+{
+	if (buf_len >= sizeof(v)) {
+		v = htonl(v);
+		memcpy(buf, &v, sizeof(v));
+	}
+	return sizeof(v);
+} /* sdb_proto_marshal_int32 */
 
 ssize_t
 sdb_proto_marshal_data(char *buf, size_t buf_len, const sdb_data_t *datum)
