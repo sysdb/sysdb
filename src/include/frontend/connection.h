@@ -136,6 +136,17 @@ int
 sdb_connection_ping(sdb_conn_t *conn);
 
 /*
+ * sdb_connection_server_version:
+ * Send back the backend server version to the connected client.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_connection_server_version(sdb_conn_t *conn);
+
+/*
  * sdb_fe_parse:
  * Parse the query text specified in 'query' of length 'len' and return a list
  * of parse trees (for each command) to be executed by sdb_fe_exec. The list

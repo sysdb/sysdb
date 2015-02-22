@@ -298,6 +298,25 @@ typedef enum {
 	 * A parsed expression. Only used internally.
 	 */
 	SDB_CONNECTION_EXPR,
+
+	/*
+	 * Server status queries.
+	 */
+
+	/*
+	 * SDB_CONNECTION_SERVER_VERSION:
+	 * Retrieve the server version. The server replies with SDB_CONNECTION_OK
+	 * on success and the server version as an unsigned 32-bit integer,
+	 * optionally followed by a string describing extra version components.
+	 * The integer server version is encoded as 100000 * major + 100 * minor +
+	 * patch.
+	 *
+	 * 0               32              64
+	 * +---------------+---------------+
+	 * | SERVER_VERSION| 0             |
+	 * +---------------+---------------+
+	 */
+	SDB_CONNECTION_SERVER_VERSION = 1000,
 } sdb_conn_state_t;
 
 #define SDB_CONN_MSGTYPE_TO_STRING(t) \

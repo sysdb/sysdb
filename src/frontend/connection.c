@@ -284,6 +284,7 @@ command_handle(sdb_conn_t *conn)
 		status = sdb_connection_ping(conn);
 	else if (conn->cmd == SDB_CONNECTION_STARTUP)
 		status = sdb_fe_session_start(conn);
+
 	else if (conn->cmd == SDB_CONNECTION_QUERY)
 		status = sdb_fe_query(conn);
 	else if (conn->cmd == SDB_CONNECTION_FETCH)
@@ -294,6 +295,10 @@ command_handle(sdb_conn_t *conn)
 		status = sdb_fe_lookup(conn);
 	else if (conn->cmd == SDB_CONNECTION_STORE)
 		status = sdb_fe_store(conn);
+
+	else if (conn->cmd == SDB_CONNECTION_SERVER_VERSION)
+		status = sdb_connection_server_version(conn);
+
 	else {
 		sdb_log(SDB_LOG_WARNING, "frontend: Ignoring invalid command %#x",
 				conn->cmd);
@@ -531,6 +536,21 @@ sdb_connection_ping(sdb_conn_t *conn)
 	sdb_connection_send(conn, SDB_CONNECTION_OK, 0, NULL);
 	return 0;
 } /* sdb_connection_ping */
+
+int
+sdb_connection_server_version(sdb_conn_t *conn)
+{
+	char msg[sizeof(uint32_t) + strlen(SDB_VERSION_EXTRA) + 1];
+
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_SERVER_VERSION))
+		return -1;
+
+	sdb_proto_marshal_int32(msg, sizeof(msg), (uint32_t)SDB_VERSION);
+	strncpy(msg + sizeof(uint32_t), SDB_VERSION_EXTRA,
+			sizeof(msg) - sizeof(uint32_t));
+	sdb_connection_send(conn, SDB_CONNECTION_OK, (uint32_t)sizeof(msg), msg);
+	return 0;
+} /* sdb_connection_server_version */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
