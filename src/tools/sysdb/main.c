@@ -330,8 +330,10 @@ main(int argc, char **argv)
 	}
 
 	sdb_log(SDB_LOG_INFO, "SysDB client "SDB_CLIENT_VERSION_STRING
-			SDB_CLIENT_VERSION_EXTRA" (libsysdbclient %s%s)\n",
+			SDB_CLIENT_VERSION_EXTRA" (libsysdbclient %s%s)",
 			sdb_client_version_string(), sdb_client_version_extra());
+	sdb_command_print_server_version(&input);
+	printf("\n");
 
 	using_history();
 

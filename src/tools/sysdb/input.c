@@ -329,6 +329,7 @@ sdb_input_reconnect(void)
 		return -1;
 	}
 	sdb_log(SDB_LOG_INFO, "Successfully reconnected to SysDBd");
+	sdb_command_print_server_version(sysdb_input);
 	return 0;
 } /* sdb_input_reconnect */
 

@@ -215,5 +215,25 @@ sdb_command_exec(sdb_input_t *input)
 	return data;
 } /* sdb_command_exec */
 
+void
+sdb_command_print_server_version(sdb_input_t *input)
+{
+	sdb_strbuf_t *buf = sdb_strbuf_create(32);
+	uint32_t code = 0, version = 0;
+	const char *extra;
+
+	if ((sdb_client_rpc(input->client, SDB_CONNECTION_SERVER_VERSION,
+					0, NULL, &code, buf) < 0) || (code != SDB_CONNECTION_OK))
+		return;
+	if (sdb_strbuf_len(buf) < sizeof(version))
+		return;
+
+	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &version);
+	extra = sdb_strbuf_string(buf) + sizeof(version);
+	sdb_log(SDB_LOG_INFO, "SysDB server %d.%d.%d%s",
+			SDB_VERSION_DECODE((int)version), extra);
+	sdb_strbuf_destroy(buf);
+} /* sdb_command_print_server_version */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

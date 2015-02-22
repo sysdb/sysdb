@@ -58,6 +58,13 @@ sdb_command_print_reply(sdb_client_t *client);
 char *
 sdb_command_exec(sdb_input_t *input);
 
+/*
+ * sdb_command_print_server_version:
+ * Query and print the server version.
+ */
+void
+sdb_command_print_server_version(sdb_input_t *input);
+
 #endif /* SYSDB_COMMAND_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
