@@ -137,7 +137,8 @@ function setup_ssl() {
 	openssl req -batch -subj '/CN=localhost' \
 		-new -out "${SERVER_CERT}.csr" -key "$SERVER_KEY"
 	openssl x509 -req -in "${SERVER_CERT}.csr" -out "$SERVER_CERT" -days 1 \
-		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial -CAserial serial
+		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial \
+		-CAserial ${TESTDIR}/serial
 
 	CLIENT_KEY="$TESTDIR/client.key"
 	CLIENT_CERT="$TESTDIR/client.cert"
@@ -145,7 +146,8 @@ function setup_ssl() {
 	openssl req -batch -subj "/CN=$SYSDB_USER" \
 		-new -out "${CLIENT_CERT}.csr" -key "$CLIENT_KEY"
 	openssl x509 -req -in "${CLIENT_CERT}.csr" -out "$CLIENT_CERT" -days 1 \
-		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial -CAserial serial
+		-CAkey "$CA_KEY" -CA "$CA_CERT" -CAcreateserial \
+		-CAserial ${TESTDIR}/serial
 }
 
 # vim: set tw=78 sw=4 ts=4 noexpandtab :
