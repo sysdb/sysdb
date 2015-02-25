@@ -125,6 +125,10 @@ echo "$output" | grep -F 'not found'
 (echo 'LIST hosts;'; sleep 1; echo "FETCH host 'host1.example.com'") \
 	| run_sysdb -H "$SOCKET_FILE"
 
+output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "FETCH host 'host1.example.com' FILTER age < 0" 2>&1 )" && exit 1
+echo "$output" | grep -F 'not found'
+
 # When requesting information for unknown hosts, expect a non-zero exit code.
 output="$( run_sysdb -H "$SOCKET_FILE" \
 	-c "FETCH host 'does.not.exist'" 2>&1 )" && exit 1
