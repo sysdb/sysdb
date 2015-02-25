@@ -331,10 +331,14 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
 			sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch %s %s.%s: "
 					"%s not found", SDB_STORE_TYPE_TO_NAME(type),
 					hostname, name, name);
+			if (obj)
+				sdb_object_deref(SDB_OBJ(obj));
+			sdb_object_deref(SDB_OBJ(host));
 			return -1;
 		}
 		sdb_object_deref(SDB_OBJ(host));
 	}
+	host = NULL;
 
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
