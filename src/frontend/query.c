@@ -312,6 +312,8 @@ sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
 				SDB_STORE_TYPE_TO_NAME(type), hostname, name);
 		return -1;
 	}
+	if (type == SDB_HOST)
+		name = hostname;
 
 	host = sdb_store_get_host(hostname);
 	if ((! host) || (filter
