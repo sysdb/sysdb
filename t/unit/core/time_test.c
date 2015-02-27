@@ -30,91 +30,96 @@
 
 #include <check.h>
 
+#define YEAR  3652425L   * 24L * 3600L * 100000L
+#define MONTH  30436875L * 24L * 3600L * 1000L
+#define DAY                24L * 3600L * 1000000000L
+#define HOUR                     3600L * 1000000000L
+#define MINUTE                     60L * 1000000000L
+#define SECOND                           1000000000L
+#define MS                                  1000000L
+#define US                                     1000L
+#define NS                                        1L
+
+struct {
+	sdb_time_t  interval;
+	const char *expected;
+} strfinterval_data[] = {
+	{ 0,                    "0s" },
+	{ 4711,                 ".000004711s" },
+	{ 1000123400,           "1.0001234s" },
+	{ 47940228000000000L,   "1Y6M7D" },
+	{ YEAR,                 "1Y" },
+	{ MONTH,                "1M" },
+	{ DAY,                  "1D" },
+	{ HOUR,                 "1h" },
+	{ MINUTE,               "1m" },
+	{ SECOND,               "1s" },
+	{ YEAR
+	  + MONTH
+	  + DAY
+	  + HOUR
+	  + MINUTE
+	  + SECOND
+	  + 1234,               "1Y1M1D1h1m1.000001234s" },
+};
+
 START_TEST(test_strfinterval)
 {
 	char buf[1024];
 	size_t check;
 
-	struct {
-		sdb_time_t  interval;
-		const char *expected;
-	} golden_data[] = {
-		{ 0,                    "0s" },
-		{ 4711,                 ".000004711s" },
-		{ 1000123400,           "1.0001234s" },
-		{ 47940228000000000L,   "1Y6M7D" },
-		{ SDB_INTERVAL_YEAR,    "1Y" },
-		{ SDB_INTERVAL_MONTH,   "1M" },
-		{ SDB_INTERVAL_DAY,     "1D" },
-		{ SDB_INTERVAL_HOUR,    "1h" },
-		{ SDB_INTERVAL_MINUTE,  "1m" },
-		{ SDB_INTERVAL_SECOND,  "1s" },
-		{ SDB_INTERVAL_YEAR
-		  + SDB_INTERVAL_MONTH
-		  + SDB_INTERVAL_DAY
-		  + SDB_INTERVAL_HOUR
-		  + SDB_INTERVAL_MINUTE
-		  + SDB_INTERVAL_SECOND
-		  + 1234,               "1Y1M1D1h1m1.000001234s" },
-	};
-
-	size_t i;
-
 	/* this should return the number of bytes which would have been written;
-	 * most notably, it should not segfault ;-) */
-	check = sdb_strfinterval(NULL, 0, 4711); /* expected: .000004711s */
-	fail_unless(check == 11,
-			"sdb_strfinterval(NULL, 0, 4711) = %zu; expected: 11", check);
+	 * in fact, it might return a bit more because it cannot detect trailing
+	 * zeroes; even more importantly, it should not segfault ;-) */
+	check = sdb_strfinterval(NULL, 0, strfinterval_data[_i].interval);
+	fail_unless(check >= strlen(strfinterval_data[_i].expected),
+			"sdb_strfinterval(NULL, 0, %"PRIsdbTIME") = %zu; expected: %zu",
+			strfinterval_data[_i].interval, check,
+			strlen(strfinterval_data[_i].expected));
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		check = sdb_strfinterval(buf, sizeof(buf), golden_data[i].interval);
-		fail_unless(check > 0,
-				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
-				"expected: >0", golden_data[i].interval, check);
-		fail_unless(!strcmp(buf, golden_data[i].expected),
-				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") did not "
-				"format interval correctly; got: '%s'; expected: '%s'",
-				golden_data[i].interval, buf, golden_data[i].expected);
-		fail_unless(check == strlen(golden_data[i].expected),
-				"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
-				"expected: %zu", golden_data[i].interval, check,
-				strlen(golden_data[i].expected));
-	}
+	check = sdb_strfinterval(buf, sizeof(buf), strfinterval_data[_i].interval);
+	fail_unless(check > 0,
+			"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
+			"expected: >0", strfinterval_data[_i].interval, check);
+	fail_unless(!strcmp(buf, strfinterval_data[_i].expected),
+			"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") did not "
+			"format interval correctly; got: '%s'; expected: '%s'",
+			strfinterval_data[_i].interval, buf, strfinterval_data[_i].expected);
+	fail_unless(check == strlen(strfinterval_data[_i].expected),
+			"sdb_strfinterval(<buf>, <size>, %"PRIsdbTIME") = %zu; "
+			"expected: %zu", strfinterval_data[_i].interval, check,
+			strlen(strfinterval_data[_i].expected));
 }
 END_TEST
 
+struct {
+	const char *s;
+	sdb_time_t expected;
+} strpunit_data[] = {
+	{ "Y",  YEAR },
+	{ "M",  MONTH },
+	{ "D",  DAY },
+	{ "h",  HOUR },
+	{ "m",  MINUTE },
+	{ "s",  SECOND },
+	{ "ms", MS },
+	{ "us", US },
+	{ "ns", NS },
+	/* invalid units */
+	{ "y",  0 },
+	{ "d",  0 },
+	{ "H",  0 },
+	{ "S",  0 },
+	{ "ps", 0 },
+};
+
 START_TEST(test_strpunit)
 {
-	struct {
-		const char *s;
-		sdb_time_t expected;
-	} golden_data[] = {
-		{ "Y",  SDB_INTERVAL_YEAR },
-		{ "M",  SDB_INTERVAL_MONTH },
-		{ "D",  SDB_INTERVAL_DAY },
-		{ "h",  SDB_INTERVAL_HOUR },
-		{ "m",  SDB_INTERVAL_MINUTE },
-		{ "s",  SDB_INTERVAL_SECOND },
-		{ "ms", 1000000L },
-		{ "us", 1000L },
-		{ "ns", 1L },
-		/* invalid units */
-		{ "y",  0 },
-		{ "d",  0 },
-		{ "H",  0 },
-		{ "S",  0 },
-		{ "ps", 0 },
-	};
+	sdb_time_t check = sdb_strpunit(strpunit_data[_i].s);
 
-	size_t i;
-
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_time_t check = sdb_strpunit(golden_data[i].s);
-
-		fail_unless(check == golden_data[i].expected,
-				"sdb_strpunit(%s) = %"PRIsdbTIME"; expected: %"PRIsdbTIME,
-				golden_data[i].s, check, golden_data[i].expected);
-	}
+	fail_unless(check == strpunit_data[_i].expected,
+			"sdb_strpunit(%s) = %"PRIsdbTIME"; expected: %"PRIsdbTIME,
+			strpunit_data[_i].s, check, strpunit_data[_i].expected);
 }
 END_TEST
 
@@ -125,8 +130,8 @@ core_time_suite(void)
 	TCase *tc;
 
 	tc = tcase_create("core");
-	tcase_add_test(tc, test_strfinterval);
-	tcase_add_test(tc, test_strpunit);
+	TC_ADD_LOOP_TEST(tc, strfinterval);
+	TC_ADD_LOOP_TEST(tc, strpunit);
 	suite_add_tcase(s, tc);
 
 	return s;
