@@ -51,6 +51,7 @@ main(void)
 		{ fe_conn_suite, NULL },
 		{ fe_parser_suite, NULL },
 		{ fe_sock_suite, NULL },
+		{ fe_query_suite, NULL },
 		{ util_avltree_suite, NULL },
 		{ util_channel_suite, NULL },
 		{ util_dbi_suite, NULL },

@@ -85,6 +85,10 @@ fe_parser_suite(void);
 Suite *
 fe_sock_suite(void);
 
+/* t/frontend/query_test */
+Suite *
+fe_query_suite(void);
+
 /* t/utils/avltree_test */
 Suite *
 util_avltree_suite(void);

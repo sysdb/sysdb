@@ -41,6 +41,7 @@ unit_libsysdb_test_SOURCES = \
 		unit/frontend/connection_test.c \
 		unit/frontend/parser_test.c \
 		unit/frontend/sock_test.c \
+		unit/frontend/query_test.c \
 		unit/utils/avltree_test.c \
 		unit/utils/channel_test.c \
 		unit/utils/dbi_test.c \
