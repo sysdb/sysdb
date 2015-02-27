@@ -33,6 +33,12 @@ AC_INIT([System DataBase],[m4_esyscmd(./version-gen.sh)],
 PACKAGE_MAINTAINER="Sebastian 'tokkee' Harl <tokkee@sysdb.io>"
 AC_DEFINE_UNQUOTED([PACKAGE_MAINTAINER], ["$PACKAGE_MAINTAINER"],
 		[Define to the name of the maintainer of this package.])
+if test "x$PACKAGE_URL" = "x"; then
+	PACKAGE_URL="https://sysdb.io/"
+	AC_DEFINE_UNQUOTED([PACKAGE_URL], ["$PACKAGE_URL"],
+			[Define to the home page for this package.])
+fi
+
 AC_CONFIG_SRCDIR([src/sysdb.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_PREFIX_DEFAULT([/opt/sysdb])
