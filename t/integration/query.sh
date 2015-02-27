@@ -118,7 +118,7 @@ echo "$output" | grep -F 'other.host.name' && exit 1
 echo "$output" | grep -F 'some.host.name' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-  -c "FETCH host 'host1.example.com' FILTER last_update < 0" 2>&1 )" \
+  -c "FETCH host 'host1.example.com' FILTER last_update < 0s" 2>&1 )" \
   && exit 1
 echo "$output" | grep -F 'not found'
 
@@ -126,7 +126,7 @@ echo "$output" | grep -F 'not found'
 	| run_sysdb -H "$SOCKET_FILE"
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "FETCH host 'host1.example.com' FILTER age < 0" 2>&1 )" && exit 1
+	-c "FETCH host 'host1.example.com' FILTER age < 0s" 2>&1 )" && exit 1
 echo "$output" | grep -F 'not found'
 
 # When requesting information for unknown hosts, expect a non-zero exit code.
