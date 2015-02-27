@@ -41,8 +41,115 @@
 }
 {
    <insert_a_suppression_name_here>
+   Memcheck:Value8
+   obj:/usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   obj:/usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libssl.so.1.0.0
+   ...
+}
+{
+   <insert_a_suppression_name_here>
    Memcheck:Cond
    ...
    fun:ASN1_item_ex_d2i
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   write(buf)
+   ...
+   fun:BIO_write
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_mod_mul
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_mul
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_div
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_add
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_sub
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_mod_exp_mont_consttime
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:BN_mod_exp_mont
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:memset
+   fun:BUF_MEM_grow_clean
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:RSA_sign
+   ...
+   fun:EVP_SignFinal
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   ...
+   fun:RSA_sign
+   ...
+   fun:EVP_SignFinal
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   ...
+   fun:RSA_padding_check_PKCS1_type_2
    ...
 }
