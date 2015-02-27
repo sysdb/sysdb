@@ -103,324 +103,308 @@ populate(void)
 	}
 } /* populate */
 
+struct {
+	int type;
+	char *name;
+	_Bool re;
+
+	int expected;
+} cmp_name_data[] = {
+	{ SDB_HOST,      "a",    0, 1 },
+	{ SDB_HOST,      "a",    1, 1 },
+	{ SDB_HOST,      "b",    0, 0 },
+	{ SDB_HOST,      "b",    1, 0 },
+	{ SDB_HOST,      "^a$",  1, 1 },
+	{ SDB_HOST,      "^b$",  1, 0 },
+	{ SDB_HOST,      "^a$",  0, 0 },
+	{ SDB_HOST,      "^b$",  0, 0 },
+	{ SDB_METRIC,    "m1",   0, 1 },
+	{ SDB_METRIC,    "m1",   1, 1 },
+	{ SDB_METRIC,    "^m1$", 1, 1 },
+	{ SDB_METRIC,    "m",    1, 1 },
+	{ SDB_METRIC,    "s",    1, 0 },
+	{ SDB_METRIC,    "m2",   0, 0 },
+	{ SDB_METRIC,    "x1",   0, 0 },
+	{ SDB_METRIC,    "x1",   1, 0 },
+	{ SDB_SERVICE,   "s1",   0, 1 },
+	{ SDB_SERVICE,   "s2",   0, 1 },
+	{ SDB_SERVICE,   "s3",   0, 0 },
+	{ SDB_SERVICE,   "s4",   0, 0 },
+	{ SDB_SERVICE,   "^s1$", 1, 1 },
+	{ SDB_SERVICE,   "^s1$", 0, 0 },
+	{ SDB_SERVICE,   "x1",   0, 0 },
+	{ SDB_SERVICE,   "x1",   1, 0 },
+	{ SDB_SERVICE,   "x",    1, 0 },
+	{ SDB_ATTRIBUTE, "k1",   0, 1 },
+	{ SDB_ATTRIBUTE, "k2",   0, 1 },
+	{ SDB_ATTRIBUTE, "k3",   0, 0 },
+	{ SDB_ATTRIBUTE, "k4",   0, 0 },
+	{ SDB_ATTRIBUTE, "k",    1, 1 },
+	{ SDB_ATTRIBUTE, "1",    1, 1 },
+	{ SDB_ATTRIBUTE, "3",    1, 0 },
+};
+
 START_TEST(test_cmp_name)
 {
 	sdb_store_obj_t *host;
-
-	struct {
-		int type;
-		char *name;
-		_Bool re;
-
-		int expected;
-	} golden_data[] = {
-		{ SDB_HOST,      "a",    0, 1 },
-		{ SDB_HOST,      "a",    1, 1 },
-		{ SDB_HOST,      "b",    0, 0 },
-		{ SDB_HOST,      "b",    1, 0 },
-		{ SDB_HOST,      "^a$",  1, 1 },
-		{ SDB_HOST,      "^b$",  1, 0 },
-		{ SDB_HOST,      "^a$",  0, 0 },
-		{ SDB_HOST,      "^b$",  0, 0 },
-		{ SDB_METRIC,    "m1",   0, 1 },
-		{ SDB_METRIC,    "m1",   1, 1 },
-		{ SDB_METRIC,    "^m1$", 1, 1 },
-		{ SDB_METRIC,    "m",    1, 1 },
-		{ SDB_METRIC,    "s",    1, 0 },
-		{ SDB_METRIC,    "m2",   0, 0 },
-		{ SDB_METRIC,    "x1",   0, 0 },
-		{ SDB_METRIC,    "x1",   1, 0 },
-		{ SDB_SERVICE,   "s1",   0, 1 },
-		{ SDB_SERVICE,   "s2",   0, 1 },
-		{ SDB_SERVICE,   "s3",   0, 0 },
-		{ SDB_SERVICE,   "s4",   0, 0 },
-		{ SDB_SERVICE,   "^s1$", 1, 1 },
-		{ SDB_SERVICE,   "^s1$", 0, 0 },
-		{ SDB_SERVICE,   "x1",   0, 0 },
-		{ SDB_SERVICE,   "x1",   1, 0 },
-		{ SDB_SERVICE,   "x",    1, 0 },
-		{ SDB_ATTRIBUTE, "k1",   0, 1 },
-		{ SDB_ATTRIBUTE, "k2",   0, 1 },
-		{ SDB_ATTRIBUTE, "k3",   0, 0 },
-		{ SDB_ATTRIBUTE, "k4",   0, 0 },
-		{ SDB_ATTRIBUTE, "k",    1, 1 },
-		{ SDB_ATTRIBUTE, "1",    1, 1 },
-		{ SDB_ATTRIBUTE, "3",    1, 0 },
-	};
-
-	size_t i;
+	sdb_data_t datum;
+	sdb_store_expr_t *obj, *value;
+	sdb_store_matcher_t *m, *n;
+	int status;
 
 	host = sdb_store_get_host("a");
 	fail_unless(host != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_data_t datum;
-		sdb_store_expr_t *obj, *value;
-		sdb_store_matcher_t *m, *n;
-		int status;
+	datum.type = SDB_TYPE_STRING;
+	datum.data.string = cmp_name_data[_i].name;
 
-		datum.type = SDB_TYPE_STRING;
-		datum.data.string = golden_data[i].name;
+	obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+	fail_unless(obj != NULL,
+			"sdb_store_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
+			"expected: <expr>");
+	value = sdb_store_expr_constvalue(&datum);
+	fail_unless(value != NULL,
+			"sdb_store_expr_constvalue(%s) = NULL; "
+			"expected: <expr>", cmp_name_data[_i].name);
 
-		obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-		fail_unless(obj != NULL,
-				"sdb_store_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
-				"expected: <expr>");
-		value = sdb_store_expr_constvalue(&datum);
-		fail_unless(value != NULL,
-				"sdb_store_expr_constvalue(%s) = NULL; "
-				"expected: <expr>", golden_data[i].name);
-
-		if (golden_data[i].re)
-			m = sdb_store_regex_matcher(obj, value);
-		else
-			m = sdb_store_eq_matcher(obj, value);
-		if (golden_data[i].type != SDB_HOST) {
-			sdb_store_matcher_t *tmp;
-			tmp = sdb_store_any_matcher(golden_data[i].type, m);
-			sdb_object_deref(SDB_OBJ(m));
-			m = tmp;
-		}
-		sdb_object_deref(SDB_OBJ(obj));
-		sdb_object_deref(SDB_OBJ(value));
-		fail_unless(m != NULL,
-				"sdb_store_%s_matcher(%s, %s) = NULL; "
-				"expected: <matcher>",
-				golden_data[i].re ? "regex" : "eq",
-				SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
-				golden_data[i].name);
-
-		status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
-		fail_unless(status == golden_data[i].expected,
-				"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
-				"expected: %d", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
-				golden_data[i].name, status, golden_data[i].expected);
-
-		n = sdb_store_inv_matcher(m);
-		fail_unless(n != NULL,
-				"sdb_store_inv_matcher() = NULL; expected: <matcher>");
+	if (cmp_name_data[_i].re)
+		m = sdb_store_regex_matcher(obj, value);
+	else
+		m = sdb_store_eq_matcher(obj, value);
+	if (cmp_name_data[_i].type != SDB_HOST) {
+		sdb_store_matcher_t *tmp;
+		tmp = sdb_store_any_matcher(cmp_name_data[_i].type, m);
 		sdb_object_deref(SDB_OBJ(m));
-
-		/* now match the inverted set of objects */
-		status = sdb_store_matcher_matches(n, host, /* filter */ NULL);
-		fail_unless(status == !golden_data[i].expected,
-				"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
-				"expected: %d", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
-				golden_data[i].name, status, !golden_data[i].expected);
-
-		sdb_object_deref(SDB_OBJ(n));
+		m = tmp;
 	}
+	sdb_object_deref(SDB_OBJ(obj));
+	sdb_object_deref(SDB_OBJ(value));
+	fail_unless(m != NULL,
+			"sdb_store_%s_matcher(%s, %s) = NULL; "
+			"expected: <matcher>",
+			cmp_name_data[_i].re ? "regex" : "eq",
+			SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
+			cmp_name_data[_i].name);
 
+	status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+	fail_unless(status == cmp_name_data[_i].expected,
+			"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
+			"expected: %d", SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
+			cmp_name_data[_i].name, status, cmp_name_data[_i].expected);
+
+	n = sdb_store_inv_matcher(m);
+	fail_unless(n != NULL,
+			"sdb_store_inv_matcher() = NULL; expected: <matcher>");
+	sdb_object_deref(SDB_OBJ(m));
+
+	/* now match the inverted set of objects */
+	status = sdb_store_matcher_matches(n, host, /* filter */ NULL);
+	fail_unless(status == !cmp_name_data[_i].expected,
+			"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
+			"expected: %d", SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
+			cmp_name_data[_i].name, status, !cmp_name_data[_i].expected);
+
+	sdb_object_deref(SDB_OBJ(n));
 	sdb_object_deref(SDB_OBJ(host));
 }
 END_TEST
+
+struct {
+	const char *attr;
+	const sdb_data_t value;
+	int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
+} cmp_attr_data[] = {
+	{ "k1", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 1, 1, 1, 0 },
+	{ "k1", { SDB_TYPE_STRING,  { .string  = "v2" } },  1, 1, 0, 0, 0 },
+	{ "k1", { SDB_TYPE_STRING,  { .string  = "v0" } },  0, 0, 0, 1, 1 },
+	{ "k1", { SDB_TYPE_STRING,  { .string  = "0" } },   0, 0, 0, 1, 1 },
+	{ "k2", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 1, 1, 1, 0 },
+	{ "k2", { SDB_TYPE_INTEGER, { .integer = 124 } },   1, 1, 0, 0, 0 },
+	{ "k2", { SDB_TYPE_INTEGER, { .integer = 122 } },   0, 0, 0, 1, 1 },
+	/* key does not exist */
+	{ "k3", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 0, 0, 0, 0 },
+	{ "k3", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
+	{ "k3", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 0, 0, 0, 0 },
+	/* type mismatch */
+	{ "k1", { SDB_TYPE_INTEGER, { .integer = 0 } },     0, 0, 0, 1, 1 },
+	{ "k2", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 1, 1, 1, 0 },
+};
 
 START_TEST(test_cmp_attr)
 {
 	sdb_store_obj_t *host;
+	sdb_store_expr_t *attr;
+	sdb_store_expr_t *value;
+	char value_str[1024];
+	int status;
+	size_t j;
 
 	struct {
-		const char *attr;
-		const sdb_data_t value;
-		int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
-	} golden_data[] = {
-		{ "k1", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 1, 1, 1, 0 },
-		{ "k1", { SDB_TYPE_STRING,  { .string  = "v2" } },  1, 1, 0, 0, 0 },
-		{ "k1", { SDB_TYPE_STRING,  { .string  = "v0" } },  0, 0, 0, 1, 1 },
-		{ "k1", { SDB_TYPE_STRING,  { .string  = "0" } },   0, 0, 0, 1, 1 },
-		{ "k2", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 1, 1, 1, 0 },
-		{ "k2", { SDB_TYPE_INTEGER, { .integer = 124 } },   1, 1, 0, 0, 0 },
-		{ "k2", { SDB_TYPE_INTEGER, { .integer = 122 } },   0, 0, 0, 1, 1 },
-		/* key does not exist */
-		{ "k3", { SDB_TYPE_STRING,  { .string  = "v1" } },  0, 0, 0, 0, 0 },
-		{ "k3", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 0, 0, 0, 0 },
-		{ "k3", { SDB_TYPE_INTEGER, { .integer = 123 } },   0, 0, 0, 0, 0 },
-		/* type mismatch */
-		{ "k1", { SDB_TYPE_INTEGER, { .integer = 0 } },     0, 0, 0, 1, 1 },
-		{ "k2", { SDB_TYPE_STRING,  { .string  = "123" } }, 0, 1, 1, 1, 0 },
+		sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
+				sdb_store_expr_t *);
+		int expected;
+	} tests[] = {
+		{ sdb_store_lt_matcher, cmp_attr_data[_i].expected_lt },
+		{ sdb_store_le_matcher, cmp_attr_data[_i].expected_le },
+		{ sdb_store_eq_matcher, cmp_attr_data[_i].expected_eq },
+		{ sdb_store_ge_matcher, cmp_attr_data[_i].expected_ge },
+		{ sdb_store_gt_matcher, cmp_attr_data[_i].expected_gt },
 	};
 
-	int status;
-	size_t i;
+	const char *op_str[] = { "<", "<=", "=", ">=", ">" };
+	assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
 	host = sdb_store_get_host("a");
 	fail_unless(host != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_expr_t *attr;
-		sdb_store_expr_t *value;
-		char value_str[1024];
-		size_t j;
+	sdb_data_format(&cmp_attr_data[_i].value,
+			value_str, sizeof(value_str), SDB_UNQUOTED);
 
-		struct {
-			sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
-					sdb_store_expr_t *);
-			int expected;
-		} tests[] = {
-			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
-			{ sdb_store_le_matcher, golden_data[i].expected_le },
-			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
-			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
-			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
-		};
+	attr = sdb_store_expr_attrvalue(cmp_attr_data[_i].attr);
+	fail_unless(attr != NULL,
+			"sdb_store_expr_attrvalue(%s) = NULL; expected: <expr>",
+			cmp_attr_data[_i].attr);
 
-		const char *op_str[] = { "<", "<=", "=", ">=", ">" };
-		assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+	value = sdb_store_expr_constvalue(&cmp_attr_data[_i].value);
+	fail_unless(value != NULL,
+			"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
+			value_str);
 
-		sdb_data_format(&golden_data[i].value,
-				value_str, sizeof(value_str), SDB_UNQUOTED);
+	for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
+		sdb_store_matcher_t *m;
 
-		attr = sdb_store_expr_attrvalue(golden_data[i].attr);
-		fail_unless(attr != NULL,
-				"sdb_store_expr_attrvalue(%s) = NULL; expected: <expr>",
-				golden_data[i].attr);
+		m = tests[j].matcher(attr, value);
+		fail_unless(m != NULL,
+				"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
 
-		value = sdb_store_expr_constvalue(&golden_data[i].value);
-		fail_unless(value != NULL,
-				"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
-				value_str);
+		status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+		fail_unless(status == tests[j].expected,
+				"sdb_store_matcher_matches(<attr[%s] %s %s>, "
+				"<host>, NULL) = %d; expected: %d",
+				cmp_attr_data[_i].attr, op_str[j], value_str,
+				status, tests[j].expected);
 
-		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
-			sdb_store_matcher_t *m;
-
-			m = tests[j].matcher(attr, value);
-			fail_unless(m != NULL,
-					"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
-
-			status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
-			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(<attr[%s] %s %s>, "
-					"<host>, NULL) = %d; expected: %d",
-					golden_data[i].attr, op_str[j], value_str,
-					status, tests[j].expected);
-
-			sdb_object_deref(SDB_OBJ(m));
-		}
-
-		sdb_object_deref(SDB_OBJ(attr));
-		sdb_object_deref(SDB_OBJ(value));
+		sdb_object_deref(SDB_OBJ(m));
 	}
 
+	sdb_object_deref(SDB_OBJ(attr));
+	sdb_object_deref(SDB_OBJ(value));
 	sdb_object_deref(SDB_OBJ(host));
 }
 END_TEST
 
+struct {
+	const char *host;
+	int field;
+	const sdb_data_t value;
+	int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
+} cmp_obj_data[] = {
+	{ "b", SDB_FIELD_NAME,
+		{ SDB_TYPE_STRING, { .string = "a" } },   0, 0, 0, 1, 1 },
+	{ "b", SDB_FIELD_NAME,
+		{ SDB_TYPE_STRING, { .string = "b" } },   0, 1, 1, 1, 0 },
+	{ "b", SDB_FIELD_NAME,
+		{ SDB_TYPE_STRING, { .string = "c" } },   1, 1, 0, 0, 0 },
+	/* last-update = 1 for all objects */
+	{ "a", SDB_FIELD_LAST_UPDATE,
+		{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 0, 1, 1, 1, 0 },
+	{ "a", SDB_FIELD_LAST_UPDATE,
+		{ SDB_TYPE_DATETIME, { .datetime = 2 } }, 1, 1, 0, 0, 0 },
+	{ "a", SDB_FIELD_LAST_UPDATE,
+		{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 0, 0, 1, 1 },
+	/* age > 0 for all objects */
+	{ "a", SDB_FIELD_AGE,
+		{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 0, 0, 1, 1 },
+	/* interval = 0 for all objects */
+	{ "a", SDB_FIELD_INTERVAL,
+		{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 1, 1, 1, 0 },
+	{ "a", SDB_FIELD_INTERVAL,
+		{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 1, 1, 0, 0, 0 },
+	/* type mismatch */
+	{ "a", SDB_FIELD_LAST_UPDATE,
+		{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+	{ "a", SDB_FIELD_AGE,
+		{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+	{ "a", SDB_FIELD_INTERVAL,
+		{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+	{ "a", SDB_FIELD_BACKEND,
+		{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+	{ "a", SDB_FIELD_BACKEND,
+		{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
+	/* (64bit) integer value without zero-bytes */
+	{ "a", SDB_FIELD_BACKEND,
+		{ SDB_TYPE_INTEGER, { .integer = 0xffffffffffffffffL } },
+		0, 0, 0, 0, 0 },
+};
+
 START_TEST(test_cmp_obj)
 {
-	struct {
-		const char *host;
-		int field;
-		const sdb_data_t value;
-		int expected_lt, expected_le, expected_eq, expected_ge, expected_gt;
-	} golden_data[] = {
-		{ "b", SDB_FIELD_NAME,
-			{ SDB_TYPE_STRING, { .string = "a" } },   0, 0, 0, 1, 1 },
-		{ "b", SDB_FIELD_NAME,
-			{ SDB_TYPE_STRING, { .string = "b" } },   0, 1, 1, 1, 0 },
-		{ "b", SDB_FIELD_NAME,
-			{ SDB_TYPE_STRING, { .string = "c" } },   1, 1, 0, 0, 0 },
-		/* last-update = 1 for all objects */
-		{ "a", SDB_FIELD_LAST_UPDATE,
-			{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 0, 1, 1, 1, 0 },
-		{ "a", SDB_FIELD_LAST_UPDATE,
-			{ SDB_TYPE_DATETIME, { .datetime = 2 } }, 1, 1, 0, 0, 0 },
-		{ "a", SDB_FIELD_LAST_UPDATE,
-			{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 0, 0, 1, 1 },
-		/* age > 0 for all objects */
-		{ "a", SDB_FIELD_AGE,
-			{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 0, 0, 1, 1 },
-		/* interval = 0 for all objects */
-		{ "a", SDB_FIELD_INTERVAL,
-			{ SDB_TYPE_DATETIME, { .datetime = 0 } }, 0, 1, 1, 1, 0 },
-		{ "a", SDB_FIELD_INTERVAL,
-			{ SDB_TYPE_DATETIME, { .datetime = 1 } }, 1, 1, 0, 0, 0 },
-		/* type mismatch */
-		{ "a", SDB_FIELD_LAST_UPDATE,
-			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		{ "a", SDB_FIELD_AGE,
-			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		{ "a", SDB_FIELD_INTERVAL,
-			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		{ "a", SDB_FIELD_BACKEND,
-			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		{ "a", SDB_FIELD_BACKEND,
-			{ SDB_TYPE_INTEGER, { .integer = 0 } }, 0, 0, 0, 0, 0 },
-		/* (64bit) integer value without zero-bytes */
-		{ "a", SDB_FIELD_BACKEND,
-			{ SDB_TYPE_INTEGER, { .integer = 0xffffffffffffffffL } },
-			0, 0, 0, 0, 0 },
-	};
-
+	sdb_store_obj_t *host;
+	sdb_store_expr_t *field;
+	sdb_store_expr_t *value;
+	char value_str[1024];
 	int status;
-	size_t i;
+	size_t j;
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_obj_t *host;
-		sdb_store_expr_t *field;
-		sdb_store_expr_t *value;
-		char value_str[1024];
-		size_t j;
+	struct {
+		sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
+				sdb_store_expr_t *);
+		int expected;
+	} tests[] = {
+		{ sdb_store_lt_matcher, cmp_obj_data[_i].expected_lt },
+		{ sdb_store_le_matcher, cmp_obj_data[_i].expected_le },
+		{ sdb_store_eq_matcher, cmp_obj_data[_i].expected_eq },
+		{ sdb_store_ge_matcher, cmp_obj_data[_i].expected_ge },
+		{ sdb_store_gt_matcher, cmp_obj_data[_i].expected_gt },
+	};
+	char *op_str[] = { "<", "<=", "=", ">=", ">" };
 
-		struct {
-			sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
-					sdb_store_expr_t *);
-			int expected;
-		} tests[] = {
-			{ sdb_store_lt_matcher, golden_data[i].expected_lt },
-			{ sdb_store_le_matcher, golden_data[i].expected_le },
-			{ sdb_store_eq_matcher, golden_data[i].expected_eq },
-			{ sdb_store_ge_matcher, golden_data[i].expected_ge },
-			{ sdb_store_gt_matcher, golden_data[i].expected_gt },
-		};
-		char *op_str[] = { "<", "<=", "=", ">=", ">" };
+	assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
-		assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+	host = sdb_store_get_host(cmp_obj_data[_i].host);
+	fail_unless(host != NULL,
+			"sdb_store_get_host(%s) = NULL; expected: <host>",
+			cmp_obj_data[_i].host);
 
-		host = sdb_store_get_host(golden_data[i].host);
-		fail_unless(host != NULL,
-				"sdb_store_get_host(%s) = NULL; expected: <host>",
-				golden_data[i].host);
+	sdb_data_format(&cmp_obj_data[_i].value,
+			value_str, sizeof(value_str), SDB_UNQUOTED);
 
-		sdb_data_format(&golden_data[i].value,
-				value_str, sizeof(value_str), SDB_UNQUOTED);
+	field = sdb_store_expr_fieldvalue(cmp_obj_data[_i].field);
+	fail_unless(field != NULL,
+			"sdb_store_expr_fieldvalue(%d) = NULL; "
+			"expected: <expr>", cmp_obj_data[_i].field);
 
-		field = sdb_store_expr_fieldvalue(golden_data[i].field);
-		fail_unless(field != NULL,
-				"sdb_store_expr_fieldvalue(%d) = NULL; "
-				"expected: <expr>", golden_data[i].field);
+	value = sdb_store_expr_constvalue(&cmp_obj_data[_i].value);
+	fail_unless(value != NULL,
+			"sdb_store_expr_constvalue(%s) = NULL; "
+			"expected: <expr>", value_str);
 
-		value = sdb_store_expr_constvalue(&golden_data[i].value);
-		fail_unless(value != NULL,
-				"sdb_store_expr_constvalue(%s) = NULL; "
-				"expected: <expr>", value_str);
+	for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
+		char m_str[1024];
+		sdb_store_matcher_t *m;
 
-		for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
-			char m_str[1024];
-			sdb_store_matcher_t *m;
+		snprintf(m_str, sizeof(m_str), "%s %s %s",
+				SDB_FIELD_TO_NAME(cmp_obj_data[_i].field),
+				op_str[j], value_str);
 
-			snprintf(m_str, sizeof(m_str), "%s %s %s",
-					SDB_FIELD_TO_NAME(golden_data[i].field),
-					op_str[j], value_str);
+		m = tests[j].matcher(field, value);
+		fail_unless(m != NULL,
+				"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
 
-			m = tests[j].matcher(field, value);
-			fail_unless(m != NULL,
-					"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
+		status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+		fail_unless(status == tests[j].expected,
+				"sdb_store_matcher_matches(<%s>, <host '%s'>, NULL) = %d; "
+				"expected: %d", m_str, cmp_obj_data[_i].host, status,
+				tests[j].expected);
 
-			status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
-			fail_unless(status == tests[j].expected,
-					"sdb_store_matcher_matches(<%s>, <host '%s'>, NULL) = %d; "
-					"expected: %d", m_str, golden_data[i].host, status,
-					tests[j].expected);
-
-			sdb_object_deref(SDB_OBJ(m));
-		}
-
-		sdb_object_deref(SDB_OBJ(field));
-		sdb_object_deref(SDB_OBJ(value));
-		sdb_object_deref(SDB_OBJ(host));
+		sdb_object_deref(SDB_OBJ(m));
 	}
+
+	sdb_object_deref(SDB_OBJ(field));
+	sdb_object_deref(SDB_OBJ(value));
+	sdb_object_deref(SDB_OBJ(host));
 }
 END_TEST
 
@@ -517,101 +501,101 @@ scan_cb(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
 	return 0;
 } /* scan_cb */
 
+struct {
+	const char *query;
+	const char *filter;
+	int expected;
+} scan_data[] = {
+	/* TODO: check the name of the expected hosts */
+	{ "name = 'a'", NULL,                  1 },
+	{ "name = 'a'", "name = 'x'",          0 }, /* filter never matches */
+	{ "name = 'a'",
+		"NOT attribute['x'] = ''",         1 }, /* filter always matches */
+	{ "name =~ 'a|b'", NULL,               2 },
+	{ "name =~ 'host'", NULL,              0 },
+	{ "name =~ '.'", NULL,                 3 },
+	{ "ANY backend = 'backend'", NULL,     0 },
+	{ "ALL backend = ''", NULL,            3 }, /* backend is empty */
+	{ "backend = ['backend']", NULL,       0 },
+	{ "backend != ['backend']", NULL,      3 },
+	{ "backend < ['backend']", NULL,       3 },
+	{ "backend <= ['backend']", NULL,      3 },
+	{ "backend >= ['backend']", NULL,      0 },
+	{ "backend > ['backend']", NULL,       0 },
+	{ "ANY metric = 'm1'", NULL,           2 },
+	{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
+	{ "ANY metric = 'm1'",
+		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
+	{ "ANY metric =~ 'm'", NULL,           2 },
+	{ "ALL metric =~ 'm'", NULL,           3 },
+	{ "ANY metric =~ 'm'", "name !~ '1'",  1 },
+	{ "ANY metric =~ 'm'", "name !~ 'm'",  0 },
+	{ "ALL metric =~ '1'", NULL,           2 },
+	{ "ALL metric =~ '2'", NULL,           1 },
+	{ "ANY metric !~ 'm'", NULL,           0 },
+	{ "ALL metric !~ 'm'", NULL,           1 },
+	{ "ANY metric =~ 'x'", NULL,           0 },
+	{ "ANY service = 's1'", NULL,          2 },
+	{ "ANY service = 's1'", "name = 'x'",  0 }, /* filter never matches */
+	{ "ANY service = 's1'",
+		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
+	{ "ANY service =~ 's'", NULL,          2 },
+	{ "ANY service =~ 's'", "name !~ 's'", 0 },
+	{ "ANY service =~ 's'", "name !~ '1'", 2 },
+	{ "ANY service !~ 's'", NULL,          0 },
+	{ "ANY attribute = 'k1'", NULL,        2 },
+	{ "ANY attribute = 'k1'", "name = 'x'",0 }, /* filter never matches */
+	{ "ANY attribute = 'k1'",
+		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
+	{ "ANY attribute =~ 'k'", NULL,        2 },
+	{ "ANY attribute =~ 'k'",
+		"name !~ '1'",                     1 },
+	{ "ANY attribute =~ 'k'",
+		"name !~ 'k'",                     0 },
+	{ "ANY attribute =~ '1'", NULL,        2 },
+	{ "ANY attribute =~ '2'", NULL,        1 },
+	{ "ANY attribute = 'x'", NULL,         0 },
+	{ "ANY attribute =~ 'x'", NULL,        0 },
+	{ "ALL attribute = 'k1'", NULL,        2 },
+	{ "host.name = 'a'", NULL,             1 },
+	{ "host.attribute['k1'] =~ 'v1'",
+		NULL,                              1 },
+	{ "host.attribute['x1'] IS NULL",
+		NULL,                              3 },
+	{ "attribute['k1'] = 'v1'", NULL,      1 },
+	{ "attribute['k1'] = 'v1'",
+		"name != 'k1'",                    0 },
+	{ "attribute['k1'] =~ 'v1'", NULL,     1 },
+	{ "attribute['k1'] =~ '^v1$'", NULL,   1 },
+	{ "attribute['k1'] =~ 'v'", NULL,      2 },
+	{ "attribute['k1'] =~ '1'", NULL,      1 },
+	{ "attribute['k1'] !~ 'v'", NULL,      0 },
+	{ "attribute['k1'] = 'v2'", NULL,      1 },
+	{ "attribute['k1'] =~ 'v2'", NULL,     1 },
+	{ "attribute['x1'] =~ 'v'", NULL,      0 },
+	{ "attribute['x1'] =~ 'NULL'", NULL,   0 },
+	{ "attribute['x1'] !~ 'v'", NULL,      0 },
+	{ "attribute['k1'] IS NULL", NULL,     1 },
+	{ "attribute['x1'] IS NULL", NULL,     3 },
+	{ "attribute['k1'] IS NOT NULL", NULL, 2 },
+	{ "attribute['x1'] IS NOT NULL", NULL, 0 },
+	{ "attribute['k2'] < 123", NULL,       0 },
+	{ "attribute['k2'] <= 123", NULL,      1 },
+	{ "attribute['k2'] >= 123", NULL,      1 },
+	{ "attribute['k2'] > 123", NULL,       0 },
+	{ "attribute['k2'] = 123", NULL,       1 },
+	{ "attribute['k2'] != 123", NULL,      0 },
+	{ "attribute['k1'] != 'v1'", NULL,     1 },
+	{ "attribute['k1'] != 'v2'", NULL,     1 },
+	{ "ANY attribute != 'x' "
+	  "AND attribute['k1'] !~ 'x'", NULL,  2 },
+};
+
 START_TEST(test_scan)
 {
-	struct {
-		const char *query;
-		const char *filter;
-		int expected;
-	} golden_data[] = {
-		/* TODO: check the name of the expected hosts */
-		{ "name = 'a'", NULL,                  1 },
-		{ "name = 'a'", "name = 'x'",          0 }, /* filter never matches */
-		{ "name = 'a'",
-			"NOT attribute['x'] = ''",         1 }, /* filter always matches */
-		{ "name =~ 'a|b'", NULL,               2 },
-		{ "name =~ 'host'", NULL,              0 },
-		{ "name =~ '.'", NULL,                 3 },
-		{ "ANY backend = 'backend'", NULL,     0 },
-		{ "ALL backend = ''", NULL,            3 }, /* backend is empty */
-		{ "backend = ['backend']", NULL,       0 },
-		{ "backend != ['backend']", NULL,      3 },
-		{ "backend < ['backend']", NULL,       3 },
-		{ "backend <= ['backend']", NULL,      3 },
-		{ "backend >= ['backend']", NULL,      0 },
-		{ "backend > ['backend']", NULL,       0 },
-		{ "ANY metric = 'm1'", NULL,           2 },
-		{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
-		{ "ANY metric = 'm1'",
-			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "ANY metric =~ 'm'", NULL,           2 },
-		{ "ALL metric =~ 'm'", NULL,           3 },
-		{ "ANY metric =~ 'm'", "name !~ '1'",  1 },
-		{ "ANY metric =~ 'm'", "name !~ 'm'",  0 },
-		{ "ALL metric =~ '1'", NULL,           2 },
-		{ "ALL metric =~ '2'", NULL,           1 },
-		{ "ANY metric !~ 'm'", NULL,           0 },
-		{ "ALL metric !~ 'm'", NULL,           1 },
-		{ "ANY metric =~ 'x'", NULL,           0 },
-		{ "ANY service = 's1'", NULL,          2 },
-		{ "ANY service = 's1'", "name = 'x'",  0 }, /* filter never matches */
-		{ "ANY service = 's1'",
-			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "ANY service =~ 's'", NULL,          2 },
-		{ "ANY service =~ 's'", "name !~ 's'", 0 },
-		{ "ANY service =~ 's'", "name !~ '1'", 2 },
-		{ "ANY service !~ 's'", NULL,          0 },
-		{ "ANY attribute = 'k1'", NULL,        2 },
-		{ "ANY attribute = 'k1'", "name = 'x'",0 }, /* filter never matches */
-		{ "ANY attribute = 'k1'",
-			"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-		{ "ANY attribute =~ 'k'", NULL,        2 },
-		{ "ANY attribute =~ 'k'",
-			"name !~ '1'",                     1 },
-		{ "ANY attribute =~ 'k'",
-			"name !~ 'k'",                     0 },
-		{ "ANY attribute =~ '1'", NULL,        2 },
-		{ "ANY attribute =~ '2'", NULL,        1 },
-		{ "ANY attribute = 'x'", NULL,         0 },
-		{ "ANY attribute =~ 'x'", NULL,        0 },
-		{ "ALL attribute = 'k1'", NULL,        2 },
-		{ "host.name = 'a'", NULL,             1 },
-		{ "host.attribute['k1'] =~ 'v1'",
-			NULL,                              1 },
-		{ "host.attribute['x1'] IS NULL",
-			NULL,                              3 },
-		{ "attribute['k1'] = 'v1'", NULL,      1 },
-		{ "attribute['k1'] = 'v1'",
-			"name != 'k1'",                    0 },
-		{ "attribute['k1'] =~ 'v1'", NULL,     1 },
-		{ "attribute['k1'] =~ '^v1$'", NULL,   1 },
-		{ "attribute['k1'] =~ 'v'", NULL,      2 },
-		{ "attribute['k1'] =~ '1'", NULL,      1 },
-		{ "attribute['k1'] !~ 'v'", NULL,      0 },
-		{ "attribute['k1'] = 'v2'", NULL,      1 },
-		{ "attribute['k1'] =~ 'v2'", NULL,     1 },
-		{ "attribute['x1'] =~ 'v'", NULL,      0 },
-		{ "attribute['x1'] =~ 'NULL'", NULL,   0 },
-		{ "attribute['x1'] !~ 'v'", NULL,      0 },
-		{ "attribute['k1'] IS NULL", NULL,     1 },
-		{ "attribute['x1'] IS NULL", NULL,     3 },
-		{ "attribute['k1'] IS NOT NULL", NULL, 2 },
-		{ "attribute['x1'] IS NOT NULL", NULL, 0 },
-		{ "attribute['k2'] < 123", NULL,       0 },
-		{ "attribute['k2'] <= 123", NULL,      1 },
-		{ "attribute['k2'] >= 123", NULL,      1 },
-		{ "attribute['k2'] > 123", NULL,       0 },
-		{ "attribute['k2'] = 123", NULL,       1 },
-		{ "attribute['k2'] != 123", NULL,      0 },
-		{ "attribute['k1'] != 'v1'", NULL,     1 },
-		{ "attribute['k1'] != 'v2'", NULL,     1 },
-		{ "ANY attribute != 'x' "
-		  "AND attribute['k1'] !~ 'x'", NULL,  2 },
-	};
-
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
+	sdb_store_matcher_t *m, *filter = NULL;
 	int check, n;
-	size_t i;
 
 	n = 0;
 	check = sdb_store_scan(SDB_HOST, /* matcher */ NULL, /* filter */ NULL,
@@ -621,33 +605,29 @@ START_TEST(test_scan)
 	fail_unless(n == 3,
 			"sdb_store_scan called callback %d times; expected: 3", (int)n);
 
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_matcher_t *m, *filter = NULL;
+	m = sdb_fe_parse_matcher(scan_data[_i].query, -1, errbuf);
+	fail_unless(m != NULL,
+			"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher> "
+			"(parser error: %s)", scan_data[_i].query,
+			sdb_strbuf_string(errbuf));
 
-		m = sdb_fe_parse_matcher(golden_data[i].query, -1, errbuf);
-		fail_unless(m != NULL,
-				"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher> "
-				"(parser error: %s)", golden_data[i].query,
-				sdb_strbuf_string(errbuf));
-
-		if (golden_data[i].filter) {
-			filter = sdb_fe_parse_matcher(golden_data[i].filter, -1, errbuf);
-			fail_unless(filter != NULL,
-					"sdb_fe_parse_matcher(%s, -1) = NULL; "
-					"expected: <matcher> (parser error: %s)",
-					golden_data[i].filter, sdb_strbuf_string(errbuf));
-		}
-
-		n = 0;
-		sdb_store_scan(SDB_HOST, m, filter, scan_cb, &n);
-		fail_unless(n == golden_data[i].expected,
-				"sdb_store_scan(HOST, matcher{%s}, filter{%s}) "
-				"found %d hosts; expected: %d", golden_data[i].query,
-				golden_data[i].filter, n, golden_data[i].expected);
-		sdb_object_deref(SDB_OBJ(filter));
-		sdb_object_deref(SDB_OBJ(m));
+	if (scan_data[_i].filter) {
+		filter = sdb_fe_parse_matcher(scan_data[_i].filter, -1, errbuf);
+		fail_unless(filter != NULL,
+				"sdb_fe_parse_matcher(%s, -1) = NULL; "
+				"expected: <matcher> (parser error: %s)",
+				scan_data[_i].filter, sdb_strbuf_string(errbuf));
 	}
 
+	n = 0;
+	sdb_store_scan(SDB_HOST, m, filter, scan_cb, &n);
+	fail_unless(n == scan_data[_i].expected,
+			"sdb_store_scan(HOST, matcher{%s}, filter{%s}) "
+			"found %d hosts; expected: %d", scan_data[_i].query,
+			scan_data[_i].filter, n, scan_data[_i].expected);
+
+	sdb_object_deref(SDB_OBJ(filter));
+	sdb_object_deref(SDB_OBJ(m));
 	sdb_strbuf_destroy(errbuf);
 }
 END_TEST
@@ -660,11 +640,11 @@ core_store_lookup_suite(void)
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
-	tcase_add_test(tc, test_cmp_name);
-	tcase_add_test(tc, test_cmp_attr);
-	tcase_add_test(tc, test_cmp_obj);
+	TC_ADD_LOOP_TEST(tc, cmp_name);
+	TC_ADD_LOOP_TEST(tc, cmp_attr);
+	TC_ADD_LOOP_TEST(tc, cmp_obj);
+	TC_ADD_LOOP_TEST(tc, scan);
 	tcase_add_test(tc, test_store_match_op);
-	tcase_add_test(tc, test_scan);
 	suite_add_tcase(s, tc);
 
 	return s;
