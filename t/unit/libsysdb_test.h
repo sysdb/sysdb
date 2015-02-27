@@ -36,6 +36,10 @@
 #include <check.h>
 #include <string.h>
 
+#define TC_ADD_LOOP_TEST(tc, name) \
+	tcase_add_loop_test((tc), test_ ## name, \
+			0, SDB_STATIC_ARRAY_LEN(name ## _data))
+
 /*
  * test-related data-types
  */
