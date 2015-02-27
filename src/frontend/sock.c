@@ -570,7 +570,11 @@ connection_handler(void *data)
 					"connection %s to list of open connections",
 					SDB_OBJ(conn)->name);
 		}
-		write(sock->trigger[TRIGGER_WRITE], "", 1);
+		if (write(sock->trigger[TRIGGER_WRITE], "", 1) <= 0) {
+			/* This shouldn't happen and it's not critical; in the worst cases
+			 * it slows us down. */
+			sdb_log(SDB_LOG_WARNING, "frontend: Failed to trigger main loop");
+		}
 
 		/* pass ownership back to list; or destroy in case of an error */
 		sdb_object_deref(SDB_OBJ(conn));
