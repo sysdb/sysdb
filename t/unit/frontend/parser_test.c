@@ -250,6 +250,24 @@ START_TEST(test_parse)
 		{ "LOOKUP hosts MATCHING "
 		  "backend = ['a','b']", -1,  1, SDB_CONNECTION_LOOKUP },
 
+		/* valid operand types */
+		{ "LOOKUP hosts MATCHING "
+		  "age * 1 > 0s",        -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "age / 1 > 0s",        -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name > ''",           -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name >= ''",          -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name != ''",          -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name = ''",           -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name <= ''",          -1,  1, SDB_CONNECTION_LOOKUP },
+		{ "LOOKUP hosts MATCHING "
+		  "name < ''",           -1,  1, SDB_CONNECTION_LOOKUP },
+
 		/* NULL */
 		{ "LOOKUP hosts MATCHING "
 		  "attribute['foo'] "
@@ -289,6 +307,37 @@ START_TEST(test_parse)
 		  "attr['foo'] = 1.23",  -1, -1, 0 },
 		{ "LOOKUP hosts MATCHING "
 		  "attr['foo'] IS NULL", -1, -1, 0 },
+
+		/* type mismatches */
+		{ "LOOKUP hosts MATCHING "
+		  "age > 0",             -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age >= 0",            -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age = 0",             -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age != 0",            -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age <= 0",            -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age < 0",             -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age + 1 > 0s",        -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "age - 1 > 0s",        -1, -1, 0 },
+		/* datetime <mul/div> integer is allowed */
+		{ "LOOKUP hosts MATCHING "
+		  "age || 1 > 0s",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "name + 1 = ''",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "name - 1 = ''",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "name * 1 = ''",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "name / 1 = ''",       -1, -1, 0 },
+		{ "LOOKUP hosts MATCHING "
+		  "name % 1 = ''",       -1, -1, 0 },
 
 		/* comments */
 		{ "/* some comment */",  -1,  0, 0 },
