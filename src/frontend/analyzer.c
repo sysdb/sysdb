@@ -68,6 +68,14 @@ cmp_error(sdb_strbuf_t *errbuf, int op, int left, int right)
 			SDB_TYPE_TO_STRING(right));
 } /* cmp_error */
 
+static void
+op_error(sdb_strbuf_t *errbuf, int op, int left, int right)
+{
+	sdb_strbuf_sprintf(errbuf, "Invalid operator %s for types %s and %s",
+			SDB_DATA_OP_TO_STRING(op), SDB_TYPE_TO_STRING(left),
+			SDB_TYPE_TO_STRING(right));
+} /* cmp_error */
+
 static int
 analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
 {
@@ -104,6 +112,15 @@ analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
 				return -1;
 			if (analyze_expr(context, e->right, errbuf))
 				return -1;
+
+			if ((e->left->data_type > 0) && (e->right->data_type > 0)) {
+				if (sdb_data_expr_type(e->type, e->left->data_type,
+							e->right->data_type) < 0) {
+					op_error(errbuf, e->type, e->left->data_type,
+							e->right->data_type);
+					return -1;
+				}
+			}
 			break;
 	}
 	return 0;
