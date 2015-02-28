@@ -32,7 +32,7 @@
 #include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "frontend/connection-private.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -388,19 +388,14 @@ START_TEST(test_exec_fetch)
 }
 END_TEST
 
-Suite *
-fe_query_suite(void)
+TEST_MAIN("frontend::query")
 {
-	Suite *s = suite_create("frontend::query");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	tcase_add_loop_test(tc, test_exec_fetch, 0, SDB_STATIC_ARRAY_LEN(exec_fetch_data));
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* fe_query_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

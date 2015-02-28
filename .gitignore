@@ -59,9 +59,8 @@ sysdb.h
 # integration/unit testing output
 t/integration/*.sh.log
 t/integration/*.sh.trs
-t/unit/libsysdb_test
-t/unit/libsysdb_net_test
-t/unit/*.log
-t/unit/*.trs
+t/unit/*/*_test
+t/unit/*/*_test.log
+t/unit/*/*_test.trs
 test-driver
 test-suite.log

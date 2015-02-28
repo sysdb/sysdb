@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "utils/channel.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 #include <errno.h>
@@ -339,34 +343,29 @@ START_TEST(test_write_read_string)
 }
 END_TEST
 
-Suite *
-util_channel_suite(void)
+TEST_MAIN("utils::channel")
 {
-	Suite *s = suite_create("utils::channel");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_create);
 	tcase_add_test(tc, test_write_read);
 	tcase_add_test(tc, test_select);
-	suite_add_tcase(s, tc);
+	ADD_TCASE(tc);
 
 	tc = tcase_create("integer");
 	tcase_add_checked_fixture(tc, setup_int, teardown);
 	tcase_add_test(tc, test_write_int);
 	tcase_add_test(tc, test_read_int);
 	tcase_add_test(tc, test_write_read_int);
-	suite_add_tcase(s, tc);
+	ADD_TCASE(tc);
 
 	tc = tcase_create("string");
 	tcase_add_checked_fixture(tc, setup_string, teardown);
 	tcase_add_test(tc, test_write_string);
 	tcase_add_test(tc, test_read_string);
 	tcase_add_test(tc, test_write_read_string);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_llist_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

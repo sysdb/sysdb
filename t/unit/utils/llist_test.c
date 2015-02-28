@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "utils/llist.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -370,13 +374,9 @@ START_TEST(test_iter_remove)
 }
 END_TEST
 
-Suite *
-util_llist_suite(void)
+TEST_MAIN("utils::llist")
 {
-	Suite *s = suite_create("utils::llist");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_clone);
 	tcase_add_test(tc, test_destroy);
@@ -390,10 +390,9 @@ util_llist_suite(void)
 	tcase_add_test(tc, test_shift);
 	tcase_add_test(tc, test_iter);
 	tcase_add_test(tc, test_iter_remove);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_llist_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -25,9 +25,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/store.h"
 #include "core/store-private.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 #include <string.h>
@@ -738,13 +742,9 @@ START_TEST(test_scan)
 }
 END_TEST
 
-Suite *
-core_store_suite(void)
+TEST_MAIN("core::store")
 {
-	Suite *s = suite_create("core::store");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_store_host);
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
@@ -757,10 +757,9 @@ core_store_suite(void)
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);
 	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_store_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -30,7 +30,7 @@
 #endif
 
 #include "frontend/sock.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -168,19 +168,14 @@ START_TEST(test_listen_and_serve)
 }
 END_TEST
 
-Suite *
-fe_sock_suite(void)
+TEST_MAIN("frontend::sock")
 {
-	Suite *s = suite_create("frontend::sock");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_listen_and_serve);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_unixsock_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

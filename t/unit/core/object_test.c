@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/object.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -319,21 +323,16 @@ START_TEST(test_obj_cmp)
 }
 END_TEST
 
-Suite *
-core_object_suite(void)
+TEST_MAIN("core::object")
 {
-	Suite *s = suite_create("core::object");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_obj_create);
 	tcase_add_test(tc, test_obj_wrapper);
 	tcase_add_test(tc, test_obj_ref);
 	tcase_add_test(tc, test_obj_cmp);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_object_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

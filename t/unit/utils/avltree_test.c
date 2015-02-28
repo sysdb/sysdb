@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "utils/avltree.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -236,22 +240,17 @@ START_TEST(test_iter)
 }
 END_TEST
 
-Suite *
-util_avltree_suite(void)
+TEST_MAIN("utils::avltree")
 {
-	Suite *s = suite_create("utils::avltree");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_null);
 	tcase_add_test(tc, test_insert);
 	tcase_add_test(tc, test_lookup);
 	tcase_add_test(tc, test_iter);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_avltree_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

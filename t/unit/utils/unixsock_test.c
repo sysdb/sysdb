@@ -35,7 +35,7 @@
 #endif
 
 #include "utils/unixsock.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -362,22 +362,17 @@ START_TEST(test_sdb_unixsock_client_recv)
 }
 END_TEST
 
-Suite *
-util_unixsock_suite(void)
+TEST_MAIN("utils::unixsock")
 {
-	Suite *s = suite_create("utils::unixsock");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
 	tcase_add_test(tc, test_sdb_unixsock_client_create);
 	tcase_add_test(tc, test_sdb_unixsock_client_connect);
 	tcase_add_test(tc, test_sdb_unixsock_client_send);
 	tcase_add_test(tc, test_sdb_unixsock_client_recv);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_unixsock_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

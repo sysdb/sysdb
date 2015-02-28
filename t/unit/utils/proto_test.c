@@ -25,9 +25,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/store.h"
 #include "utils/proto.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 #include <stdbool.h>
@@ -524,22 +528,17 @@ START_TEST(test_marshal_attribute)
 }
 END_TEST
 
-Suite *
-util_proto_suite(void)
+TEST_MAIN("utils::proto")
 {
-	Suite *s = suite_create("utils::proto");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_marshal_data);
 	tcase_add_test(tc, test_marshal_host);
 	tcase_add_test(tc, test_marshal_service);
 	tcase_add_test(tc, test_marshal_metric);
 	tcase_add_test(tc, test_marshal_attribute);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_proto_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

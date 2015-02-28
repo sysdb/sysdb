@@ -32,7 +32,7 @@
 #include "frontend/connection.h"
 #include "frontend/connection-private.h"
 #include "utils/os.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include "utils/strbuf.h"
 
@@ -436,10 +436,8 @@ START_TEST(test_conn_io)
 }
 END_TEST
 
-Suite *
-fe_conn_suite(void)
+TEST_MAIN("frontend::connection")
 {
-	Suite *s = suite_create("frontend::connection");
 	TCase *tc;
 
 	char *tmp = sdb_get_current_user();
@@ -451,10 +449,9 @@ fe_conn_suite(void)
 	tcase_add_test(tc, test_conn_accept);
 	tcase_add_test(tc, test_conn_setup);
 	tcase_add_test(tc, test_conn_io);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* fe_conn_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "utils/strbuf.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -613,16 +617,12 @@ START_TEST(test_len)
 }
 END_TEST
 
-Suite *
-util_strbuf_suite(void)
+TEST_MAIN("utils::strbuf")
 {
-	Suite *s = suite_create("utils::strbuf");
-	TCase *tc;
-
-	tc = tcase_create("empty");
+	TCase *tc = tcase_create("empty");
 	tcase_add_test(tc, test_null);
 	tcase_add_test(tc, test_empty);
-	suite_add_tcase(s, tc);
+	ADD_TCASE(tc);
 
 	tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, setup, teardown);
@@ -637,10 +637,9 @@ util_strbuf_suite(void)
 	tcase_add_test(tc, test_clear);
 	tcase_add_test(tc, test_string);
 	tcase_add_test(tc, test_len);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_strbuf_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

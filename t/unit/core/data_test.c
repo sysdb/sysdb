@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/data.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <assert.h>
 #include <check.h>
@@ -2184,13 +2188,9 @@ START_TEST(test_parse)
 }
 END_TEST
 
-Suite *
-core_data_suite(void)
+TEST_MAIN("core::data")
 {
-	Suite *s = suite_create("core::data");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_data);
 	tcase_add_test(tc, test_cmp);
 	tcase_add_test(tc, test_strcmp);
@@ -2200,10 +2200,9 @@ core_data_suite(void)
 	tcase_add_test(tc, test_expr_eval);
 	tcase_add_test(tc, test_format);
 	tcase_add_test(tc, test_parse);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_data_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

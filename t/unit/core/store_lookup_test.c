@@ -25,10 +25,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/store.h"
 #include "core/store-private.h"
 #include "frontend/parser.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <assert.h>
 
@@ -632,23 +636,18 @@ START_TEST(test_scan)
 }
 END_TEST
 
-Suite *
-core_store_lookup_suite(void)
+TEST_MAIN("core::store_lookup")
 {
-	Suite *s = suite_create("core::store_lookup");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
 	TC_ADD_LOOP_TEST(tc, cmp_name);
 	TC_ADD_LOOP_TEST(tc, cmp_attr);
 	TC_ADD_LOOP_TEST(tc, cmp_obj);
 	TC_ADD_LOOP_TEST(tc, scan);
 	tcase_add_test(tc, test_store_match_op);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_store_lookup_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

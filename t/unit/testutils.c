@@ -1,5 +1,5 @@
 /*
- * SysDB - t/unit/libsysdb_testutils.h
+ * SysDB - t/unit/libsysdb_testutils.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -25,25 +25,30 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Utility functions for test suites.
- */
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif /* HAVE_CONFIG_H */
 
-#ifndef T_LIBSYSDB_UTILS_H
-#define T_LIBSYSDB_UTILS_H 1
+#include "testutils.h"
 
-/*
- * sdb_regmatches:
- * Check if a regex matches a string.
- *
- * Returns:
- *  - 0 if the regex matches
- *  - a non-zero error value else (see regcomp(3) for details)
- */
+#include <stdlib.h>
+#include <sys/types.h>
+#include <regex.h>
+
 int
-sdb_regmatches(const char *regex, const char *string);
+sdb_regmatches(const char *regex, const char *string)
+{
+	regex_t reg;
+	int status;
 
-#endif /* T_LIBSYSDB_UTILS_H */
+	status = regcomp(&reg, regex, REG_EXTENDED | REG_NOSUB);
+	if (status)
+		return status;
+
+	status = regexec(&reg, string, /* matches = */ 0, NULL, /* flags = */ 0);
+	regfree(&reg);
+	return status;
+} /* sdb_regmatches */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

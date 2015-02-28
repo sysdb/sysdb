@@ -30,7 +30,7 @@
 #endif
 
 #include "utils/os.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <errno.h>
 
@@ -103,18 +103,13 @@ START_TEST(test_mkdir_remove)
 }
 END_TEST
 
-Suite *
-util_os_suite(void)
+TEST_MAIN("utils::os")
 {
-	Suite *s = suite_create("utils::os");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	tcase_add_test(tc, test_mkdir_remove);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_os_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

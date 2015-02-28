@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/time.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 
@@ -123,19 +127,14 @@ START_TEST(test_strpunit)
 }
 END_TEST
 
-Suite *
-core_time_suite(void)
+TEST_MAIN("core::time")
 {
-	Suite *s = suite_create("core::time");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	TC_ADD_LOOP_TEST(tc, strfinterval);
 	TC_ADD_LOOP_TEST(tc, strpunit);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_time_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

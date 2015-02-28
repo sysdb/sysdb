@@ -25,8 +25,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "core/store.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <assert.h>
 
@@ -422,19 +426,14 @@ START_TEST(test_store_tojson)
 }
 END_TEST
 
-Suite *
-core_store_json_suite(void)
+TEST_MAIN("core::store_json")
 {
-	Suite *s = suite_create("core::store_json");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	TC_ADD_LOOP_TEST(tc, store_tojson);
 	tcase_add_unchecked_fixture(tc, populate, sdb_store_clear);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* core_store_json_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

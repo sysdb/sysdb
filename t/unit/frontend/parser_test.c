@@ -25,11 +25,15 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "frontend/connection.h"
 #include "frontend/parser.h"
 #include "core/store-private.h"
 #include "core/object.h"
-#include "libsysdb_test.h"
+#include "testutils.h"
 
 #include <check.h>
 #include <limits.h>
@@ -787,20 +791,15 @@ START_TEST(test_parse_expr)
 }
 END_TEST
 
-Suite *
-fe_parser_suite(void)
+TEST_MAIN("frontend::parser")
 {
-	Suite *s = suite_create("frontend::parser");
-	TCase *tc;
-
-	tc = tcase_create("core");
+	TCase *tc = tcase_create("core");
 	TC_ADD_LOOP_TEST(tc, parse);
 	TC_ADD_LOOP_TEST(tc, parse_matcher);
 	TC_ADD_LOOP_TEST(tc, parse_expr);
-	suite_add_tcase(s, tc);
-
-	return s;
-} /* util_parser_suite */
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
