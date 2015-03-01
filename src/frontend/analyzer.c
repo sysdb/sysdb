@@ -256,19 +256,14 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 			if (analyze_expr(context, CMP_M(m)->right, errbuf))
 				return -1;
 
-			if ((CMP_M(m)->left->data_type > 0)
-					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
-				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
-						CMP_M(m)->right->data_type);
-				return -1;
-			}
+			/* the left operand may be a scalar or an array but the element
+			 * type has to match */
 			if ((CMP_M(m)->right->data_type > 0)
 					&& (! (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY))) {
 				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
 						CMP_M(m)->right->data_type);
 				return -1;
 			}
-
 			if ((CMP_M(m)->left->data_type > 0)
 					&& (CMP_M(m)->right->data_type > 0)) {
 				if ((CMP_M(m)->left->data_type & 0xff)
