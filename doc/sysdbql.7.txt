@@ -177,6 +177,15 @@ The following fields may be queried:
 	an attribute value with some other value, the two values will be cast to
 	strings before comparing them.
 
+Field expressions may be applied to parent or child nodes. For example, a
+host's services are child objects and the host is the parent of the service
+objects. This is done using typed expressions:
+
+host|service|metric.'<field>'::
+	Evaluate the field in the context of the respective parent or child.
+	Currently, this is limited to services or metrics referencing their parent
+	host.
+
 The following logical operators are supported by SysDB. Unless otherwise
 noted, the data types of the left hand and right hand side have to match.
 
@@ -200,7 +209,7 @@ noted, the data types of the left hand and right hand side have to match.
 	Checks whether a value compares less than, less than or equal to, greater
 	than or equal, or greater than some other value.
 
-The following arithmetic operators are supported by SysDB. Unless otherwise 
+The following arithmetic operators are supported by SysDB. Unless otherwise
 noted, the data types of the left hand and right hand side have to match.
 
 *+*::
