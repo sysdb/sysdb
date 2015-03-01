@@ -268,6 +268,16 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 						CMP_M(m)->right->data_type);
 				return -1;
 			}
+
+			if ((CMP_M(m)->left->data_type > 0)
+					&& (CMP_M(m)->right->data_type > 0)) {
+				if ((CMP_M(m)->left->data_type & 0xff)
+						!= (CMP_M(m)->right->data_type & 0xff)) {
+					cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+							CMP_M(m)->right->data_type);
+					return -1;
+				}
+			}
 			break;
 
 		case MATCHER_REGEX:
