@@ -1,7 +1,7 @@
 #! /bin/bash
 #
-# SysDB -- t/integration/ssl.sh
-# Copyright (C) 2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
+# SysDB -- t/integration/basic_query.sh
+# Copyright (C) 2012 Sebastian 'tokkee' Harl <sh@tokkee.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,58 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #
-# Integration tests using SSL connections.
+# Integration tests covering basic client functionality.
 #
 
 set -ex
 
 source "$( dirname "$0" )/test_lib.sh"
 
-setup_ssl
-
 cat <<EOF > "$SYSDBD_CONF"
-<Listen "tcp:localhost:12345">
-	SSLCertificate "$SERVER_CERT"
-	SSLCertificateKey "$SERVER_KEY"
-	SSLCACertificates "$CA_CERT"
-</Listen>
+Listen "$SOCKET_FILE"
+PluginDir "$PLUGIN_DIR"
+Interval 2
+
+LoadBackend mock_plugin
+<Backend "mock_plugin">
+</Backend>
+
+LoadPlugin mock_timeseries
 EOF
+
 run_sysdbd -D -C "$SYSDBD_CONF"
-wait_for_sysdbd_tcp localhost 12345
+wait_for_sysdbd
 
-run_sysdb -H "localhost:12345" -c 'LIST hosts' -U "$SYSDB_USER-invalid" \
-	-A "$CA_CERT" -C "$CLIENT_CERT" -K "$CLIENT_KEY" && exit 1
+# wait for initial data
+sleep 3
 
-run_sysdb -H "localhost:12345" -c 'LIST hosts' -U "$SYSDB_USER-invalid" \
-	-A "$CA_CERT" -C "${CLIENT_CERT}.doesnotexist" -K "$CLIENT_KEY" && exit 1
+# Usage errors.
+output="$( run_sysdb -H "$SOCKET_FILE" --invalid 2>&1 )" && exit 1
+echo "$output" | grep -F 'Usage:'
+output="$( run_sysdb -H "$SOCKET_FILE" extra 2>&1 )" && exit 1
+echo "$output" | grep -F 'Usage:'
 
-run_sysdb -H "localhost:12345" -c 'LIST hosts' -U "$SYSDB_USER" \
-	-A "$CA_CERT" -C "$CLIENT_CERT" -K "$CLIENT_KEY"
+# Invalid user.
+output="$( run_sysdb_nouser -H "$SOCKET_FILE" \
+  -U $SYSDB_USER-invalid -c 'LIST hosts' 2>&1 )" && exit 1
+echo "$output" | grep -F 'Access denied'
+
+# Unreachable server.
+output="$( run_sysdb -H "${SOCKET_FILE}.doesnotexist" -c '' 2>&1 )" && exit 1
+echo "$output" | grep "Failed to connect to SysDBd"
+
+# On parse errors, expect a non-zero exit code.
+output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID 2>&1 )" && exit 1
+echo "$output" | grep "Failed to parse query 'INVALID'"
+echo "$output" | grep "parse error: syntax error"
+
+# Empty query.
+output="$( run_sysdb -H "$SOCKET_FILE" -c '' )"
+test -z "$output"
+
+# Default user.
+output="$( run_sysdb_nouser -H "$SOCKET_FILE" -c '' )"
+
+stop_sysdbd
 
 # vim: set tw=78 sw=4 ts=4 noexpandtab :

@@ -67,21 +67,7 @@ wait_for_sysdbd "${SOCKET_FILE}.sender"
 # wait for initial data
 sleep 3
 
-# Invalid user.
-output="$( run_sysdb_nouser -H "$SOCKET_FILE" \
-  -U $SYSDB_USER-invalid -c 'LIST hosts' 2>&1 )" && exit 1
-echo "$output" | grep -F 'Access denied'
-
-# On parse errors, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID 2>&1 )" && exit 1
-echo "$output" | grep "Failed to parse query 'INVALID'"
-echo "$output" | grep "parse error: syntax error"
-
-# Empty query.
-output="$( run_sysdb -H "$SOCKET_FILE" -c '' )"
-test -z "$output"
-
-# Simple, successful commands.
+# LIST commands.
 output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST hosts' )"
 echo "$output" \
 	| grep -F '"host1.example.com"' \
@@ -110,51 +96,6 @@ echo "$output" \
 	| grep -F '"example service one"' \
 	| grep -F '"example service two"' \
 	| grep -F '"example service three"'
-
-output="$( run_sysdb -H "$SOCKET_FILE" -c "FETCH host 'host1.example.com'" )"
-echo "$output" \
-	| grep -F '"host1.example.com"' \
-	| grep -F '"mock service"' \
-	| grep -E '"other attribute".*"special value"'
-echo "$output" | grep -F 'host2.example.com' && exit 1
-echo "$output" | grep -F 'localhost' && exit 1
-echo "$output" | grep -F 'other.host.name' && exit 1
-echo "$output" | grep -F 'some.host.name' && exit 1
-
-output="$( run_sysdb -H "$SOCKET_FILE" \
-  -c "FETCH host 'host1.example.com' FILTER last_update < 0s" 2>&1 )" \
-  && exit 1
-echo "$output" | grep -F 'not found'
-
-(echo 'LIST hosts;'; sleep 1; echo "FETCH host 'host1.example.com'") \
-	| run_sysdb -H "$SOCKET_FILE"
-
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "FETCH host 'host1.example.com' FILTER age < 0s" 2>&1 )" && exit 1
-echo "$output" | grep -F 'not found'
-
-# When requesting information for unknown hosts, expect a non-zero exit code.
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "FETCH host 'does.not.exist'" 2>&1 )" && exit 1
-echo "$output" | grep -F 'not found'
-
-run_sysdb -H "$SOCKET_FILE" \
-		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
-
-# Does not work yet since there is no fetcher plugin.
-output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "TIMESERIES 'some.host.name'.'foo/bar/qux'" )"
-echo "$output" \
-	| grep -F '"value": "1.000000"' \
-	| grep -F '"value": "2.000000"' \
-	| grep -F '"value": "3.000000"' \
-	| grep -F '"value": "4.000000"' \
-	| grep -F '"value": "5.000000"' \
-	| grep -F '"value": "6.000000"' \
-	| grep -F '"value": "7.000000"' \
-	| grep -F '"value": "8.000000"' \
-	| grep -F '"value": "9.000000"' \
-	| grep -F '"value": "10.000000"'
 
 stop_sysdbd
 
