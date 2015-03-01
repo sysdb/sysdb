@@ -285,6 +285,10 @@ struct {
 	  "ANY backend =~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "ANY backend !~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	/* right operand is an array */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend !~ backend",
+	                        -1,  -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "ALL backend < 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
@@ -371,6 +375,8 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "age > 0",             -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
+	  "NOT age > 0",         -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
 	  "age >= 0",            -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "age = 0",             -1, -1, 0 },
@@ -397,6 +403,56 @@ struct {
 	  "name / 1 = ''",       -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "name % 1 = ''",       -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "(name % 1) + 1 = ''", -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "1 + (name % 1) = ''", -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "'' = 1 + (name % 1)", -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "age > 0 AND "
+	  "age = 0s",            -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "age = 0s AND "
+	  "age > 0",             -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "host.name > 0",       -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "backend > 'b'",       -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "'b' > backend",       -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "attribute['a'] > backend",
+	                         -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "backend > attribute['a']",
+	                         -1, -1, 0 },
+	{ "LOOKUP services MATCHING "
+	  "host.name + 1 = ''",  -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "'a' + 1 IN 'b'",      -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "'a' IN 'b' - 1",      -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name + 1 IN 'b'",     -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "'a' IN name - 1",     -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "'b' IN 'abc'",        -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "1 IN age",            -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name =~ 'a' + 1",     -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name =~ name + 1",    -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name + 1 =~ 'a'",     -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name =~ 1",           -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name + 1 IS NULL",    -1, -1, 0 },
+	{ "LOOKUP hosts FILTER "
+	  "name + 1 IS NULL",    -1, -1, 0 },
 
 	/* comments */
 	{ "/* some comment */",  -1,  0, 0 },
@@ -445,6 +501,8 @@ struct {
 	  "'f' || oo",           -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "ANY host = 'host'",   -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY service > 1",     -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "service.name = 's'",  -1, -1, 0 },
 	{ "LOOKUP services MATCHING "
