@@ -166,7 +166,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 %type <m> matcher
 	compare_matcher
 
-%type <expr> expression object_expression
+%type <expr> expression arithmetic_expression object_expression
 
 %type <integer> object_type object_type_plural
 %type <integer> iterable
@@ -575,6 +575,31 @@ compare_matcher:
 	;
 
 expression:
+	arithmetic_expression
+		{
+			if (! $1) {
+				/* we should have better error messages here
+				 * TODO: maybe let the analyzer handle this instead */
+				sdb_fe_yyerrorf(&yylloc, scanner,
+						YY_("syntax error, invalid arithmetic expression"));
+				YYABORT;
+			}
+			$$ = $1;
+		}
+	|
+	object_expression
+		{
+			$$ = $1;
+		}
+	|
+	data
+		{
+			$$ = sdb_store_expr_constvalue(&$1);
+			sdb_data_free_datum(&$1);
+		}
+	;
+
+arithmetic_expression:
 	'(' expression ')'
 		{
 			$$ = $2;
@@ -620,17 +645,6 @@ expression:
 			$$ = sdb_store_expr_create(SDB_DATA_CONCAT, $1, $3);
 			sdb_object_deref(SDB_OBJ($1)); $1 = NULL;
 			sdb_object_deref(SDB_OBJ($3)); $3 = NULL;
-		}
-	|
-	object_expression
-		{
-			$$ = $1;
-		}
-	|
-	data
-		{
-			$$ = sdb_store_expr_constvalue(&$1);
-			sdb_data_free_datum(&$1);
 		}
 	;
 
