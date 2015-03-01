@@ -252,6 +252,59 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "backend = ['a','b']", -1,  1, SDB_CONNECTION_LOOKUP },
 
+	/* array iteration */
+	{ "LOOKUP hosts MATCHING "
+	  "'foo' IN backend",   -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "['foo','bar'] "
+	  "IN backend ",        -1,   1, SDB_CONNECTION_LOOKUP },
+	/* attribute type is unknown */
+	{ "LOOKUP hosts MATCHING "
+	  "attribute['backend'] "
+	  "IN backend ",        -1,   1, SDB_CONNECTION_LOOKUP },
+	/* type mismatch */
+	{ "LOOKUP hosts MATCHING "
+	  "1 IN backend ",      -1,  -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend < 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend <= 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend = 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend != 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend >= 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend > 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend =~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend !~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend < 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend <= 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend = 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend != 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend >= 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend > 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend =~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL backend !~ 'b'", -1,   1, SDB_CONNECTION_LOOKUP },
+	/* attribute type is unknown */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend = attribute['backend']",
+	                        -1,   1, SDB_CONNECTION_LOOKUP },
+	/* type mismatch */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend = 1",    -1,  -1, 0 },
+
 	/* valid operand types */
 	{ "LOOKUP hosts MATCHING "
 	  "age * 1 > 0s",        -1,  1, SDB_CONNECTION_LOOKUP },
