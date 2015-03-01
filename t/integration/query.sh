@@ -77,6 +77,10 @@ output="$( run_sysdb -H "$SOCKET_FILE" -c INVALID 2>&1 )" && exit 1
 echo "$output" | grep "Failed to parse query 'INVALID'"
 echo "$output" | grep "parse error: syntax error"
 
+# Empty query.
+output="$( run_sysdb -H "$SOCKET_FILE" -c '' )"
+test -z "$output"
+
 # Simple, successful commands.
 output="$( run_sysdb -H "$SOCKET_FILE" -c 'LIST hosts' )"
 echo "$output" \
