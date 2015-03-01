@@ -113,7 +113,11 @@ Testing
 -------
 
   Unit and integration tests for SysDB are shipped along with the source code
-  in the ‘t’ subdirectory. Run ‘make test’ to run all available tests.
+  in the ‘t’ subdirectory. Run ‘make test’ to run all available tests or use
+  the following commands to run unit and integration tests separately:
+
+    make test TESTS='$(UNIT_TESTS)'
+    make test TESTS='$(INTEGRATION_TESTS)'
 
   Some tests require the ‘fopencookie’ function as provided by the GNU libc
   library. It used used to mock I/O related functions. In case this function

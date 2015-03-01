@@ -132,12 +132,14 @@ endif
 #
 
 if INTEGRATION_TESTING
-TESTS += \
+INTEGRATION_TESTS = \
 		integration/config.sh \
 		integration/ssl.sh \
 		integration/query.sh \
 		integration/matching.sh \
 		integration/filter.sh
+
+TESTS += $(INTEGRATION_TESTS)
 
 check_LTLIBRARIES += integration/mock_plugin.la
 integration_mock_plugin_la_SOURCES = integration/mock_plugin.c
