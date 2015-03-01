@@ -49,14 +49,17 @@ touch configure.ac && make configure
 make
 
 lcov --base-directory src --directory src --zerocount
-make test || (status=$?; cat t/test-suite.log 2> /dev/null; exit $status)
+make -j25 test || (status=$?; cat t/test-suite.log 2> /dev/null; exit $status)
 
 # old versions of lcov don't support --no-external
 lcov --base-directory src --directory src --no-external \
 	--capture -o sysdb_coverage.info \
 	|| lcov --base-directory src --directory src \
 		--capture -o sysdb_coverage.info
-for pattern in '*.y' '*.l'; do
+for pattern in '*.y' '*.l' \
+		'sysdb/scanner.c' 'frontend/scanner.c' 'liboconfig/scanner.c' \
+		'frontend/grammar.c' 'liboconfig/parser.c'
+do
 	lcov --remove sysdb_coverage.info "$pattern" -o sysdb_coverage.info
 done
 
