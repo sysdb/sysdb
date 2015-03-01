@@ -255,6 +255,8 @@ struct {
 	/* array iteration */
 	{ "LOOKUP hosts MATCHING "
 	  "'foo' IN backend",   -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP hosts MATCHING 'foo' "
+	  "NOT IN backend",   -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "['foo','bar'] "
 	  "IN backend ",        -1,   1, SDB_CONNECTION_LOOKUP },
@@ -265,6 +267,8 @@ struct {
 	/* type mismatch */
 	{ "LOOKUP hosts MATCHING "
 	  "1 IN backend ",      -1,  -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "1 NOT IN backend ",  -1,  -1, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "ANY backend < 'b'",  -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
@@ -691,6 +695,9 @@ struct {
 	{ "interval >= 20s",              -1,  MATCHER_GE },
 	{ "interval > 20s",               -1,  MATCHER_GT },
 	{ "'be' IN backend",              -1,  MATCHER_IN },
+	{ "'be' NOT IN backend",          -1,  MATCHER_NIN },
+	{ "['a','b'] IN backend",         -1,  MATCHER_IN },
+	{ "['a','b'] NOT IN backend",     -1,  MATCHER_NIN },
 
 	/* check operator precedence */
 	{ "name = 'name' OR "

@@ -251,6 +251,7 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 			break;
 
 		case MATCHER_IN:
+		case MATCHER_NIN:
 			if (analyze_expr(context, CMP_M(m)->left, errbuf))
 				return -1;
 			if (analyze_expr(context, CMP_M(m)->right, errbuf))

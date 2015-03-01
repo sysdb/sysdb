@@ -565,6 +565,13 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($1));
 			sdb_object_deref(SDB_OBJ($3));
 		}
+	|
+	expression NOT IN expression
+		{
+			$$ = sdb_store_nin_matcher($1, $4);
+			sdb_object_deref(SDB_OBJ($1));
+			sdb_object_deref(SDB_OBJ($4));
+		}
 	;
 
 expression:

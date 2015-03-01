@@ -326,7 +326,7 @@ match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	sdb_data_t value = SDB_DATA_INIT, array = SDB_DATA_INIT;
 	int status = 1;
 
-	assert(m->type == MATCHER_IN);
+	assert((m->type == MATCHER_IN) || (m->type == MATCHER_NIN));
 
 	if (expr_eval2(CMP_M(m)->left, &value,
 				CMP_M(m)->right, &array, obj, filter))
@@ -336,6 +336,8 @@ match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		status = sdb_data_inarray(&value, &array);
 
 	expr_free_datum2(CMP_M(m)->left, &value, CMP_M(m)->right, &array);
+	if (m->type == MATCHER_NIN)
+		return !status;
 	return status;
 } /* match_in */
 
@@ -400,6 +402,7 @@ matchers[] = {
 	match_unary,
 	match_iter,
 	match_iter,
+	match_in,
 	match_in,
 
 	/* unary operators */
@@ -631,6 +634,13 @@ sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 {
 	return M(sdb_object_create("in-matcher", cmp_type,
 				MATCHER_IN, left, right));
+} /* sdb_store_in_matcher */
+
+sdb_store_matcher_t *
+sdb_store_nin_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+{
+	return M(sdb_object_create("not-in-matcher", cmp_type,
+				MATCHER_NIN, left, right));
 } /* sdb_store_in_matcher */
 
 sdb_store_matcher_t *

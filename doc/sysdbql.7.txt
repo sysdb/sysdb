@@ -130,12 +130,12 @@ Boolean expressions may use the following operators:
 	when accessing an attribute value).
 
 '<expression>' *IN* '<expression>'::
+'<expression>' *NOT IN* '<expression>'::
 	Checks whether the value of the first expression is included in the value
-	of the second expression which has to be an array value (e.g., *backend*
-	field). If the second value is not an array or if the type of the first
-	value does not match the array's element type, the expression always
-	evaluates to false. The first value may also be an array. In this case,
-	the expression evaluates to true if all elements of that array are
+	of the second expression (or not). The second value has to be an array
+	value (e.g., *backend* field) and the type of the first value has to match
+	the array's element type. The first value may also be an array. In this
+	case, the expression evaluates to true if all elements of that array are
 	included in the second array where order does not matter.
 
 Parentheses ('()') may be used around subexpressions to group them and enforce
