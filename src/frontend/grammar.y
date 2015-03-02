@@ -580,7 +580,7 @@ expression:
 			if (! $1) {
 				/* we should have better error messages here
 				 * TODO: maybe let the analyzer handle this instead */
-				sdb_fe_yyerrorf(&yylloc, scanner,
+				sdb_fe_yyerror(&yylloc, scanner,
 						YY_("syntax error, invalid arithmetic expression"));
 				YYABORT;
 			}
@@ -858,7 +858,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...)
 	va_start(ap, fmt);
 	va_copy(aq, ap);
 	sdb_vlog(SDB_LOG_ERR, fmt, ap);
-	sdb_strbuf_vsprintf(errbuf, "%s", aq);
+	sdb_strbuf_vsprintf(errbuf, fmt, aq);
 	va_end(ap);
 } /* sdb_fe_yyerrorf */
 
