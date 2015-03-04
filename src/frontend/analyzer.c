@@ -48,17 +48,17 @@ iter_error(sdb_strbuf_t *errbuf, int op, int oper, int context)
 } /* iter_error */
 
 static void
-iter_array_error(sdb_strbuf_t *errbuf, int op,
-		int array_type, int cmp, int value_type)
+iter_op_error(sdb_strbuf_t *errbuf, int op,
+		int iter_type, int cmp, int value_type)
 {
-	sdb_strbuf_sprintf(errbuf, "Invalid array iterator %s %s %s %s",
-			MATCHER_SYM(op), SDB_TYPE_TO_STRING(array_type),
+	sdb_strbuf_sprintf(errbuf, "Invalid iterator %s %s %s %s",
+			MATCHER_SYM(op), SDB_TYPE_TO_STRING(iter_type),
 			MATCHER_SYM(cmp), SDB_TYPE_TO_STRING(value_type));
-	if ((array_type & 0xff) != value_type)
+	if ((iter_type & 0xff) != value_type)
 		sdb_strbuf_append(errbuf, " (type mismatch)");
 	else
 		sdb_strbuf_append(errbuf, " (invalid operator)");
-} /* iter_array_error */
+} /* iter_op_error */
 
 static void
 cmp_error(sdb_strbuf_t *errbuf, int op, int left, int right)
@@ -178,26 +178,27 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 				iter_error(errbuf, m->type, ITER_M(m)->type, context);
 				return -1;
 			}
+			/* any ary operator will do but these are the once
+			 * we currently support */
+			if ((ITER_M(m)->m->type != MATCHER_LT)
+					&& (ITER_M(m)->m->type != MATCHER_LE)
+					&& (ITER_M(m)->m->type != MATCHER_EQ)
+					&& (ITER_M(m)->m->type != MATCHER_NE)
+					&& (ITER_M(m)->m->type != MATCHER_GE)
+					&& (ITER_M(m)->m->type != MATCHER_GT)
+					&& (ITER_M(m)->m->type != MATCHER_REGEX)
+					&& (ITER_M(m)->m->type != MATCHER_NREGEX)) {
+				iter_op_error(errbuf, m->type,
+						CMP_M(ITER_M(m)->m)->left->data_type,
+						ITER_M(m)->m->type,
+						CMP_M(ITER_M(m)->m)->right->data_type);
+				return -1;
+			}
 			if (ITER_M(m)->type == SDB_FIELD_BACKEND) {
-				/* array iterators only support simple comparison atm */
-				if ((ITER_M(m)->m->type != MATCHER_LT)
-						&& (ITER_M(m)->m->type != MATCHER_LE)
-						&& (ITER_M(m)->m->type != MATCHER_EQ)
-						&& (ITER_M(m)->m->type != MATCHER_NE)
-						&& (ITER_M(m)->m->type != MATCHER_GE)
-						&& (ITER_M(m)->m->type != MATCHER_GT)
-						&& (ITER_M(m)->m->type != MATCHER_REGEX)
-						&& (ITER_M(m)->m->type != MATCHER_NREGEX)) {
-					iter_array_error(errbuf, m->type,
-							CMP_M(ITER_M(m)->m)->left->data_type,
-							ITER_M(m)->m->type,
-							CMP_M(ITER_M(m)->m)->right->data_type);
-					return -1;
-				}
 				if (CMP_M(ITER_M(m)->m)->right->data_type < 0)
 					return 0; /* skip further type checks */
 				if (CMP_M(ITER_M(m)->m)->right->data_type & SDB_TYPE_ARRAY) {
-					iter_array_error(errbuf, m->type,
+					iter_op_error(errbuf, m->type,
 							CMP_M(ITER_M(m)->m)->left->data_type,
 							ITER_M(m)->m->type,
 							CMP_M(ITER_M(m)->m)->right->data_type);
@@ -205,7 +206,7 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 				}
 				if ((CMP_M(ITER_M(m)->m)->left->data_type & 0xff)
 						!= CMP_M(ITER_M(m)->m)->right->data_type) {
-					iter_array_error(errbuf, m->type,
+					iter_op_error(errbuf, m->type,
 							CMP_M(ITER_M(m)->m)->left->data_type,
 							ITER_M(m)->m->type,
 							CMP_M(ITER_M(m)->m)->right->data_type);
