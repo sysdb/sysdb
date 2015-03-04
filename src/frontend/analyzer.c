@@ -127,7 +127,8 @@ analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
 } /* analyze_expr */
 
 static int
-analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
+analyze_matcher(int context, int parent_type,
+		sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 {
 	if (! m)
 		return 0;
@@ -136,15 +137,15 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 		case MATCHER_OR:
 		case MATCHER_AND:
 			assert(OP_M(m)->left && OP_M(m)->right);
-			if (analyze_matcher(context, OP_M(m)->left, errbuf))
+			if (analyze_matcher(context, m->type, OP_M(m)->left, errbuf))
 				return -1;
-			if (analyze_matcher(context, OP_M(m)->right, errbuf))
+			if (analyze_matcher(context, m->type, OP_M(m)->right, errbuf))
 				return -1;
 			break;
 
 		case MATCHER_NOT:
 			assert(UOP_M(m)->op);
-			if (analyze_matcher(context, UOP_M(m)->op, errbuf))
+			if (analyze_matcher(context, m->type, UOP_M(m)->op, errbuf))
 				return -1;
 			break;
 
@@ -213,7 +214,8 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 					return -1;
 				}
 			}
-			else if (analyze_matcher(ITER_M(m)->type, ITER_M(m)->m, errbuf))
+			else if (analyze_matcher(ITER_M(m)->type, m->type,
+						ITER_M(m)->m, errbuf))
 				return -1;
 			break;
 
@@ -223,7 +225,15 @@ analyze_matcher(int context, sdb_store_matcher_t *m, sdb_strbuf_t *errbuf)
 		case MATCHER_NE:
 		case MATCHER_GE:
 		case MATCHER_GT:
-			assert(CMP_M(m)->left && CMP_M(m)->right);
+			assert(CMP_M(m)->right);
+			if ((parent_type == MATCHER_ALL)
+					|| (parent_type == MATCHER_ANY)) {
+				// TODO: assert(! CMP_M(m)->left);
+			}
+			else {
+				assert(CMP_M(m)->left);
+			}
+
 			if (analyze_expr(context, CMP_M(m)->left, errbuf))
 				return -1;
 			if (analyze_expr(context, CMP_M(m)->right, errbuf))
@@ -365,9 +375,9 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 
-	if (analyze_matcher(context, m, errbuf))
+	if (analyze_matcher(context, -1, m, errbuf))
 		status = -1;
-	if (analyze_matcher(-1, filter, errbuf))
+	if (analyze_matcher(-1, -1, filter, errbuf))
 		status = -1;
 	return status;
 } /* sdb_fe_analyze */

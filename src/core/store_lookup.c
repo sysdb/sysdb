@@ -201,6 +201,8 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	int status;
 
+	assert(CMP_M(m)->left && CMP_M(m)->right);
+
 	if ((ITER_M(m)->m->type < MATCHER_LT)
 			|| (MATCHER_NREGEX < ITER_M(m)->m->type))
 		return 0;
@@ -308,6 +310,7 @@ match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 			|| (m->type == MATCHER_NE)
 			|| (m->type == MATCHER_GE)
 			|| (m->type == MATCHER_GT));
+	assert(e1 && e2);
 
 	if (expr_eval2(e1, &v1, e2, &v2, obj, filter))
 		return 0;
@@ -327,6 +330,7 @@ match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	int status = 1;
 
 	assert((m->type == MATCHER_IN) || (m->type == MATCHER_NIN));
+	assert(CMP_M(m)->left && CMP_M(m)->right);
 
 	if (expr_eval2(CMP_M(m)->left, &value,
 				CMP_M(m)->right, &array, obj, filter))
@@ -350,6 +354,7 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	assert((m->type == MATCHER_REGEX)
 			|| (m->type == MATCHER_NREGEX));
+	assert(CMP_M(m)->left && CMP_M(m)->right);
 
 	if (expr_eval2(CMP_M(m)->left, &v, CMP_M(m)->right, &regex, obj, filter))
 		return 0;
@@ -480,7 +485,7 @@ cmp_matcher_init(sdb_object_t *obj, va_list ap)
 	CMP_M(obj)->right = va_arg(ap, sdb_store_expr_t *);
 	sdb_object_ref(SDB_OBJ(CMP_M(obj)->right));
 
-	if ((! CMP_M(obj)->left) || (! CMP_M(obj)->right))
+	if (! CMP_M(obj)->right)
 		return -1;
 	return 0;
 } /* cmp_matcher_init */
