@@ -457,6 +457,14 @@ sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter)
 	return n ? n->obj : NULL;
 } /* sdb_avltree_iter_get_next */
 
+sdb_object_t *
+sdb_avltree_iter_peek_next(sdb_avltree_iter_t *iter)
+{
+	if ((! iter) || (! iter->node))
+		return NULL;
+	return iter->node->obj;
+} /* sdb_avltree_iter_peek_next */
+
 size_t
 sdb_avltree_size(sdb_avltree_t *tree)
 {

@@ -209,10 +209,16 @@ START_TEST(test_iter)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(test_data); ++i) {
 		char expected_name[] = { (char)('a' + (int)i), '\0' };
+		sdb_object_t *expected_obj;
 
 		_Bool c = sdb_avltree_iter_has_next(iter);
 		fail_unless(c, "sdb_avltree_iter_has_next(<iter[%zu]>) = false; "
 				"expected: true", i);
+
+		expected_obj = sdb_avltree_iter_peek_next(iter);
+		fail_unless(expected_obj != NULL,
+				"sdb_avltree_iter_peek_next(<iter[%zu]>) = NULL; "
+				"expected: <obj>", i);
 
 		obj = sdb_avltree_iter_get_next(iter);
 		fail_unless(obj != NULL,
@@ -221,11 +227,18 @@ START_TEST(test_iter)
 		fail_unless(!strcmp(obj->name, expected_name),
 				"sdb_avltree_iter[%zu] = %s; expected: %s",
 				i, obj->name, expected_name);
+
+		fail_unless(obj == expected_obj,
+				"sdb_avltree_iter_get_next(<iter[%zu]>) = %p; "
+				"expected: %p (from peek())", i, obj, expected_obj);
 	}
 
 	check = sdb_avltree_iter_has_next(iter) != 0;
 	fail_unless(check == 0, "sdb_avltree_iter_has_next(<iter>) = true; "
 			"expected: false");
+	obj = sdb_avltree_iter_peek_next(iter);
+	fail_unless(obj == NULL,
+			"sdb_avltree_iter_peek_next(<iter>) = <obj>; expected: NULL");
 	obj = sdb_avltree_iter_get_next(iter);
 	fail_unless(obj == NULL,
 			"sdb_avltree_iter_get_next(<iter>) = <obj>; expected: NULL");

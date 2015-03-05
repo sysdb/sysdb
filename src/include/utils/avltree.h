@@ -114,6 +114,18 @@ sdb_object_t *
 sdb_avltree_iter_get_next(sdb_avltree_iter_t *iter);
 
 /*
+ * sdb_avltree_iter_peek_next:
+ * Peek at the next node, if there is one. This is similar to has_next() but
+ * it returns the actual next element without advancing the iterator.
+ *
+ * Returns:
+ *  - the next node, if there is one
+ *  - NULL else
+ */
+sdb_object_t *
+sdb_avltree_iter_peek_next(sdb_avltree_iter_t *iter);
+
+/*
  * sdb_avltree_size:
  * Returns the number of nodes in the tree.
  */
