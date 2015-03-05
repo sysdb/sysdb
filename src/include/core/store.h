@@ -114,6 +114,13 @@ typedef struct sdb_store_expr sdb_store_expr_t;
 #define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
 
 /*
+ * An expression iterator iterates over the values of an iterable expression
+ * (see sdb_store_expr_iterable).
+ */
+struct sdb_store_expr_iter;
+typedef struct sdb_store_expr_iter sdb_store_expr_iter_t;
+
+/*
  * Store matchers may be used to lookup hosts from the store based on their
  * various attributes. Service and attribute matchers are applied to a host's
  * services and attributes and evaluate to true if *any* service or attribute
@@ -424,6 +431,34 @@ sdb_store_expr_constvalue(const sdb_data_t *value);
 int
 sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_data_t *res, sdb_store_matcher_t *filter);
+
+/*
+ * sdb_store_expr_iterable:
+ * Check whether an expression, evaluated in the specified context (HOST,
+ * SERVICE, METRIC) is iterable, that is, if it may evaluate to multiple
+ * values.
+ */
+bool
+sdb_store_expr_iterable(sdb_store_expr_t *expr, int context);
+
+/*
+ * sdb_store_expr_iter:
+ * Iterate over the elements of an iterable expression. sdb_store_expr_iter
+ * returns NULL if the expression is not iterable (for the specified object).
+ * See also sdb_store_expr_iterable.
+ *
+ * sdb_store_expr_iter_get_next returns NULL if there is no next element.
+ */
+sdb_store_expr_iter_t *
+sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter);
+void
+sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter);
+
+bool
+sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter);
+sdb_data_t
+sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter);
 
 /*
  * sdb_store_dis_matcher:

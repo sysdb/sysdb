@@ -46,6 +46,23 @@
  * private data types
  */
 
+/* iterate through either a list of child nodes or arrays */
+struct sdb_store_expr_iter {
+	sdb_store_obj_t *obj;
+	sdb_store_expr_t *expr;
+
+	sdb_avltree_iter_t *tree;
+
+	sdb_data_t array;
+	size_t array_idx;
+
+	sdb_store_matcher_t *filter;
+};
+
+/*
+ * private types
+ */
+
 static int
 expr_init(sdb_object_t *obj, va_list ap)
 {
@@ -243,6 +260,177 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	sdb_data_free_datum(&v2);
 	return status;
 } /* sdb_store_expr_eval */
+
+bool
+sdb_store_expr_iterable(sdb_store_expr_t *expr, int context)
+{
+	if (expr->type == TYPED_EXPR) {
+		if ((context != SDB_HOST) && (context != SDB_SERVICE)
+				&& (context != SDB_METRIC))
+			return 0;
+		if (context == expr->data.data.integer)
+			return 0;
+		if ((expr->data.data.integer != SDB_SERVICE)
+				&& (expr->data.data.integer != SDB_METRIC)
+				&& (expr->data.data.integer != SDB_ATTRIBUTE))
+			return 0;
+		if ((context == SDB_SERVICE)
+				&& (expr->data.data.integer == SDB_METRIC))
+			return 0;
+		else if ((context == SDB_METRIC)
+				&& (expr->data.data.integer == SDB_SERVICE))
+			return 0;
+		return 1;
+	}
+	else if (expr->type == FIELD_VALUE) {
+		if ((context != SDB_HOST) && (context != SDB_SERVICE)
+				&& (context != SDB_METRIC) && (context != SDB_ATTRIBUTE))
+			return 0;
+		return expr->data.data.integer == SDB_FIELD_BACKEND;
+	}
+	else if (! expr->type) {
+		return !!(expr->data.type & SDB_TYPE_ARRAY);
+	}
+	return 0;
+} /* sdb_store_expr_iterable */
+
+sdb_store_expr_iter_t *
+sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
+		sdb_store_matcher_t *filter)
+{
+	sdb_store_expr_iter_t *iter;
+	sdb_avltree_iter_t *tree = NULL;
+	sdb_data_t array = SDB_DATA_INIT;
+
+	if ((! expr) || (! obj))
+		return NULL;
+
+	if (expr->type == TYPED_EXPR) {
+		if (obj->type == SDB_HOST) {
+			if (expr->data.data.integer == SDB_SERVICE)
+				tree = sdb_avltree_get_iter(HOST(obj)->services);
+			else if (expr->data.data.integer == SDB_METRIC)
+				tree = sdb_avltree_get_iter(HOST(obj)->metrics);
+			else if (expr->data.data.integer == SDB_ATTRIBUTE)
+				tree = sdb_avltree_get_iter(HOST(obj)->attributes);
+		}
+		else if (obj->type == SDB_SERVICE) {
+			if (expr->data.data.integer == SDB_ATTRIBUTE)
+				tree = sdb_avltree_get_iter(SVC(obj)->attributes);
+		}
+		else if (obj->type == SDB_METRIC) {
+			if (expr->data.data.integer == SDB_ATTRIBUTE)
+				tree = sdb_avltree_get_iter(METRIC(obj)->attributes);
+		}
+	}
+	else if (expr->type == FIELD_VALUE) {
+		if (expr->data.data.integer == SDB_FIELD_BACKEND) {
+			/* while scanning the store, we hold a read lock, so it's safe to
+			 * access the data without copying */
+			array.type = SDB_TYPE_ARRAY | SDB_TYPE_STRING;
+			array.data.array.length = obj->backends_num;
+			array.data.array.values = obj->backends;
+		}
+	}
+	else if (! expr->type) {
+		if (expr->data.type & SDB_TYPE_ARRAY)
+			array = expr->data;
+	}
+	else
+		return NULL;
+
+	if ((! tree) && (array.type == SDB_TYPE_NULL))
+		return NULL;
+
+	iter = calloc(1, sizeof(*iter));
+	if (! iter)
+		return NULL;
+
+	sdb_object_ref(SDB_OBJ(obj));
+	sdb_object_ref(SDB_OBJ(expr));
+	sdb_object_ref(SDB_OBJ(filter));
+
+	iter->obj = obj;
+	iter->expr = expr;
+	iter->tree = tree;
+	iter->array = array;
+	iter->filter = filter;
+	return iter;
+} /* sdb_store_expr_iter */
+
+void
+sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter)
+{
+	sdb_data_t null = SDB_DATA_INIT;
+
+	if (! iter)
+		return;
+
+	if (iter->tree)
+		sdb_avltree_iter_destroy(iter->tree);
+	iter->tree = NULL;
+
+	iter->array = null;
+	iter->array_idx = 0;
+
+	sdb_object_deref(SDB_OBJ(iter->obj));
+	sdb_object_deref(SDB_OBJ(iter->filter));
+	free(iter);
+} /* sdb_store_expr_iter_destroy */
+
+bool
+sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter)
+{
+	if (! iter)
+		return 0;
+
+	if (iter->tree)
+		return sdb_avltree_iter_has_next(iter->tree);
+	return iter->array_idx < iter->array.data.array.length;
+} /* sdb_store_expr_iter_has_next */
+
+sdb_data_t
+sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
+{
+	sdb_data_t null = SDB_DATA_INIT;
+	sdb_data_t ret = SDB_DATA_INIT;
+
+	if (! iter)
+		return null;
+
+	if (iter->tree) {
+		sdb_store_obj_t *child;
+
+		while (42) {
+			child = STORE_OBJ(sdb_avltree_iter_get_next(iter->tree));
+			if (! child)
+				break;
+			if (iter->filter
+					&& (! sdb_store_matcher_matches(iter->filter, child, NULL)))
+				continue;
+
+			if (sdb_store_expr_eval(iter->expr, iter->obj, &ret, iter->filter))
+				return null;
+			break;
+		}
+
+		/* Skip over any filtered objects */
+		if (iter->filter)
+			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree))))
+				if (sdb_store_matcher_matches(iter->filter, child, NULL))
+					break;
+
+		return ret;
+	}
+
+	if (iter->array_idx >= iter->array.data.array.length)
+		return null;
+	if (sdb_data_array_get(&iter->array, iter->array_idx, &ret))
+		return null;
+
+	++iter->array_idx;
+	return ret;
+} /* sdb_store_expr_iter_get_next */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
