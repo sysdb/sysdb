@@ -871,7 +871,11 @@ sdb_data_strlen(const sdb_data_t *datum)
 	if (! datum)
 		return 0;
 
-	if (datum->type == SDB_TYPE_INTEGER) {
+	if (sdb_data_isnull(datum)) {
+		/* NULL */
+		return 4;
+	}
+	else if (datum->type == SDB_TYPE_INTEGER) {
 		/* log(64) */
 		return 20;
 	}
@@ -927,7 +931,11 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	if ((! datum) || (! buf) || (! buflen))
 		return -1;
 
-	if (datum->type == SDB_TYPE_INTEGER) {
+	if (datum->type == SDB_TYPE_NULL) {
+		strncpy(buf, "NULL", buflen);
+		ret = 4;
+	}
+	else if (datum->type == SDB_TYPE_INTEGER) {
 		ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
 	}
 	else if (datum->type == SDB_TYPE_DECIMAL) {
