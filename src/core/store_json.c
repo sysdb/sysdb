@@ -119,8 +119,8 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	if (obj->type == SDB_ATTRIBUTE) {
 		char tmp[sdb_data_strlen(&ATTR(obj)->value) + 1];
 		char val[2 * sizeof(tmp) + 3];
-		if (sdb_data_format(&ATTR(obj)->value, tmp, sizeof(tmp),
-					SDB_DOUBLE_QUOTED) < 0)
+		if (! sdb_data_format(&ATTR(obj)->value, tmp, sizeof(tmp),
+					SDB_DOUBLE_QUOTED))
 			snprintf(tmp, sizeof(tmp), "<error>");
 
 		if (tmp[0] == '"') {

@@ -681,9 +681,9 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2)
 
 	CMP_NULL(d1, d2);
 
-	if (sdb_data_format(d1, d1_str, sizeof(d1_str), SDB_UNQUOTED) < 0)
+	if (! sdb_data_format(d1, d1_str, sizeof(d1_str), SDB_UNQUOTED))
 		return SDB_CMP(sizeof(d1_str), sizeof(d2_str));
-	if (sdb_data_format(d2, d2_str, sizeof(d2_str), SDB_UNQUOTED) < 0)
+	if (! sdb_data_format(d2, d2_str, sizeof(d2_str), SDB_UNQUOTED))
 		return SDB_CMP(sizeof(d1_str), sizeof(d2_str));
 
 	return strcasecmp(d1_str, d2_str);
@@ -918,18 +918,18 @@ sdb_data_strlen(const sdb_data_t *datum)
 	return 0;
 } /* sdb_data_strlen */
 
-int
+size_t
 sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 {
 	char tmp[sdb_data_strlen(datum) + 1];
 	char *data = NULL;
 	bool is_null = 0;
-	int ret = -1;
+	size_t ret = 0;
 
 	size_t i, pos;
 
-	if ((! datum) || (! buf) || (! buflen))
-		return -1;
+	if (! datum)
+		return 0;
 
 	if (datum->type == SDB_TYPE_NULL) {
 		strncpy(buf, "NULL", buflen);
@@ -1005,37 +1005,41 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	}
 	else if (datum->type & SDB_TYPE_ARRAY) {
 		ret = 1;
-		buf[0] = '[';
+		if (buflen > 0)
+			buf[0] = '[';
 		for (i = 0; i < datum->data.array.length; ++i) {
 			sdb_data_t v = SDB_DATA_INIT;
-			int n;
-			if ((size_t)ret >= buflen - 1)
-				break;
+			size_t n;
 
 			if (ret > 1) {
-				buf[ret] = ',';
-				buf[ret + 1] = ' ';
+				if (buflen > ret + 1) {
+					buf[ret] = ',';
+					buf[ret + 1] = ' ';
+				}
 				ret += 2;
 			}
 
 			sdb_data_array_get(datum, i, &v);
-			n = sdb_data_format(&v, buf + ret, buflen - ret, quoted);
+			if (buflen > ret)
+				n = sdb_data_format(&v, buf + ret, buflen - ret, quoted);
+			else
+				n = sdb_data_format(&v, NULL, 0, quoted);
 			if (n > 0)
 				ret += n;
 			else
 				break;
 		}
-		if ((size_t)ret < buflen - 1) {
+		if (buflen > ret + 1) {
 			buf[ret] = ']';
 			buf[ret + 1] = '\0';
-			++ret;
 		}
+		++ret;
 	}
 
 	if (is_null) {
 		/* never quote NULL */
 		strncpy(buf, "NULL", buflen);
-		ret = (int)SDB_MIN(buflen, 4);
+		ret = 4;
 	}
 	else if (data) {
 		if (quoted == SDB_UNQUOTED)
@@ -1045,7 +1049,8 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 		else
 			ret = snprintf(buf, buflen, "\"%s\"", data);
 	}
-	buf[buflen - 1] = '\0';
+	if (buflen > 0)
+		buf[buflen - 1] = '\0';
 	return ret;
 } /* sdb_data_format */
 

@@ -2033,6 +2033,10 @@ START_TEST(test_format)
 		const char *expected;
 	} golden_data[] = {
 		{
+			{ SDB_TYPE_NULL, { .integer = 0 } },
+			"NULL",
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
 			"4711",
 		},
@@ -2100,10 +2104,11 @@ START_TEST(test_format)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_data_t *datum = &golden_data[i].datum;
 		char buf[sdb_data_strlen(datum) + 2];
-		int check;
+		size_t check_null, check;
 
 		memset(buf, (int)'A', sizeof(buf));
 
+		check_null = sdb_data_format(datum, NULL, 0, SDB_DOUBLE_QUOTED);
 		check = sdb_data_format(datum, buf, sizeof(buf) - 1,
 				SDB_DOUBLE_QUOTED);
 		fail_unless(check > 0,
@@ -2113,7 +2118,17 @@ START_TEST(test_format)
 				"sdb_data_format(type=%s) used wrong format: %s; expected: %s",
 				SDB_TYPE_TO_STRING(datum->type), buf, golden_data[i].expected);
 
-		fail_unless((size_t)check <= sizeof(buf) - 2,
+		fail_unless(check_null == check,
+				"sdb_data_format(type=%s, NULL) = %d; "
+				"expected %d (matching sdb_data_format(type=%s, <buf>))",
+				SDB_TYPE_TO_STRING(datum->type), check_null,
+				check, SDB_TYPE_TO_STRING(datum->type));
+		fail_unless(check == strlen(golden_data[i].expected),
+				"sdb_data_format(type=%s) = %d; expected %zu (strlen)",
+				SDB_TYPE_TO_STRING(datum->type), check,
+				strlen(golden_data[i].expected));
+
+		fail_unless(check <= sizeof(buf) - 2,
 				"sdb_data_format(type=%s) wrote %d bytes; "
 				"expected <= %zu based on sdb_data_strlen()",
 				SDB_TYPE_TO_STRING(datum->type), check, sizeof(buf) - 2);

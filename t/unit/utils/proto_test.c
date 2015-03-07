@@ -163,7 +163,7 @@ START_TEST(test_marshal_data)
 		sdb_data_t datum = SDB_DATA_INIT;
 		ssize_t check;
 
-		if (sdb_data_format(&golden_data[i].datum, v1, sizeof(v1), 0) < 0)
+		if (! sdb_data_format(&golden_data[i].datum, v1, sizeof(v1), 0))
 			snprintf(v1, sizeof(v1), "<ERR>");
 
 		fail_unless(len == golden_data[i].expected_len,
@@ -189,7 +189,7 @@ START_TEST(test_marshal_data)
 		}
 
 		check = sdb_proto_unmarshal_data(buf, len, &datum);
-		if (sdb_data_format(&datum, v2, sizeof(v2), 0) < 0)
+		if (! sdb_data_format(&datum, v2, sizeof(v2), 0))
 			snprintf(v2, sizeof(v2), "<ERR>");
 
 		if (sdb_data_isnull(&golden_data[i].datum))
@@ -499,7 +499,7 @@ START_TEST(test_marshal_attribute)
 					pos, (int)buf[pos], (int)golden_data[i].expected[pos]);
 		}
 
-		if (sdb_data_format(&golden_data[i].attr.value, v1, sizeof(v1), 0) < 0)
+		if (! sdb_data_format(&golden_data[i].attr.value, v1, sizeof(v1), 0))
 			snprintf(v1, sizeof(v1), "<ERR>");
 
 		check = sdb_proto_unmarshal_attribute(buf, len, &attr);
@@ -507,7 +507,7 @@ START_TEST(test_marshal_attribute)
 				"<%zu> sdb_proto_unmarshal_attribute(buf<%s>) = %zi; expected: %zi",
 				i, golden_data[i].attr.key, check, len);
 
-		if (sdb_data_format(&attr.value, v2, sizeof(v2), 0) < 0)
+		if (! sdb_data_format(&attr.value, v2, sizeof(v2), 0))
 			snprintf(v2, sizeof(v2), "<ERR>");
 		fail_unless((attr.last_update == golden_data[i].attr.last_update)
 				&& (attr.parent_type == golden_data[i].attr.parent_type)

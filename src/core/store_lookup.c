@@ -142,7 +142,7 @@ match_regex_value(int op, sdb_data_t *v, sdb_data_t *re)
 	else if (re->type != SDB_TYPE_REGEX)
 		return 0;
 
-	if (sdb_data_format(v, value, sizeof(value), SDB_UNQUOTED) < 0)
+	if (! sdb_data_format(v, value, sizeof(value), SDB_UNQUOTED))
 		status = 0;
 	else if (! regexec(&re->data.re.regex, value, 0, NULL, 0))
 		status = 1;

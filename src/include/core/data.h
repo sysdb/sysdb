@@ -55,7 +55,8 @@ enum {
 };
 
 #define SDB_TYPE_TO_STRING(t) \
-	(((t) == SDB_TYPE_INTEGER) ? "INTEGER" \
+	(((t) == SDB_TYPE_NULL) ? "NULL" \
+		: ((t) == SDB_TYPE_INTEGER) ? "INTEGER" \
 		: ((t) == SDB_TYPE_DECIMAL) ? "DECIMAL" \
 		: ((t) == SDB_TYPE_STRING) ? "STRING" \
 		: ((t) == SDB_TYPE_DATETIME) ? "DATETIME" \
@@ -289,9 +290,8 @@ enum {
  *  - the number of characters written to the buffer (excluding the terminated
  *    null byte) or the number of characters which would have been written in
  *    case the output was truncated
- *  - a negative value else
  */
-int
+size_t
 sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted);
 
 /*
