@@ -511,56 +511,56 @@ struct {
 	int expected;
 } scan_data[] = {
 	/* TODO: check the name of the expected hosts */
-	{ "name = 'a'", NULL,                  1 },
-	{ "name = 'a'", "name = 'x'",          0 }, /* filter never matches */
+	{ "name = 'a'", NULL,                        1 },
+	{ "name = 'a'", "name = 'x'",                0 }, /* filter never matches */
 	{ "name = 'a'",
-		"NOT attribute['x'] = ''",         1 }, /* filter always matches */
-	{ "name =~ 'a|b'", NULL,               2 },
-	{ "name =~ 'host'", NULL,              0 },
-	{ "name =~ '.'", NULL,                 3 },
-	{ "ANY backend = 'backend'", NULL,     0 },
-	{ "ALL backend = ''", NULL,            3 }, /* backend is empty */
-	{ "backend = ['backend']", NULL,       0 },
-	{ "backend != ['backend']", NULL,      3 },
-	{ "backend < ['backend']", NULL,       3 },
-	{ "backend <= ['backend']", NULL,      3 },
-	{ "backend >= ['backend']", NULL,      0 },
-	{ "backend > ['backend']", NULL,       0 },
-	{ "ANY metric = 'm1'", NULL,           2 },
-	{ "ANY metric= 'm1'", "name = 'x'",    0 }, /* filter never matches */
-	{ "ANY metric = 'm1'",
+		"NOT attribute['x'] = ''",               1 }, /* filter always matches */
+	{ "name =~ 'a|b'", NULL,                     2 },
+	{ "name =~ 'host'", NULL,                    0 },
+	{ "name =~ '.'", NULL,                       3 },
+	{ "ANY backend = 'backend'", NULL,           0 },
+	{ "ALL backend = ''", NULL,                  3 }, /* backend is empty */
+	{ "backend = ['backend']", NULL,             0 },
+	{ "backend != ['backend']", NULL,            3 },
+	{ "backend < ['backend']", NULL,             3 },
+	{ "backend <= ['backend']", NULL,            3 },
+	{ "backend >= ['backend']", NULL,            0 },
+	{ "backend > ['backend']", NULL,             0 },
+	{ "ANY metric.name = 'm1'", NULL,            2 },
+	{ "ANY metric.name = 'm1'", "name = 'x'",    0 }, /* filter never matches */
+	{ "ANY metric.name = 'm1'",
+		"NOT attribute['x'] = ''",               2 }, /* filter always matches */
+	{ "ANY metric.name =~ 'm'", NULL,            2 },
+	{ "ALL metric.name =~ 'm'", NULL,            3 },
+	{ "ANY metric.name =~ 'm'", "name !~ '1'",   1 },
+	{ "ANY metric.name =~ 'm'", "name !~ 'm'",   0 },
+	{ "ALL metric.name =~ '1'", NULL,            2 },
+	{ "ALL metric.name =~ '2'", NULL,            1 },
+	{ "ANY metric.name !~ 'm'", NULL,            0 },
+	{ "ALL metric.name !~ 'm'", NULL,            1 },
+	{ "ANY metric.name =~ 'x'", NULL,            0 },
+	{ "ANY service.name = 's1'", NULL,           2 },
+	{ "ANY service.name = 's1'", "name = 'x'",   0 }, /* filter never matches */
+	{ "ANY service.name = 's1'",
+		"NOT attribute['x'] = ''",               2 }, /* filter always matches */
+	{ "ANY service.name =~ 's'", NULL,           2 },
+	{ "ANY service.name =~ 's'", "name !~ 's'",  0 },
+	{ "ANY service.name =~ 's'", "name !~ '1'",  2 },
+	{ "ANY service.name !~ 's'", NULL,           0 },
+	{ "ANY attribute.name = 'k1'", NULL,         2 },
+	{ "ANY attribute.name = 'k1'", "name = 'x'", 0 }, /* filter never matches */
+	{ "ANY attribute.name = 'k1'",
 		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-	{ "ANY metric =~ 'm'", NULL,           2 },
-	{ "ALL metric =~ 'm'", NULL,           3 },
-	{ "ANY metric =~ 'm'", "name !~ '1'",  1 },
-	{ "ANY metric =~ 'm'", "name !~ 'm'",  0 },
-	{ "ALL metric =~ '1'", NULL,           2 },
-	{ "ALL metric =~ '2'", NULL,           1 },
-	{ "ANY metric !~ 'm'", NULL,           0 },
-	{ "ALL metric !~ 'm'", NULL,           1 },
-	{ "ANY metric =~ 'x'", NULL,           0 },
-	{ "ANY service = 's1'", NULL,          2 },
-	{ "ANY service = 's1'", "name = 'x'",  0 }, /* filter never matches */
-	{ "ANY service = 's1'",
-		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-	{ "ANY service =~ 's'", NULL,          2 },
-	{ "ANY service =~ 's'", "name !~ 's'", 0 },
-	{ "ANY service =~ 's'", "name !~ '1'", 2 },
-	{ "ANY service !~ 's'", NULL,          0 },
-	{ "ANY attribute = 'k1'", NULL,        2 },
-	{ "ANY attribute = 'k1'", "name = 'x'",0 }, /* filter never matches */
-	{ "ANY attribute = 'k1'",
-		"NOT attribute['x'] = ''",         2 }, /* filter always matches */
-	{ "ANY attribute =~ 'k'", NULL,        2 },
-	{ "ANY attribute =~ 'k'",
+	{ "ANY attribute.name =~ 'k'", NULL,   2 },
+	{ "ANY attribute.name =~ 'k'",
 		"name !~ '1'",                     1 },
-	{ "ANY attribute =~ 'k'",
+	{ "ANY attribute.name =~ 'k'",
 		"name !~ 'k'",                     0 },
-	{ "ANY attribute =~ '1'", NULL,        2 },
-	{ "ANY attribute =~ '2'", NULL,        1 },
-	{ "ANY attribute = 'x'", NULL,         0 },
-	{ "ANY attribute =~ 'x'", NULL,        0 },
-	{ "ALL attribute = 'k1'", NULL,        2 },
+	{ "ANY attribute.name =~ '1'", NULL,   2 },
+	{ "ANY attribute.name =~ '2'", NULL,   1 },
+	{ "ANY attribute.name = 'x'", NULL,    0 },
+	{ "ANY attribute.name =~ 'x'", NULL,   0 },
+	{ "ALL attribute.name = 'k1'", NULL,   2 },
 	{ "host.name = 'a'", NULL,             1 },
 	{ "host.attribute['k1'] =~ 'v1'",
 		NULL,                              1 },
@@ -591,7 +591,7 @@ struct {
 	{ "attribute['k2'] != 123", NULL,      0 },
 	{ "attribute['k1'] != 'v1'", NULL,     1 },
 	{ "attribute['k1'] != 'v2'", NULL,     1 },
-	{ "ANY attribute != 'x' "
+	{ "ANY attribute.name != 'x' "
 	  "AND attribute['k1'] !~ 'x'", NULL,  2 },
 };
 

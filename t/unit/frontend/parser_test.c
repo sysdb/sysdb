@@ -85,48 +85,48 @@ struct {
 	  "name = 'host'",       -1,  1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' AND "
-	  "ANY service =~ 'p'",  -1,  1, SDB_CONNECTION_LOOKUP },
+	  "ANY service.name =~ 'p'", -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING NOT "
 	  "name =~ 'p' AND "
-	  "ANY service =~ 'p'",  -1,  1, SDB_CONNECTION_LOOKUP },
+	  "ANY service.name =~ 'p'", -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' AND "
-	  "ANY service =~ 'p' OR "
-	  "ANY service =~ 'r'",  -1,  1, SDB_CONNECTION_LOOKUP },
+	  "ANY service.name =~ 'p' OR "
+	  "ANY service.name =~ 'r'", -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING NOT "
 	  "name =~ 'p' AND "
-	  "ANY service =~ 'p' OR "
-	  "ANY service =~ 'r'",  -1,  1, SDB_CONNECTION_LOOKUP },
+	  "ANY service.name =~ 'p' OR "
+	  "ANY service.name =~ 'r'", -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' "
-	  "FILTER age > 1D",    -1,   1, SDB_CONNECTION_LOOKUP },
+	  "FILTER age > 1D",         -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' "
 	  "FILTER age > 1D AND "
-	  "interval < 240s" ,   -1,   1, SDB_CONNECTION_LOOKUP },
+	  "interval < 240s" ,        -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' "
-	  "FILTER NOT age>1D",  -1,   1, SDB_CONNECTION_LOOKUP },
+	  "FILTER NOT age>1D",       -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
 	  "name =~ 'p' "
 	  "FILTER age>"
-	  "interval",           -1,   1, SDB_CONNECTION_LOOKUP },
+	  "interval",                -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
-	  "host.name =~ 'p'",   -1,   1, SDB_CONNECTION_LOOKUP },
-	{ "LOOKUP services",    -1,   1, SDB_CONNECTION_LOOKUP },
+	  "host.name =~ 'p'",        -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP services",         -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP services MATCHING ANY "
-	  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
+	  "attribute.name =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP services MATCHING "
-	  "host.name = 'p'",    -1,   1, SDB_CONNECTION_LOOKUP },
+	  "host.name = 'p'",         -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP services MATCHING "
-	  "service.name = 'p'", -1,   1, SDB_CONNECTION_LOOKUP },
-	{ "LOOKUP metrics",     -1,   1, SDB_CONNECTION_LOOKUP },
+	  "service.name = 'p'",      -1,   1, SDB_CONNECTION_LOOKUP },
+	{ "LOOKUP metrics",          -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP metrics MATCHING ANY "
-	  "attribute =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
+	  "attribute.name =~ 'a'",   -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP metrics MATCHING "
-	  "host.name = 'p'",    -1,   1, SDB_CONNECTION_LOOKUP },
+	  "host.name = 'p'",         -1,   1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP metrics MATCHING "
-	  "metric.name = 'p'",  -1,   1, SDB_CONNECTION_LOOKUP },
+	  "metric.name = 'p'",       -1,   1, SDB_CONNECTION_LOOKUP },
 
 	/* TIMESERIES commands */
 	{ "TIMESERIES 'host'.'metric' "
@@ -342,7 +342,7 @@ struct {
 	  "NOT attribute['foo'] "
 	  "IS NULL",             -1,  1, SDB_CONNECTION_LOOKUP },
 	{ "LOOKUP hosts MATCHING "
-	  "ANY service IS NULL", -1, -1, 0 },
+	  "ANY service.name IS NULL", -1, -1, 0 },
 
 	/* invalid numeric constants */
 	{ "LOOKUP hosts MATCHING "
@@ -500,27 +500,27 @@ struct {
 	  "attribute['foo'] <= "
 	  "'f' || oo",           -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
-	  "ANY host = 'host'",   -1, -1, 0 },
+	  "ANY host.name = 'host'",   -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
-	  "ANY service > 1",     -1, -1, 0 },
+	  "ANY service.name > 1",     -1, -1, 0 },
 	{ "LOOKUP hosts MATCHING "
-	  "service.name = 's'",  -1, -1, 0 },
+	  "service.name = 's'",       -1, -1, 0 },
 	{ "LOOKUP services MATCHING "
-	  "ANY host = 'host'",   -1, -1, 0 },
+	  "ANY host.name = 'host'",   -1, -1, 0 },
 	{ "LOOKUP services MATCHING "
-	  "ANY service = 'svc'", -1, -1, 0 },
+	  "ANY service.name = 'svc'", -1, -1, 0 },
 	{ "LOOKUP services MATCHING "
-	  "ANY metric = 'm'",    -1, -1, 0 },
+	  "ANY metric.name = 'm'",    -1, -1, 0 },
 	{ "LOOKUP services MATCHING "
-	  "metric.name = 'm'",   -1, -1, 0 },
+	  "metric.name = 'm'",        -1, -1, 0 },
 	{ "LOOKUP metrics MATCHING "
-	  "ANY host = 'host'",   -1, -1, 0 },
+	  "ANY host.name = 'host'",   -1, -1, 0 },
 	{ "LOOKUP metrics MATCHING "
-	  "ANY service = 'svc'", -1, -1, 0 },
+	  "ANY service.name = 'svc'", -1, -1, 0 },
 	{ "LOOKUP metrics MATCHING "
-	  "ANY metric = 'm'",    -1, -1, 0 },
+	  "ANY metric.name = 'm'",    -1, -1, 0 },
 	{ "LOOKUP metrics MATCHING "
-	  "service.name = 'm'",  -1, -1, 0 },
+	  "service.name = 'm'",       -1, -1, 0 },
 
 	/* invalid STORE commands */
 	{ "STORE host "
@@ -626,165 +626,168 @@ struct {
 	{ "ALL backend > 'be'",           -1,  MATCHER_ALL },
 	{ "ANY backend &^ 'be'",          -1,  -1 },
 	/* match hosts by service */
-	{ "ANY service < 'name'",         -1,  MATCHER_ANY },
-	{ "ANY service <= 'name'",        -1,  MATCHER_ANY },
-	{ "ANY service = 'name'",         -1,  MATCHER_ANY },
-	{ "ANY service != 'name'",        -1,  MATCHER_ANY },
-	{ "ANY service >= 'name'",        -1,  MATCHER_ANY },
-	{ "ANY service > 'name'",         -1,  MATCHER_ANY },
-	{ "ANY service =~ 'pattern'",     -1,  MATCHER_ANY },
-	{ "ANY service !~ 'pattern'",     -1,  MATCHER_ANY },
-	{ "ANY service &^ 'name'",        -1,  -1 },
-	{ "ALL service < 'name'",         -1,  MATCHER_ALL },
-	{ "ALL service <= 'name'",        -1,  MATCHER_ALL },
-	{ "ALL service = 'name'",         -1,  MATCHER_ALL },
-	{ "ALL service != 'name'",        -1,  MATCHER_ALL },
-	{ "ALL service >= 'name'",        -1,  MATCHER_ALL },
-	{ "ALL service > 'name'",         -1,  MATCHER_ALL },
-	{ "ALL service =~ 'pattern'",     -1,  MATCHER_ALL },
-	{ "ALL service !~ 'pattern'",     -1,  MATCHER_ALL },
-	{ "ALL service &^ 'name'",        -1,  -1 },
+	{ "ANY service.name < 'name'",         -1,  MATCHER_ANY },
+	{ "ANY service.name <= 'name'",        -1,  MATCHER_ANY },
+	{ "ANY service.name = 'name'",         -1,  MATCHER_ANY },
+	{ "ANY service.name != 'name'",        -1,  MATCHER_ANY },
+	{ "ANY service.name >= 'name'",        -1,  MATCHER_ANY },
+	{ "ANY service.name > 'name'",         -1,  MATCHER_ANY },
+	{ "ANY service.name =~ 'pattern'",     -1,  MATCHER_ANY },
+	{ "ANY service.name !~ 'pattern'",     -1,  MATCHER_ANY },
+	{ "ANY service.name &^ 'name'",        -1,  -1 },
+	{ "ALL service.name < 'name'",         -1,  MATCHER_ALL },
+	{ "ALL service.name <= 'name'",        -1,  MATCHER_ALL },
+	{ "ALL service.name = 'name'",         -1,  MATCHER_ALL },
+	{ "ALL service.name != 'name'",        -1,  MATCHER_ALL },
+	{ "ALL service.name >= 'name'",        -1,  MATCHER_ALL },
+	{ "ALL service.name > 'name'",         -1,  MATCHER_ALL },
+	{ "ALL service.name =~ 'pattern'",     -1,  MATCHER_ALL },
+	{ "ALL service.name !~ 'pattern'",     -1,  MATCHER_ALL },
+	{ "ALL service.name &^ 'name'",        -1,  -1 },
+	{ "ANY service < 'name'",              -1,  -1 },
 	/* match hosts by metric */
-	{ "ANY metric < 'name'",          -1,  MATCHER_ANY },
-	{ "ANY metric <= 'name'",         -1,  MATCHER_ANY },
-	{ "ANY metric = 'name'",          -1,  MATCHER_ANY },
-	{ "ANY metric != 'name'",         -1,  MATCHER_ANY },
-	{ "ANY metric >= 'name'",         -1,  MATCHER_ANY },
-	{ "ANY metric > 'name'",          -1,  MATCHER_ANY },
-	{ "ANY metric =~ 'pattern'",      -1,  MATCHER_ANY },
-	{ "ANY metric !~ 'pattern'",      -1,  MATCHER_ANY },
-	{ "ANY metric &^ 'pattern'",      -1,  -1 },
-	{ "ALL metric < 'name'",          -1,  MATCHER_ALL },
-	{ "ALL metric <= 'name'",         -1,  MATCHER_ALL },
-	{ "ALL metric = 'name'",          -1,  MATCHER_ALL },
-	{ "ALL metric != 'name'",         -1,  MATCHER_ALL },
-	{ "ALL metric >= 'name'",         -1,  MATCHER_ALL },
-	{ "ALL metric > 'name'",          -1,  MATCHER_ALL },
-	{ "ALL metric =~ 'pattern'",      -1,  MATCHER_ALL },
-	{ "ALL metric !~ 'pattern'",      -1,  MATCHER_ALL },
-	{ "ALL metric &^ 'pattern'",      -1,  -1 },
+	{ "ANY metric.name < 'name'",          -1,  MATCHER_ANY },
+	{ "ANY metric.name <= 'name'",         -1,  MATCHER_ANY },
+	{ "ANY metric.name = 'name'",          -1,  MATCHER_ANY },
+	{ "ANY metric.name != 'name'",         -1,  MATCHER_ANY },
+	{ "ANY metric.name >= 'name'",         -1,  MATCHER_ANY },
+	{ "ANY metric.name > 'name'",          -1,  MATCHER_ANY },
+	{ "ANY metric.name =~ 'pattern'",      -1,  MATCHER_ANY },
+	{ "ANY metric.name !~ 'pattern'",      -1,  MATCHER_ANY },
+	{ "ANY metric.name &^ 'pattern'",      -1,  -1 },
+	{ "ALL metric.name < 'name'",          -1,  MATCHER_ALL },
+	{ "ALL metric.name <= 'name'",         -1,  MATCHER_ALL },
+	{ "ALL metric.name = 'name'",          -1,  MATCHER_ALL },
+	{ "ALL metric.name != 'name'",         -1,  MATCHER_ALL },
+	{ "ALL metric.name >= 'name'",         -1,  MATCHER_ALL },
+	{ "ALL metric.name > 'name'",          -1,  MATCHER_ALL },
+	{ "ALL metric.name =~ 'pattern'",      -1,  MATCHER_ALL },
+	{ "ALL metric.name !~ 'pattern'",      -1,  MATCHER_ALL },
+	{ "ALL metric.name &^ 'pattern'",      -1,  -1 },
+	{ "ANY metric <= 'name'",              -1,  -1 },
 	/* match hosts by attribute */
-	{ "ANY attribute < 'name'",       -1,  MATCHER_ANY },
-	{ "ANY attribute <= 'name'",      -1,  MATCHER_ANY },
-	{ "ANY attribute = 'name'",       -1,  MATCHER_ANY },
-	{ "ANY attribute != 'name'",      -1,  MATCHER_ANY },
-	{ "ANY attribute >= 'name'",      -1,  MATCHER_ANY },
-	{ "ANY attribute > 'name'",       -1,  MATCHER_ANY },
-	{ "ANY attribute =~ 'pattern'",   -1,  MATCHER_ANY },
-	{ "ANY attribute !~ 'pattern'",   -1,  MATCHER_ANY },
-	{ "ANY attribute &^ 'pattern'",   -1,  -1 },
-	{ "ALL attribute < 'name'",       -1,  MATCHER_ALL },
-	{ "ALL attribute <= 'name'",      -1,  MATCHER_ALL },
-	{ "ALL attribute = 'name'",       -1,  MATCHER_ALL },
-	{ "ALL attribute != 'name'",      -1,  MATCHER_ALL },
-	{ "ALL attribute >= 'name'",      -1,  MATCHER_ALL },
-	{ "ALL attribute > 'name'",       -1,  MATCHER_ALL },
-	{ "ALL attribute =~ 'pattern'",   -1,  MATCHER_ALL },
-	{ "ALL attribute !~ 'pattern'",   -1,  MATCHER_ALL },
-	{ "ALL attribute &^ 'pattern'",   -1,  -1 },
+	{ "ANY attribute.name < 'name'",       -1,  MATCHER_ANY },
+	{ "ANY attribute.name <= 'name'",      -1,  MATCHER_ANY },
+	{ "ANY attribute.name = 'name'",       -1,  MATCHER_ANY },
+	{ "ANY attribute.name != 'name'",      -1,  MATCHER_ANY },
+	{ "ANY attribute.name >= 'name'",      -1,  MATCHER_ANY },
+	{ "ANY attribute.name > 'name'",       -1,  MATCHER_ANY },
+	{ "ANY attribute.name =~ 'pattern'",   -1,  MATCHER_ANY },
+	{ "ANY attribute.name !~ 'pattern'",   -1,  MATCHER_ANY },
+	{ "ANY attribute.name &^ 'pattern'",   -1,  -1 },
+	{ "ALL attribute.name < 'name'",       -1,  MATCHER_ALL },
+	{ "ALL attribute.name <= 'name'",      -1,  MATCHER_ALL },
+	{ "ALL attribute.name = 'name'",       -1,  MATCHER_ALL },
+	{ "ALL attribute.name != 'name'",      -1,  MATCHER_ALL },
+	{ "ALL attribute.name >= 'name'",      -1,  MATCHER_ALL },
+	{ "ALL attribute.name > 'name'",       -1,  MATCHER_ALL },
+	{ "ALL attribute.name =~ 'pattern'",   -1,  MATCHER_ALL },
+	{ "ALL attribute.name !~ 'pattern'",   -1,  MATCHER_ALL },
+	{ "ALL attribute.name &^ 'pattern'",   -1,  -1 },
+	{ "ANY attribute !~ 'pattern'",        -1,  -1 },
 	/* composite expressions */
 	{ "name =~ 'pattern' AND "
-	  "ANY service =~ 'pattern'",     -1,  MATCHER_AND },
+	  "ANY service.name =~ 'pattern'",     -1,  MATCHER_AND },
 	{ "name =~ 'pattern' OR "
-	  "ANY service =~ 'pattern'",     -1,  MATCHER_OR },
-	{ "NOT name = 'host'",            -1,  MATCHER_NOT },
+	  "ANY service.name =~ 'pattern'",     -1,  MATCHER_OR },
+	{ "NOT name = 'host'",                 -1,  MATCHER_NOT },
 	/* numeric expressions */
-	{ "attribute['foo'] < 123",       -1,  MATCHER_LT },
-	{ "attribute['foo'] <= 123",      -1,  MATCHER_LE },
-	{ "attribute['foo'] = 123",       -1,  MATCHER_EQ },
-	{ "attribute['foo'] >= 123",      -1,  MATCHER_GE },
-	{ "attribute['foo'] > 123",       -1,  MATCHER_GT },
+	{ "attribute['foo'] < 123",         -1,  MATCHER_LT },
+	{ "attribute['foo'] <= 123",        -1,  MATCHER_LE },
+	{ "attribute['foo'] = 123",         -1,  MATCHER_EQ },
+	{ "attribute['foo'] >= 123",        -1,  MATCHER_GE },
+	{ "attribute['foo'] > 123",         -1,  MATCHER_GT },
 	/* datetime expressions */
 	{ "attribute['foo'] = "
-	  "2014-08-16",                   -1,  MATCHER_EQ },
+	  "2014-08-16",                     -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "17:23",                        -1,  MATCHER_EQ },
+	  "17:23",                          -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "17:23:53",                     -1,  MATCHER_EQ },
+	  "17:23:53",                       -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "17:23:53.123",                 -1,  MATCHER_EQ },
+	  "17:23:53.123",                   -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "17:23:53.123456789",           -1,  MATCHER_EQ },
+	  "17:23:53.123456789",             -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "2014-08-16 17:23",             -1,  MATCHER_EQ },
+	  "2014-08-16 17:23",               -1,  MATCHER_EQ },
 	{ "attribute['foo'] = "
-	  "2014-08-16 17:23:53",          -1,  MATCHER_EQ },
+	  "2014-08-16 17:23:53",            -1,  MATCHER_EQ },
 	/* NULL; while this is an implementation detail,
 	 * IS NULL currently maps to an equality matcher */
-	{ "attribute['foo'] IS NULL",     -1,  MATCHER_ISNULL },
-	{ "attribute['foo'] IS NOT NULL", -1,  MATCHER_ISNNULL },
+	{ "attribute['foo'] IS NULL",       -1,  MATCHER_ISNULL },
+	{ "attribute['foo'] IS NOT NULL",   -1,  MATCHER_ISNNULL },
 	/* array expressions */
-	{ "backend < ['a']",              -1,  MATCHER_LT },
-	{ "backend <= ['a']",             -1,  MATCHER_LE },
-	{ "backend = ['a']",              -1,  MATCHER_EQ },
-	{ "backend != ['a']",             -1,  MATCHER_NE },
-	{ "backend >= ['a']",             -1,  MATCHER_GE },
-	{ "backend > ['a']",              -1,  MATCHER_GT },
-	{ "backend &^ ['a']",             -1,  -1 },
+	{ "backend < ['a']",                -1,  MATCHER_LT },
+	{ "backend <= ['a']",               -1,  MATCHER_LE },
+	{ "backend = ['a']",                -1,  MATCHER_EQ },
+	{ "backend != ['a']",               -1,  MATCHER_NE },
+	{ "backend >= ['a']",               -1,  MATCHER_GE },
+	{ "backend > ['a']",                -1,  MATCHER_GT },
+	{ "backend &^ ['a']",               -1,  -1 },
 
 	/* object field matchers */
-	{ "name < 'a'",                   -1,  MATCHER_LT },
-	{ "name <= 'a'",                  -1,  MATCHER_LE },
-	{ "name = 'a'",                   -1,  MATCHER_EQ },
-	{ "name != 'a'",                  -1,  MATCHER_NE },
-	{ "name >= 'a'",                  -1,  MATCHER_GE },
-	{ "name > 'a'",                   -1,  MATCHER_GT },
-	{ "last_update < 2014-10-01",     -1,  MATCHER_LT },
-	{ "last_update <= 2014-10-01",    -1,  MATCHER_LE },
-	{ "last_update = 2014-10-01",     -1,  MATCHER_EQ },
-	{ "last_update != 2014-10-01",    -1,  MATCHER_NE },
-	{ "last_update >= 2014-10-01",    -1,  MATCHER_GE },
-	{ "last_update > 2014-10-01",     -1,  MATCHER_GT },
-	{ "Last_Update >= 24D",           -1,  MATCHER_GE },
-	{ "age < 20s",                    -1,  MATCHER_LT },
-	{ "age <= 20s",                   -1,  MATCHER_LE },
-	{ "age = 20s",                    -1,  MATCHER_EQ },
-	{ "age != 20s",                   -1,  MATCHER_NE },
-	{ "age >= 20s",                   -1,  MATCHER_GE },
-	{ "age > 20s",                    -1,  MATCHER_GT },
-	{ "AGE <= 1m",                    -1,  MATCHER_LE },
-	{ "age > 1M",                     -1,  MATCHER_GT },
-	{ "age != 20Y",                   -1,  MATCHER_NE },
-	{ "age <= 2 * interval",          -1,  MATCHER_LE },
-	{ "interval < 20s",               -1,  MATCHER_LT },
-	{ "interval <= 20s",              -1,  MATCHER_LE },
-	{ "interval = 20s",               -1,  MATCHER_EQ },
-	{ "interval != 20s",              -1,  MATCHER_NE },
-	{ "interval >= 20s",              -1,  MATCHER_GE },
-	{ "interval > 20s",               -1,  MATCHER_GT },
-	{ "'be' IN backend",              -1,  MATCHER_IN },
-	{ "'be' NOT IN backend",          -1,  MATCHER_NIN },
-	{ "['a','b'] IN backend",         -1,  MATCHER_IN },
-	{ "['a','b'] NOT IN backend",     -1,  MATCHER_NIN },
+	{ "name < 'a'",                     -1,  MATCHER_LT },
+	{ "name <= 'a'",                    -1,  MATCHER_LE },
+	{ "name = 'a'",                     -1,  MATCHER_EQ },
+	{ "name != 'a'",                    -1,  MATCHER_NE },
+	{ "name >= 'a'",                    -1,  MATCHER_GE },
+	{ "name > 'a'",                     -1,  MATCHER_GT },
+	{ "last_update < 2014-10-01",       -1,  MATCHER_LT },
+	{ "last_update <= 2014-10-01",      -1,  MATCHER_LE },
+	{ "last_update = 2014-10-01",       -1,  MATCHER_EQ },
+	{ "last_update != 2014-10-01",      -1,  MATCHER_NE },
+	{ "last_update >= 2014-10-01",      -1,  MATCHER_GE },
+	{ "last_update > 2014-10-01",       -1,  MATCHER_GT },
+	{ "Last_Update >= 24D",             -1,  MATCHER_GE },
+	{ "age < 20s",                      -1,  MATCHER_LT },
+	{ "age <= 20s",                     -1,  MATCHER_LE },
+	{ "age = 20s",                      -1,  MATCHER_EQ },
+	{ "age != 20s",                     -1,  MATCHER_NE },
+	{ "age >= 20s",                     -1,  MATCHER_GE },
+	{ "age > 20s",                      -1,  MATCHER_GT },
+	{ "AGE <= 1m",                      -1,  MATCHER_LE },
+	{ "age > 1M",                       -1,  MATCHER_GT },
+	{ "age != 20Y",                     -1,  MATCHER_NE },
+	{ "age <= 2 * interval",            -1,  MATCHER_LE },
+	{ "interval < 20s",                 -1,  MATCHER_LT },
+	{ "interval <= 20s",                -1,  MATCHER_LE },
+	{ "interval = 20s",                 -1,  MATCHER_EQ },
+	{ "interval != 20s",                -1,  MATCHER_NE },
+	{ "interval >= 20s",                -1,  MATCHER_GE },
+	{ "interval > 20s",                 -1,  MATCHER_GT },
+	{ "'be' IN backend",                -1,  MATCHER_IN },
+	{ "'be' NOT IN backend",            -1,  MATCHER_NIN },
+	{ "['a','b'] IN backend",           -1,  MATCHER_IN },
+	{ "['a','b'] NOT IN backend",       -1,  MATCHER_NIN },
 
 	/* check operator precedence */
 	{ "name = 'name' OR "
-	  "ANY service = 'name' AND "
-	  "ANY attribute = 'name' OR "
-	  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
+	  "ANY service.name = 'name' AND "
+	  "ANY attribute.name = 'name' OR "
+	  "attribute['foo'] = 'bar'",       -1,  MATCHER_OR },
 	{ "name = 'name' AND "
-	  "ANY service = 'name' AND "
-	  "ANY attribute = 'name' OR "
-	  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
+	  "ANY service.name = 'name' AND "
+	  "ANY attribute.name = 'name' OR "
+	  "attribute['foo'] = 'bar'",       -1,  MATCHER_OR },
 	{ "name = 'name' AND "
-	  "ANY service = 'name' OR "
-	  "ANY attribute = 'name' AND "
-	  "attribute['foo'] = 'bar'",     -1,  MATCHER_OR },
+	  "ANY service.name = 'name' OR "
+	  "ANY attribute.name = 'name' AND "
+	  "attribute['foo'] = 'bar'",       -1,  MATCHER_OR },
 	{ "(name = 'name' OR "
-	  "ANY service = 'name') AND "
-	  "(ANY attribute = 'name' OR "
-	  "attribute['foo'] = 'bar')",    -1,  MATCHER_AND },
+	  "ANY service.name = 'name') AND "
+	  "(ANY attribute.name = 'name' OR "
+	  "attribute['foo'] = 'bar')",      -1,  MATCHER_AND },
 	{ "NOT name = 'name' OR "
-	  "ANY service = 'name'",         -1,  MATCHER_OR },
+	  "ANY service.name = 'name'",      -1,  MATCHER_OR },
 	{ "NOT name = 'name' OR "
-	  "NOT ANY service = 'name'",     -1,  MATCHER_OR },
+	  "NOT ANY service.name = 'name'",  -1,  MATCHER_OR },
 	{ "NOT (name = 'name' OR "
-	  "NOT ANY service = 'name')",    -1,  MATCHER_NOT },
+	  "NOT ANY service.name = 'name')", -1,  MATCHER_NOT },
 
 	/* syntax errors */
-	{ "LIST",                         -1, -1 },
-	{ "foo &^ bar",                   -1, -1 },
-	{ "invalid",                      -1, -1 },
+	{ "LIST",                           -1, -1 },
+	{ "foo &^ bar",                     -1, -1 },
+	{ "invalid",                        -1, -1 },
 };
 
 START_TEST(test_parse_matcher)

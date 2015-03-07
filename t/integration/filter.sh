@@ -49,7 +49,7 @@ wait_for_sysdbd
 sleep 3
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING ANY attribute != 'architecture' 
+	-c "LOOKUP hosts MATCHING ANY attribute.name != 'architecture'
 		FILTER age >= 0s" )"
 echo "$output" \
 	| grep -F '"localhost"'
@@ -59,7 +59,7 @@ echo "$output" | grep -F 'some.host.name' && exit 1
 #echo "$output" | grep -F 'host2.example.com' && exit 1
 
 output="$( run_sysdb -H "$SOCKET_FILE" \
-	-c "LOOKUP hosts MATCHING ANY attribute != 'architecture' 
+	-c "LOOKUP hosts MATCHING ANY attribute.name != 'architecture'
 		FILTER last_update < 2Y" )"
 echo $output | grep -E '^\[\]$'
 

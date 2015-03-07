@@ -684,11 +684,11 @@ object_type_plural:
 	;
 
 iterable:
-	SERVICE_T { $$ = SDB_SERVICE; }
+	SERVICE_T '.' NAME_T { $$ = SDB_SERVICE; }
 	|
-	METRIC_T { $$ = SDB_METRIC; }
+	METRIC_T '.' NAME_T { $$ = SDB_METRIC; }
 	|
-	ATTRIBUTE_T { $$ = SDB_ATTRIBUTE; }
+	ATTRIBUTE_T '.' NAME_T { $$ = SDB_ATTRIBUTE; }
 	|
 	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
 	;
