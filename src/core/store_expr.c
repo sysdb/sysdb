@@ -417,10 +417,13 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 		}
 
 		/* Skip over any filtered objects */
-		if (iter->filter)
-			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree))))
+		if (iter->filter) {
+			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree)))) {
 				if (sdb_store_matcher_matches(iter->filter, child, NULL))
 					break;
+				(void)sdb_avltree_iter_get_next(iter->tree);
+			}
+		}
 
 		return ret;
 	}
