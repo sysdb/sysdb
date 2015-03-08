@@ -48,7 +48,7 @@
  */
 
 static sdb_store_matcher_t *
-name_iter_matcher(int m_type, int type, const char *cmp,
+name_iter_matcher(int m_type, sdb_store_expr_t *iter, const char *cmp,
 		sdb_store_expr_t *expr);
 
 /*
@@ -169,7 +169,6 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 %type <expr> expression arithmetic_expression object_expression
 
 %type <integer> object_type object_type_plural
-%type <integer> iterable
 %type <integer> field
 
 %type <sstr> cmp
@@ -535,15 +534,17 @@ compare_matcher:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
-	ANY iterable cmp expression
+	ANY expression cmp expression
 		{
 			$$ = name_iter_matcher(MATCHER_ANY, $2, $3, $4);
+			sdb_object_deref(SDB_OBJ($2));
 			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
-	ALL iterable cmp expression
+	ALL expression cmp expression
 		{
 			$$ = name_iter_matcher(MATCHER_ALL, $2, $3, $4);
+			sdb_object_deref(SDB_OBJ($2));
 			sdb_object_deref(SDB_OBJ($4));
 		}
 	|
@@ -655,6 +656,12 @@ object_expression:
 			sdb_object_deref(SDB_OBJ($3));
 		}
 	|
+	ATTRIBUTE_T '.' object_expression
+		{
+			$$ = sdb_store_expr_typed(SDB_ATTRIBUTE, $3);
+			sdb_object_deref(SDB_OBJ($3));
+		}
+	|
 	field
 		{
 			$$ = sdb_store_expr_fieldvalue($1);
@@ -681,16 +688,6 @@ object_type_plural:
 	SERVICES_T { $$ = SDB_SERVICE; }
 	|
 	METRICS_T { $$ = SDB_METRIC; }
-	;
-
-iterable:
-	SERVICE_T '.' NAME_T { $$ = SDB_SERVICE; }
-	|
-	METRIC_T '.' NAME_T { $$ = SDB_METRIC; }
-	|
-	ATTRIBUTE_T '.' NAME_T { $$ = SDB_ATTRIBUTE; }
-	|
-	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
 	;
 
 field:
@@ -863,30 +860,19 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...)
 } /* sdb_fe_yyerrorf */
 
 static sdb_store_matcher_t *
-name_iter_matcher(int m_type, int type, const char *cmp,
+name_iter_matcher(int type, sdb_store_expr_t *iter, const char *cmp,
 		sdb_store_expr_t *expr)
 {
 	sdb_store_matcher_op_cb cb = sdb_store_parse_matcher_op(cmp);
-	sdb_store_expr_t *e;
 	sdb_store_matcher_t *m, *tmp = NULL;
 	assert(cb);
 
-	/* hosts are never iterable */
-	if (type == SDB_HOST) {
-		return NULL;
-	}
-
-	if (type == SDB_FIELD_BACKEND)
-		e = sdb_store_expr_fieldvalue(type);
-	else
-		e = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-	m = cb(e, expr);
-	if (m_type == MATCHER_ANY)
-		tmp = sdb_store_any_matcher(type, m);
-	else if (m_type == MATCHER_ALL)
-		tmp = sdb_store_all_matcher(type, m);
+	m = cb(iter, expr);
+	if (type == MATCHER_ANY)
+		tmp = sdb_store_any_matcher(iter, m);
+	else if (type == MATCHER_ALL)
+		tmp = sdb_store_all_matcher(iter, m);
 	sdb_object_deref(SDB_OBJ(m));
-	sdb_object_deref(SDB_OBJ(e));
 	return tmp;
 } /* name_iter_matcher */
 

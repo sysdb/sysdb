@@ -483,19 +483,21 @@ sdb_store_inv_matcher(sdb_store_matcher_t *m);
 
 /*
  * sdb_store_any_matcher:
- * Creates a matcher iterating over objects of the specified type. It matches
- * if *any* of those objects match 'm'.
+ * Creates a matcher iterating over values of the first expression (which has
+ * to be iterable). It matches if *any* of those elements match 'm'. 'm' has
+ * to be an ary operation with the left operand unset.
  */
 sdb_store_matcher_t *
-sdb_store_any_matcher(int type, sdb_store_matcher_t *m);
+sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m);
 
 /*
  * sdb_store_all_matcher:
- * Creates a matcher iterating over objects of the specified type. It matches
- * if *all* of those objects match 'm'.
+ * Creates a matcher iterating over values of the first expression (which has
+ * to be iterable). It matches if *all* of those elements match 'm'. 'm' has
+ * to be an ary operation with the left operand unset.
  */
 sdb_store_matcher_t *
-sdb_store_all_matcher(int type, sdb_store_matcher_t *m);
+sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m);
 
 /*
  * sdb_store_in_matcher:

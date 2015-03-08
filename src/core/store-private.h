@@ -214,7 +214,7 @@ typedef struct {
 /* iter matcher */
 typedef struct {
 	sdb_store_matcher_t super;
-	int type;
+	sdb_store_expr_t *iter;
 	sdb_store_matcher_t *m;
 } iter_matcher_t;
 #define ITER_M(m) ((iter_matcher_t *)(m))

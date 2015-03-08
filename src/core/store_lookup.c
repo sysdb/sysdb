@@ -38,6 +38,7 @@
 #include "sysdb.h"
 #include "core/store-private.h"
 #include "core/object.h"
+#include "utils/error.h"
 
 #include <assert.h>
 
@@ -252,26 +253,32 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	sdb_avltree_iter_t *iter = NULL;
-	int status;
+	int type, status;
 	int all = (int)(m->type == MATCHER_ALL);
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
 
-	if (ITER_M(m)->type == SDB_FIELD_BACKEND)
+	if (ITER_M(m)->iter->type == FIELD_VALUE) {
+		if (ITER_M(m)->iter->data.data.integer != SDB_FIELD_BACKEND)
+			return 0;
 		return match_iter_array(m, obj, filter);
+	}
 
+	assert(ITER_M(m)->iter->type == TYPED_EXPR);
+
+	type = (int)ITER_M(m)->iter->data.data.integer;
 	if (obj->type == SDB_HOST) {
-		if (ITER_M(m)->type == SDB_SERVICE)
+		if (type == SDB_SERVICE)
 			iter = sdb_avltree_get_iter(HOST(obj)->services);
-		else if (ITER_M(m)->type == SDB_METRIC)
+		else if (type == SDB_METRIC)
 			iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-		else if (ITER_M(m)->type == SDB_ATTRIBUTE)
+		else if (type == SDB_ATTRIBUTE)
 			iter = sdb_avltree_get_iter(HOST(obj)->attributes);
 	} else if (obj->type == SDB_SERVICE) {
-		if (ITER_M(m)->type == SDB_ATTRIBUTE)
+		if (type == SDB_ATTRIBUTE)
 			iter = sdb_avltree_get_iter(SVC(obj)->attributes);
 	} else if (obj->type == SDB_METRIC) {
-		if (ITER_M(m)->type == SDB_ATTRIBUTE)
+		if (type == SDB_ATTRIBUTE)
 			iter = sdb_avltree_get_iter(METRIC(obj)->attributes);
 	}
 
@@ -459,19 +466,21 @@ static int
 iter_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
-	ITER_M(obj)->type = va_arg(ap, int);
+	ITER_M(obj)->iter = va_arg(ap, sdb_store_expr_t *);
 	ITER_M(obj)->m = va_arg(ap, sdb_store_matcher_t *);
 
-	if (! ITER_M(obj)->m)
-		return -1;
-
+	sdb_object_ref(SDB_OBJ(ITER_M(obj)->iter));
 	sdb_object_ref(SDB_OBJ(ITER_M(obj)->m));
+
+	if ((! ITER_M(obj)->iter) || (! ITER_M(obj)->m))
+		return -1;
 	return 0;
 } /* iter_matcher_init */
 
 static void
 iter_matcher_destroy(sdb_object_t *obj)
 {
+	sdb_object_deref(SDB_OBJ(ITER_M(obj)->iter));
 	sdb_object_deref(SDB_OBJ(ITER_M(obj)->m));
 } /* iter_matcher_destroy */
 
@@ -573,23 +582,27 @@ static sdb_type_t isnull_type = {
  */
 
 sdb_store_matcher_t *
-sdb_store_any_matcher(int type, sdb_store_matcher_t *m)
+sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 {
-	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
-			&& (type != SDB_ATTRIBUTE) && (type != SDB_FIELD_BACKEND))
+	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
+		sdb_log(SDB_LOG_ERR, "store: Invalid ANY -> %s matcher "
+				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
+	}
 	return M(sdb_object_create("any-matcher", iter_type,
-				MATCHER_ANY, type, m));
+				MATCHER_ANY, iter, m));
 } /* sdb_store_any_matcher */
 
 sdb_store_matcher_t *
-sdb_store_all_matcher(int type, sdb_store_matcher_t *m)
+sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 {
-	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
-			&& (type != SDB_ATTRIBUTE) && (type != SDB_FIELD_BACKEND))
+	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
+		sdb_log(SDB_LOG_ERR, "store: Invalid ALL -> %s matcher "
+				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
+	}
 	return M(sdb_object_create("all-matcher", iter_type,
-				MATCHER_ALL, type, m));
+				MATCHER_ALL, iter, m));
 } /* sdb_store_all_matcher */
 
 sdb_store_matcher_t *

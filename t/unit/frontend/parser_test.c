@@ -453,6 +453,8 @@ struct {
 	  "name + 1 IS NULL",    -1, -1, 0 },
 	{ "LOOKUP hosts FILTER "
 	  "name + 1 IS NULL",    -1, -1, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY 'patt' =~ 'p'",  -1,  -1, 0 },
 
 	/* comments */
 	{ "/* some comment */",  -1,  0, 0 },

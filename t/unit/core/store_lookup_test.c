@@ -177,8 +177,11 @@ START_TEST(test_cmp_name)
 	else
 		m = sdb_store_eq_matcher(obj, value);
 	if (cmp_name_data[_i].type != SDB_HOST) {
+		sdb_store_expr_t *iter;
 		sdb_store_matcher_t *tmp;
-		tmp = sdb_store_any_matcher(cmp_name_data[_i].type, m);
+		iter = sdb_store_expr_typed(cmp_name_data[_i].type, obj);
+		tmp = sdb_store_any_matcher(iter, m);
+		sdb_object_deref(SDB_OBJ(iter));
 		sdb_object_deref(SDB_OBJ(m));
 		m = tmp;
 	}
