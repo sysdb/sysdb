@@ -395,6 +395,7 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 {
 	sdb_data_t null = SDB_DATA_INIT;
 	sdb_data_t ret = SDB_DATA_INIT;
+	sdb_data_t tmp = SDB_DATA_INIT;
 
 	if (! iter)
 		return null;
@@ -426,10 +427,13 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 
 	if (iter->array_idx >= iter->array.data.array.length)
 		return null;
-	if (sdb_data_array_get(&iter->array, iter->array_idx, &ret))
-		return null;
 
 	++iter->array_idx;
+	if (sdb_data_array_get(&iter->array, iter->array_idx - 1, &ret))
+		return null;
+	if (sdb_data_copy(&tmp, &ret))
+		return null;
+	ret = tmp;
 	return ret;
 } /* sdb_store_expr_iter_get_next */
 
