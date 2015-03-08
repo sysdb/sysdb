@@ -154,14 +154,6 @@ match_regex_value(int op, sdb_data_t *v, sdb_data_t *re)
 } /* match_regex_value */
 
 static int
-match_value(int op, sdb_data_t *v1, sdb_data_t *v2, bool strcmp_fallback)
-{
-	if ((op == MATCHER_REGEX) || (op == MATCHER_NREGEX))
-		return match_regex_value(op, v1, v2);
-	return match_cmp_value(op, v1, v2, strcmp_fallback);
-} /* match_value */
-
-static int
 match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
@@ -191,106 +183,33 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return !sdb_store_matcher_matches(UOP_M(m)->op, obj, filter);
 } /* match_unary */
 
-/* iterate arrays: ANY/ALL <array> <cmp> <value> */
-static int
-match_iter_backends(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
-{
-	sdb_data_t op = SDB_DATA_INIT;
-	int status;
-
-	if ((ITER_M(m)->m->type < MATCHER_LT)
-			|| (MATCHER_NREGEX < ITER_M(m)->m->type))
-		return 0;
-
-	if (sdb_store_expr_eval(CMP_M(ITER_M(m)->m)->right, obj, &op, filter))
-		return 0;
-
-	if (op.type & SDB_TYPE_ARRAY)
-		status = 0;
-	else if (sdb_data_isnull(&op))
-		status = 0;
-	else {
-		size_t i;
-		int all = (int)(m->type == MATCHER_ALL);
-
-		status = all;
-		for (i = 0; i < obj->backends_num; ++i) {
-			sdb_data_t v = { SDB_TYPE_STRING, { .string = obj->backends[i] } };
-
-			if (match_value(ITER_M(m)->m->type, &v, &op,
-						CMP_M(ITER_M(m)->m)->right->data_type < 0)) {
-				if (! all) {
-					status = 1;
-					break;
-				}
-			}
-			else if (all) {
-				status = 0;
-				break;
-			}
-		}
-	}
-
-	sdb_data_free_datum(&op);
-	return status;
-} /* match_iter_backends */
-
+/* iterate: ANY/ALL <iter> <cmp> <value> */
 static int
 match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
-	sdb_avltree_iter_t *iter = NULL;
-	int type, status;
+	sdb_store_expr_iter_t *iter = NULL;
+	int status;
 	int all = (int)(m->type == MATCHER_ALL);
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
 	assert((! CMP_M(ITER_M(m)->m)->left) && CMP_M(ITER_M(m)->m)->right);
 
-	if (ITER_M(m)->iter->type == FIELD_VALUE) {
-		if (ITER_M(m)->iter->data.data.integer != SDB_FIELD_BACKEND)
-			return 0;
-		return match_iter_backends(m, obj, filter);
-	}
-
-	assert(ITER_M(m)->iter->type == TYPED_EXPR);
-
-	type = (int)ITER_M(m)->iter->data.data.integer;
-	if (obj->type == SDB_HOST) {
-		if (type == SDB_SERVICE)
-			iter = sdb_avltree_get_iter(HOST(obj)->services);
-		else if (type == SDB_METRIC)
-			iter = sdb_avltree_get_iter(HOST(obj)->metrics);
-		else if (type == SDB_ATTRIBUTE)
-			iter = sdb_avltree_get_iter(HOST(obj)->attributes);
-	} else if (obj->type == SDB_SERVICE) {
-		if (type == SDB_ATTRIBUTE)
-			iter = sdb_avltree_get_iter(SVC(obj)->attributes);
-	} else if (obj->type == SDB_METRIC) {
-		if (type == SDB_ATTRIBUTE)
-			iter = sdb_avltree_get_iter(METRIC(obj)->attributes);
-	}
+	iter = sdb_store_expr_iter(ITER_M(m)->iter, obj, filter);
+	if (! iter)
+		return 0;
 
 	status = all;
-	while (sdb_avltree_iter_has_next(iter)) {
-		sdb_store_obj_t *child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
-		sdb_store_expr_t expr = EXPR_INIT;
-		sdb_data_t v = SDB_DATA_INIT;
+	while (sdb_store_expr_iter_has_next(iter)) {
+		sdb_data_t v = sdb_store_expr_iter_get_next(iter);
+		sdb_store_expr_t expr = CONST_EXPR(v);
 		bool matches;
 
-		if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
-			continue;
-		if (sdb_store_expr_eval(ITER_M(m)->iter, child, &v, filter))
-			continue;
-
-		expr.type = 0;
-		expr.data_type = v.type;
-		expr.data = v;
-
 		CMP_M(ITER_M(m)->m)->left = &expr;
-		matches = sdb_store_matcher_matches(ITER_M(m)->m, child, filter);
+		matches = sdb_store_matcher_matches(ITER_M(m)->m, obj, filter);
 		CMP_M(ITER_M(m)->m)->left = NULL;
 		sdb_data_free_datum(&v);
+
 		if (matches) {
 			if (! all) {
 				status = 1;
@@ -301,7 +220,7 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 			break;
 		}
 	}
-	sdb_avltree_iter_destroy(iter);
+	sdb_store_expr_iter_destroy(iter);
 	return status;
 } /* match_iter */
 

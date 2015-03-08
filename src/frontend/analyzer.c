@@ -153,47 +153,31 @@ analyze_matcher(int context, int parent_type,
 		case MATCHER_ANY:
 		case MATCHER_ALL:
 		{
-			int type = -1;
+			int child_context = -1;
 			int left_type = -1;
 
 			assert(ITER_M(m)->m);
 
-			if (ITER_M(m)->iter->type == TYPED_EXPR) {
-				type = (int)ITER_M(m)->iter->data.data.integer;
-				left_type = ITER_M(m)->iter->data_type;
-			}
-			else if (ITER_M(m)->iter->type == FIELD_VALUE) {
-				type = (int)ITER_M(m)->iter->data.data.integer;
-				/* element type of the field */
-				left_type = ITER_M(m)->iter->data_type & 0xff;
-			}
-			else {
+			if (! sdb_store_expr_iterable(ITER_M(m)->iter, context)) {
 				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 
-			if ((context != SDB_HOST)
-					&& (context != SDB_SERVICE)
-					&& (context != SDB_METRIC)) {
-				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
-				return -1;
+			if (ITER_M(m)->iter->type == TYPED_EXPR) {
+				child_context = (int)ITER_M(m)->iter->data.data.integer;
+				left_type = ITER_M(m)->iter->data_type;
 			}
-			if (type == context) {
-				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
-				return -1;
+			else if (ITER_M(m)->iter->type == FIELD_VALUE) {
+				child_context = context;
+				/* element type of the field */
+				left_type = ITER_M(m)->iter->data_type & 0xff;
 			}
-			if ((type != SDB_SERVICE)
-					&& (type != SDB_METRIC)
-					&& (type != SDB_ATTRIBUTE)
-					&& (type != SDB_FIELD_BACKEND)) {
-				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
-				return -1;
+			else if (! ITER_M(m)->iter->type) {
+				child_context = context;
+				/* elements of the array constant */
+				left_type = ITER_M(m)->iter->data.type & 0xff;
 			}
-			if ((context == SDB_SERVICE) && (type == SDB_METRIC)) {
-				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
-				return -1;
-			}
-			else if ((context == SDB_METRIC) && (type == SDB_SERVICE)) {
+			else {
 				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
@@ -222,7 +206,7 @@ analyze_matcher(int context, int parent_type,
 					return -1;
 				}
 			}
-			if (analyze_matcher(type, m->type, ITER_M(m)->m, errbuf))
+			if (analyze_matcher(child_context, m->type, ITER_M(m)->m, errbuf))
 				return -1;
 			break;
 		}

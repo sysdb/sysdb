@@ -126,7 +126,7 @@ struct sdb_store_expr {
 
 	sdb_data_t data;
 };
-#define EXPR_INIT { SDB_OBJECT_INIT, 0, -1, NULL, NULL, SDB_DATA_INIT }
+#define CONST_EXPR(v) { SDB_OBJECT_INIT, 0, (v).type, NULL, NULL, (v) }
 #define EXPR_TO_STRING(e) \
 	(((e)->type == TYPED_EXPR) ? "<typed>" \
 		: ((e)->type == ATTR_VALUE) ? "attribute" \
