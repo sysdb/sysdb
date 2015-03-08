@@ -193,45 +193,33 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 /* iterate arrays: ANY/ALL <array> <cmp> <value> */
 static int
-match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_iter_backends(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
-	sdb_store_expr_t *e1, *e2;
-	sdb_data_t v1 = SDB_DATA_INIT;
-	sdb_data_t v2 = SDB_DATA_INIT;
-
+	sdb_data_t op = SDB_DATA_INIT;
 	int status;
-
-	assert(CMP_M(m)->left && CMP_M(m)->right);
 
 	if ((ITER_M(m)->m->type < MATCHER_LT)
 			|| (MATCHER_NREGEX < ITER_M(m)->m->type))
 		return 0;
 
-	e1 = CMP_M(ITER_M(m)->m)->left;
-	e2 = CMP_M(ITER_M(m)->m)->right;
-
-	if (expr_eval2(e1, &v1, e2, &v2, obj, filter))
+	if (sdb_store_expr_eval(CMP_M(ITER_M(m)->m)->right, obj, &op, filter))
 		return 0;
 
-	if ((! (v1.type & SDB_TYPE_ARRAY)) || (v2.type & SDB_TYPE_ARRAY))
+	if (op.type & SDB_TYPE_ARRAY)
 		status = 0;
-	else if (sdb_data_isnull(&v1) || (sdb_data_isnull(&v2)))
+	else if (sdb_data_isnull(&op))
 		status = 0;
 	else {
 		size_t i;
 		int all = (int)(m->type == MATCHER_ALL);
 
 		status = all;
-		for (i = 0; i < v1.data.array.length; ++i) {
-			sdb_data_t v = SDB_DATA_INIT;
-			if (sdb_data_array_get(&v1, i, &v)) {
-				status = 0;
-				break;
-			}
+		for (i = 0; i < obj->backends_num; ++i) {
+			sdb_data_t v = { SDB_TYPE_STRING, { .string = obj->backends[i] } };
 
-			if (match_value(ITER_M(m)->m->type, &v, &v2,
-						(e1->data_type) < 0 || (e2->data_type < 0))) {
+			if (match_value(ITER_M(m)->m->type, &v, &op,
+						CMP_M(ITER_M(m)->m)->right->data_type < 0)) {
 				if (! all) {
 					status = 1;
 					break;
@@ -244,9 +232,9 @@ match_iter_array(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		}
 	}
 
-	expr_free_datum2(e1, &v1, e2, &v2);
+	sdb_data_free_datum(&op);
 	return status;
-} /* match_iter_array */
+} /* match_iter_backends */
 
 static int
 match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
@@ -257,11 +245,12 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	int all = (int)(m->type == MATCHER_ALL);
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
+	assert((! CMP_M(ITER_M(m)->m)->left) && CMP_M(ITER_M(m)->m)->right);
 
 	if (ITER_M(m)->iter->type == FIELD_VALUE) {
 		if (ITER_M(m)->iter->data.data.integer != SDB_FIELD_BACKEND)
 			return 0;
-		return match_iter_array(m, obj, filter);
+		return match_iter_backends(m, obj, filter);
 	}
 
 	assert(ITER_M(m)->iter->type == TYPED_EXPR);
@@ -285,10 +274,24 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	status = all;
 	while (sdb_avltree_iter_has_next(iter)) {
 		sdb_store_obj_t *child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
+		sdb_store_expr_t expr = EXPR_INIT;
+		sdb_data_t v = SDB_DATA_INIT;
+		bool matches;
+
 		if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
 			continue;
+		if (sdb_store_expr_eval(ITER_M(m)->iter, child, &v, filter))
+			continue;
 
-		if (sdb_store_matcher_matches(ITER_M(m)->m, child, filter)) {
+		expr.type = 0;
+		expr.data_type = v.type;
+		expr.data = v;
+
+		CMP_M(ITER_M(m)->m)->left = &expr;
+		matches = sdb_store_matcher_matches(ITER_M(m)->m, child, filter);
+		CMP_M(ITER_M(m)->m)->left = NULL;
+		sdb_data_free_datum(&v);
+		if (matches) {
 			if (! all) {
 				status = 1;
 				break;
@@ -589,6 +592,14 @@ sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
 	}
+	if (CMP_M(m)->left) {
+		sdb_log(SDB_LOG_ERR, "store: Invalid ANY %s %s %s matcher "
+				"(invalid left operand)",
+				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
+				MATCHER_SYM(m->type),
+				SDB_TYPE_TO_STRING(CMP_M(m)->right->data_type));
+		return NULL;
+	}
 	return M(sdb_object_create("any-matcher", iter_type,
 				MATCHER_ANY, iter, m));
 } /* sdb_store_any_matcher */
@@ -599,6 +610,14 @@ sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
 		sdb_log(SDB_LOG_ERR, "store: Invalid ALL -> %s matcher "
 				"(invalid operator)", MATCHER_SYM(m->type));
+		return NULL;
+	}
+	if (CMP_M(m)->left) {
+		sdb_log(SDB_LOG_ERR, "store: Invalid ALL %s %s %s matcher "
+				"(invalid left operand)",
+				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
+				MATCHER_SYM(m->type),
+				SDB_TYPE_TO_STRING(CMP_M(m)->right->data_type));
 		return NULL;
 	}
 	return M(sdb_object_create("all-matcher", iter_type,

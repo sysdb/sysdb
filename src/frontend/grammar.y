@@ -867,7 +867,7 @@ name_iter_matcher(int type, sdb_store_expr_t *iter, const char *cmp,
 	sdb_store_matcher_t *m, *tmp = NULL;
 	assert(cb);
 
-	m = cb(iter, expr);
+	m = cb(NULL, expr);
 	if (type == MATCHER_ANY)
 		tmp = sdb_store_any_matcher(iter, m);
 	else if (type == MATCHER_ALL)

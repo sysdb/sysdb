@@ -152,7 +152,7 @@ START_TEST(test_cmp_name)
 {
 	sdb_store_obj_t *host;
 	sdb_data_t datum;
-	sdb_store_expr_t *obj, *value;
+	sdb_store_expr_t *obj = NULL, *value;
 	sdb_store_matcher_t *m, *n;
 	int status;
 
@@ -163,10 +163,12 @@ START_TEST(test_cmp_name)
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = cmp_name_data[_i].name;
 
-	obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-	fail_unless(obj != NULL,
-			"sdb_store_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
-			"expected: <expr>");
+	if (cmp_name_data[_i].type == SDB_HOST) {
+		obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+		fail_unless(obj != NULL,
+				"sdb_store_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
+				"expected: <expr>");
+	}
 	value = sdb_store_expr_constvalue(&datum);
 	fail_unless(value != NULL,
 			"sdb_store_expr_constvalue(%s) = NULL; "
@@ -176,11 +178,14 @@ START_TEST(test_cmp_name)
 		m = sdb_store_regex_matcher(obj, value);
 	else
 		m = sdb_store_eq_matcher(obj, value);
+
 	if (cmp_name_data[_i].type != SDB_HOST) {
 		sdb_store_expr_t *iter;
 		sdb_store_matcher_t *tmp;
+		obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
 		iter = sdb_store_expr_typed(cmp_name_data[_i].type, obj);
 		tmp = sdb_store_any_matcher(iter, m);
+		ck_assert(iter && m);
 		sdb_object_deref(SDB_OBJ(iter));
 		sdb_object_deref(SDB_OBJ(m));
 		m = tmp;

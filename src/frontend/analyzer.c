@@ -40,10 +40,11 @@
  */
 
 static void
-iter_error(sdb_strbuf_t *errbuf, int op, int oper, int context)
+iter_error(sdb_strbuf_t *errbuf, int op, sdb_store_expr_t *iter, int context)
 {
-	sdb_strbuf_sprintf(errbuf, "Cannot use %s %s in %s context",
-			MATCHER_SYM(op), SDB_STORE_TYPE_TO_NAME(oper),
+	sdb_strbuf_sprintf(errbuf, "Invalid %s iterator: %s %s "
+			"not iterable in %s context", MATCHER_SYM(op),
+			EXPR_TO_STRING(iter), SDB_STORE_TYPE_TO_NAME(iter->data_type),
 			SDB_STORE_TYPE_TO_NAME(context));
 } /* iter_error */
 
@@ -152,41 +153,51 @@ analyze_matcher(int context, int parent_type,
 		case MATCHER_ANY:
 		case MATCHER_ALL:
 		{
-			int type;
+			int type = -1;
+			int left_type = -1;
+
 			assert(ITER_M(m)->m);
-			if ((ITER_M(m)->iter->type == TYPED_EXPR)
-					|| (ITER_M(m)->iter->type == FIELD_VALUE)) {
+
+			if (ITER_M(m)->iter->type == TYPED_EXPR) {
 				type = (int)ITER_M(m)->iter->data.data.integer;
+				left_type = ITER_M(m)->iter->data_type;
+			}
+			else if (ITER_M(m)->iter->type == FIELD_VALUE) {
+				type = (int)ITER_M(m)->iter->data.data.integer;
+				/* element type of the field */
+				left_type = ITER_M(m)->iter->data_type & 0xff;
 			}
 			else {
-				iter_error(errbuf, m->type, -1, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
+
 			if ((context != SDB_HOST)
 					&& (context != SDB_SERVICE)
 					&& (context != SDB_METRIC)) {
-				iter_error(errbuf, m->type, type, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 			if (type == context) {
-				iter_error(errbuf, m->type, type, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 			if ((type != SDB_SERVICE)
 					&& (type != SDB_METRIC)
 					&& (type != SDB_ATTRIBUTE)
 					&& (type != SDB_FIELD_BACKEND)) {
-				iter_error(errbuf, m->type, type, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 			if ((context == SDB_SERVICE) && (type == SDB_METRIC)) {
-				iter_error(errbuf, m->type, type, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 			else if ((context == SDB_METRIC) && (type == SDB_SERVICE)) {
-				iter_error(errbuf, m->type, type, context);
+				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
+
 			/* any ary operator will do but these are the once
 			 * we currently support */
 			if ((ITER_M(m)->m->type != MATCHER_LT)
@@ -198,31 +209,20 @@ analyze_matcher(int context, int parent_type,
 					&& (ITER_M(m)->m->type != MATCHER_REGEX)
 					&& (ITER_M(m)->m->type != MATCHER_NREGEX)) {
 				iter_op_error(errbuf, m->type,
-						CMP_M(ITER_M(m)->m)->left->data_type,
-						ITER_M(m)->m->type,
+						left_type, ITER_M(m)->m->type,
 						CMP_M(ITER_M(m)->m)->right->data_type);
 				return -1;
 			}
-			if (type == SDB_FIELD_BACKEND) {
-				if (CMP_M(ITER_M(m)->m)->right->data_type < 0)
-					return 0; /* skip further type checks */
-				if (CMP_M(ITER_M(m)->m)->right->data_type & SDB_TYPE_ARRAY) {
+			if ((left_type >= 0)
+					&& (CMP_M(ITER_M(m)->m)->right->data_type >= 0)) {
+				if (left_type != CMP_M(ITER_M(m)->m)->right->data_type) {
 					iter_op_error(errbuf, m->type,
-							CMP_M(ITER_M(m)->m)->left->data_type,
-							ITER_M(m)->m->type,
-							CMP_M(ITER_M(m)->m)->right->data_type);
-					return -1;
-				}
-				if ((CMP_M(ITER_M(m)->m)->left->data_type & 0xff)
-						!= CMP_M(ITER_M(m)->m)->right->data_type) {
-					iter_op_error(errbuf, m->type,
-							CMP_M(ITER_M(m)->m)->left->data_type,
-							ITER_M(m)->m->type,
+							left_type, ITER_M(m)->m->type,
 							CMP_M(ITER_M(m)->m)->right->data_type);
 					return -1;
 				}
 			}
-			else if (analyze_matcher(type, m->type, ITER_M(m)->m, errbuf))
+			if (analyze_matcher(type, m->type, ITER_M(m)->m, errbuf))
 				return -1;
 			break;
 		}
@@ -233,13 +233,17 @@ analyze_matcher(int context, int parent_type,
 		case MATCHER_NE:
 		case MATCHER_GE:
 		case MATCHER_GT:
+		{
+			int left_type = -1;
+
 			assert(CMP_M(m)->right);
 			if ((parent_type == MATCHER_ALL)
 					|| (parent_type == MATCHER_ANY)) {
-				// TODO: assert(! CMP_M(m)->left);
+				assert(! CMP_M(m)->left);
 			}
 			else {
 				assert(CMP_M(m)->left);
+				left_type = CMP_M(m)->left->data_type;
 			}
 
 			if (analyze_expr(context, CMP_M(m)->left, errbuf))
@@ -247,27 +251,26 @@ analyze_matcher(int context, int parent_type,
 			if (analyze_expr(context, CMP_M(m)->right, errbuf))
 				return -1;
 
-			if ((CMP_M(m)->left->data_type > 0)
-					&& (CMP_M(m)->right->data_type > 0)) {
-				if (CMP_M(m)->left->data_type == CMP_M(m)->right->data_type)
+			if ((left_type > 0) && (CMP_M(m)->right->data_type > 0)) {
+				if (left_type == CMP_M(m)->right->data_type)
 					return 0;
-				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+				cmp_error(errbuf, m->type, left_type,
 						CMP_M(m)->right->data_type);
 				return -1;
 			}
-			if ((CMP_M(m)->left->data_type > 0)
-					&& (CMP_M(m)->left->data_type & SDB_TYPE_ARRAY)) {
-				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+			if ((left_type > 0) && (left_type & SDB_TYPE_ARRAY)) {
+				cmp_error(errbuf, m->type, left_type,
 						CMP_M(m)->right->data_type);
 				return -1;
 			}
 			if ((CMP_M(m)->right->data_type > 0)
 					&& (CMP_M(m)->right->data_type & SDB_TYPE_ARRAY)) {
-				cmp_error(errbuf, m->type, CMP_M(m)->left->data_type,
+				cmp_error(errbuf, m->type, left_type,
 						CMP_M(m)->right->data_type);
 				return -1;
 			}
 			break;
+		}
 
 		case MATCHER_IN:
 		case MATCHER_NIN:
