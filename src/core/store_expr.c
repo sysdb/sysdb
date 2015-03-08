@@ -374,6 +374,7 @@ sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter)
 	iter->array_idx = 0;
 
 	sdb_object_deref(SDB_OBJ(iter->obj));
+	sdb_object_deref(SDB_OBJ(iter->expr));
 	sdb_object_deref(SDB_OBJ(iter->filter));
 	free(iter);
 } /* sdb_store_expr_iter_destroy */
