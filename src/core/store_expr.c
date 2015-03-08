@@ -411,7 +411,7 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 					&& (! sdb_store_matcher_matches(iter->filter, child, NULL)))
 				continue;
 
-			if (sdb_store_expr_eval(iter->expr, iter->obj, &ret, iter->filter))
+			if (sdb_store_expr_eval(iter->expr, child, &ret, iter->filter))
 				return null;
 			break;
 		}
