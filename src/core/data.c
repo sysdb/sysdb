@@ -781,9 +781,28 @@ sdb_data_array_get(const sdb_data_t *array, size_t i, sdb_data_t *value)
 		char **v = array->data.array.values;
 		tmp.data.string = v[i];
 	}
+	else if (type == SDB_TYPE_DATETIME) {
+		sdb_time_t *v = array->data.array.values;
+		tmp.data.datetime = v[i];
+	}
+	else if (type == SDB_TYPE_BINARY) {
+		struct {
+			size_t length;
+			unsigned char *datum;
+		} *v = array->data.array.values;
+		assert(sizeof(tmp.data.binary) == sizeof(v[i]));
+		memcpy(&tmp.data.binary, &v[i], sizeof(v[i]));
+	}
+	else if (type == SDB_TYPE_REGEX) {
+		struct {
+			char *raw;
+			regex_t regex;
+		} *v = array->data.array.values;
+		assert(sizeof(tmp.data.re) == sizeof(v[i]));
+		memcpy(&tmp.data.re, &v[i], sizeof(v[i]));
+	}
 	else {
-		/* TODO */
-		errno = ENOTSUP;
+		errno = EINVAL;
 		return -1;
 	}
 
