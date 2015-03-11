@@ -302,10 +302,12 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	sdb_avltree_iter_t *tree = NULL;
 	sdb_data_t array = SDB_DATA_INIT;
 
-	if ((! expr) || (! obj))
+	if (! expr)
 		return NULL;
 
 	if (expr->type == TYPED_EXPR) {
+		if (! obj)
+			return NULL;
 		if (obj->type == SDB_HOST) {
 			if (expr->data.data.integer == SDB_SERVICE)
 				tree = sdb_avltree_get_iter(HOST(obj)->services);
@@ -324,6 +326,8 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		}
 	}
 	else if (expr->type == FIELD_VALUE) {
+		if (! obj)
+			return NULL;
 		if (expr->data.data.integer == SDB_FIELD_BACKEND) {
 			/* while scanning the store, we hold a read lock, so it's safe to
 			 * access the data without copying */
