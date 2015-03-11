@@ -668,12 +668,6 @@ sdb_data_strcmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	char d1_str[sdb_data_strlen(d1) + 1];
 	char d2_str[sdb_data_strlen(d2) + 1];
 
-	if ((d1->type & SDB_TYPE_ARRAY) || (d2->type & SDB_TYPE_ARRAY)) {
-		/* TODO */
-		errno = ENOTSUP;
-		return -1;
-	}
-
 	if (sdb_data_isnull(d1))
 		d1 = NULL;
 	if (sdb_data_isnull(d2))
