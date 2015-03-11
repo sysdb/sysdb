@@ -385,8 +385,21 @@ sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter)
 	if (! iter)
 		return 0;
 
-	if (iter->tree)
+	if (iter->tree) {
+		/* this function may be called before get_next,
+		 * so we'll have to apply filters here as well */
+		if (iter->filter) {
+			sdb_store_obj_t *child;
+			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree)))) {
+				if (sdb_store_matcher_matches(iter->filter, child, NULL))
+					break;
+				(void)sdb_avltree_iter_get_next(iter->tree);
+			}
+		}
+
 		return sdb_avltree_iter_has_next(iter->tree);
+	}
+
 	return iter->array_idx < iter->array.data.array.length;
 } /* sdb_store_expr_iter_has_next */
 
