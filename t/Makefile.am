@@ -28,6 +28,7 @@ if UNIT_TESTING
 UNIT_TESTS = \
 		unit/core/data_test \
 		unit/core/object_test \
+		unit/core/store_expr_test \
 		unit/core/store_json_test \
 		unit/core/store_lookup_test \
 		unit/core/store_test \
@@ -62,6 +63,10 @@ unit_core_data_test_LDADD = $(UNIT_TEST_LDADD)
 unit_core_object_test_SOURCES = $(UNIT_TEST_SOURCES) unit/core/object_test.c
 unit_core_object_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_core_object_test_LDADD = $(UNIT_TEST_LDADD)
+
+unit_core_store_expr_test_SOURCES = $(UNIT_TEST_SOURCES) unit/core/store_expr_test.c
+unit_core_store_expr_test_CFLAGS = $(UNIT_TEST_CFLAGS)
+unit_core_store_expr_test_LDADD = $(UNIT_TEST_LDADD)
 
 unit_core_store_json_test_SOURCES = $(UNIT_TEST_SOURCES) unit/core/store_json_test.c
 unit_core_store_json_test_CFLAGS = $(UNIT_TEST_CFLAGS)
