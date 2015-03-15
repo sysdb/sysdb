@@ -904,6 +904,12 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 			tmp.data.array.length = obj->backends_num;
 			tmp.data.array.values = obj->backends;
 			return sdb_data_copy(res, &tmp);
+		case SDB_FIELD_VALUE:
+			if (obj->type != SDB_ATTRIBUTE)
+				return -1;
+			if (! res)
+				return 0;
+			return sdb_data_copy(res, &ATTR(obj)->value);
 		default:
 			return -1;
 	}

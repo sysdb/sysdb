@@ -705,6 +705,8 @@ sdb_store_parse_field_name(const char *name)
 		return SDB_FIELD_INTERVAL;
 	else if (! strcasecmp(name, "backend"))
 		return SDB_FIELD_BACKEND;
+	else if (! strcasecmp(name, "value"))
+		return SDB_FIELD_VALUE;
 	return -1;
 } /* sdb_store_parse_field_name */
 

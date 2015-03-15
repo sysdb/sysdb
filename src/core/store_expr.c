@@ -167,7 +167,7 @@ sdb_store_expr_fieldvalue(int field)
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
 	sdb_store_expr_t *e;
 
-	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_BACKEND < field))
+	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_VALUE < field))
 		return NULL;
 	e = SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));
@@ -286,7 +286,12 @@ sdb_store_expr_iterable(sdb_store_expr_t *expr, int context)
 		if ((context != SDB_HOST) && (context != SDB_SERVICE)
 				&& (context != SDB_METRIC) && (context != SDB_ATTRIBUTE))
 			return 0;
-		return expr->data.data.integer == SDB_FIELD_BACKEND;
+		if (expr->data.data.integer == SDB_FIELD_BACKEND)
+			return 1;
+		else if (expr->data.data.integer == SDB_FIELD_VALUE)
+			/* we don't current support this just like when using
+			 * the attribute[<name>] syntax */
+			return 0;
 	}
 	else if (! expr->type) {
 		return !!(expr->data.type & SDB_TYPE_ARRAY);

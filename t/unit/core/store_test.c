@@ -414,24 +414,53 @@ END_TEST
 
 static struct {
 	const char *hostname;
+	const char *attr; /* optional */
 	int field;
 	int expected;
 	sdb_data_t value;
 } get_field_data[] = {
-	{ NULL,   0, -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
-	{ "host", SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
+	{ NULL,   NULL, 0, -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", NULL,   SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
+	{ "host", NULL,   SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
 	/* the test will handle AGE specially */
-	{ "host", SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "host" } } },
-	{ "host", SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
+	{ "host", NULL,   SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", NULL,   SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "host" } } },
+	{ "host", NULL,   SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
+	{ "host", NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "attr", SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
+	{ "host", "attr", SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
+	/* the test will handle AGE specially */
+	{ "host", "attr", SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "attr", SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "attr" } } },
+	{ "host", "attr", SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
+	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_INTEGER, { .integer = 1 } } },
+	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DECIMAL, { .decimal = 2.0 } } },
+	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_STRING, { .string = "foo" } } },
+	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DATETIME, { .datetime = 1234567890L } } },
+	{ "host", "a",    SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
 };
 
+/* returns a tuple <type> <name> */
+#define OBJ_NAME(obj) \
+	(obj) ? SDB_STORE_TYPE_TO_NAME(obj->type) : "NULL", \
+	(obj) ? SDB_OBJ(obj)->name : ""
 START_TEST(test_get_field)
 {
-	sdb_store_obj_t *host = NULL;
+	sdb_store_obj_t *obj = NULL;
 	sdb_data_t value = SDB_DATA_INIT;
 	char value_str[128], expected_value_str[128];
 	sdb_time_t now = sdb_gettime();
@@ -439,25 +468,36 @@ START_TEST(test_get_field)
 
 	sdb_store_host("host", 10);
 	sdb_store_host("host", 20);
+	sdb_store_attribute("host", "attr", &get_field_data[_i].value, 10);
+	sdb_store_attribute("host", "attr", &get_field_data[_i].value, 20);
 
 	if (get_field_data[_i].hostname) {
-		host = sdb_store_get_host(get_field_data[_i].hostname);
-		ck_assert(host != NULL);
+		obj = sdb_store_get_host(get_field_data[_i].hostname);
+		ck_assert(obj != NULL);
+
+		if (get_field_data[_i].attr) {
+			sdb_store_obj_t *tmp = sdb_store_get_child(obj,
+					SDB_ATTRIBUTE, get_field_data[_i].attr);
+			sdb_object_deref(SDB_OBJ(obj));
+			obj = tmp;
+		}
 	}
 
-	check = sdb_store_get_field(host, get_field_data[_i].field, NULL);
+	check = sdb_store_get_field(obj, get_field_data[_i].field, NULL);
 	fail_unless(check == get_field_data[_i].expected,
-			"sdb_store_get_field(%s, %s, NULL) = %d; expected: %d",
-			host ? "<host>" : "NULL", SDB_FIELD_TO_NAME(get_field_data[_i].field),
+			"sdb_store_get_field(%s %s, %s, NULL) = %d; expected: %d",
+			OBJ_NAME(obj), SDB_FIELD_TO_NAME(get_field_data[_i].field),
 			check, get_field_data[_i].expected);
-	check = sdb_store_get_field(host, get_field_data[_i].field, &value);
+	check = sdb_store_get_field(obj, get_field_data[_i].field, &value);
 	fail_unless(check == get_field_data[_i].expected,
-			"sdb_store_get_field(%s, %s, <value>) = %d; expected: %d",
-			host ? "<host>" : "NULL", SDB_FIELD_TO_NAME(get_field_data[_i].field),
+			"sdb_store_get_field(%s %s, %s, <value>) = %d; expected: %d",
+			OBJ_NAME(obj), SDB_FIELD_TO_NAME(get_field_data[_i].field),
 			check, get_field_data[_i].expected);
 
-	if (get_field_data[_i].expected)
+	if (get_field_data[_i].expected) {
+		sdb_object_deref(SDB_OBJ(obj));
 		return;
+	}
 
 	if (get_field_data[_i].field == SDB_FIELD_AGE) {
 		get_field_data[_i].value.type = SDB_TYPE_DATETIME;
@@ -471,21 +511,23 @@ START_TEST(test_get_field)
 	if (get_field_data[_i].field == SDB_FIELD_AGE) {
 		fail_unless((value.type == SDB_TYPE_DATETIME)
 				&& (value.data.datetime >= now),
-				"sdb_store_get_field(<host>, %s, <value>) "
-				"returned value %s; expected >=%s",
+				"sdb_store_get_field(%s %s, %s, <value>) "
+				"returned value %s; expected >=%s", OBJ_NAME(obj),
 				SDB_FIELD_TO_NAME(get_field_data[_i].field),
 				value_str, expected_value_str);
 	}
 	else {
 		fail_unless(! sdb_data_cmp(&value, &get_field_data[_i].value),
-				"sdb_store_get_field(<host>, %s, <value>) "
-				"returned value %s; expected %s",
+				"sdb_store_get_field(%s %s, %s, <value>) "
+				"returned value %s; expected %s", OBJ_NAME(obj),
 				SDB_FIELD_TO_NAME(get_field_data[_i].field),
 				value_str, expected_value_str);
 	}
 	sdb_data_free_datum(&value);
+	sdb_object_deref(SDB_OBJ(obj));
 }
 END_TEST
+#undef OBJ_NAME
 
 START_TEST(test_get_child)
 {

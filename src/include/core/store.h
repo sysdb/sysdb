@@ -60,6 +60,7 @@ enum {
 	SDB_FIELD_AGE,           /* type: datetime */
 	SDB_FIELD_INTERVAL,      /* type: datetime */
 	SDB_FIELD_BACKEND,       /* type: array of strings */
+	SDB_FIELD_VALUE,         /* attributes only;  type: type of the value */
 };
 #define SDB_STORE_TYPE_TO_NAME(t) \
 	(((t) == SDB_HOST) ? "host" \
@@ -76,7 +77,9 @@ enum {
 		: ((f) == SDB_FIELD_LAST_UPDATE) ? "last-update" \
 		: ((f) == SDB_FIELD_AGE) ? "age" \
 		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
-		: ((f) == SDB_FIELD_BACKEND) ? "backend" : "unknown")
+		: ((f) == SDB_FIELD_BACKEND) ? "backend" \
+		: ((f) == SDB_FIELD_VALUE) ? "value" \
+		: "unknown")
 
 #define SDB_FIELD_TYPE(f) \
 	(((f) == SDB_FIELD_NAME) ? SDB_TYPE_STRING \
@@ -84,6 +87,7 @@ enum {
 		: ((f) == SDB_FIELD_AGE) ? SDB_TYPE_DATETIME \
 		: ((f) == SDB_FIELD_INTERVAL) ? SDB_TYPE_DATETIME \
 		: ((f) == SDB_FIELD_BACKEND) ? (SDB_TYPE_ARRAY | SDB_TYPE_STRING) \
+		: ((f) == SDB_FIELD_VALUE) ? -1 /* unknown */ \
 		: -1)
 
 /*
