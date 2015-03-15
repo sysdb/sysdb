@@ -155,16 +155,35 @@ analyze_matcher(int context, int parent_type,
 		{
 			int child_context = -1;
 			int left_type = -1;
+			int type = -1;
 
 			assert(ITER_M(m)->m);
 
-			if (! sdb_store_expr_iterable(ITER_M(m)->iter, context)) {
+			if ((ITER_M(m)->iter->type == TYPED_EXPR)
+					|| (ITER_M(m)->iter->type == FIELD_VALUE))
+				type = ITER_M(m)->iter->data.data.integer;
+
+			if (context == -1) { /* inside a filter */
+				/* attributes are always iterable */
+				if ((ITER_M(m)->iter->type == TYPED_EXPR)
+						&& (type != SDB_ATTRIBUTE)) {
+					iter_error(errbuf, m->type, ITER_M(m)->iter, context);
+					return -1;
+				}
+				/* backends are always iterable */
+				if ((ITER_M(m)->iter->type == FIELD_VALUE)
+						&& (! (type != SDB_FIELD_BACKEND))) {
+					iter_error(errbuf, m->type, ITER_M(m)->iter, context);
+					return -1;
+				}
+			}
+			else if (! sdb_store_expr_iterable(ITER_M(m)->iter, context)) {
 				iter_error(errbuf, m->type, ITER_M(m)->iter, context);
 				return -1;
 			}
 
 			if (ITER_M(m)->iter->type == TYPED_EXPR) {
-				child_context = (int)ITER_M(m)->iter->data.data.integer;
+				child_context = type;
 				left_type = ITER_M(m)->iter->data_type;
 			}
 			else if (ITER_M(m)->iter->type == FIELD_VALUE) {
@@ -205,6 +224,13 @@ analyze_matcher(int context, int parent_type,
 							CMP_M(ITER_M(m)->m)->right->data_type);
 					return -1;
 				}
+			}
+			if (child_context <= 0) {
+				sdb_strbuf_sprintf(errbuf, "Unable to determine the context "
+						"(object type) of iterator %s %s %s %s",
+						MATCHER_SYM(m->type), SDB_TYPE_TO_STRING(left_type),
+						MATCHER_SYM(ITER_M(m)->m->type),
+						SDB_TYPE_TO_STRING(CMP_M(ITER_M(m)->m)->right->data_type));
 			}
 			if (analyze_matcher(child_context, m->type, ITER_M(m)->m, errbuf))
 				return -1;
@@ -370,6 +396,11 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 
+	if (context <= 0) {
+		sdb_strbuf_sprintf(errbuf, "Unable to determine the context "
+				"(object type) for command %#x", node->cmd);
+		return -1;
+	}
 	if (analyze_matcher(context, -1, m, errbuf))
 		status = -1;
 	if (analyze_matcher(-1, -1, filter, errbuf))
