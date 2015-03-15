@@ -17,7 +17,10 @@ case "$CICFLAGS" in
 		# skip regular tests
 		;;
 	*)
-		make -j10 test TESTS_ENVIRONMENT="./testwrapper.sh"
+		# old versions of gcc and clang complain about { 0 } initializers
+		make -j10 test \
+			TESTS_ENVIRONMENT="./testwrapper.sh" \
+			CFLAGS="-O0 $CICFLAGS -Wno-missing-field-initializers"
 		;;
 esac
 
