@@ -412,97 +412,78 @@ START_TEST(test_store_service_attr)
 }
 END_TEST
 
+static struct {
+	const char *hostname;
+	int field;
+	int expected;
+	sdb_data_t value;
+} get_field_data[] = {
+	{ NULL,   0, -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
+	{ NULL,   SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
+	{ "host", SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
+	/* the test will handle AGE specially */
+	{ "host", SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "host" } } },
+	{ "host", SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
+};
+
 START_TEST(test_get_field)
 {
-	sdb_store_obj_t *host;
+	sdb_store_obj_t *host = NULL;
 	sdb_data_t value = SDB_DATA_INIT;
+	char value_str[128], expected_value_str[128];
+	sdb_time_t now = sdb_gettime();
 	int check;
 
 	sdb_store_host("host", 10);
 	sdb_store_host("host", 20);
 
-	host = sdb_store_get_host("host");
-	fail_unless(host != NULL,
-			"INTERNAL ERROR: store doesn't have host after adding it");
+	if (get_field_data[_i].hostname) {
+		host = sdb_store_get_host(get_field_data[_i].hostname);
+		ck_assert(host != NULL);
+	}
 
-	check = sdb_store_get_field(NULL, 0, NULL);
-	fail_unless(check < 0,
-			"sdb_store_get_field(NULL, 0, NULL) = %d; expected: <0");
-	check = sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, NULL);
-	fail_unless(check < 0,
-			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
-			"expected: <0");
-	check = sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, &value);
-	fail_unless(check < 0,
-			"sdb_store_get_field(NULL, SDB_FIELD_LAST_UPDATE, <value>) = %d; "
-			"expected: <0");
+	check = sdb_store_get_field(host, get_field_data[_i].field, NULL);
+	fail_unless(check == get_field_data[_i].expected,
+			"sdb_store_get_field(%s, %s, NULL) = %d; expected: %d",
+			host ? "<host>" : "NULL", SDB_FIELD_TO_NAME(get_field_data[_i].field),
+			check, get_field_data[_i].expected);
+	check = sdb_store_get_field(host, get_field_data[_i].field, &value);
+	fail_unless(check == get_field_data[_i].expected,
+			"sdb_store_get_field(%s, %s, <value>) = %d; expected: %d",
+			host ? "<host>" : "NULL", SDB_FIELD_TO_NAME(get_field_data[_i].field),
+			check, get_field_data[_i].expected);
 
-	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, NULL);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
-			"expected: 0");
-	/* 'name' is dynamically allocated; make sure it's not leaked even
-	 * if there is no result parameter */
-	check = sdb_store_get_field(host, SDB_FIELD_NAME, NULL);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, NULL) = %d; "
-			"expected: 0");
+	if (get_field_data[_i].expected)
+		return;
 
-	check = sdb_store_get_field(host, SDB_FIELD_NAME, &value);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_NAME, <value>) = "
-			"%d; expected: 0");
-	fail_unless((value.type == SDB_TYPE_STRING)
-			&& (! strcmp(value.data.string, "host")),
-			"sdb_store_get_field(<host>, SDB_FIELD_NAME, <value>) "
-			"returned value {%d, %s}; expected {%d, host}",
-			value.type, value.data.string, SDB_TYPE_STRING);
+	if (get_field_data[_i].field == SDB_FIELD_AGE) {
+		get_field_data[_i].value.type = SDB_TYPE_DATETIME;
+		get_field_data[_i].value.data.datetime = now;
+	}
+
+	sdb_data_format(&value, value_str, sizeof(value_str), 0);
+	sdb_data_format(&get_field_data[_i].value, expected_value_str,
+			sizeof(expected_value_str), 0);
+
+	if (get_field_data[_i].field == SDB_FIELD_AGE) {
+		fail_unless((value.type == SDB_TYPE_DATETIME)
+				&& (value.data.datetime >= now),
+				"sdb_store_get_field(<host>, %s, <value>) "
+				"returned value %s; expected >=%s",
+				SDB_FIELD_TO_NAME(get_field_data[_i].field),
+				value_str, expected_value_str);
+	}
+	else {
+		fail_unless(! sdb_data_cmp(&value, &get_field_data[_i].value),
+				"sdb_store_get_field(<host>, %s, <value>) "
+				"returned value %s; expected %s",
+				SDB_FIELD_TO_NAME(get_field_data[_i].field),
+				value_str, expected_value_str);
+	}
 	sdb_data_free_datum(&value);
-
-	check = sdb_store_get_field(host, SDB_FIELD_LAST_UPDATE, &value);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, <value>) = "
-			"%d; expected: 0");
-	fail_unless((value.type == SDB_TYPE_DATETIME)
-			&& (value.data.datetime == 20),
-			"sdb_store_get_field(<host>, SDB_FIELD_LAST_UPDATE, <value>) "
-			"returned value {%d, %lu}; expected {%d, 20}",
-			value.type, value.data.datetime, SDB_TYPE_DATETIME);
-
-	check = sdb_store_get_field(host, SDB_FIELD_AGE, &value);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_AGE, <value>) = "
-			"%d; expected: 0");
-	/* let's assume we're at least in year 1980 ;-) */
-	fail_unless((value.type == SDB_TYPE_DATETIME)
-			&& (value.data.datetime > 10L * SDB_INTERVAL_YEAR),
-			"sdb_store_get_field(<host>, SDB_FIELD_AGE, <value>) "
-			"returned value {%d, %lu}; expected {%d, >%lu}",
-			value.type, value.data.datetime,
-			SDB_TYPE_DATETIME, 10L * SDB_INTERVAL_YEAR);
-
-	check = sdb_store_get_field(host, SDB_FIELD_INTERVAL, &value);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_INTERVAL, <value>) = "
-			"%d; expected: 0");
-	fail_unless((value.type == SDB_TYPE_DATETIME)
-			&& (value.data.datetime == 10),
-			"sdb_store_get_field(<host>, SDB_FIELD_INTERVAL, <value>) "
-			"returned value {%d, %lu}; expected {%d, 10}",
-			value.type, value.data.datetime, SDB_TYPE_DATETIME);
-
-	check = sdb_store_get_field(host, SDB_FIELD_BACKEND, &value);
-	fail_unless(check == 0,
-			"sdb_store_get_field(<host>, SDB_FIELD_BACKEND, <value>) = "
-			"%d; expected: 0");
-	/* there are no backends in this test */
-	fail_unless((value.type == (SDB_TYPE_ARRAY | SDB_TYPE_STRING))
-			&& (value.data.array.length == 0)
-			&& (value.data.array.values == NULL),
-			"sdb_store_get_field(<host>, SDB_FIELD_BACKEND, <value>) "
-			"returned value {%d, %lu, %p}; expected {%d, 0, NULL}",
-			value.type, value.data.array.length, value.data.array.values,
-			SDB_TYPE_ARRAY | SDB_TYPE_STRING);
 }
 END_TEST
 
@@ -752,7 +733,7 @@ TEST_MAIN("core::store")
 	tcase_add_test(tc, test_store_metric_attr);
 	tcase_add_test(tc, test_store_service);
 	tcase_add_test(tc, test_store_service_attr);
-	tcase_add_test(tc, test_get_field);
+	TC_ADD_LOOP_TEST(tc, get_field);
 	tcase_add_test(tc, test_get_child);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);

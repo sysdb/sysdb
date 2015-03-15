@@ -898,12 +898,12 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 			tmp.data.datetime = obj->interval;
 			break;
 		case SDB_FIELD_BACKEND:
-		{
+			if (! res)
+				return 0;
 			tmp.type = SDB_TYPE_ARRAY | SDB_TYPE_STRING;
 			tmp.data.array.length = obj->backends_num;
 			tmp.data.array.values = obj->backends;
 			return sdb_data_copy(res, &tmp);
-		}
 		default:
 			return -1;
 	}
