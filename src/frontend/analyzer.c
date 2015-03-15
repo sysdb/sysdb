@@ -45,7 +45,7 @@ iter_error(sdb_strbuf_t *errbuf, int op, sdb_store_expr_t *iter, int context)
 	sdb_strbuf_sprintf(errbuf, "Invalid %s iterator: %s %s "
 			"not iterable in %s context", MATCHER_SYM(op),
 			EXPR_TO_STRING(iter), SDB_STORE_TYPE_TO_NAME(iter->data_type),
-			SDB_STORE_TYPE_TO_NAME(context));
+			context == -1 ? "generic" : SDB_STORE_TYPE_TO_NAME(context));
 } /* iter_error */
 
 static void
@@ -392,13 +392,15 @@ sdb_fe_analyze(sdb_conn_node_t *node, sdb_strbuf_t *errbuf)
 	}
 	else {
 		sdb_strbuf_sprintf(errbuf,
-				"Don't know how to analyze command %#x", node->cmd);
+				"Don't know how to analyze %s command (id=%#x)",
+				SDB_CONN_MSGTYPE_TO_STRING(node->cmd), node->cmd);
 		return -1;
 	}
 
 	if (context <= 0) {
 		sdb_strbuf_sprintf(errbuf, "Unable to determine the context "
-				"(object type) for command %#x", node->cmd);
+				"(object type) for %s command (id=%#x)",
+				SDB_CONN_MSGTYPE_TO_STRING(node->cmd), node->cmd);
 		return -1;
 	}
 	if (analyze_matcher(context, -1, m, errbuf))
