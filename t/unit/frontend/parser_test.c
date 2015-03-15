@@ -64,18 +64,61 @@ struct {
 	  "'host'.'metric'",     -1,  1, SDB_CONNECTION_FETCH  },
 
 	/* LIST commands */
-	{ "LIST hosts",          -1,  1, SDB_CONNECTION_LIST   },
-	{ "LIST hosts -- foo",   -1,  1, SDB_CONNECTION_LIST   },
-	{ "LIST hosts;",         -1,  1, SDB_CONNECTION_LIST   },
-	{ "LIST hosts; INVALID", 11,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts -- foo",     -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts;",           -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts; INVALID",   11,  1, SDB_CONNECTION_LIST   },
 	{ "LIST hosts FILTER "
-	  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
-	{ "LIST services",       -1,  1, SDB_CONNECTION_LIST   },
+	  "age > 60s",             -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services",         -1,  1, SDB_CONNECTION_LIST   },
 	{ "LIST services FILTER "
-	  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
-	{ "LIST metrics",        -1,  1, SDB_CONNECTION_LIST   },
+	  "age > 60s",             -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics",          -1,  1, SDB_CONNECTION_LIST   },
 	{ "LIST metrics FILTER "
-	  "age > 60s",           -1,  1, SDB_CONNECTION_LIST   },
+	  "age > 60s",             -1,  1, SDB_CONNECTION_LIST   },
+	/* field access */
+	{ "LIST hosts FILTER "
+	  "name = 'a'",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts FILTER "
+	  "last_update > 1s",      -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts FILTER "
+	  "age > 120s",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts FILTER "
+	  "interval > 10s",        -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts FILTER "
+	  "backend = ['b']",       -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST hosts FILTER "
+	  "value = 'a'",           -1, -1, 0 },
+	{ "LIST hosts FILTER ANY "
+	  "attribute.value = 'a'", -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "name = 'a'",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "last_update > 1s",      -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "age > 120s",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "interval > 10s",        -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "backend = ['b']",       -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST services FILTER "
+	  "value = 'a'",           -1, -1, 0 },
+	{ "LIST services FILTER ANY "
+	  "attribute.value = 'a'", -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "name = 'a'",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "last_update > 1s",      -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "age > 120s",            -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "interval > 10s",        -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "backend = ['b']",       -1,  1, SDB_CONNECTION_LIST   },
+	{ "LIST metrics FILTER "
+	  "value = 'a'",           -1, -1, 0 },
+	{ "LIST metrics FILTER ANY "
+	  "attribute.value = 'a'", -1,  1, SDB_CONNECTION_LIST   },
 
 	/* LOOKUP commands */
 	{ "LOOKUP hosts",        -1,  1, SDB_CONNECTION_LOOKUP },

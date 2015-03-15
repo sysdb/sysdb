@@ -100,12 +100,22 @@ analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
 			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.%s "
 					"in %s context",
 					SDB_STORE_TYPE_TO_NAME(e->data.data.integer),
-					EXPR_TO_STRING(e->left), SDB_STORE_TYPE_TO_NAME(context));
+					EXPR_TO_STRING(e->left),
+					context == -1 ? "generic" : SDB_STORE_TYPE_TO_NAME(context));
 			return -1;
 
 		case ATTR_VALUE:
-		case FIELD_VALUE:
 		case 0:
+			break;
+
+		case FIELD_VALUE:
+			if ((e->data.data.integer == SDB_FIELD_VALUE)
+					&& (context != SDB_ATTRIBUTE)) {
+				sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value "
+						"(only attributes have a value)",
+						SDB_STORE_TYPE_TO_NAME(context));
+				return -1;
+			}
 			break;
 
 		default:
@@ -161,7 +171,7 @@ analyze_matcher(int context, int parent_type,
 
 			if ((ITER_M(m)->iter->type == TYPED_EXPR)
 					|| (ITER_M(m)->iter->type == FIELD_VALUE))
-				type = ITER_M(m)->iter->data.data.integer;
+				type = (int)ITER_M(m)->iter->data.data.integer;
 
 			if (context == -1) { /* inside a filter */
 				/* attributes are always iterable */

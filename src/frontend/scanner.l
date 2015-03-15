@@ -86,6 +86,7 @@ static struct {
 	{ "age",         AGE_T },
 	{ "interval",    INTERVAL_T },
 	{ "backend",     BACKEND_T },
+	{ "value",       VALUE_T },
 };
 
 void

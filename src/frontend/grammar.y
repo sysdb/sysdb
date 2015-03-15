@@ -119,7 +119,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 
 %token HOST_T HOSTS_T SERVICE_T SERVICES_T METRIC_T METRICS_T
 %token ATTRIBUTE_T ATTRIBUTES_T
-%token NAME_T LAST_UPDATE_T AGE_T INTERVAL_T BACKEND_T
+%token NAME_T LAST_UPDATE_T AGE_T INTERVAL_T BACKEND_T VALUE_T
 
 %token LAST UPDATE
 
@@ -700,6 +700,8 @@ field:
 	INTERVAL_T { $$ = SDB_FIELD_INTERVAL; }
 	|
 	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
+	|
+	VALUE_T { $$ = SDB_FIELD_VALUE; }
 	;
 
 cmp:
