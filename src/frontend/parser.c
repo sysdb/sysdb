@@ -162,7 +162,7 @@ sdb_fe_parse_expr(const char *expr, int len, sdb_strbuf_t *errbuf)
 	if (scanner_init(expr, len, &scanner, &yyextra, errbuf))
 		return NULL;
 
-	yyextra.mode = SDB_PARSE_EXPR;
+	yyextra.mode = SDB_PARSE_ARITH;
 
 	yyres = sdb_fe_yyparse(scanner);
 	sdb_fe_scanner_destroy(scanner);

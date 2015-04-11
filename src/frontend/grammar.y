@@ -78,7 +78,7 @@ sdb_fe_yyerrorf(YYLTYPE *lval, sdb_fe_yyscan_t scanner, const char *fmt, ...);
 #define MODE_TO_STRING(m) \
 	(((m) == SDB_PARSE_DEFAULT) ? "statement" \
 		: ((m) == SDB_PARSE_COND) ? "condition" \
-		: ((m) == SDB_PARSE_EXPR) ? "expression" \
+		: ((m) == SDB_PARSE_ARITH) ? "arithmetic expression" \
 		: "UNKNOWN")
 
 %}
@@ -244,7 +244,7 @@ statements:
 	expression
 		{
 			/* only accepted in expression parse mode */
-			if (! (parser_mode & SDB_PARSE_EXPR)) {
+			if (! (parser_mode & SDB_PARSE_ARITH)) {
 				sdb_fe_yyerrorf(&yylloc, scanner,
 						YY_("syntax error, unexpected expression, "
 							"expecting %s"), MODE_TO_STRING(parser_mode));

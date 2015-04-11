@@ -39,9 +39,14 @@ extern "C" {
 
 /* parser modes */
 enum {
+	/* parser accepts any command statement */
 	SDB_PARSE_DEFAULT = 0,
+
+	/* parser accepts any conditional statement */
 	SDB_PARSE_COND    = 1 << 1,
-	SDB_PARSE_EXPR    = 1 << 2,
+
+	/* parser accepts any arithmetic expression */
+	SDB_PARSE_ARITH   = 1 << 2,
 };
 
 /* YY_EXTRA data */
