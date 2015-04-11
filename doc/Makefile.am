@@ -4,6 +4,21 @@ SUFFIXES = \
 		.1.txt .5.txt .7.txt \
 		.1.xml .5.xml .7.xml
 
+BUILT_SOURCES = \
+		sysdb.1.xml \
+		sysdbd.1.xml \
+		sysdbd.conf.5.xml \
+		sysdbd-cname-dns.5.xml \
+		sysdbd-collectd-unixsock.5.xml \
+		sysdbd-facter.5.xml \
+		sysdbd-mk-livestatus.5.xml \
+		sysdbd-puppet-store-configs.5.xml \
+		sysdbd-store-network.5.xml \
+		sysdbd-syslog.5.xml \
+		sysdbd-timeseries-rrdtool.5.xml \
+		sysdb.7.xml \
+		sysdbql.7.xml
+
 EXTRA_DIST = \
 		asciidoc.conf \
 		sysdb.1.txt \
@@ -146,23 +161,23 @@ html-local: $(html_DATA)
 install-html-local: install-htmlDATA
 
 .1.txt.1.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 .5.txt.5.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 .7.txt.7.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 
 .1.xml.1:
-	@XMLTO@ man $<
+	@XMLTO@ -o . man $<
 .5.xml.5:
-	@XMLTO@ man $<
+	@XMLTO@ -o . man $<
 .7.xml.7:
-	@XMLTO@ man $<
+	@XMLTO@ -o . man $<
 
 .1.txt.1.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 .5.txt.5.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 .7.txt.7.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage $<
+	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 

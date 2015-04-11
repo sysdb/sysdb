@@ -4,7 +4,7 @@ SUBDIRS = liboconfig
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@
 AM_CXXFLAGS = @STRICT_CXXFLAGS@ @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@ @PROFILING_LDFLAGS@
-AM_CPPFLAGS  = -I"${top_srcdir}/src/include"
+AM_CPPFLAGS  = -I${top_builddir}/src/include -I${top_srcdir}/src/include
 AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
@@ -232,23 +232,27 @@ sysdbd_LDADD += -dlopen plugins/store/network.la
 sysdbd_DEPENDENCIES += plugins/store/network.la
 endif
 
-include/client/sysdb.h: include/client/sysdb.h.in ../version
-	source ../version; sed \
+include/client/sysdb.h: include/client/sysdb.h.in $(abs_top_builddir)/version
+	mkdir -p include/client
+	source $(abs_top_builddir)/version; sed \
 	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
 	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
 	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
 	    -e "s/@SDB_VERSION_EXTRA@/$$VERSION_EXTRA/g" \
 	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
-	    include/client/sysdb.h.in > include/client/sysdb.h
+	    $(srcdir)/include/client/sysdb.h.in \
+	    > include/client/sysdb.h
 
-include/sysdb.h: include/sysdb.h.in ../version
-	source ../version; sed \
+include/sysdb.h: include/sysdb.h.in $(abs_top_builddir)/version
+	mkdir -p include
+	source $(abs_top_builddir)/version; sed \
 	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
 	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
 	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
 	    -e "s/@SDB_VERSION_EXTRA@/$$VERSION_EXTRA/g" \
 	    -e "s/@SDB_VERSION_STRING@/$$VERSION_STRING/g" \
-	    include/sysdb.h.in > include/sysdb.h
+	    $(srcdir)/include/sysdb.h.in \
+	    > include/sysdb.h
 
-../version:
+$(abs_top_builddir)/version:
 	cd .. && make version

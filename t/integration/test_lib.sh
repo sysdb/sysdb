@@ -29,18 +29,28 @@
 #
 
 TOP_SRCDIR="$( readlink -f "$( dirname "$0" )/../.." )"
+TOP_BUILDDIR="$TOP_SRCDIR"
+if test -n "$VPATH"; then
+	# We'll have to guess.
+	if test -d ../t; then
+		TOP_BUILDDIR="$( readlink -f .. )"
+	else if test -d t; then
+		TOP_BUILDDIR="$( readlink -f . )"
+	fi; fi
+fi
+
 TESTDIR="$( mktemp -d )"
 trap "rm -rf '$TESTDIR'; test -z \$SYSDBD_PID || kill \$SYSDBD_PID" EXIT
 
 mkdir "$TESTDIR/backend"
-cp "$TOP_SRCDIR/t/integration/.libs/mock_timeseries.so" "$TESTDIR"
-cp "$TOP_SRCDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
+cp "$TOP_BUILDDIR/t/integration/.libs/mock_timeseries.so" "$TESTDIR"
+cp "$TOP_BUILDDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
 mkdir "$TESTDIR/store"
-cp "$TOP_SRCDIR/src/plugins/store/.libs/network.so" "$TESTDIR/store"
+cp "$TOP_BUILDDIR/src/plugins/store/.libs/network.so" "$TESTDIR/store"
 
-cp "$TOP_SRCDIR"/src/sysdb "$TESTDIR"
-cp "$TOP_SRCDIR"/src/sysdbd "$TESTDIR"
+cp "$TOP_BUILDDIR"/src/sysdb "$TESTDIR"
+cp "$TOP_BUILDDIR"/src/sysdbd "$TESTDIR"
 
 MEMCHECK="valgrind --quiet --tool=memcheck --error-exitcode=1"
 MEMCHECK="$MEMCHECK --trace-children=yes"

@@ -12,7 +12,7 @@ EXTRA_DIST = \
 
 version: FORCE
 	@# As a side-effect, this updates version.
-	@echo Building $(PACKAGE_NAME) version $$( ./version-gen.sh )
+	@echo Building $(PACKAGE_NAME) version $$( $(top_srcdir)/version-gen.sh )
 .PHONY: FORCE
 
 test: check

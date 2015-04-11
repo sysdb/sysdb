@@ -12,7 +12,8 @@ EXTRA_DIST = \
 # coverage related flags are only set when gcov is enabled
 AM_CFLAGS = @STRICT_CFLAGS@ @COVERAGE_CFLAGS@
 AM_LDFLAGS = @COVERAGE_LDFLAGS@
-AM_CPPFLAGS = -I$(top_srcdir)/src/include
+AM_CPPFLAGS = -I$(top_builddir)/src/include \
+		-I$(top_srcdir)/src/include -I$(top_srcdir)/src
 
 TESTS =
 check_PROGRAMS =
@@ -22,7 +23,7 @@ check_LTLIBRARIES =
 # unit tests
 #
 
-LOG_COMPILER = $(abs_srcdir)/testwrapper.sh
+LOG_COMPILER = env VPATH=$(VPATH) $(abs_srcdir)/testwrapper.sh
 
 if UNIT_TESTING
 UNIT_TESTS = \
