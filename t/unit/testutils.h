@@ -46,6 +46,7 @@
 		int failed; \
 		putenv("TZ=UTC"); \
 		s = suite_create(name); \
+		sr = srunner_create(s); \
 
 #define TC_ADD_LOOP_TEST(tc, name) \
 	tcase_add_loop_test((tc), test_ ## name, \
@@ -54,7 +55,6 @@
 #define ADD_TCASE(tc) suite_add_tcase(s, (tc))
 
 #define TEST_MAIN_END \
-		sr = srunner_create(s); \
 		srunner_run_all(sr, CK_NORMAL); \
 		failed = srunner_ntests_failed(sr); \
 		srunner_free(sr); \

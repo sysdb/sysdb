@@ -12,7 +12,7 @@ AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 AM_YFLAGS = -d
 
 BUILT_SOURCES = include/client/sysdb.h include/sysdb.h \
-		frontend/grammar.h
+		frontend/grammar.h parser/grammar.h
 EXTRA_DIST = include/client/sysdb.h.in include/sysdb.h.in
 
 pkginclude_HEADERS = include/sysdb.h
@@ -68,7 +68,8 @@ libsysdbclient_la_LIBADD = $(LIBLTDL) @OPENSSL_LIBS@
 # don't use strict CFLAGS for flex code
 noinst_LTLIBRARIES += libsysdb_fe_parser.la
 libsysdb_fe_parser_la_SOURCES = \
-		frontend/grammar.y frontend/scanner.l
+		frontend/grammar.y frontend/scanner.l \
+		parser/grammar.y parser/scanner.l
 libsysdb_fe_parser_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
 		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 libsysdb_la_SOURCES = \
@@ -92,6 +93,7 @@ libsysdb_la_SOURCES = \
 		frontend/store.c \
 		frontend/query.c \
 		parser/ast.c include/parser/ast.h \
+		parser/parser.c include/parser/parser.h \
 		utils/avltree.c include/utils/avltree.h \
 		utils/channel.c include/utils/channel.h \
 		utils/error.c include/utils/error.h \

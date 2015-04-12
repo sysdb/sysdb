@@ -45,6 +45,9 @@ src/frontend/scanner.c
 src/liboconfig/parser.c
 src/liboconfig/parser.h
 src/liboconfig/scanner.c
+src/parser/grammar.c
+src/parser/grammar.h
+src/parser/scanner.c
 src/tools/sysdb/scanner.c
 src/sysdb
 src/sysdbd
