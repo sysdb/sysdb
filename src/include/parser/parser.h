@@ -73,6 +73,18 @@ sdb_ast_node_t *
 sdb_parser_parse_arith(const char *expr, int len, sdb_strbuf_t *errbuf);
 
 /*
+ * sdb_parser_analyze:
+ * Semantical analysis of a parse-tree.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else; an error message will be written to the provided
+ *    error buffer
+ */
+int
+sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+
+/*
  * Low-level interface.
  */
 

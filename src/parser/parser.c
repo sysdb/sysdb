@@ -96,16 +96,13 @@ sdb_parser_parse(const char *query, int len, sdb_strbuf_t *errbuf)
 
 	iter = sdb_llist_get_iter(yyextra.parsetree);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_conn_node_t *node;
-		node = SDB_CONN_NODE(sdb_llist_iter_get_next(iter));
-		assert(node);
-		/* TODO
-		if (sdb_parser_analyze(node, errbuf)) {
+		sdb_ast_node_t *node;
+		node = SDB_AST_NODE(sdb_llist_iter_get_next(iter));
+		if (sdb_parser_analyze(node, errbuf) < 0) {
 			sdb_llist_iter_destroy(iter);
 			sdb_llist_destroy(yyextra.parsetree);
 			return NULL;
 		}
-		*/
 	}
 	sdb_llist_iter_destroy(iter);
 	return yyextra.parsetree;
