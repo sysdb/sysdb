@@ -279,7 +279,7 @@ statement:
 fetch_statement:
 	FETCH object_type STRING filter_clause
 		{
-			$$ = sdb_ast_fetch_create($2, $3, NULL, $4);
+			$$ = sdb_ast_fetch_create($2, NULL, $3, $4);
 			CK_OOM($$);
 		}
 	|
