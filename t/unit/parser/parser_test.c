@@ -172,8 +172,10 @@ struct {
 	{ "TIMESERIES 'host'.'metric' "
 	  "START 2014-02-02 "
 	  "14:02",               -1,  1, SDB_AST_TYPE_TIMESERIES, 0 },
+	/* the end time has to be greater than the start time;
+	 * we'll be safe for about 200 years ;-) */
 	{ "TIMESERIES 'host'.'metric' "
-	  "END 2014-02-02",      -1,  1, SDB_AST_TYPE_TIMESERIES, 0 },
+	  "END 2214-02-02",      -1,  1, SDB_AST_TYPE_TIMESERIES, 0 },
 	{ "TIMESERIES "
 	  "'host'.'metric'",     -1,  1, SDB_AST_TYPE_TIMESERIES, 0 },
 
