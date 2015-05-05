@@ -396,5 +396,35 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 	return -1;
 } /* sdb_parser_analyze */
 
+int
+sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
+{
+	if (! node) {
+		sdb_strbuf_sprintf(errbuf, "Empty conditional node");
+		return -1;
+	}
+	if (! SDB_AST_IS_LOGICAL(node)) {
+		sdb_strbuf_sprintf(errbuf, "Not a conditional node (got %s)",
+				SDB_AST_TYPE_TO_STRING(node));
+		return -1;
+	}
+	return analyze_node(-1, node, errbuf);
+} /* sdb_parser_analyze_conditional */
+
+int
+sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
+{
+	if (! node) {
+		sdb_strbuf_sprintf(errbuf, "Empty arithmetic node");
+		return -1;
+	}
+	if (! SDB_AST_IS_ARITHMETIC(node)) {
+		sdb_strbuf_sprintf(errbuf, "Not an arithmetic node (got %s)",
+				SDB_AST_TYPE_TO_STRING(node));
+		return -1;
+	}
+	return analyze_node(-1, node, errbuf);
+} /* sdb_parser_analyze_arith */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

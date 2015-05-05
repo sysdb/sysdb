@@ -140,6 +140,11 @@ sdb_parser_parse_conditional(const char *cond, int len, sdb_strbuf_t *errbuf)
 
 	assert(SDB_AST_IS_LOGICAL(node));
 	sdb_llist_destroy(yyextra.parsetree);
+
+	if (sdb_parser_analyze_conditional(node, errbuf)) {
+		sdb_object_deref(SDB_OBJ(node));
+		return NULL;
+	}
 	return node;
 } /* sdb_parser_parse_conditional */
 
@@ -175,6 +180,11 @@ sdb_parser_parse_arith(const char *expr, int len, sdb_strbuf_t *errbuf)
 
 	assert(SDB_AST_IS_ARITHMETIC(node));
 	sdb_llist_destroy(yyextra.parsetree);
+
+	if (sdb_parser_analyze_arith(node, errbuf)) {
+		sdb_object_deref(SDB_OBJ(node));
+		return NULL;
+	}
 	return node;
 } /* sdb_parser_parse_arith */
 

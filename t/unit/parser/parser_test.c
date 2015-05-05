@@ -900,6 +900,11 @@ START_TEST(test_parse_conditional)
 				"expected: %d", parse_conditional_data[_i].expr,
 				SDB_AST_ITER(node)->kind, parse_conditional_data[_i].expected);
 
+	fail_unless(node->data_type == -1,
+			"sdb_parser_parse_conditional(%s) returned conditional of data-type %s; "
+			"expected: %s", parse_conditional_data[_i].expr,
+			SDB_TYPE_TO_STRING(node->data_type), SDB_TYPE_TO_STRING(-1));
+
 	sdb_object_deref(SDB_OBJ(node));
 	sdb_strbuf_destroy(errbuf);
 }
@@ -909,63 +914,64 @@ struct {
 	const char *expr;
 	int len;
 	int expected;
+	int data_type;
 } parse_arith_data[] = {
 	/* empty expressions */
-	{ NULL,                   -1, -1 },
-	{ "",                     -1, -1 },
+	{ NULL,                   -1, -1, -1 },
+	{ "",                     -1, -1, -1 },
 
 	/* constant expressions */
-	{ "'localhost'",          -1, SDB_AST_TYPE_CONST },
-	{ "123",                  -1, SDB_AST_TYPE_CONST },
-	{ "2014-08-16",           -1, SDB_AST_TYPE_CONST },
-	{ "17:23",                -1, SDB_AST_TYPE_CONST },
-	{ "17:23:53",             -1, SDB_AST_TYPE_CONST },
-	{ "17:23:53.123",         -1, SDB_AST_TYPE_CONST },
-	{ "17:23:53.123456789",   -1, SDB_AST_TYPE_CONST },
-	{ "2014-08-16 17:23",     -1, SDB_AST_TYPE_CONST },
-	{ "2014-08-16 17:23:53",  -1, SDB_AST_TYPE_CONST },
-	{ "10s",                  -1, SDB_AST_TYPE_CONST },
-	{ "60m",                  -1, SDB_AST_TYPE_CONST },
-	{ "10Y 24D 1h",           -1, SDB_AST_TYPE_CONST },
+	{ "'localhost'",          -1, SDB_AST_TYPE_CONST, SDB_TYPE_STRING },
+	{ "123",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_INTEGER },
+	{ "42.3",                 -1, SDB_AST_TYPE_CONST, SDB_TYPE_DECIMAL },
+	{ "2014-08-16",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "17:23",                -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "17:23:53",             -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "17:23:53.123",         -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "17:23:53.123456789",   -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "2014-08-16 17:23",     -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "2014-08-16 17:23:53",  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "10s",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "60m",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ "10Y 24D 1h",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
 
 	/* TODO: the analyzer and/or optimizer should turn these into constants */
-	{ "123 + 456",            -1, SDB_AST_ADD },
-	{ "'foo' || 'bar'",       -1, SDB_AST_CONCAT },
-	{ "456 - 123",            -1, SDB_AST_SUB },
-	{ "1.2 * 3.4",            -1, SDB_AST_MUL },
-	{ "1.2 / 3.4",            -1, SDB_AST_DIV },
-	{ "5 % 2",                -1, SDB_AST_MOD },
+	{ "123 + 456",            -1, SDB_AST_ADD, SDB_TYPE_INTEGER },
+	{ "'foo' || 'bar'",       -1, SDB_AST_CONCAT, SDB_TYPE_STRING },
+	{ "456 - 123",            -1, SDB_AST_SUB, SDB_TYPE_INTEGER },
+	{ "1.2 * 3.4",            -1, SDB_AST_MUL, SDB_TYPE_DECIMAL },
+	{ "1.2 / 3.4",            -1, SDB_AST_DIV, SDB_TYPE_DECIMAL },
+	{ "5 % 2",                -1, SDB_AST_MOD, SDB_TYPE_INTEGER },
 
 	/* queryable fields */
-	{ "last_update",          -1, SDB_AST_TYPE_VALUE },
-	{ "AGE",                  -1, SDB_AST_TYPE_VALUE },
-	{ "interval",             -1, SDB_AST_TYPE_VALUE },
-	{ "Last_Update",          -1, SDB_AST_TYPE_VALUE },
-	{ "backend",              -1, SDB_AST_TYPE_VALUE },
+	{ "last_update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ "AGE",                  -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ "interval",             -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ "Last_Update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ "backend",              -1, SDB_AST_TYPE_VALUE, SDB_TYPE_ARRAY | SDB_TYPE_STRING },
 
 	/* attributes */
-	{ "attribute['foo']",     -1, SDB_AST_TYPE_VALUE },
+	{ "attribute['foo']",     -1, SDB_AST_TYPE_VALUE, -1 },
 
 	/* arithmetic expressions */
-	{ "age + age",            -1, SDB_AST_ADD },
-	{ "age - age",            -1, SDB_AST_SUB },
-	{ "age * age",            -1, SDB_AST_MUL },
-	{ "age / age",            -1, SDB_AST_DIV },
-	{ "age \% age",           -1, SDB_AST_MOD },
-	{ "age || age",           -1, SDB_AST_CONCAT },
+	{ "age + age",            -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ "age - age",            -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
+	{ "age * age",            -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
+	{ "age / age",            -1, SDB_AST_DIV, SDB_TYPE_DATETIME },
+	{ "age \% age",           -1, SDB_AST_MOD, SDB_TYPE_DATETIME },
 
 	/* operator precedence */
-	{ "age + age * age",      -1, SDB_AST_ADD },
-	{ "age * age + age",      -1, SDB_AST_ADD },
-	{ "age + age - age",      -1, SDB_AST_SUB },
-	{ "age - age + age",      -1, SDB_AST_ADD },
-	{ "(age + age) * age",    -1, SDB_AST_MUL },
-	{ "age + (age * age)",    -1, SDB_AST_ADD },
+	{ "age + age * age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ "age * age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ "age + age - age",      -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
+	{ "age - age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ "(age + age) * age",    -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
+	{ "age + (age * age)",    -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
 
 	/* syntax errors */
-	{ "LIST",                 -1, -1 },
-	{ "foo &^ bar",           -1, -1 },
-	{ "invalid",              -1, -1 },
+	{ "LIST",                 -1, -1, -1 },
+	{ "foo &^ bar",           -1, -1, -1 },
+	{ "invalid",              -1, -1, -1 },
 };
 
 START_TEST(test_parse_arith)
@@ -998,6 +1004,12 @@ START_TEST(test_parse_arith)
 				"sdb_parser_parse_arith(%s) returned expression of type %d; "
 				"expected: %d", parse_arith_data[_i].expr, node->type,
 				parse_arith_data[_i].expected);
+
+	fail_unless(node->data_type == parse_arith_data[_i].data_type,
+			"sdb_parser_parse_arith(%s) returned expression of data-type %s; "
+			"expected: %s", parse_arith_data[_i].expr,
+			SDB_TYPE_TO_STRING(node->data_type),
+			SDB_TYPE_TO_STRING(parse_arith_data[_i].data_type));
 
 	sdb_object_deref(SDB_OBJ(node));
 	sdb_strbuf_destroy(errbuf);

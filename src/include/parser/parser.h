@@ -85,6 +85,30 @@ int
 sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
 
 /*
+ * sdb_parser_analyze_conditional:
+ * Semantical analysis of a conditional node.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else; an error message will be written to the provided
+ *    error buffer
+ */
+int
+sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+
+/*
+ * sdb_parser_analyze_arith:
+ * Semantical analysis of an arithmetic node.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else; an error message will be written to the provided
+ *    error buffer
+ */
+int
+sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+
+/*
  * Low-level interface.
  */
 
