@@ -105,7 +105,7 @@ analyze_arith(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 		return -1;
 	if (analyze_node(context, op->right, errbuf))
 		return -1;
-	SDB_AST_NODE(op)->data_type = sdb_data_expr_type(op->kind,
+	SDB_AST_NODE(op)->data_type = sdb_data_expr_type(SDB_AST_OP_TO_DATA_OP(op->kind),
 			op->left->data_type, op->right->data_type);
 
 	/* TODO: replace constant arithmetic operations with a constant value */

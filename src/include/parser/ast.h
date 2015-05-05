@@ -139,6 +139,15 @@ typedef enum {
 		: ((op) == SDB_AST_ANY) ? "ANY" \
 		: "UNKNOWN")
 
+#define SDB_AST_OP_TO_DATA_OP(op) \
+	(((op) == SDB_AST_ADD) ? SDB_DATA_ADD \
+		: ((op) == SDB_AST_SUB) ? SDB_DATA_SUB \
+		: ((op) == SDB_AST_MUL) ? SDB_DATA_MUL \
+		: ((op) == SDB_AST_DIV) ? SDB_DATA_DIV \
+		: ((op) == SDB_AST_MOD) ? SDB_DATA_MOD \
+		: ((op) == SDB_AST_CONCAT) ? SDB_DATA_CONCAT \
+		: -1)
+
 #define SDB_AST_TYPE_TO_STRING(n) \
 	(((n)->type == SDB_AST_TYPE_FETCH) ? "FETCH" \
 		: ((n)->type == SDB_AST_TYPE_LIST) ? "LIST" \
