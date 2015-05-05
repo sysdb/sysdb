@@ -223,8 +223,7 @@ sdb_ast_op_create(int kind, sdb_ast_node_t *left, sdb_ast_node_t *right)
 } /* sdb_ast_op_create */
 
 sdb_ast_node_t *
-sdb_ast_iter_create(int kind, int op,
-		sdb_ast_node_t *iter, sdb_ast_node_t *expr)
+sdb_ast_iter_create(int kind, sdb_ast_node_t *iter, sdb_ast_node_t *expr)
 {
 	sdb_ast_iter_t *i;
 	i = SDB_AST_ITER(sdb_object_create(SDB_AST_OP_TO_STRING(kind), iter_type));
@@ -234,7 +233,6 @@ sdb_ast_iter_create(int kind, int op,
 	i->super.type = SDB_AST_TYPE_ITERATOR;
 
 	i->kind = kind;
-	i->op = op;
 	i->iter = iter;
 	i->expr = expr;
 	return SDB_AST_NODE(i);

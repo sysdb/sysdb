@@ -453,13 +453,17 @@ comparison:
 	|
 	ANY expression cmp expression
 		{
-			$$ = sdb_ast_iter_create(SDB_AST_ANY, $3, $2, $4);
+			sdb_ast_node_t *n = sdb_ast_op_create($3, NULL, $4);
+			CK_OOM(n);
+			$$ = sdb_ast_iter_create(SDB_AST_ANY, $2, n);
 			CK_OOM($$);
 		}
 	|
 	ALL expression cmp expression
 		{
-			$$ = sdb_ast_iter_create(SDB_AST_ALL, $3, $2, $4);
+			sdb_ast_node_t *n = sdb_ast_op_create($3, NULL, $4);
+			CK_OOM(n);
+			$$ = sdb_ast_iter_create(SDB_AST_ALL, $2, n);
 			CK_OOM($$);
 		}
 	|

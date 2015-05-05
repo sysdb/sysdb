@@ -189,7 +189,6 @@ typedef struct {
 typedef struct {
 	sdb_ast_node_t super;
 	int kind;
-	int op;
 	sdb_ast_node_t *iter;
 	/* exactly one operand of the expression has to be unset and will be
 	 * filled in by the iterator value */
@@ -197,7 +196,7 @@ typedef struct {
 } sdb_ast_iter_t;
 #define SDB_AST_ITER(obj) ((sdb_ast_iter_t *)(obj))
 #define SDB_AST_ITER_INIT \
-	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_ITERATOR }, -1, -1, NULL, NULL }
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_ITERATOR }, -1, NULL, NULL }
 
 /*
  * sdb_ast_typed_t represents a typed value.
@@ -336,8 +335,7 @@ sdb_ast_op_create(int kind, sdb_ast_node_t *left, sdb_ast_node_t *right);
  * ownership of the iter and expr nodes.
  */
 sdb_ast_node_t *
-sdb_ast_iter_create(int kind, int op,
-		sdb_ast_node_t *iter, sdb_ast_node_t *expr);
+sdb_ast_iter_create(int kind, sdb_ast_node_t *iter, sdb_ast_node_t *expr);
 
 /*
  * sdb_ast_typed_create:
