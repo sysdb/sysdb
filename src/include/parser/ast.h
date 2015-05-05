@@ -107,6 +107,10 @@ typedef enum {
 	SDB_AST_CONCAT = 2005,
 
 	/* iterators */
+#define SDB_AST_IS_ITERATOR(n) \
+	(((n)->type == SDB_AST_TYPE_ITERATOR) \
+		&& ((SDB_AST_ALL <= SDB_AST_ITER(n)->kind) \
+			&& (SDB_AST_ITER(n)->kind <= SDB_AST_ANY)))
 	SDB_AST_ALL    = 3000,
 	SDB_AST_ANY    = 3001,
 } sdb_ast_operator_t;
@@ -133,6 +137,20 @@ typedef enum {
 		: ((op) == SDB_AST_CONCAT) ? "CONCAT" \
 		: ((op) == SDB_AST_ALL) ? "ALL" \
 		: ((op) == SDB_AST_ANY) ? "ANY" \
+		: "UNKNOWN")
+
+#define SDB_AST_TYPE_TO_STRING(n) \
+	(((n)->type == SDB_AST_TYPE_FETCH) ? "FETCH" \
+		: ((n)->type == SDB_AST_TYPE_LIST) ? "LIST" \
+		: ((n)->type == SDB_AST_TYPE_LOOKUP) ? "LOOKUP" \
+		: ((n)->type == SDB_AST_TYPE_STORE) ? "STORE" \
+		: ((n)->type == SDB_AST_TYPE_TIMESERIES) ? "TIMESERIES" \
+		: ((n)->type == SDB_AST_TYPE_OPERATOR) \
+			? SDB_AST_OP_TO_STRING(SDB_AST_OP(n)->kind) \
+		: ((n)->type == SDB_AST_TYPE_ITERATOR) ? "ITERATOR" \
+		: ((n)->type == SDB_AST_TYPE_CONST) ? "CONSTANT" \
+		: ((n)->type == SDB_AST_TYPE_VALUE) ? "VALUE" \
+		: ((n)->type == SDB_AST_TYPE_TYPED) ? "TYPED VALUE" \
 		: "UNKNOWN")
 
 /*
@@ -162,6 +180,8 @@ typedef struct {
 	sdb_ast_node_t *right;
 } sdb_ast_op_t;
 #define SDB_AST_OP(obj) ((sdb_ast_op_t *)(obj))
+#define SDB_AST_OP_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_OPERATOR }, -1, NULL, NULL }
 
 /*
  * sdb_ast_iter_t represents an iterator.
@@ -176,6 +196,8 @@ typedef struct {
 	sdb_ast_node_t *expr;
 } sdb_ast_iter_t;
 #define SDB_AST_ITER(obj) ((sdb_ast_iter_t *)(obj))
+#define SDB_AST_ITER_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_ITERATOR }, -1, -1, NULL, NULL }
 
 /*
  * sdb_ast_typed_t represents a typed value.
@@ -186,6 +208,8 @@ typedef struct {
 	sdb_ast_node_t *expr;
 } sdb_ast_typed_t;
 #define SDB_AST_TYPED(obj) ((sdb_ast_typed_t *)(obj))
+#define SDB_AST_TYPED_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_TYPED }, -1, NULL }
 
 /*
  * sdb_ast_const_t represents a constant value.
@@ -195,6 +219,8 @@ typedef struct {
 	sdb_data_t value;
 } sdb_ast_const_t;
 #define SDB_AST_CONST(obj) ((sdb_ast_const_t *)(obj))
+#define SDB_AST_CONST_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_CONST }, SDB_DATA_INIT }
 
 /*
  * sdb_ast_value_t represents an object-specific value: sibling nodes,
@@ -206,6 +232,8 @@ typedef struct {
 	char *name; /* object name; optional */
 } sdb_ast_value_t;
 #define SDB_AST_VALUE(obj) ((sdb_ast_value_t *)(obj))
+#define SDB_AST_VALUE_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_VALUE }, -1, NULL }
 
 /*
  * sdb_ast_fetch_t represents a FETCH command.
@@ -218,6 +246,8 @@ typedef struct {
 	sdb_ast_node_t *filter; /* optional */
 } sdb_ast_fetch_t;
 #define SDB_AST_FETCH(obj) ((sdb_ast_fetch_t *)(obj))
+#define SDB_AST_FETCH_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_FETCH }, -1, NULL, NULL, NULL }
 
 /*
  * sdb_ast_list_t represents a LIST command.
@@ -228,6 +258,8 @@ typedef struct {
 	sdb_ast_node_t *filter; /* optional */
 } sdb_ast_list_t;
 #define SDB_AST_LIST(obj) ((sdb_ast_list_t *)(obj))
+#define SDB_AST_LIST_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_LIST }, -1, NULL }
 
 /*
  * sdb_ast_lookup_t represents a LOOKUP command.
@@ -239,6 +271,8 @@ typedef struct {
 	sdb_ast_node_t *filter; /* optional */
 } sdb_ast_lookup_t;
 #define SDB_AST_LOOKUP(obj) ((sdb_ast_lookup_t *)(obj))
+#define SDB_AST_LOOKUP_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_LOOKUP }, -1, NULL, NULL }
 
 /*
  * sdb_ast_store_t represents a STORE command.
@@ -260,6 +294,9 @@ typedef struct {
 	sdb_data_t value;
 } sdb_ast_store_t;
 #define SDB_AST_STORE(obj) ((sdb_ast_store_t *)(obj))
+#define SDB_AST_STORE_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_STORE }, \
+		-1, NULL, -1, NULL, NULL, 0, NULL, NULL, SDB_DATA_INIT }
 
 /*
  * sdb_ast_timeseries_t represents a TIMESERIES command.
@@ -272,6 +309,8 @@ typedef struct {
 	sdb_time_t end;
 } sdb_ast_timeseries_t;
 #define SDB_AST_TIMESERIES(obj) ((sdb_ast_timeseries_t *)(obj))
+#define SDB_AST_TIMESERIES_INIT \
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_TIMESERIES }, NULL, NULL, 0, 0 }
 
 /*
  * AST constructors:

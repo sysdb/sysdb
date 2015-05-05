@@ -38,6 +38,8 @@ UNIT_TESTS = \
 		unit/frontend/parser_test \
 		unit/frontend/query_test \
 		unit/frontend/sock_test \
+		unit/parser/ast_test \
+		unit/parser/ast_test \
 		unit/parser/parser_test \
 		unit/utils/avltree_test \
 		unit/utils/channel_test \
@@ -101,6 +103,10 @@ unit_frontend_query_test_LDADD = $(UNIT_TEST_LDADD)
 unit_frontend_sock_test_SOURCES = $(UNIT_TEST_SOURCES) unit/frontend/sock_test.c
 unit_frontend_sock_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_frontend_sock_test_LDADD = $(UNIT_TEST_LDADD)
+
+unit_parser_ast_test_SOURCES = $(UNIT_TEST_SOURCES) unit/parser/ast_test.c
+unit_parser_ast_test_CFLAGS = $(UNIT_TEST_CFLAGS)
+unit_parser_ast_test_LDADD = $(UNIT_TEST_LDADD)
 
 unit_parser_parser_test_SOURCES = $(UNIT_TEST_SOURCES) unit/parser/parser_test.c
 unit_parser_parser_test_CFLAGS = $(UNIT_TEST_CFLAGS)
