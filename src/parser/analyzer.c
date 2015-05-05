@@ -36,19 +36,159 @@
 
 #define VALID_OBJ_TYPE(t) ((SDB_HOST <= (t)) && ((t) <= SDB_METRIC))
 
+static int
+analyze_node(int context, sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+
 /*
- * private helper functions
+ * expression nodes
  */
+
+static int
+analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
+{
+	switch (op->kind) {
+	case SDB_AST_OR:
+	case SDB_AST_AND:
+		if (analyze_node(context, op->left, errbuf))
+			return -1;
+		/* fallthrough */
+	case SDB_AST_NOT:
+		if (analyze_node(context, op->right, errbuf))
+			return -1;
+		break;
+
+	case SDB_AST_LT:
+	case SDB_AST_LE:
+	case SDB_AST_EQ:
+	case SDB_AST_NE:
+	case SDB_AST_GE:
+	case SDB_AST_GT:
+	{
+		if (analyze_node(context, op->left, errbuf))
+			return -1;
+		if (analyze_node(context, op->right, errbuf))
+			return -1;
+		break;
+	}
+
+	case SDB_AST_REGEX:
+	case SDB_AST_NREGEX:
+		if (analyze_node(context, op->left, errbuf))
+			return -1;
+		if (analyze_node(context, op->right, errbuf))
+			return -1;
+		break;
+
+	case SDB_AST_ISNULL:
+		if (analyze_node(context, op->right, errbuf))
+			return -1;
+		break;
+
+	case SDB_AST_IN:
+		if (analyze_node(context, op->left, errbuf))
+			return -1;
+		if (analyze_node(context, op->right, errbuf))
+			return -1;
+		break;
+
+	default:
+		sdb_strbuf_sprintf(errbuf, "Unknown matcher type %d", op->kind);
+		return -1;
+	}
+	return 0;
+} /* analyze_logical */
+
+static int
+analyze_arith(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
+{
+	if (analyze_node(context, op->left, errbuf))
+		return -1;
+	if (analyze_node(context, op->right, errbuf))
+		return -1;
+	SDB_AST_NODE(op)->data_type = sdb_data_expr_type(op->kind,
+			op->left->data_type, op->right->data_type);
+
+	/* TODO: replace constant arithmetic operations with a constant value */
+	return 0;
+} /* analyze_arith */
+
+static int
+analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
+{
+	sdb_ast_const_t c = SDB_AST_CONST_INIT;
+	int status;
+
+	if (analyze_node(context, iter->iter, errbuf))
+		return -1;
+	c.super.data_type = iter->iter->data_type;
+
+	/* TODO: support other setups as well */
+	assert((iter->expr->type == SDB_AST_TYPE_OPERATOR)
+			&& (! SDB_AST_OP(iter->expr)->left));
+	SDB_AST_OP(iter->expr)->left = SDB_AST_NODE(&c);
+	status = analyze_node(context, iter->expr, errbuf);
+	SDB_AST_OP(iter->expr)->left = NULL;
+	if (status)
+		return -1;
+	return 0;
+} /* analyze_iter */
+
+static int
+analyze_const(int __attribute__((unused)) context, sdb_ast_const_t *c,
+		sdb_strbuf_t __attribute__((unused)) *errbuf)
+{
+	SDB_AST_NODE(c)->data_type = c->value.type;
+	return 0;
+} /* analyze_const */
+
+static int
+analyze_value(int __attribute__((unused)) context, sdb_ast_value_t *v,
+		sdb_strbuf_t __attribute__((unused)) *errbuf)
+{
+	if (v->type != SDB_ATTRIBUTE)
+		SDB_AST_NODE(v)->data_type = SDB_FIELD_TYPE(v->type);
+	return 0;
+} /* analyze_value */
+
+static int
+analyze_typed(int __attribute__((unused)) context, sdb_ast_typed_t *t,
+		sdb_strbuf_t *errbuf)
+{
+	if (analyze_node(t->type, t->expr, errbuf))
+		return -1;
+	SDB_AST_NODE(t)->data_type = t->expr->data_type;
+	return 0;
+} /* analyze_typed */
 
 static int
 analyze_node(int context, sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 {
-	(void)context;
 	if (! node) {
 		sdb_strbuf_sprintf(errbuf, "Empty AST node");
 		return -1;
 	}
-	return 0;
+
+	/* unknown by default */
+	node->data_type = -1;
+
+	if ((node->type == SDB_AST_TYPE_OPERATOR)
+			&& (SDB_AST_IS_LOGICAL(node)))
+		return analyze_logical(context, SDB_AST_OP(node), errbuf);
+	else if ((node->type == SDB_AST_TYPE_OPERATOR)
+			&& (SDB_AST_IS_ARITHMETIC(node)))
+		return analyze_arith(context, SDB_AST_OP(node), errbuf);
+	else if (node->type == SDB_AST_TYPE_ITERATOR)
+		return analyze_iter(context, SDB_AST_ITER(node), errbuf);
+	else if (node->type == SDB_AST_TYPE_CONST)
+		return analyze_const(context, SDB_AST_CONST(node), errbuf);
+	else if (node->type == SDB_AST_TYPE_VALUE)
+		return analyze_value(context, SDB_AST_VALUE(node), errbuf);
+	else if (node->type == SDB_AST_TYPE_TYPED)
+		return analyze_typed(context, SDB_AST_TYPED(node), errbuf);
+
+	sdb_strbuf_sprintf(errbuf, "Invalid expression node "
+			"of type %#x", node->type);
+	return -1;
 } /* analyze_node */
 
 /*
@@ -84,7 +224,7 @@ analyze_fetch(sdb_ast_fetch_t *fetch, sdb_strbuf_t *errbuf)
 	if (fetch->filter)
 		return analyze_node(-1, fetch->filter, errbuf);
 	return 0;
-}
+} /* analyze_fetch */
 
 static int
 analyze_list(sdb_ast_list_t *list, sdb_strbuf_t *errbuf)
@@ -97,7 +237,7 @@ analyze_list(sdb_ast_list_t *list, sdb_strbuf_t *errbuf)
 	if (list->filter)
 		return analyze_node(-1, list->filter, errbuf);
 	return 0;
-}
+} /* analyze_list */
 
 static int
 analyze_lookup(sdb_ast_lookup_t *lookup, sdb_strbuf_t *errbuf)
@@ -113,7 +253,7 @@ analyze_lookup(sdb_ast_lookup_t *lookup, sdb_strbuf_t *errbuf)
 	if (lookup->filter)
 		return analyze_node(-1, lookup->filter, errbuf);
 	return 0;
-}
+} /* analyze_lookup */
 
 static int
 analyze_store(sdb_ast_store_t *st, sdb_strbuf_t *errbuf)
@@ -201,7 +341,7 @@ analyze_store(sdb_ast_store_t *st, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 	return 0;
-}
+} /* analyze_store */
 
 static int
 analyze_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *errbuf)
@@ -223,7 +363,7 @@ analyze_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 	return 0;
-}
+} /* analyze_timeseries */
 
 /*
  * public API
@@ -236,6 +376,9 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 		sdb_strbuf_sprintf(errbuf, "Empty AST node");
 		return -1;
 	}
+
+	/* top-level nodes don't have a type */
+	node->data_type = -1;
 
 	if (node->type == SDB_AST_TYPE_FETCH)
 		return analyze_fetch(SDB_AST_FETCH(node), errbuf);
@@ -251,7 +394,7 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 	sdb_strbuf_sprintf(errbuf, "Invalid top-level AST node "
 			"of type %#x", node->type);
 	return -1;
-} /* sdb_fe_analyze */
+} /* sdb_parser_analyze */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
