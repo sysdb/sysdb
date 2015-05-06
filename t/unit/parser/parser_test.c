@@ -416,14 +416,12 @@ struct {
 	  "field = 'a'",           -1, -1, 0, 0 },
 	{ "LIST metrics FILTER "
 	  "field = 'a'",           -1, -1, 0, 0 },
-#if 0
 	{ "LIST hosts FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST services FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST metrics FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
-#endif
 
 	/* type mismatches */
 	{ "LOOKUP hosts MATCHING "
@@ -523,7 +521,6 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "ANY 'patt' =~ 'p'",  -1,  -1, 0, 0 },
 
-#if 0
 	/* invalid LIST commands */
 	{ "LIST",                -1, -1, 0, 0 },
 	{ "LIST foo",            -1, -1, 0, 0 },
@@ -604,7 +601,6 @@ struct {
 	  "2015-02-01",          -1, -1, 0, 0 },
 	{ "STORE metric attribute "
 	  "'metric'.'key' 123",  -1, -1, 0, 0 },
-#endif
 };
 
 START_TEST(test_parse)

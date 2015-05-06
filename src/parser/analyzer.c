@@ -215,7 +215,7 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 	if (iter->iter->type == SDB_AST_TYPE_TYPED)
 		iter_context = SDB_AST_TYPED(iter->iter)->type;
 
-	if (analyze_node(context, iter->iter, errbuf))
+	if (analyze_node(iter_context, iter->iter, errbuf))
 		return -1;
 	if (iter->iter->data_type > 0)
 		c.value.type = iter->iter->data_type & 0xff;
@@ -226,7 +226,7 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 	assert((iter->expr->type == SDB_AST_TYPE_OPERATOR)
 			&& (! SDB_AST_OP(iter->expr)->left));
 	SDB_AST_OP(iter->expr)->left = SDB_AST_NODE(&c);
-	status = analyze_node(iter_context, iter->expr, errbuf);
+	status = analyze_node(context, iter->expr, errbuf);
 	SDB_AST_OP(iter->expr)->left = NULL;
 	if (status)
 		return -1;
@@ -295,21 +295,62 @@ analyze_const(int __attribute__((unused)) context, sdb_ast_const_t *c,
 } /* analyze_const */
 
 static int
-analyze_value(int __attribute__((unused)) context, sdb_ast_value_t *v,
-		sdb_strbuf_t __attribute__((unused)) *errbuf)
+analyze_value(int context, sdb_ast_value_t *v, sdb_strbuf_t *errbuf)
 {
 	if (v->type != SDB_ATTRIBUTE)
 		SDB_AST_NODE(v)->data_type = SDB_FIELD_TYPE(v->type);
+
+	if ((v->type != SDB_ATTRIBUTE) && v->name) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s[%s]",
+				SDB_FIELD_TO_NAME(v->type), v->name);
+		return -1;
+	}
+	else if ((v->type == SDB_ATTRIBUTE) && (! v->name)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression attribute[] "
+				"(missing name)");
+		return -1;
+	}
+
+	if ((context != SDB_ATTRIBUTE) && (v->type == SDB_FIELD_VALUE)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value",
+				SDB_FIELD_TO_NAME(v->type));
+		return -1;
+	}
 	return 0;
 } /* analyze_value */
 
 static int
-analyze_typed(int __attribute__((unused)) context, sdb_ast_typed_t *t,
-		sdb_strbuf_t *errbuf)
+analyze_typed(int context, sdb_ast_typed_t *t, sdb_strbuf_t *errbuf)
 {
+	if ((t->expr->type != SDB_AST_TYPE_VALUE)
+			&& (t->expr->type != SDB_AST_TYPE_TYPED)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.%s",
+				SDB_STORE_TYPE_TO_NAME(t->type),
+				SDB_AST_TYPE_TO_STRING(t->expr));
+		return -1;
+	}
 	if (analyze_node(t->type, t->expr, errbuf))
 		return -1;
 	SDB_AST_NODE(t)->data_type = t->expr->data_type;
+
+	if ((t->type != SDB_ATTRIBUTE) && (! VALID_OBJ_TYPE(t->type))) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %#x.%s",
+				t->type, SDB_AST_TYPE_TO_STRING(t->expr));
+		return -1;
+	}
+
+	/* self-references are allowed and services and metrics may reference
+	 * their parent host; everything may reference attributes */
+	if ((context != t->type) && (context != UNSPEC_CONTEXT)
+			&& (((context != SDB_SERVICE) && (context != SDB_METRIC))
+				|| (t->type != SDB_HOST))
+			&& (t->type != SDB_ATTRIBUTE)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.%s in %s context",
+				SDB_STORE_TYPE_TO_NAME(t->type),
+				SDB_AST_TYPE_TO_STRING(t->expr),
+				context == -1 ? "generic" : SDB_STORE_TYPE_TO_NAME(context));
+		return -1;
+	}
 	return 0;
 } /* analyze_typed */
 
