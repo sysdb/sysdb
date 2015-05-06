@@ -409,14 +409,21 @@ struct {
 	 * syntactically correct but semantically invalid commands
 	 */
 
-#if 0
 	/* invalid fields */
+	{ "LIST hosts FILTER "
+	  "field = 'a'",           -1, -1, 0, 0 },
+	{ "LIST services FILTER "
+	  "field = 'a'",           -1, -1, 0, 0 },
+	{ "LIST metrics FILTER "
+	  "field = 'a'",           -1, -1, 0, 0 },
+#if 0
 	{ "LIST hosts FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST services FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST metrics FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
+#endif
 
 	/* type mismatches */
 	{ "LOOKUP hosts MATCHING "
@@ -449,6 +456,7 @@ struct {
 	  "age + 1 > 0s",        -1, -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "age - 1 > 0s",        -1, -1, 0, 0 },
+
 	/* datetime <mul/div> integer is allowed */
 	{ "LOOKUP hosts MATCHING "
 	  "age || 1 > 0s",       -1, -1, 0, 0 },
@@ -515,6 +523,7 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "ANY 'patt' =~ 'p'",  -1,  -1, 0, 0 },
 
+#if 0
 	/* invalid LIST commands */
 	{ "LIST",                -1, -1, 0, 0 },
 	{ "LIST foo",            -1, -1, 0, 0 },

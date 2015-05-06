@@ -234,7 +234,7 @@ typedef struct {
 	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_CONST, -1 }, SDB_DATA_INIT }
 
 /*
- * sdb_ast_value_t represents an object-specific value: sibling nodes,
+ * sdb_ast_value_t represents an object-specific value:
  * attributes, or field values.
  */
 typedef struct {

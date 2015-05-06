@@ -33,11 +33,50 @@
 #include "utils/strbuf.h"
 
 #include <assert.h>
+#include <stdarg.h>
 
 #define VALID_OBJ_TYPE(t) ((SDB_HOST <= (t)) && ((t) <= SDB_METRIC))
 
+#define FILTER_CONTEXT -1
+#define UNSPEC_CONTEXT -2
+
 static int
 analyze_node(int context, sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+
+/*
+ * error reporting
+ */
+
+static void
+op_error(sdb_strbuf_t *errbuf, sdb_ast_op_t *op, const char *reason)
+{
+	sdb_strbuf_sprintf(errbuf, "Invalid operation %s %s %s (%s)",
+			SDB_TYPE_TO_STRING(op->left->data_type),
+			SDB_AST_OP_TO_STRING(op->kind),
+			SDB_TYPE_TO_STRING(op->right->data_type),
+			reason);
+} /* op_error */
+
+static void
+__attribute__((format(printf, 3, 4)))
+iter_error(sdb_strbuf_t *errbuf, sdb_ast_iter_t *iter, const char *reason, ...)
+{
+	char r[1024];
+	va_list ap;
+
+	va_start(ap, reason);
+	vsnprintf(r, sizeof(r), reason, ap);
+	va_end(ap);
+
+	assert((iter->expr->type == SDB_AST_TYPE_OPERATOR)
+			&& (! SDB_AST_OP(iter->expr)->left));
+	sdb_strbuf_sprintf(errbuf, "Invalid iterator %s %s %s %s (%s)",
+			SDB_AST_OP_TO_STRING(iter->kind),
+			SDB_TYPE_TO_STRING(iter->iter->data_type),
+			SDB_AST_OP_TO_STRING(SDB_AST_OP(iter->expr)->kind),
+			SDB_TYPE_TO_STRING(SDB_AST_OP(iter->expr)->right->data_type),
+			r);
+} /* iter_error */
 
 /*
  * expression nodes
@@ -49,10 +88,22 @@ analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 	switch (op->kind) {
 	case SDB_AST_OR:
 	case SDB_AST_AND:
+		if (! SDB_AST_IS_LOGICAL(op->left)) {
+			sdb_strbuf_sprintf(errbuf, "Invalid left operand (%s) "
+					"in %s expression", SDB_AST_TYPE_TO_STRING(op->left),
+					SDB_AST_OP_TO_STRING(op->kind));
+			return -1;
+		}
 		if (analyze_node(context, op->left, errbuf))
 			return -1;
 		/* fallthrough */
 	case SDB_AST_NOT:
+		if (! SDB_AST_IS_LOGICAL(op->right)) {
+			sdb_strbuf_sprintf(errbuf, "Invalid right operand (%s) "
+					"in %s expression", SDB_AST_TYPE_TO_STRING(op->right),
+					SDB_AST_OP_TO_STRING(op->kind));
+			return -1;
+		}
 		if (analyze_node(context, op->right, errbuf))
 			return -1;
 		break;
@@ -68,6 +119,21 @@ analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 			return -1;
 		if (analyze_node(context, op->right, errbuf))
 			return -1;
+
+		if ((op->left->data_type > 0) && (op->right->data_type > 0)) {
+			if (op->left->data_type == op->right->data_type)
+				return 0;
+			op_error(errbuf, op, "type mismatch");
+			return -1;
+		}
+		if ((op->left->data_type > 0) && (op->left->data_type & SDB_TYPE_ARRAY)) {
+			op_error(errbuf, op, "array not allowed");
+			return -1;
+		}
+		if ((op->right->data_type > 0) && (op->right->data_type & SDB_TYPE_ARRAY)) {
+			op_error(errbuf, op, "array not allowed");
+			return -1;
+		}
 		break;
 	}
 
@@ -77,6 +143,15 @@ analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 			return -1;
 		if (analyze_node(context, op->right, errbuf))
 			return -1;
+
+		/* all types are supported for the left operand
+		 * TODO: introduce a cast operator if it's not a string */
+		if ((op->right->data_type > 0)
+				&& (op->right->data_type != SDB_TYPE_REGEX)
+				&& (op->right->data_type != SDB_TYPE_STRING)) {
+			op_error(errbuf, op, "invalid regex");
+			return -1;
+		}
 		break;
 
 	case SDB_AST_ISNULL:
@@ -89,10 +164,22 @@ analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 			return -1;
 		if (analyze_node(context, op->right, errbuf))
 			return -1;
+
+		if ((op->right->data_type > 0) && (! (op->right->data_type & SDB_TYPE_ARRAY))) {
+			op_error(errbuf, op, "array expected");
+			return -1;
+		}
+		/* the left operand may be a scalar or an array but the element
+		 * type has to match */
+		if ((op->left->data_type > 0) && (op->right->data_type > 0)
+				&& ((op->left->data_type & 0xff) != (op->right->data_type & 0xff))) {
+			op_error(errbuf, op, "type mismatch");
+			return -1;
+		}
 		break;
 
 	default:
-		sdb_strbuf_sprintf(errbuf, "Unknown matcher type %d", op->kind);
+		sdb_strbuf_sprintf(errbuf, "Unknown operand type %d", op->kind);
 		return -1;
 	}
 	return 0;
@@ -108,6 +195,12 @@ analyze_arith(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 	SDB_AST_NODE(op)->data_type = sdb_data_expr_type(SDB_AST_OP_TO_DATA_OP(op->kind),
 			op->left->data_type, op->right->data_type);
 
+	if ((op->left->data_type > 0) && (op->right->data_type > 0)
+			&& (SDB_AST_NODE(op)->data_type <= 0)) {
+		op_error(errbuf, op, "type mismatch");
+		return -1;
+	}
+
 	/* TODO: replace constant arithmetic operations with a constant value */
 	return 0;
 } /* analyze_arith */
@@ -116,20 +209,80 @@ static int
 analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 {
 	sdb_ast_const_t c = SDB_AST_CONST_INIT;
+	int iter_context = context;
 	int status;
+
+	if (iter->iter->type == SDB_AST_TYPE_TYPED)
+		iter_context = SDB_AST_TYPED(iter->iter)->type;
 
 	if (analyze_node(context, iter->iter, errbuf))
 		return -1;
-	c.super.data_type = iter->iter->data_type;
+	if (iter->iter->data_type > 0)
+		c.value.type = iter->iter->data_type & 0xff;
+	else
+		c.value.type = -1;
 
 	/* TODO: support other setups as well */
 	assert((iter->expr->type == SDB_AST_TYPE_OPERATOR)
 			&& (! SDB_AST_OP(iter->expr)->left));
 	SDB_AST_OP(iter->expr)->left = SDB_AST_NODE(&c);
-	status = analyze_node(context, iter->expr, errbuf);
+	status = analyze_node(iter_context, iter->expr, errbuf);
 	SDB_AST_OP(iter->expr)->left = NULL;
 	if (status)
 		return -1;
+
+	if (iter->iter->type == SDB_AST_TYPE_TYPED) {
+		int iter_type = SDB_AST_TYPED(iter->iter)->type;
+
+		if (iter_type == SDB_ATTRIBUTE) {
+			/* attributes are always iterable */
+		}
+		else if ((context != SDB_HOST) && (context != SDB_SERVICE)
+				&& (context != SDB_METRIC) && (context != UNSPEC_CONTEXT)) {
+			iter_error(errbuf, iter, "%s not iterable in %s context",
+					SDB_STORE_TYPE_TO_NAME(iter_type),
+					SDB_STORE_TYPE_TO_NAME(context));
+			return -1;
+		}
+
+		if ((context == iter_type)
+				|| ((iter_type != SDB_SERVICE)
+					&& (iter_type != SDB_METRIC)
+					&& (iter_type != SDB_ATTRIBUTE))
+				|| ((context == SDB_SERVICE)
+					&& (iter_type == SDB_METRIC))
+				|| ((context == SDB_METRIC)
+					&& (iter_type == SDB_SERVICE))) {
+			iter_error(errbuf, iter, "%s not iterable in %s context",
+					SDB_STORE_TYPE_TO_NAME(iter_type),
+					SDB_STORE_TYPE_TO_NAME(context));
+			return -1;
+		}
+	}
+	else if (iter->iter->type == SDB_AST_TYPE_VALUE) {
+		int iter_type = SDB_AST_VALUE(iter->iter)->type;
+
+		if (iter_type == SDB_FIELD_BACKEND) {
+			/* backends are always iterable */
+		}
+		else if ((context != SDB_HOST) && (context != SDB_SERVICE)
+				&& (context != SDB_METRIC) && (context != SDB_ATTRIBUTE)
+				&& (context != UNSPEC_CONTEXT)) {
+			iter_error(errbuf, iter, "%s not iterable in %s context",
+					(iter_type == SDB_ATTRIBUTE)
+						? "attribute"
+						: SDB_FIELD_TO_NAME(iter_type),
+					SDB_STORE_TYPE_TO_NAME(context));
+			return -1;
+		}
+	}
+	else if (iter->iter->type == SDB_AST_TYPE_CONST) {
+		if (! (SDB_AST_CONST(iter->iter)->value.type & SDB_TYPE_ARRAY)) {
+			iter_error(errbuf, iter, "%s not iterable",
+					SDB_TYPE_TO_STRING(SDB_AST_CONST(iter->iter)->value.type));
+			return -1;
+		}
+	}
 	return 0;
 } /* analyze_iter */
 
@@ -222,7 +375,7 @@ analyze_fetch(sdb_ast_fetch_t *fetch, sdb_strbuf_t *errbuf)
 	}
 
 	if (fetch->filter)
-		return analyze_node(-1, fetch->filter, errbuf);
+		return analyze_node(FILTER_CONTEXT, fetch->filter, errbuf);
 	return 0;
 } /* analyze_fetch */
 
@@ -235,7 +388,7 @@ analyze_list(sdb_ast_list_t *list, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 	if (list->filter)
-		return analyze_node(-1, list->filter, errbuf);
+		return analyze_node(FILTER_CONTEXT, list->filter, errbuf);
 	return 0;
 } /* analyze_list */
 
@@ -251,7 +404,7 @@ analyze_lookup(sdb_ast_lookup_t *lookup, sdb_strbuf_t *errbuf)
 		if (analyze_node(lookup->obj_type, lookup->matcher, errbuf))
 			return -1;
 	if (lookup->filter)
-		return analyze_node(-1, lookup->filter, errbuf);
+		return analyze_node(FILTER_CONTEXT, lookup->filter, errbuf);
 	return 0;
 } /* analyze_lookup */
 
@@ -408,7 +561,7 @@ sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 				SDB_AST_TYPE_TO_STRING(node));
 		return -1;
 	}
-	return analyze_node(-1, node, errbuf);
+	return analyze_node(UNSPEC_CONTEXT, node, errbuf);
 } /* sdb_parser_analyze_conditional */
 
 int
@@ -423,7 +576,7 @@ sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 				SDB_AST_TYPE_TO_STRING(node));
 		return -1;
 	}
-	return analyze_node(-1, node, errbuf);
+	return analyze_node(UNSPEC_CONTEXT, node, errbuf);
 } /* sdb_parser_analyze_arith */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
