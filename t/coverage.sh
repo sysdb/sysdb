@@ -58,7 +58,8 @@ lcov --base-directory src --directory src --no-external \
 		--capture -o sysdb_coverage.info
 for pattern in '*.y' '*.l' \
 		'sysdb/scanner.c' 'frontend/scanner.c' 'liboconfig/scanner.c' \
-		'frontend/grammar.c' 'liboconfig/parser.c'
+		'parser/scanner.c' 'frontend/grammar.c' 'parser/grammar.c' \
+		'liboconfig/parser.c'
 do
 	lcov --remove sysdb_coverage.info "$pattern" -o sysdb_coverage.info
 done
