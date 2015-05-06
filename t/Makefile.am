@@ -1,9 +1,12 @@
 EXTRA_DIST = \
 		coverage.sh \
 		testwrapper.sh \
+		integration/client.sh \
 		integration/config.sh \
 		integration/ssl.sh \
-		integration/query.sh \
+		integration/query_fetch.sh \
+		integration/query_list.sh \
+		integration/query_timeseries.sh \
 		integration/matching.sh \
 		integration/filter.sh \
 		integration/test_lib.sh \
