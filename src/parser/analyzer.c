@@ -217,22 +217,16 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 
 	if (analyze_node(iter_context, iter->iter, errbuf))
 		return -1;
-	if (iter->iter->data_type > 0)
-		c.value.type = iter->iter->data_type & 0xff;
-	else
-		c.value.type = -1;
-
 	/* TODO: support other setups as well */
 	assert((iter->expr->type == SDB_AST_TYPE_OPERATOR)
 			&& (! SDB_AST_OP(iter->expr)->left));
-	SDB_AST_OP(iter->expr)->left = SDB_AST_NODE(&c);
-	status = analyze_node(context, iter->expr, errbuf);
-	SDB_AST_OP(iter->expr)->left = NULL;
-	if (status)
-		return -1;
+	/* determine the data-type for better error messages */
+	analyze_node(iter_context, SDB_AST_OP(iter->expr)->right, NULL);
 
 	if (iter->iter->type == SDB_AST_TYPE_TYPED) {
 		int iter_type = SDB_AST_TYPED(iter->iter)->type;
+
+		c.value.type = iter->iter->data_type;
 
 		if (iter_type == SDB_ATTRIBUTE) {
 			/* attributes are always iterable */
@@ -262,12 +256,9 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 	else if (iter->iter->type == SDB_AST_TYPE_VALUE) {
 		int iter_type = SDB_AST_VALUE(iter->iter)->type;
 
-		if (iter_type == SDB_FIELD_BACKEND) {
-			/* backends are always iterable */
-		}
-		else if ((context != SDB_HOST) && (context != SDB_SERVICE)
-				&& (context != SDB_METRIC) && (context != SDB_ATTRIBUTE)
-				&& (context != UNSPEC_CONTEXT)) {
+		c.value.type = iter->iter->data_type & 0xff;
+
+		if (iter_type != SDB_FIELD_BACKEND) {
 			iter_error(errbuf, iter, "%s not iterable in %s context",
 					(iter_type == SDB_ATTRIBUTE)
 						? "attribute"
@@ -277,12 +268,27 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 		}
 	}
 	else if (iter->iter->type == SDB_AST_TYPE_CONST) {
+		c.value.type = iter->iter->data_type & 0xff;
+
 		if (! (SDB_AST_CONST(iter->iter)->value.type & SDB_TYPE_ARRAY)) {
 			iter_error(errbuf, iter, "%s not iterable",
 					SDB_TYPE_TO_STRING(SDB_AST_CONST(iter->iter)->value.type));
 			return -1;
 		}
 	}
+	else {
+		/* TODO: if we know the data-type of iter->iter and it's an array,
+		 * we should support an iterator for it as well */
+		iter_error(errbuf, iter, "%s expression not iterable",
+				SDB_AST_TYPE_TO_STRING(iter->iter));
+		return -1;
+	}
+
+	SDB_AST_OP(iter->expr)->left = SDB_AST_NODE(&c);
+	status = analyze_node(context, iter->expr, errbuf);
+	SDB_AST_OP(iter->expr)->left = NULL;
+	if (status)
+		return -1;
 	return 0;
 } /* analyze_iter */
 

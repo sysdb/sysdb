@@ -357,6 +357,20 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "name < ''",           -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 
+	/* typed expressions */
+	{ "LOOKUP services MATCHING "
+	  "host.attribute['a'] = 'a'",
+	                         -1,  1, SDB_AST_TYPE_LOOKUP, SDB_SERVICE },
+	/* TODO: this should work but the analyzer currently sees ATTRIBUTE
+	 * (instead of SERVICE-ATTRIBUTE) as the child type
+	{ "LOOKUP services MATCHING "
+	  "ANY attribute.service.name = 's'",
+	                         -1,  1, SDB_AST_TYPE_LOOKUP, SDB_SERVICE },
+	 */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY service.service.name = 's'",
+	                         -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+
 	/* NULL */
 	{ "LOOKUP hosts MATCHING "
 	  "attribute['foo'] "
@@ -422,6 +436,8 @@ struct {
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST metrics FILTER "
 	  "value = 'a'",           -1, -1, 0, 0 },
+	{ "LIST metrics FILTER "
+	  "name.1 = 'a'",          -1, -1, 0, 0 },
 
 	/* type mismatches */
 	{ "LOOKUP hosts MATCHING "
@@ -431,11 +447,6 @@ struct {
 	  "1 IN backend ",      -1,  -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "1 NOT IN backend ",  -1,  -1, 0, 0 },
-	{ "LOOKUP hosts MATCHING "
-	  "ANY backend !~ backend",
-	                        -1,  -1, 0, 0 },
-	{ "LOOKUP hosts MATCHING "
-	  "ANY backend = 1",    -1,  -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "age > 0",             -1, -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
@@ -518,8 +529,23 @@ struct {
 	  "name + 1 IS NULL",    -1, -1, 0, 0 },
 	{ "LOOKUP hosts FILTER "
 	  "name + 1 IS NULL",    -1, -1, 0, 0 },
+
+	/* invalid iterators */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend !~ backend",
+	                        -1,  -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend = 1",    -1,  -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "ANY 'patt' =~ 'p'",  -1,  -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL 1 || '2' < '3'", -1,  -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "ALL name =~ 'a'",    -1,  -1, 0, 0 },
+	/* this could work in theory but is not supported atm */
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend || 'a' = 'b'",
+	                        -1,  -1, 0, 0 },
 
 	/* invalid LIST commands */
 	{ "LIST",                -1, -1, 0, 0 },
