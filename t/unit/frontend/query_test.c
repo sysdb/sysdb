@@ -91,19 +91,30 @@ populate(void)
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}," \
 			"{\"name\": \"m2\", \"timeseries\": false, " \
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}"
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 
 #define SERVICE_H2_S1 \
 	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"services\": [" \
 			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}"
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 
 #define METRIC_H1_M1 \
 	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
@@ -113,6 +124,9 @@ populate(void)
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
@@ -239,11 +253,11 @@ static struct {
 	/* hosts */
 	{
 		SDB_HOST, "h1", NULL, NULL,
-		0, SDB_CONNECTION_DATA, 851, HOST_H1,
+		0, SDB_CONNECTION_DATA, 1110, HOST_H1,
 	},
 	{
 		SDB_HOST, "h1", NULL, "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 851, HOST_H1,
+		0, SDB_CONNECTION_DATA, 1110, HOST_H1,
 	},
 	{
 		SDB_HOST, "h1", NULL, "age < 0s", /* never matches */
@@ -260,11 +274,11 @@ static struct {
 	/* services */
 	{
 		SDB_SERVICE, "h2", "s1", NULL,
-		0, SDB_CONNECTION_DATA, 218, SERVICE_H2_S1,
+		0, SDB_CONNECTION_DATA, 356, SERVICE_H2_S1,
 	},
 	{
 		SDB_SERVICE, "h2", "s1", "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 218, SERVICE_H2_S1,
+		0, SDB_CONNECTION_DATA, 356, SERVICE_H2_S1,
 	},
 	{
 		SDB_SERVICE, "h2", "s1", "age < 0s", /* never matches */
@@ -289,11 +303,11 @@ static struct {
 	/* metrics */
 	{
 		SDB_METRIC, "h1", "m1", NULL,
-		0, SDB_CONNECTION_DATA, 368, METRIC_H1_M1,
+		0, SDB_CONNECTION_DATA, 489, METRIC_H1_M1,
 	},
 	{
 		SDB_METRIC, "h1", "m1", "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 368, METRIC_H1_M1,
+		0, SDB_CONNECTION_DATA, 489, METRIC_H1_M1,
 	},
 	{
 		SDB_METRIC, "h1", "m1", "age < 0s", /* never matches */

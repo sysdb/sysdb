@@ -640,6 +640,7 @@ sdb_store_service(const char *hostname, const char *name,
 {
 	sdb_host_t *host;
 	sdb_avltree_t *services;
+	sdb_data_t d;
 
 	int status = 0;
 
@@ -666,6 +667,12 @@ sdb_store_service(const char *hostname, const char *name,
 		return status;
 
 	if (sdb_plugin_store_service(hostname, name, last_update))
+		status = -1;
+
+	/* record the hostname as an attribute */
+	d.type = SDB_TYPE_STRING;
+	d.data.string = SDB_OBJ(host)->name;
+	if (sdb_store_service_attr(hostname, name, "hostname", &d, last_update))
 		status = -1;
 	return status;
 } /* sdb_store_service */
@@ -721,6 +728,7 @@ sdb_store_metric(const char *hostname, const char *name,
 	sdb_store_obj_t *obj = NULL;
 	sdb_host_t *host;
 	sdb_metric_t *metric;
+	sdb_data_t d;
 
 	sdb_avltree_t *metrics;
 
@@ -764,6 +772,12 @@ sdb_store_metric(const char *hostname, const char *name,
 	pthread_rwlock_unlock(&host_lock);
 
 	if (sdb_plugin_store_metric(hostname, name, store, last_update))
+		status = -1;
+
+	/* record the hostname as an attribute */
+	d.type = SDB_TYPE_STRING;
+	d.data.string = SDB_OBJ(host)->name;
+	if (sdb_store_metric_attr(hostname, name, "hostname", &d, last_update))
 		status = -1;
 	return status;
 } /* sdb_store_metric */
