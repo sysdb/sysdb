@@ -423,6 +423,37 @@ store_attr(sdb_store_obj_t *parent, sdb_avltree_t *attributes,
 	return status;
 } /* store_attr */
 
+static int
+store_metric_store(sdb_metric_t *metric, sdb_metric_store_t *store)
+{
+	char *type = metric->store.type;
+	char *id = metric->store.id;
+
+	if ((! metric->store.type) || strcasecmp(metric->store.type, store->type)) {
+		if (! (type = strdup(store->type)))
+			return -1;
+	}
+	if ((! metric->store.id) || strcasecmp(metric->store.id, store->id)) {
+		if (! (id = strdup(store->id))) {
+			if (type != metric->store.type)
+				free(type);
+			return -1;
+		}
+	}
+
+	if (type != metric->store.type) {
+		if (metric->store.type)
+			free(metric->store.type);
+		metric->store.type = type;
+	}
+	if (id != metric->store.id) {
+		if (metric->store.id)
+			free(metric->store.id);
+		metric->store.id = id;
+	}
+	return 0;
+} /* store_metric_store */
+
 /* The host_lock has to be acquired before calling this function. */
 static sdb_avltree_t *
 get_host_children(sdb_host_t *host, int type)
@@ -631,6 +662,9 @@ sdb_store_service(const char *hostname, const char *name,
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&host_lock);
 
+	if (status)
+		return status;
+
 	if (sdb_plugin_store_service(hostname, name, last_update))
 		status = -1;
 	return status;
@@ -716,7 +750,7 @@ sdb_store_metric(const char *hostname, const char *name,
 				name, last_update, &obj);
 	sdb_object_deref(SDB_OBJ(host));
 
-	if (status || (! store)) {
+	if (status) {
 		pthread_rwlock_unlock(&host_lock);
 		return status;
 	}
@@ -724,25 +758,9 @@ sdb_store_metric(const char *hostname, const char *name,
 	assert(obj);
 	metric = METRIC(obj);
 
-	if ((! metric->store.type) || strcasecmp(metric->store.type, store->type)) {
-		if (metric->store.type)
-			free(metric->store.type);
-		metric->store.type = strdup(store->type);
-	}
-	if ((! metric->store.id) || strcasecmp(metric->store.id, store->id)) {
-		if (metric->store.id)
-			free(metric->store.id);
-		metric->store.id = strdup(store->id);
-	}
-
-	if ((! metric->store.type) || (! metric->store.id)) {
-		if (metric->store.type)
-			free(metric->store.type);
-		if (metric->store.id)
-			free(metric->store.id);
-		metric->store.type = metric->store.id = NULL;
-		status = -1;
-	}
+	if (store)
+		if (store_metric_store(metric, store))
+			status = -1;
 	pthread_rwlock_unlock(&host_lock);
 
 	if (sdb_plugin_store_metric(hostname, name, store, last_update))
