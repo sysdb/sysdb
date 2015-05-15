@@ -91,12 +91,19 @@ populate(void)
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}," \
 			"{\"name\": \"m2\", \"timeseries\": false, " \
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}"
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define HOST_H1_ARRAY "["HOST_H1"]"
 #define HOST_H1_LISTING \
 	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
@@ -110,7 +117,11 @@ populate(void)
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"services\": [" \
 			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}"
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define SERVICE_H2_S1_ARRAY "["SERVICE_H2_S1"]"
 #define SERVICE_H2_S12_LISTING \
 	"[{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
@@ -129,6 +140,9 @@ populate(void)
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h1\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
@@ -139,7 +153,11 @@ populate(void)
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}]"
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}]"
 #define METRIC_H12_M12_LISTING \
 	"[{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
@@ -294,19 +312,19 @@ static struct {
 	},
 	{
 		"FETCH host 'h1'",
-		0, SDB_CONNECTION_DATA, 851, SDB_CONNECTION_FETCH, HOST_H1,
+		0, SDB_CONNECTION_DATA, 1110, SDB_CONNECTION_FETCH, HOST_H1,
 	},
 	{
 		"LOOKUP hosts MATCHING name = 'h1'",
-		0, SDB_CONNECTION_DATA, 853, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
+		0, SDB_CONNECTION_DATA, 1112, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
 	},
 	{
 		"FETCH host 'h1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 851, SDB_CONNECTION_FETCH, HOST_H1,
+		0, SDB_CONNECTION_DATA, 1110, SDB_CONNECTION_FETCH, HOST_H1,
 	},
 	{
 		"LOOKUP hosts MATCHING name = 'h1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 853, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
+		0, SDB_CONNECTION_DATA, 1112, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
 	},
 	{
 		"FETCH host 'h1' FILTER age < 0s", /* never matches */
@@ -347,19 +365,19 @@ static struct {
 	},
 	{
 		"FETCH service 'h2'.'s1'",
-		0, SDB_CONNECTION_DATA, 218, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
+		0, SDB_CONNECTION_DATA, 356, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
 	},
 	{
 		"LOOKUP services MATCHING name = 's1'",
-		0, SDB_CONNECTION_DATA, 220, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
+		0, SDB_CONNECTION_DATA, 358, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
 	},
 	{
 		"FETCH service 'h2'.'s1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 218, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
+		0, SDB_CONNECTION_DATA, 356, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
 	},
 	{
 		"LOOKUP services MATCHING name = 's1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 220, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
+		0, SDB_CONNECTION_DATA, 358, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
 	},
 	{
 		"FETCH service 'h2'.'s1' FILTER age < 0s", /* never matches */
@@ -404,19 +422,19 @@ static struct {
 	},
 	{
 		"FETCH metric 'h1'.'m1'",
-		0, SDB_CONNECTION_DATA, 368, SDB_CONNECTION_FETCH, METRIC_H1_M1,
+		0, SDB_CONNECTION_DATA, 489, SDB_CONNECTION_FETCH, METRIC_H1_M1,
 	},
 	{
 		"LOOKUP metrics MATCHING name = 'm1'",
-		0, SDB_CONNECTION_DATA, 605, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
+		0, SDB_CONNECTION_DATA, 864, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
 	},
 	{
 		"FETCH metric 'h1'.'m1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 368, SDB_CONNECTION_FETCH, METRIC_H1_M1,
+		0, SDB_CONNECTION_DATA, 489, SDB_CONNECTION_FETCH, METRIC_H1_M1,
 	},
 	{
 		"LOOKUP metrics MATCHING name = 'm1' FILTER age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 605, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
+		0, SDB_CONNECTION_DATA, 864, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
 	},
 	{
 		"FETCH metric 'h1'.'m1' FILTER age < 0s", /* never matches */

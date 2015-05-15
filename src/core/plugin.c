@@ -1386,7 +1386,7 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 	if ((! hostname) || (! name))
 		return -1;
 
-	if ((! store->type) || (! store->id))
+	if (store && ((! store->type) || (! store->id)))
 		store = NULL;
 
 	iter = sdb_llist_get_iter(writer_list);
