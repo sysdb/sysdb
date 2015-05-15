@@ -818,6 +818,8 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 
 	sdb_timeseries_t *ts;
 
+	int status = 0;
+
 	if ((! hostname) || (! metric) || (! opts) || (! buf))
 		return -1;
 
@@ -844,6 +846,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- no data-store configured for the stored metric",
 				hostname, metric);
+		sdb_object_deref(SDB_OBJ(m));
 		pthread_rwlock_unlock(&host_lock);
 		return -1;
 	}
@@ -861,13 +864,14 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 			sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 					"- %s fetcher callback returned no data for '%s'",
 					hostname, metric, type, id);
-			return -1;
+			status = -1;
 		}
 	}
 
 	ts_tojson(ts, buf);
+	sdb_object_deref(SDB_OBJ(m));
 	sdb_timeseries_destroy(ts);
-	return 0;
+	return status;
 } /* sdb_store_fetch_timeseries */
 
 int
