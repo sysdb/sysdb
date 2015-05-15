@@ -162,7 +162,7 @@ sdb_fe_store_service(sdb_conn_t *conn, const sdb_proto_service_t *svc)
 	if ((! conn) || (! svc) || (! svc->hostname) || (! svc->name))
 		return -1;
 
-	snprintf(name, sizeof(name), svc->hostname, svc->name);
+	snprintf(name, sizeof(name), "%s.%s", svc->hostname, svc->name);
 	return store_reply(conn, SDB_SERVICE, name,
 			sdb_store_service(svc->hostname, svc->name, svc->last_update));
 } /* sdb_fe_store_service */
@@ -178,7 +178,7 @@ sdb_fe_store_metric(sdb_conn_t *conn, const sdb_proto_metric_t *metric)
 
 	store.type = metric->store_type;
 	store.id = metric->store_id;
-	snprintf(name, sizeof(name), metric->hostname, metric->name);
+	snprintf(name, sizeof(name), "%s.%s", metric->hostname, metric->name);
 	return store_reply(conn, SDB_METRIC, name,
 			sdb_store_metric(metric->hostname, metric->name,
 				&store, metric->last_update));
