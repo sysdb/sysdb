@@ -33,6 +33,7 @@
 #include "core/data.h"
 #include "core/time.h"
 #include "core/timeseries.h"
+#include "parser/ast.h"
 #include "utils/strbuf.h"
 
 #include <stdbool.h>
@@ -358,6 +359,17 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
 int
 sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 		sdb_store_matcher_t *filter);
+
+/*
+ * sdb_store_query_prepare:
+ * Prepare the query described by 'ast' for execution in a store.
+ *
+ * Returns:
+ *  - a store matcher on success
+ *  - NULL else
+ */
+sdb_store_matcher_t *
+sdb_store_query_prepare(sdb_ast_node_t *ast);
 
 /*
  * sdb_store_expr_create:

@@ -163,6 +163,9 @@ enum {
 	MATCHER_GT,
 	MATCHER_REGEX,
 	MATCHER_NREGEX,
+
+	/* a generic query */
+	MATCHER_QUERY,
 };
 
 #define MATCHER_SYM(t) \
@@ -183,6 +186,7 @@ enum {
 		: ((t) == MATCHER_GT) ? ">" \
 		: ((t) == MATCHER_REGEX) ? "=~" \
 		: ((t) == MATCHER_NREGEX) ? "!~" \
+		: ((t) == MATCHER_QUERY) ? "QUERY" \
 		: "UNKNOWN")
 
 /* matcher base type */
@@ -235,6 +239,14 @@ typedef struct {
 	sdb_store_expr_t *expr;
 } isnull_matcher_t;
 #define ISNULL_M(m) ((isnull_matcher_t *)(m))
+
+typedef struct {
+	sdb_store_matcher_t super;
+	sdb_ast_node_t *ast;
+	sdb_store_matcher_t *matcher;
+	sdb_store_matcher_t *filter;
+} query_matcher_t;
+#define QUERY_M(m) ((query_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -352,6 +352,8 @@ matchers[] = {
 	match_cmp,
 	match_regex,
 	match_regex,
+
+	NULL, /* QUERY */
 };
 
 /*
@@ -744,6 +746,8 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if ((m->type < 0) || ((size_t)m->type >= SDB_STATIC_ARRAY_LEN(matchers)))
 		return 0;
 
+	if (! matchers[m->type])
+		return 0;
 	return matchers[m->type](m, obj, filter);
 } /* sdb_store_matcher_matches */
 
