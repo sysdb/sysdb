@@ -347,7 +347,7 @@ analyze_typed(int context, sdb_ast_typed_t *t, sdb_strbuf_t *errbuf)
 
 	/* self-references are allowed and services and metrics may reference
 	 * their parent host; everything may reference attributes */
-	if ((context != t->type) && (context != UNSPEC_CONTEXT)
+	if ((context != t->type) && (context > 0)
 			&& (((context != SDB_SERVICE) && (context != SDB_METRIC))
 				|| (t->type != SDB_HOST))
 			&& (t->type != SDB_ATTRIBUTE)) {

@@ -95,7 +95,8 @@ analyze_expr(int context, sdb_store_expr_t *e, sdb_strbuf_t *errbuf)
 			if (context == (int)e->data.data.integer)
 				return 0;
 			if ((e->data.data.integer == SDB_HOST) &&
-					((context == SDB_SERVICE) || (context == SDB_METRIC)))
+					((context == SDB_SERVICE) || (context == SDB_METRIC)
+						|| (context < 0)))
 				return 0;
 			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.%s "
 					"in %s context",
