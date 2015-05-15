@@ -49,7 +49,7 @@ touch configure.ac && make configure
 make
 
 lcov --base-directory src --directory src --zerocount
-make -j25 test || (status=$?; cat t/test-suite.log 2> /dev/null; exit $status)
+make -j10 test || (status=$?; cat t/test-suite.log 2> /dev/null; exit $status)
 
 # old versions of lcov don't support --no-external
 lcov --base-directory src --directory src --no-external \

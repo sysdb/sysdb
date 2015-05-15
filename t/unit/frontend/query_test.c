@@ -97,6 +97,13 @@ populate(void)
 			"{\"name\": \"m2\", \"timeseries\": false, " \
 				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}]}"
+#define HOST_H1_ARRAY "["HOST_H1"]"
+#define HOST_H1_LISTING \
+	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": []}"
+#define HOST_H2_LISTING \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": []}"
 
 #define SERVICE_H2_S1 \
 	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
@@ -104,6 +111,15 @@ populate(void)
 		"\"services\": [" \
 			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}]}"
+#define SERVICE_H2_S1_ARRAY "["SERVICE_H2_S1"]"
+#define SERVICE_H2_S12_LISTING \
+	"[{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"services\": [" \
+			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}," \
+			"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}]}]"
 
 #define METRIC_H1_M1 \
 	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
@@ -116,6 +132,30 @@ populate(void)
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
+#define METRIC_H12_M1_ARRAY \
+	"["METRIC_H1_M1"," \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"metrics\": [" \
+			"{\"name\": \"m1\", \"timeseries\": false, " \
+				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}]}]"
+#define METRIC_H12_M12_LISTING \
+	"[{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"metrics\": [" \
+			"{\"name\": \"m1\", \"timeseries\": false, " \
+				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}," \
+			"{\"name\": \"m2\", \"timeseries\": false, " \
+				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}]}," \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"metrics\": [" \
+			"{\"name\": \"m1\", \"timeseries\": false, " \
+				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": []}]}]"
 
 typedef struct {
 	sdb_conn_t conn;
@@ -226,101 +266,253 @@ fail_if_strneq(const char *got, const char *expected, size_t n, const char *fmt,
  */
 
 static struct {
-	int type;
-	const char *hostname;
-	const char *name;
-	const char *filter;
-
+	const char *query;
 	int expected;
 	uint32_t code;
 	size_t len;
+	uint32_t type;
 	const char *data;
-} exec_fetch_data[] = {
+} query_data[] = {
 	/* hosts */
 	{
-		SDB_HOST, "h1", NULL, NULL,
-		0, SDB_CONNECTION_DATA, 851, HOST_H1,
+		"LIST hosts",
+		0, SDB_CONNECTION_DATA, 205, SDB_CONNECTION_LIST,
+		"["HOST_H1_LISTING","HOST_H2_LISTING"]",
 	},
 	{
-		SDB_HOST, "h1", NULL, "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 851, HOST_H1,
+		"LIST hosts; LIST hosts", /* ignore second (and later) commands */
+		0, SDB_CONNECTION_DATA, 205, SDB_CONNECTION_LIST,
+		"["HOST_H1_LISTING","HOST_H2_LISTING"]",
 	},
 	{
-		SDB_HOST, "h1", NULL, "age < 0s", /* never matches */
-		-1, UINT32_MAX, 0, NULL, /* FETCH fails if the object doesn't exist */
+		"LIST hosts FILTER name = 'h1'",
+		0, SDB_CONNECTION_DATA, 105, SDB_CONNECTION_LIST, "["HOST_H1_LISTING"]",
 	},
 	{
-		SDB_HOST, "x1", NULL, NULL, /* does not exist */
-		-1, UINT32_MAX, 0, NULL,
+		"LIST hosts FILTER name = 's1'",
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LIST, "[]",
 	},
 	{
-		SDB_HOST, "h1", "s1", NULL, /* invalid args */
-		-1, UINT32_MAX, 0, NULL,
+		"FETCH host 'h1'",
+		0, SDB_CONNECTION_DATA, 851, SDB_CONNECTION_FETCH, HOST_H1,
+	},
+	{
+		"LOOKUP hosts MATCHING name = 'h1'",
+		0, SDB_CONNECTION_DATA, 853, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
+	},
+	{
+		"FETCH host 'h1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 851, SDB_CONNECTION_FETCH, HOST_H1,
+	},
+	{
+		"LOOKUP hosts MATCHING name = 'h1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 853, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
+	},
+	{
+		"FETCH host 'h1' FILTER age < 0s", /* never matches */
+		-1, UINT32_MAX, 0, 0, NULL, /* FETCH fails if the object doesn't exist */
+	},
+	{
+		"LOOKUP hosts MATCHING name = 'h1' FILTER age < 0s", /* never matches */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH host 'x1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP hosts MATCHING name = 'x1'", /* does not exist */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH host 'h1'.'s1'", /* invalid args */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP hosts BY name = 'x1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
 	},
 	/* services */
 	{
-		SDB_SERVICE, "h2", "s1", NULL,
-		0, SDB_CONNECTION_DATA, 218, SERVICE_H2_S1,
+		"LIST services",
+		0, SDB_CONNECTION_DATA, 320, SDB_CONNECTION_LIST, SERVICE_H2_S12_LISTING,
 	},
 	{
-		SDB_SERVICE, "h2", "s1", "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 218, SERVICE_H2_S1,
+		"LIST services FILTER host.name = 'h2'",
+		0, SDB_CONNECTION_DATA, 320, SDB_CONNECTION_LIST, SERVICE_H2_S12_LISTING,
 	},
 	{
-		SDB_SERVICE, "h2", "s1", "age < 0s", /* never matches */
-		-1, UINT32_MAX, 0, NULL,
+		"LIST services FILTER host.name = 'h1'",
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LIST, "[]",
 	},
 	{
-		SDB_SERVICE, "h2", "s1", "name = 'h2'", /* only matches host */
-		-1, UINT32_MAX, 0, NULL,
+		"FETCH service 'h2'.'s1'",
+		0, SDB_CONNECTION_DATA, 218, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
 	},
 	{
-		SDB_SERVICE, "h2", "x1", NULL, /* does not exist */
-		-1, UINT32_MAX, 0, NULL,
+		"LOOKUP services MATCHING name = 's1'",
+		0, SDB_CONNECTION_DATA, 220, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
 	},
 	{
-		SDB_SERVICE, "x2", "s1", NULL, /* does not exist */
-		-1, UINT32_MAX, 0, NULL,
+		"FETCH service 'h2'.'s1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 218, SDB_CONNECTION_FETCH, SERVICE_H2_S1,
 	},
 	{
-		SDB_SERVICE, "h2", NULL, NULL, /* invalid args */
-		-1, UINT32_MAX, 0, NULL,
+		"LOOKUP services MATCHING name = 's1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 220, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
+	},
+	{
+		"FETCH service 'h2'.'s1' FILTER age < 0s", /* never matches */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP services MATCHING name = 's1' FILTER age < 0s", /* never matches */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH service 'h2'.'s1' FILTER name = 'h2'", /* only matches host */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP services MATCHING name = 's1' FILTER name = 'h2'", /* only matches host */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH service 'h2'.'x1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"FETCH service 'x2'.'s1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"FETCH service 'h2'", /* invalid args */
+		-1, UINT32_MAX, 0, 0, NULL,
 	},
 	/* metrics */
 	{
-		SDB_METRIC, "h1", "m1", NULL,
-		0, SDB_CONNECTION_DATA, 368, METRIC_H1_M1,
+		"LIST metrics",
+		0, SDB_CONNECTION_DATA, 596, SDB_CONNECTION_LIST, METRIC_H12_M12_LISTING,
 	},
 	{
-		SDB_METRIC, "h1", "m1", "age >= 0s", /* always matches */
-		0, SDB_CONNECTION_DATA, 368, METRIC_H1_M1,
+		"LIST metrics FILTER age > 0s",
+		0, SDB_CONNECTION_DATA, 596, SDB_CONNECTION_LIST, METRIC_H12_M12_LISTING,
 	},
 	{
-		SDB_METRIC, "h1", "m1", "age < 0s", /* never matches */
-		-1, UINT32_MAX, 0, NULL,
+		"LIST metrics FILTER age < 0s",
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LIST, "[]",
 	},
 	{
-		SDB_METRIC, "h1", "m1", "name = 'h1'", /* only matches host */
-		-1, UINT32_MAX, 0, NULL,
+		"FETCH metric 'h1'.'m1'",
+		0, SDB_CONNECTION_DATA, 368, SDB_CONNECTION_FETCH, METRIC_H1_M1,
 	},
 	{
-		SDB_METRIC, "h1", "x1", NULL, /* does not exist */
-		-1, UINT32_MAX, 0, NULL,
+		"LOOKUP metrics MATCHING name = 'm1'",
+		0, SDB_CONNECTION_DATA, 605, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
 	},
 	{
-		SDB_METRIC, "x1", "m1", NULL, /* does not exist */
-		-1, UINT32_MAX, 0, NULL,
+		"FETCH metric 'h1'.'m1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 368, SDB_CONNECTION_FETCH, METRIC_H1_M1,
 	},
 	{
-		SDB_METRIC, "x1", NULL, NULL, /* invalid args */
-		-1, UINT32_MAX, 0, NULL,
+		"LOOKUP metrics MATCHING name = 'm1' FILTER age >= 0s", /* always matches */
+		0, SDB_CONNECTION_DATA, 605, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
+	},
+	{
+		"FETCH metric 'h1'.'m1' FILTER age < 0s", /* never matches */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP metrics MATCHING name = 'm1' FILTER age < 0s", /* never matches */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH metric 'h1'.'m1' FILTER name = 'h1'", /* only matches host */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"LOOKUP metrics MATCHING name = 'm1' FILTER name = 'h1'", /* only matches host */
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		"FETCH metric 'h1'.'x1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"FETCH metric 'x1'.'m1'", /* does not exist */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"FETCH metric 'x1'", /* invalid args */
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	/* timeseries */
+	{
+		"TIMESERIES 'h1'.'m1'",
+		-1, UINT32_MAX, 0, 0, NULL, /* no data-store available */
+	},
+	{
+		"TIMESERIES 'h1'.'x1'",
+		-1, UINT32_MAX, 0, 0, NULL, /* does not exist */
+	},
+	{
+		"TIMESERIES 'x1'.'m1'",
+		-1, UINT32_MAX, 0, 0, NULL, /* does not exist */
+	},
+	/* store commands */
+	{
+		"STORE host 'hA' LAST UPDATE 01:00",
+		0, SDB_CONNECTION_OK, 27, 0, "Successfully stored host hA",
+	},
+	{
+		"STORE host 'hA'",
+		0, SDB_CONNECTION_OK, 27, 0, "Successfully stored host hA",
+	},
+	{
+		"STORE host attribute 'h1'.'aA' 'vA'",
+		0, SDB_CONNECTION_OK, 40, 0, "Successfully stored host attribute h1.aA",
+	},
+	{
+		"STORE host attribute 'x1'.'aA' 'vA'",
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"STORE service 'h1'.'sA'",
+		0, SDB_CONNECTION_OK, 33, 0, "Successfully stored service h1.sA",
+	},
+	{
+		"STORE service 'x1'.'sA'",
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"STORE service attribute 'h2'.'s1'.'aA' 'vA'",
+		0, SDB_CONNECTION_OK, 43, 0, "Successfully stored service attribute s1.aA",
+	},
+	{
+		"STORE service attribute 'h2'.'x1'.'aA' 'vA'",
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"STORE metric 'h1'.'mA'",
+		0, SDB_CONNECTION_OK, 32, 0, "Successfully stored metric h1.mA",
+	},
+	{
+		"STORE metric 'x1'.'mA'",
+		-1, UINT32_MAX, 0, 0, NULL,
+	},
+	{
+		"STORE metric attribute 'h1'.'m1'.'aA' 'vA'",
+		0, SDB_CONNECTION_OK, 42, 0, "Successfully stored metric attribute m1.aA",
+	},
+	{
+		"STORE metric attribute 'h1'.'x1'.'aA' 'vA'",
+		-1, UINT32_MAX, 0, 0, NULL,
 	},
 };
 
-START_TEST(test_exec_fetch)
+START_TEST(test_query)
 {
 	sdb_conn_t *conn = mock_conn_create();
-	sdb_store_matcher_t *filter = NULL;
 
 	uint32_t code = UINT32_MAX, msg_len = UINT32_MAX;
 	const char *data;
@@ -328,62 +520,51 @@ START_TEST(test_exec_fetch)
 	size_t len;
 	int check;
 
-	if (exec_fetch_data[_i].filter) {
-		filter = sdb_fe_parse_matcher(exec_fetch_data[_i].filter, -1, NULL);
-		ck_assert_msg(filter != NULL);
-	}
+	conn->cmd = SDB_CONNECTION_QUERY;
+	conn->cmd_len = (uint32_t)strlen(query_data[_i].query);
+	sdb_strbuf_memcpy(conn->buf, query_data[_i].query, conn->cmd_len);
 
-	check = sdb_fe_exec_fetch(conn, exec_fetch_data[_i].type,
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name, filter);
-	fail_unless(check == exec_fetch_data[_i].expected,
-			"sdb_fe_exec_fetch(%s, %s, %s, %s) = %d; expected: %d",
-			SDB_STORE_TYPE_TO_NAME(exec_fetch_data[_i].type),
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name,
-			exec_fetch_data[_i].filter, check, exec_fetch_data[_i].expected);
+	check = sdb_fe_query(conn);
+	fail_unless(check == query_data[_i].expected,
+			"sdb_fe_query(%s) = %d; expected: %d",
+			query_data[_i].query, check, query_data[_i].expected);
 
+	data = sdb_strbuf_string(MOCK_CONN(conn)->write_buf);
 	len = sdb_strbuf_len(MOCK_CONN(conn)->write_buf);
 
-	if (exec_fetch_data[_i].code == UINT32_MAX) {
+	if (query_data[_i].code == UINT32_MAX) {
 		fail_unless(len == 0,
-				"sdb_fe_exec_fetch(%s, %s, %s, %s) returned data on error",
-			SDB_STORE_TYPE_TO_NAME(exec_fetch_data[_i].type),
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name,
-			exec_fetch_data[_i].filter);
-		sdb_object_deref(SDB_OBJ(filter));
+				"sdb_fe_query(%s) returned data on error: '%s'",
+			query_data[_i].query, data);
 		mock_conn_destroy(conn);
 		return;
 	}
 
-	data = sdb_strbuf_string(MOCK_CONN(conn)->write_buf);
 	tmp = sdb_proto_unmarshal_header(data, len, &code, &msg_len);
 	ck_assert_msg(tmp == (ssize_t)(2 * sizeof(uint32_t)));
 	data += tmp;
 	len -= tmp;
 
-	fail_unless((code == exec_fetch_data[_i].code)
-				&& ((size_t)msg_len == exec_fetch_data[_i].len),
-			"sdb_fe_exec_fetch(%s, %s, %s, %s) returned %u, %u; expected: %u, %zu",
-			SDB_STORE_TYPE_TO_NAME(exec_fetch_data[_i].type),
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name,
-			exec_fetch_data[_i].filter, code, msg_len,
-			exec_fetch_data[_i].code, exec_fetch_data[_i].len);
+	fail_unless((code == query_data[_i].code)
+				&& ((size_t)msg_len == query_data[_i].len),
+			"sdb_fe_query(%s) returned %u, %u; expected: %u, %zu",
+			query_data[_i].query, code, msg_len,
+			query_data[_i].code, query_data[_i].len);
 
-	tmp = sdb_proto_unmarshal_int32(data, len, &code);
-	fail_unless(code == SDB_CONNECTION_FETCH,
-			"sdb_fe_exec_fetch(%s, %s, %s, %s) returned %s object; expected: FETCH",
-			SDB_STORE_TYPE_TO_NAME(exec_fetch_data[_i].type),
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name,
-			exec_fetch_data[_i].filter, SDB_CONN_MSGTYPE_TO_STRING((int)code));
-	data += tmp;
-	len -= tmp;
+	if (code == SDB_CONNECTION_DATA) {
+		tmp = sdb_proto_unmarshal_int32(data, len, &code);
+		fail_unless(code == query_data[_i].type,
+				"sdb_fe_query(%s) returned %s object; expected: %s",
+				query_data[_i].query, SDB_CONN_MSGTYPE_TO_STRING((int)code),
+				SDB_CONN_MSGTYPE_TO_STRING((int)query_data[_i].type));
+		data += tmp;
+		len -= tmp;
+	}
 
-	fail_if_strneq(data, exec_fetch_data[_i].data, (size_t)msg_len,
-			"sdb_fe_exec_fetch(%s, %s, %s, %s) returned '%s'; expected: '%s'",
-			SDB_STORE_TYPE_TO_NAME(exec_fetch_data[_i].type),
-			exec_fetch_data[_i].hostname, exec_fetch_data[_i].name,
-			exec_fetch_data[_i].filter, data, exec_fetch_data[_i].data);
+	fail_if_strneq(data, query_data[_i].data, (size_t)msg_len,
+			"sdb_fe_query(%s) returned unexpected data",
+			query_data[_i].query, data, query_data[_i].data);
 
-	sdb_object_deref(SDB_OBJ(filter));
 	mock_conn_destroy(conn);
 }
 END_TEST
@@ -392,7 +573,7 @@ TEST_MAIN("frontend::query")
 {
 	TCase *tc = tcase_create("core");
 	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
-	tcase_add_loop_test(tc, test_exec_fetch, 0, SDB_STATIC_ARRAY_LEN(exec_fetch_data));
+	TC_ADD_LOOP_TEST(tc, query);
 	ADD_TCASE(tc);
 }
 TEST_MAIN_END
