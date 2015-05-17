@@ -73,6 +73,10 @@ store_reply(sdb_conn_t *conn, int type, const char *name, int status)
  * public API
  */
 
+/*
+ * TODO: move sdb_fe_store to frontend/query.c and let it build an AST
+ */
+
 int
 sdb_fe_store(sdb_conn_t *conn)
 {

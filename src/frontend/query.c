@@ -29,7 +29,8 @@
 
 #include "core/store.h"
 #include "frontend/connection-private.h"
-#include "frontend/parser.h"
+#include "parser/ast.h"
+#include "parser/parser.h"
 #include "utils/error.h"
 #include "utils/proto.h"
 #include "utils/strbuf.h"
@@ -66,13 +67,16 @@ int
 sdb_fe_query(sdb_conn_t *conn)
 {
 	sdb_llist_t *parsetree;
-	sdb_conn_node_t *node = NULL;
+	sdb_ast_node_t *ast = NULL;
+
+	sdb_store_matcher_t *q;
+	sdb_strbuf_t *buf = NULL;
 	int status = 0;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_QUERY))
 		return -1;
 
-	parsetree = sdb_fe_parse(sdb_strbuf_string(conn->buf),
+	parsetree = sdb_parser_parse(sdb_strbuf_string(conn->buf),
 			(int)conn->cmd_len, conn->errbuf);
 	if (! parsetree) {
 		char query[conn->cmd_len + 1];
@@ -89,7 +93,7 @@ sdb_fe_query(sdb_conn_t *conn)
 			sdb_connection_send(conn, SDB_CONNECTION_DATA, 0, NULL);
 			break;
 		case 1:
-			node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+			ast = SDB_AST_NODE(sdb_llist_get(parsetree, 0));
 			break;
 
 		default:
@@ -102,17 +106,47 @@ sdb_fe_query(sdb_conn_t *conn)
 						sdb_llist_len(parsetree) - 1,
 						sdb_llist_len(parsetree) == 2 ? "" : "s",
 						query);
-				node = SDB_CONN_NODE(sdb_llist_get(parsetree, 0));
+				ast = SDB_AST_NODE(sdb_llist_get(parsetree, 0));
 			}
 	}
 
-	if (node) {
-		status = sdb_fe_exec(conn, node);
-		sdb_object_deref(SDB_OBJ(node));
+	q = sdb_store_query_prepare(ast);
+	if (! q) {
+		/* this shouldn't happen */
+		sdb_strbuf_sprintf(conn->errbuf, "failed to compile AST");
+		sdb_log(SDB_LOG_ERR, "frontend: failed to compile AST");
+		status = -1;
+	} else {
+		buf = sdb_strbuf_create(1024);
+		if (! buf) {
+			sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+			sdb_object_deref(SDB_OBJ(q));
+			return -1;
+		}
+		status = sdb_store_query_execute(q, buf, conn->errbuf);
+		if (status < 0) {
+			char query[conn->cmd_len + 1];
+			strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+			query[sizeof(query) - 1] = '\0';
+			sdb_log(SDB_LOG_ERR, "frontend: failed to execute query '%s'", query);
+		}
+	}
+	sdb_object_deref(SDB_OBJ(ast));
+	sdb_llist_destroy(parsetree);
+
+	if (status < 0) {
+		sdb_object_deref(SDB_OBJ(q));
+		sdb_strbuf_destroy(buf);
+		return status;
 	}
 
-	sdb_llist_destroy(parsetree);
-	return status;
+	assert(buf);
+	sdb_connection_send(conn, status,
+			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+
+	sdb_strbuf_destroy(buf);
+	sdb_object_deref(SDB_OBJ(q));
+	return 0;
 } /* sdb_fe_query */
 
 int
@@ -225,72 +259,9 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	return status;
 } /* sdb_fe_lookup */
 
-int
-sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node)
-{
-	sdb_store_matcher_t *m = NULL, *filter = NULL;
-
-	if (! node)
-		return -1;
-
-	switch (node->cmd) {
-		case SDB_CONNECTION_FETCH:
-			if (CONN_FETCH(node)->filter)
-				filter = CONN_FETCH(node)->filter->matcher;
-			return sdb_fe_exec_fetch(conn, CONN_FETCH(node)->type,
-					CONN_FETCH(node)->host, CONN_FETCH(node)->name, filter);
-		case SDB_CONNECTION_LIST:
-			if (CONN_LIST(node)->filter)
-				filter = CONN_LIST(node)->filter->matcher;
-			return sdb_fe_exec_list(conn, CONN_LIST(node)->type, filter);
-		case SDB_CONNECTION_LOOKUP:
-			if (CONN_LOOKUP(node)->matcher)
-				m = CONN_LOOKUP(node)->matcher->matcher;
-			if (CONN_LOOKUP(node)->filter)
-				filter = CONN_LOOKUP(node)->filter->matcher;
-			return sdb_fe_exec_lookup(conn,
-					CONN_LOOKUP(node)->type, m, filter);
-		case SDB_CONNECTION_STORE_HOST:
-		{
-			conn_store_host_t *n = CONN_STORE_HOST(node);
-			sdb_proto_host_t host = { n->last_update, n->name };
-			return sdb_fe_store_host(conn, &host);
-		}
-		case SDB_CONNECTION_STORE_SERVICE:
-		{
-			conn_store_svc_t *n = CONN_STORE_SVC(node);
-			sdb_proto_service_t svc = { n->last_update, n->hostname, n->name };
-			return sdb_fe_store_service(conn, &svc);
-		}
-		case SDB_CONNECTION_STORE_METRIC:
-		{
-			conn_store_metric_t *n = CONN_STORE_METRIC(node);
-			sdb_proto_metric_t metric = {
-				n->last_update, n->hostname, n->name,
-				n->store_type, n->store_id
-			};
-			return sdb_fe_store_metric(conn, &metric);
-		}
-		case SDB_CONNECTION_STORE_ATTRIBUTE:
-		{
-			conn_store_attr_t *n = CONN_STORE_ATTR(node);
-			sdb_proto_attribute_t attr = {
-				n->last_update, n->parent_type, n->hostname, n->parent,
-				n->key, n->value
-			};
-			return sdb_fe_store_attribute(conn, &attr);
-		}
-		case SDB_CONNECTION_TIMESERIES:
-			return sdb_fe_exec_timeseries(conn,
-					CONN_TS(node)->hostname, CONN_TS(node)->metric,
-					&CONN_TS(node)->opts);
-
-		default:
-			sdb_log(SDB_LOG_ERR, "frontend: Unknown command %i", node->cmd);
-			return -1;
-	}
-	return -1;
-} /* sdb_fe_exec */
+/*
+ * TODO: let the functions above build an AST; then drop sdb_fe_exec_*.
+ */
 
 int
 sdb_fe_exec_fetch(sdb_conn_t *conn, int type,

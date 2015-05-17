@@ -149,10 +149,9 @@ sdb_connection_server_version(sdb_conn_t *conn);
 /*
  * sdb_fe_parse:
  * Parse the query text specified in 'query' of length 'len' and return a list
- * of parse trees (for each command) to be executed by sdb_fe_exec. The list
- * has to be freed by the caller. If 'len' is less than zero, parse the whole
- * (nul-terminated) string. If specified, errbuf will be used to record parse
- * errors.
+ * of parse trees (for each command). The list has to be freed by the caller.
+ * If 'len' is less than zero, parse the whole (nul-terminated) string. If
+ * specified, errbuf will be used to record parse errors.
  *
  * Returns:
  *  - an sdb_llist_t object of sdb_conn_node_t on success
@@ -160,17 +159,6 @@ sdb_connection_server_version(sdb_conn_t *conn);
  */
 sdb_llist_t *
 sdb_fe_parse(const char *query, int len, sdb_strbuf_t *errbuf);
-
-/*
- * sdb_fe_exec:
- * Execute the command identified by 'node' on the specified connection.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value else
- */
-int
-sdb_fe_exec(sdb_conn_t *conn, sdb_conn_node_t *node);
 
 /*
  * session handling

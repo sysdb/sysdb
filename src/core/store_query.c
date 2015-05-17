@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_lookup.c
+ * SysDB - src/core/store_query.c
  * Copyright (C) 2014-2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *

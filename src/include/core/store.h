@@ -372,6 +372,19 @@ sdb_store_matcher_t *
 sdb_store_query_prepare(sdb_ast_node_t *ast);
 
 /*
+ * sdb_store_query_execute:
+ * Execute a previously prepared query. The query result will be written to
+ * 'buf' and any errors to 'errbuf'.
+ *
+ * Returns:
+ *  - the result type (to be used by the server reply)
+ *  - a negative value on error
+ */
+int
+sdb_store_query_execute(sdb_store_matcher_t *m,
+		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
+
+/*
  * sdb_store_expr_create:
  * Creates an arithmetic expression implementing the specified operator on the
  * specified left and right operand.

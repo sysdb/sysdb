@@ -504,7 +504,7 @@ static struct {
 	},
 	{
 		"STORE service attribute 'h2'.'s1'.'aA' 'vA'",
-		0, SDB_CONNECTION_OK, 43, 0, "Successfully stored service attribute s1.aA",
+		0, SDB_CONNECTION_OK, 46, 0, "Successfully stored service attribute h2.s1.aA",
 	},
 	{
 		"STORE service attribute 'h2'.'x1'.'aA' 'vA'",
@@ -520,7 +520,7 @@ static struct {
 	},
 	{
 		"STORE metric attribute 'h1'.'m1'.'aA' 'vA'",
-		0, SDB_CONNECTION_OK, 42, 0, "Successfully stored metric attribute m1.aA",
+		0, SDB_CONNECTION_OK, 45, 0, "Successfully stored metric attribute h1.m1.aA",
 	},
 	{
 		"STORE metric attribute 'h1'.'x1'.'aA' 'vA'",
@@ -544,8 +544,9 @@ START_TEST(test_query)
 
 	check = sdb_fe_query(conn);
 	fail_unless(check == query_data[_i].expected,
-			"sdb_fe_query(%s) = %d; expected: %d",
-			query_data[_i].query, check, query_data[_i].expected);
+			"sdb_fe_query(%s) = %d; expected: %d (err: %s)",
+			query_data[_i].query, check, query_data[_i].expected,
+			sdb_strbuf_string(conn->errbuf));
 
 	data = sdb_strbuf_string(MOCK_CONN(conn)->write_buf);
 	len = sdb_strbuf_len(MOCK_CONN(conn)->write_buf);
