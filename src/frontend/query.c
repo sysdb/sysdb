@@ -59,6 +59,43 @@ lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 	return sdb_store_json_emit_full(f, obj, filter);
 } /* lookup_tojson */
 
+static int
+query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
+{
+	sdb_store_query_t *q;
+	sdb_strbuf_t *buf;
+	int status;
+
+	q = sdb_store_query_prepare(ast);
+	if (! q) {
+		/* this shouldn't happen */
+		sdb_strbuf_sprintf(conn->errbuf, "failed to compile AST");
+		sdb_log(SDB_LOG_ERR, "frontend: failed to compile AST");
+		return -1;
+	}
+
+	buf = sdb_strbuf_create(1024);
+	if (! buf) {
+		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
+		sdb_object_deref(SDB_OBJ(q));
+		return -1;
+	}
+	status = sdb_store_query_execute(q, buf, conn->errbuf);
+	if (status < 0) {
+		char query[conn->cmd_len + 1];
+		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
+		query[sizeof(query) - 1] = '\0';
+		sdb_log(SDB_LOG_ERR, "frontend: failed to execute query '%s'", query);
+	}
+	else
+		sdb_connection_send(conn, status,
+				(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
+
+	sdb_strbuf_destroy(buf);
+	sdb_object_deref(SDB_OBJ(q));
+	return status < 0 ? status : 0;
+} /* query_exec */
+
 /*
  * public API
  */
@@ -68,9 +105,6 @@ sdb_fe_query(sdb_conn_t *conn)
 {
 	sdb_llist_t *parsetree;
 	sdb_ast_node_t *ast = NULL;
-
-	sdb_store_query_t *q;
-	sdb_strbuf_t *buf = NULL;
 	int status = 0;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_QUERY))
@@ -110,43 +144,12 @@ sdb_fe_query(sdb_conn_t *conn)
 			}
 	}
 
-	q = sdb_store_query_prepare(ast);
-	if (! q) {
-		/* this shouldn't happen */
-		sdb_strbuf_sprintf(conn->errbuf, "failed to compile AST");
-		sdb_log(SDB_LOG_ERR, "frontend: failed to compile AST");
-		status = -1;
-	} else {
-		buf = sdb_strbuf_create(1024);
-		if (! buf) {
-			sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-			sdb_object_deref(SDB_OBJ(q));
-			return -1;
-		}
-		status = sdb_store_query_execute(q, buf, conn->errbuf);
-		if (status < 0) {
-			char query[conn->cmd_len + 1];
-			strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
-			query[sizeof(query) - 1] = '\0';
-			sdb_log(SDB_LOG_ERR, "frontend: failed to execute query '%s'", query);
-		}
+	if (ast) {
+		status = query_exec(conn, ast);
+		sdb_object_deref(SDB_OBJ(ast));
 	}
-	sdb_object_deref(SDB_OBJ(ast));
 	sdb_llist_destroy(parsetree);
-
-	if (status < 0) {
-		sdb_object_deref(SDB_OBJ(q));
-		sdb_strbuf_destroy(buf);
-		return status;
-	}
-
-	assert(buf);
-	sdb_connection_send(conn, status,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-
-	sdb_strbuf_destroy(buf);
-	sdb_object_deref(SDB_OBJ(q));
-	return 0;
+	return status;
 } /* sdb_fe_query */
 
 int
