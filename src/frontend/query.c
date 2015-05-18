@@ -25,6 +25,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef HAVE_CONFIG_H
+#	include "config.h"
+#endif
+
 #include "sysdb.h"
 
 #include "core/store.h"
@@ -43,28 +47,16 @@
  */
 
 static int
-list_tojson(sdb_store_obj_t *obj,
-		sdb_store_matcher_t __attribute__((unused)) *filter,
-		void *user_data)
-{
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit(f, obj);
-} /* list_tojson */
-
-static int
-lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
-		void *user_data)
-{
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit_full(f, obj, filter);
-} /* lookup_tojson */
-
-static int
 query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 {
 	sdb_store_query_t *q;
 	sdb_strbuf_t *buf;
 	int status;
+
+	if (! ast) {
+		sdb_strbuf_sprintf(conn->errbuf, "out of memory");
+		return -1;
+	}
 
 	q = sdb_store_query_prepare(ast);
 	if (! q) {
@@ -155,8 +147,11 @@ sdb_fe_query(sdb_conn_t *conn)
 int
 sdb_fe_fetch(sdb_conn_t *conn)
 {
+	sdb_ast_node_t *ast;
+	char hostname[conn->cmd_len + 1];
 	char name[conn->cmd_len + 1];
 	uint32_t type;
+	int status;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_FETCH))
 		return -1;
@@ -169,18 +164,29 @@ sdb_fe_fetch(sdb_conn_t *conn)
 		return -1;
 	}
 
+	/* TODO: support other types besides hosts */
+	hostname[0] = '\0';
+
 	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(conn->buf), &type);
 	strncpy(name, sdb_strbuf_string(conn->buf) + sizeof(uint32_t),
 			conn->cmd_len - sizeof(uint32_t));
 	name[sizeof(name) - 1] = '\0';
-	/* TODO: support other types besides hosts */
-	return sdb_fe_exec_fetch(conn, (int)type, name, NULL, /* filter = */ NULL);
+
+	ast = sdb_ast_fetch_create((int)type,
+			hostname[0] ? strdup(hostname) : NULL,
+			name[0] ? strdup(name) : NULL,
+			/* filter = */ NULL);
+	status = query_exec(conn, ast);
+	sdb_object_deref(SDB_OBJ(ast));
+	return status;
 } /* sdb_fe_fetch */
 
 int
 sdb_fe_list(sdb_conn_t *conn)
 {
+	sdb_ast_node_t *ast;
 	uint32_t type = SDB_HOST;
+	int status;
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_LIST))
 		return -1;
@@ -194,26 +200,22 @@ sdb_fe_list(sdb_conn_t *conn)
 				conn->cmd_len);
 		return -1;
 	}
-	return sdb_fe_exec_list(conn, (int)type, /* filter = */ NULL);
+
+	ast = sdb_ast_list_create((int)type, /* filter = */ NULL);
+	status = query_exec(conn, ast);
+	sdb_object_deref(SDB_OBJ(ast));
+	return status;
 } /* sdb_fe_list */
 
 int
 sdb_fe_lookup(sdb_conn_t *conn)
 {
-	sdb_store_matcher_t *m;
+	sdb_ast_node_t *ast, *m;
 	const char *matcher;
 	size_t matcher_len;
 
 	uint32_t type;
 	int status;
-
-	conn_matcher_t m_node = {
-		{ SDB_OBJECT_INIT, SDB_CONNECTION_MATCHER }, NULL
-	};
-	conn_lookup_t node = {
-		{ SDB_OBJECT_INIT, SDB_CONNECTION_LOOKUP },
-		-1, &m_node, NULL
-	};
 
 	if ((! conn) || (conn->cmd != SDB_CONNECTION_LOOKUP))
 		return -1;
@@ -229,239 +231,35 @@ sdb_fe_lookup(sdb_conn_t *conn)
 
 	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
 	matcher_len = conn->cmd_len - sizeof(uint32_t);
-	m = sdb_fe_parse_matcher(matcher, (int)matcher_len, conn->errbuf);
+	m = sdb_parser_parse_conditional(matcher, (int)matcher_len, conn->errbuf);
 	if (! m) {
 		char expr[matcher_len + 1];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse "
-				"lookup condition '%s': %s", expr,
-				sdb_strbuf_string(conn->errbuf));
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse lookup condition '%s': %s",
+				expr, sdb_strbuf_string(conn->errbuf));
 		return -1;
 	}
 
-	node.type = (int)type;
-	m_node.matcher = m;
-
-	/* run analyzer separately; parse_matcher is missing
-	 * the right context to do so */
-	if (sdb_fe_analyze(SDB_CONN_NODE(&node), conn->errbuf)) {
+	ast = sdb_ast_lookup_create((int)type, m, /* filter = */ NULL);
+	/* run analyzer using the full context */
+	if (ast && sdb_parser_analyze(ast, conn->errbuf)) {
 		char expr[matcher_len + 1];
 		char err[sdb_strbuf_len(conn->errbuf) + sizeof(expr) + 64];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
-		snprintf(err, sizeof(err), "Failed to parse "
-				"lookup condition '%s': %s", expr,
-				sdb_strbuf_string(conn->errbuf));
+		snprintf(err, sizeof(err), "Failed to parse lookup condition '%s': %s",
+				expr, sdb_strbuf_string(conn->errbuf));
 		sdb_strbuf_sprintf(conn->errbuf, "%s", err);
 		status = -1;
 	}
 	else
-		status = sdb_fe_exec_lookup(conn, (int)type, m, /* filter = */ NULL);
-	sdb_object_deref(SDB_OBJ(m));
+		status = query_exec(conn, ast);
+	if (! ast)
+		sdb_object_deref(SDB_OBJ(m));
+	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_fe_lookup */
-
-/*
- * TODO: let the functions above build an AST; then drop sdb_fe_exec_*.
- */
-
-int
-sdb_fe_exec_fetch(sdb_conn_t *conn, int type,
-		const char *hostname, const char *name, sdb_store_matcher_t *filter)
-{
-	uint32_t res_type = htonl(SDB_CONNECTION_FETCH);
-
-	sdb_store_obj_t *host;
-	sdb_store_obj_t *obj;
-
-	sdb_store_json_formatter_t *f;
-	sdb_strbuf_t *buf;
-
-	if ((! hostname) || ((type == SDB_HOST) && name)
-			|| ((type != SDB_HOST) && (! name))) {
-		/* This is a programming error, not something the client did wrong */
-		sdb_strbuf_sprintf(conn->errbuf, "INTERNAL ERROR: invalid "
-				"arguments to sdb_fe_exec_fetch(%s, %s, %s)",
-				SDB_STORE_TYPE_TO_NAME(type), hostname, name);
-		return -1;
-	}
-	if (type == SDB_HOST)
-		name = hostname;
-
-	host = sdb_store_get_host(hostname);
-	if ((! host) || (filter
-				&& (! sdb_store_matcher_matches(filter, host, NULL)))) {
-		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch %s %s: "
-				"host %s not found", SDB_STORE_TYPE_TO_NAME(type),
-				name, hostname);
-		sdb_object_deref(SDB_OBJ(host));
-		return -1;
-	}
-	if (type == SDB_HOST) {
-		obj = host;
-	}
-	else {
-		obj = sdb_store_get_child(host, type, name);
-		if ((! obj) || (filter
-					&& (! sdb_store_matcher_matches(filter, obj, NULL)))) {
-			sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch %s %s.%s: "
-					"%s not found", SDB_STORE_TYPE_TO_NAME(type),
-					hostname, name, name);
-			if (obj)
-				sdb_object_deref(SDB_OBJ(obj));
-			sdb_object_deref(SDB_OBJ(host));
-			return -1;
-		}
-		sdb_object_deref(SDB_OBJ(host));
-	}
-	host = NULL;
-
-	buf = sdb_strbuf_create(1024);
-	if (! buf) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"buffer to handle FETCH command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		sdb_object_deref(SDB_OBJ(obj));
-		return -1;
-	}
-	f = sdb_store_json_formatter(buf, type, /* flags = */ 0);
-	if (! f) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"JSON formatter to handle FETCH command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		sdb_object_deref(SDB_OBJ(obj));
-		return -1;
-	}
-
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_json_emit_full(f, obj, filter)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
-				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
-				hostname, name);
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		free(f);
-		sdb_object_deref(SDB_OBJ(obj));
-		return -1;
-	}
-	sdb_store_json_finish(f);
-
-	sdb_connection_send(conn, SDB_CONNECTION_DATA,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-	sdb_strbuf_destroy(buf);
-	free(f);
-	sdb_object_deref(SDB_OBJ(obj));
-	return 0;
-} /* sdb_fe_exec_fetch */
-
-int
-sdb_fe_exec_list(sdb_conn_t *conn, int type, sdb_store_matcher_t *filter)
-{
-	uint32_t res_type = htonl(SDB_CONNECTION_LIST);
-
-	sdb_store_json_formatter_t *f;
-	sdb_strbuf_t *buf;
-
-	buf = sdb_strbuf_create(1024);
-	if (! buf) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"buffer to handle LIST command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		return -1;
-	}
-	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
-	if (! f) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"JSON formatter to handle LIST command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		return -1;
-	}
-
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_scan(type, /* m = */ NULL, filter, list_tojson, f)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
-				"store to JSON");
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		free(f);
-		return -1;
-	}
-	sdb_store_json_finish(f);
-
-	sdb_connection_send(conn, SDB_CONNECTION_DATA,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-	sdb_strbuf_destroy(buf);
-	free(f);
-	return 0;
-} /* sdb_fe_exec_list */
-
-int
-sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
-		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
-{
-	uint32_t res_type = htonl(SDB_CONNECTION_LOOKUP);
-
-	sdb_store_json_formatter_t *f;
-	sdb_strbuf_t *buf;
-
-	buf = sdb_strbuf_create(1024);
-	if (! buf) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"buffer to handle LOOKUP command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		return -1;
-	}
-	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
-	if (! f) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"JSON formatter to handle LOOKUP command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_strbuf_destroy(buf);
-		return -1;
-	}
-
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-
-	if (sdb_store_scan(type, m, filter, lookup_tojson, f)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup %ss",
-				SDB_STORE_TYPE_TO_NAME(type));
-		sdb_strbuf_sprintf(conn->errbuf, "Failed to lookup %ss",
-				SDB_STORE_TYPE_TO_NAME(type));
-		sdb_strbuf_destroy(buf);
-		free(f);
-		return -1;
-	}
-	sdb_store_json_finish(f);
-
-	sdb_connection_send(conn, SDB_CONNECTION_DATA,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-	sdb_strbuf_destroy(buf);
-	free(f);
-	return 0;
-} /* sdb_fe_exec_lookup */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
