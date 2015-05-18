@@ -324,36 +324,33 @@ exec_timeseries(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
  */
 
 int
-sdb_store_query_execute(sdb_store_matcher_t *m,
+sdb_store_query_execute(sdb_store_query_t *m,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 {
 	sdb_timeseries_opts_t ts_opts;
 	sdb_ast_node_t *ast;
 
-	if ((! m) || (m->type != MATCHER_QUERY)) {
-		int t = m ? m-> type : -1;
-		sdb_log(SDB_LOG_ERR, "store: Invalid query of type %s", MATCHER_SYM(t));
+	if (! m)
 		return -1;
-	}
-	if (! QUERY_M(m)->ast) {
+	if (! QUERY(m)->ast) {
 		sdb_log(SDB_LOG_ERR, "store: Invalid empty query");
 		return -1;
 	}
 
-	ast = QUERY_M(m)->ast;
+	ast = QUERY(m)->ast;
 	switch (ast->type) {
 	case SDB_AST_TYPE_FETCH:
 		return exec_fetch(buf, errbuf, SDB_AST_FETCH(ast)->obj_type,
 				SDB_AST_FETCH(ast)->hostname, SDB_AST_FETCH(ast)->name,
-				QUERY_M(m)->filter);
+				QUERY(m)->filter);
 
 	case SDB_AST_TYPE_LIST:
 		return exec_list(buf, errbuf, SDB_AST_LIST(ast)->obj_type,
-				QUERY_M(m)->filter);
+				QUERY(m)->filter);
 
 	case SDB_AST_TYPE_LOOKUP:
 		return exec_lookup(buf, errbuf, SDB_AST_LOOKUP(ast)->obj_type,
-				QUERY_M(m)->matcher, QUERY_M(m)->filter);
+				QUERY(m)->matcher, QUERY(m)->filter);
 
 	case SDB_AST_TYPE_STORE:
 		if (ast->type != SDB_AST_TYPE_STORE) {

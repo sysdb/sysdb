@@ -265,18 +265,16 @@ node_to_matcher(sdb_ast_node_t *n)
 } /* node_to_matcher */
 
 /*
- * matcher type
+ * query type
  */
 
 static int
-query_matcher_init(sdb_object_t *obj, va_list ap)
+query_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_ast_node_t *ast = va_arg(ap, sdb_ast_node_t *);
 	sdb_ast_node_t *matcher = NULL, *filter = NULL;
 
-	M(obj)->type = MATCHER_QUERY;
-
-	QUERY_M(obj)->ast = ast;
+	QUERY(obj)->ast = ast;
 	sdb_object_ref(SDB_OBJ(ast));
 
 	switch (ast->type) {
@@ -302,43 +300,43 @@ query_matcher_init(sdb_object_t *obj, va_list ap)
 	}
 
 	if (matcher) {
-		QUERY_M(obj)->matcher = node_to_matcher(matcher);
-		if (! QUERY_M(obj)->matcher)
+		QUERY(obj)->matcher = node_to_matcher(matcher);
+		if (! QUERY(obj)->matcher)
 			return -1;
 	}
 	if (filter) {
-		QUERY_M(obj)->filter = node_to_matcher(filter);
-		if (! QUERY_M(obj)->filter)
+		QUERY(obj)->filter = node_to_matcher(filter);
+		if (! QUERY(obj)->filter)
 			return -1;
 	}
 
 	return 0;
-} /* query_matcher_init */
+} /* query_init */
 
 static void
-query_matcher_destroy(sdb_object_t *obj)
+query_destroy(sdb_object_t *obj)
 {
-	sdb_object_deref(SDB_OBJ(QUERY_M(obj)->ast));
-	sdb_object_deref(SDB_OBJ(QUERY_M(obj)->matcher));
-	sdb_object_deref(SDB_OBJ(QUERY_M(obj)->filter));
-} /* query_matcher_destroy */
+	sdb_object_deref(SDB_OBJ(QUERY(obj)->ast));
+	sdb_object_deref(SDB_OBJ(QUERY(obj)->matcher));
+	sdb_object_deref(SDB_OBJ(QUERY(obj)->filter));
+} /* query_destroy */
 
 static sdb_type_t query_type = {
-	/* size = */ sizeof(query_matcher_t),
-	/* init = */ query_matcher_init,
-	/* destroy = */ query_matcher_destroy,
+	/* size = */ sizeof(sdb_store_query_t),
+	/* init = */ query_init,
+	/* destroy = */ query_destroy,
 };
 
 /*
  * public API
  */
 
-sdb_store_matcher_t *
+sdb_store_query_t *
 sdb_store_query_prepare(sdb_ast_node_t *ast)
 {
 	if (! ast)
 		return NULL;
-	return M(sdb_object_create(SDB_AST_TYPE_TO_STRING(ast), query_type, ast));
+	return QUERY(sdb_object_create(SDB_AST_TYPE_TO_STRING(ast), query_type, ast));
 } /* sdb_store_query_prepare */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

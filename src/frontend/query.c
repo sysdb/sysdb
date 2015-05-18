@@ -69,7 +69,7 @@ sdb_fe_query(sdb_conn_t *conn)
 	sdb_llist_t *parsetree;
 	sdb_ast_node_t *ast = NULL;
 
-	sdb_store_matcher_t *q;
+	sdb_store_query_t *q;
 	sdb_strbuf_t *buf = NULL;
 	int status = 0;
 

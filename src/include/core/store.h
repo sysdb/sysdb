@@ -361,14 +361,34 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 		sdb_store_matcher_t *filter);
 
 /*
+ * Querying a store:
+ *
+ *  - Query interface: A query is a formal description of an interaction with
+ *    the store. It can be used, both, for read and write access. The query is
+ *    described by its abstract syntax tree (AST). The parser package provides
+ *    means to parse a string (SysQL) representation of the query into an AST.
+ *
+ *  - Matcher / expression interface: This low-level interface provides direct
+ *    control over how to access the store. It is used by the query
+ *    implementation internally and can only be used for read access.
+ */
+
+/*
+ * sdb_store_query_t:
+ * A parsed query readily prepared for execution.
+ */
+struct sdb_store_query;
+typedef struct sdb_store_query sdb_store_query_t;
+
+/*
  * sdb_store_query_prepare:
  * Prepare the query described by 'ast' for execution in a store.
  *
  * Returns:
- *  - a store matcher on success
+ *  - a store query on success
  *  - NULL else
  */
-sdb_store_matcher_t *
+sdb_store_query_t *
 sdb_store_query_prepare(sdb_ast_node_t *ast);
 
 /*
@@ -381,7 +401,7 @@ sdb_store_query_prepare(sdb_ast_node_t *ast);
  *  - a negative value on error
  */
 int
-sdb_store_query_execute(sdb_store_matcher_t *m,
+sdb_store_query_execute(sdb_store_query_t *m,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
 
 /*

@@ -104,6 +104,18 @@ typedef struct {
 #define _interval super.interval
 
 /*
+ * querying
+ */
+
+struct sdb_store_query {
+	sdb_object_t super;
+	sdb_ast_node_t *ast;
+	sdb_store_matcher_t *matcher;
+	sdb_store_matcher_t *filter;
+};
+#define QUERY(m) ((sdb_store_query_t *)(m))
+
+/*
  * expressions
  */
 
@@ -239,14 +251,6 @@ typedef struct {
 	sdb_store_expr_t *expr;
 } isnull_matcher_t;
 #define ISNULL_M(m) ((isnull_matcher_t *)(m))
-
-typedef struct {
-	sdb_store_matcher_t super;
-	sdb_ast_node_t *ast;
-	sdb_store_matcher_t *matcher;
-	sdb_store_matcher_t *filter;
-} query_matcher_t;
-#define QUERY_M(m) ((query_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */

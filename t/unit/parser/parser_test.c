@@ -635,7 +635,7 @@ START_TEST(test_parse)
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_llist_t *check;
 	sdb_ast_node_t *node;
-	sdb_store_matcher_t *m;
+	sdb_store_query_t *q;
 	_Bool ok;
 
 	check = sdb_parser_parse(parse_data[_i].query,
@@ -698,13 +698,13 @@ START_TEST(test_parse)
 	}
 
 	/* TODO: this should move into front-end specific tests */
-	m = sdb_store_query_prepare(node);
-	fail_unless(m != NULL,
-			"sdb_store_query_prepare(AST<%s>) = NULL; expected: <m>",
+	q = sdb_store_query_prepare(node);
+	fail_unless(q != NULL,
+			"sdb_store_query_prepare(AST<%s>) = NULL; expected: <query>",
 			parse_data[_i].query);
 
 	sdb_object_deref(SDB_OBJ(node));
-	sdb_object_deref(SDB_OBJ(m));
+	sdb_object_deref(SDB_OBJ(q));
 	sdb_llist_destroy(check);
 	sdb_strbuf_destroy(errbuf);
 }
