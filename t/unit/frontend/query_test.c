@@ -597,8 +597,7 @@ static struct {
 	},
 	{
 		SDB_CONNECTION_STORE, "\0\0\0\x12""\0\0\0\0\xd6\x93\xa4\0""h2\0s1\0aA\0"VALUE,27+VALUE_LEN,
-		0, SDB_CONNECTION_OK, 43, 0, "Successfully stored service attribute s1.aA",
-		/* TODO: 46, h2.s1.aA */
+		0, SDB_CONNECTION_OK, 46, 0, "Successfully stored service attribute h2.s1.aA",
 	},
 	{
 		SDB_CONNECTION_QUERY, "STORE service attribute 'h2'.'x1'.'aA' 'vA'", -1,
@@ -630,8 +629,7 @@ static struct {
 	},
 	{
 		SDB_CONNECTION_STORE, "\0\0\0\x13""\0\0\0\0\xd6\x93\xa4\0""h1\0m1\0aA\0"VALUE, 27+VALUE_LEN,
-		0, SDB_CONNECTION_OK, 42, 0, "Successfully stored metric attribute m1.aA",
-		/* TODO: 45, h1.m1.aA */
+		0, SDB_CONNECTION_OK, 45, 0, "Successfully stored metric attribute h1.m1.aA",
 	},
 	{
 		SDB_CONNECTION_QUERY, "STORE metric attribute 'h1'.'x1'.'aA' 'vA'", -1,

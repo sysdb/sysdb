@@ -46,6 +46,12 @@
  * private helper functions
  */
 
+static char *
+sstrdup(const char *s)
+{
+	return s ? strdup(s) : NULL;
+} /* sstrdup */
+
 static int
 query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 {
@@ -260,6 +266,111 @@ sdb_fe_lookup(sdb_conn_t *conn)
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_fe_lookup */
+
+int
+sdb_fe_store(sdb_conn_t *conn)
+{
+	sdb_ast_node_t *ast;
+	const char *buf = sdb_strbuf_string(conn->buf);
+	size_t len = conn->cmd_len;
+	uint32_t type;
+	ssize_t n;
+	int status;
+
+	if ((! conn) || (conn->cmd != SDB_CONNECTION_STORE))
+		return -1;
+
+	if ((n = sdb_proto_unmarshal_int32(buf, len, &type)) < 0) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid command length %zu for "
+				"STORE command", len);
+		sdb_strbuf_sprintf(conn->errbuf,
+				"STORE: Invalid command length %zu", len);
+		return -1;
+	}
+
+	switch (type) {
+		case SDB_HOST:
+		{
+			sdb_proto_host_t host;
+			if (sdb_proto_unmarshal_host(buf, len, &host) < 0) {
+				sdb_strbuf_sprintf(conn->errbuf,
+						"STORE: Failed to unmarshal host object");
+				return -1;
+			}
+			ast = sdb_ast_store_create(SDB_HOST, /* host */ NULL,
+					/* parent */ 0, NULL, sstrdup(host.name), host.last_update,
+					/* metric store */ NULL, NULL, SDB_DATA_NULL);
+		}
+		break;
+
+		case SDB_SERVICE:
+		{
+			sdb_proto_service_t svc;
+			if (sdb_proto_unmarshal_service(buf, len, &svc) < 0) {
+				sdb_strbuf_sprintf(conn->errbuf,
+						"STORE: Failed to unmarshal service object");
+				return -1;
+			}
+			ast = sdb_ast_store_create(SDB_SERVICE, sstrdup(svc.hostname),
+					/* parent */ 0, NULL, sstrdup(svc.name), svc.last_update,
+					/* metric store */ NULL, NULL, SDB_DATA_NULL);
+		}
+		break;
+
+		case SDB_METRIC:
+		{
+			sdb_proto_metric_t metric;
+			if (sdb_proto_unmarshal_metric(buf, len, &metric) < 0) {
+				sdb_strbuf_sprintf(conn->errbuf,
+						"STORE: Failed to unmarshal metric object");
+				return -1;
+			}
+			ast = sdb_ast_store_create(SDB_METRIC, sstrdup(metric.hostname),
+					/* parent */ 0, NULL, sstrdup(metric.name), metric.last_update,
+					sstrdup(metric.store_type), sstrdup(metric.store_id),
+					SDB_DATA_NULL);
+		}
+		break;
+	}
+
+	if (type & SDB_ATTRIBUTE) {
+		sdb_proto_attribute_t attr;
+		const char *hostname, *parent;
+		int parent_type;
+		if (sdb_proto_unmarshal_attribute(buf, len, &attr) < 0) {
+			sdb_strbuf_sprintf(conn->errbuf,
+					"STORE: Failed to unmarshal attribute object");
+			return -1;
+		}
+		if (attr.parent_type == SDB_HOST) {
+			hostname = attr.parent;
+			parent_type = 0;
+			parent = NULL;
+		}
+		else {
+			hostname = attr.hostname;
+			parent_type = attr.parent_type;
+			parent = attr.parent;
+		}
+		ast = sdb_ast_store_create(SDB_ATTRIBUTE, sstrdup(hostname),
+				parent_type, sstrdup(parent), sstrdup(attr.key),
+				attr.last_update, /* metric store */ NULL, NULL,
+				attr.value);
+	}
+
+	if (! ast) {
+		sdb_log(SDB_LOG_ERR, "frontend: Invalid object type %d for "
+				"STORE COMMAND", type);
+		sdb_strbuf_sprintf(conn->errbuf, "STORE: Invalid object type %d", type);
+		return -1;
+	}
+
+	status = sdb_parser_analyze(ast, conn->errbuf);
+	if (! status)
+		status = query_exec(conn, ast);
+	sdb_object_deref(SDB_OBJ(ast));
+	return status;
+} /* sdb_fe_store */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

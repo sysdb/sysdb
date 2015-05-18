@@ -92,7 +92,6 @@ libsysdb_la_SOURCES = \
 		frontend/parser.c include/frontend/parser.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
-		frontend/store.c \
 		frontend/query.c \
 		parser/analyzer.c \
 		parser/ast.c include/parser/ast.h \
