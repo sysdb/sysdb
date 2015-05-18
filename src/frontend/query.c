@@ -463,38 +463,5 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 	return 0;
 } /* sdb_fe_exec_lookup */
 
-int
-sdb_fe_exec_timeseries(sdb_conn_t *conn,
-		const char *hostname, const char *metric,
-		sdb_timeseries_opts_t *opts)
-{
-	sdb_strbuf_t *buf;
-	uint32_t res_type = htonl(SDB_CONNECTION_TIMESERIES);
-
-	buf = sdb_strbuf_create(1024);
-	if (! buf) {
-		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
-				"buffer to handle TIMESERIES command: %s",
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
-
-		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		return -1;
-	}
-
-	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_fetch_timeseries(hostname, metric, opts, buf)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series");
-		sdb_strbuf_sprintf(conn->errbuf, "Failed to fetch time-series");
-		sdb_strbuf_destroy(buf);
-		return -1;
-	}
-
-	sdb_connection_send(conn, SDB_CONNECTION_DATA,
-			(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
-	sdb_strbuf_destroy(buf);
-	return 0;
-} /* sdb_fe_exec_timeseries */
-
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

@@ -243,21 +243,6 @@ sdb_fe_exec_lookup(sdb_conn_t *conn, int type,
 		sdb_store_matcher_t *m, sdb_store_matcher_t *filter);
 
 /*
- * sdb_fe_exec_timeseries:
- * Execute the 'TIMESERIES' command. Send the time-series for the specified
- * host's metric, serialized as JSON, to the client. See
- * sdb_store_fetch_timeseries for details.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value else
- */
-int
-sdb_fe_exec_timeseries(sdb_conn_t *conn,
-		const char *hostname, const char *metric,
-		sdb_timeseries_opts_t *opts);
-
-/*
  * sdb_fe_store_host, sdb_fe_store_service, sdb_fe_store_metric,
  * sdb_fe_store_attribute:
  * Execute the 'STORE' command for the respective object type.
