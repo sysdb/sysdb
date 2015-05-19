@@ -155,6 +155,8 @@ analyze_logical(int context, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 		break;
 
 	case SDB_AST_ISNULL:
+	case SDB_AST_ISTRUE:
+	case SDB_AST_ISFALSE:
 		if (analyze_node(context, op->right, errbuf))
 			return -1;
 		break;

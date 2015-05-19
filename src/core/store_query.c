@@ -177,6 +177,12 @@ cmp_to_matcher(sdb_ast_node_t *n)
 	case SDB_AST_ISNULL:
 		m = sdb_store_isnull_matcher(right);
 		break;
+	case SDB_AST_ISTRUE:
+		m = sdb_store_istrue_matcher(right);
+		break;
+	case SDB_AST_ISFALSE:
+		m = sdb_store_isfalse_matcher(right);
+		break;
 	case SDB_AST_IN:
 		m = sdb_store_in_matcher(left, right);
 		break;

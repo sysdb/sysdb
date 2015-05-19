@@ -127,6 +127,8 @@ sdb_parser_yyerrorf(YYLTYPE *lval, sdb_parser_yyscan_t scanner, const char *fmt,
 /* NULL token */
 %token NULL_T
 
+%token TRUE FALSE
+
 %token FETCH LIST LOOKUP STORE TIMESERIES
 
 %token <str> IDENTIFIER STRING
@@ -476,6 +478,34 @@ comparison:
 	expression IS NOT NULL_T
 		{
 			$$ = sdb_ast_op_create(SDB_AST_ISNULL, NULL, $1);
+			CK_OOM($$);
+			$$ = sdb_ast_op_create(SDB_AST_NOT, NULL, $$);
+			CK_OOM($$);
+		}
+	|
+	expression IS TRUE
+		{
+			$$ = sdb_ast_op_create(SDB_AST_ISTRUE, NULL, $1);
+			CK_OOM($$);
+		}
+	|
+	expression IS NOT TRUE
+		{
+			$$ = sdb_ast_op_create(SDB_AST_ISTRUE, NULL, $1);
+			CK_OOM($$);
+			$$ = sdb_ast_op_create(SDB_AST_NOT, NULL, $$);
+			CK_OOM($$);
+		}
+	|
+	expression IS FALSE
+		{
+			$$ = sdb_ast_op_create(SDB_AST_ISFALSE, NULL, $1);
+			CK_OOM($$);
+		}
+	|
+	expression IS NOT FALSE
+		{
+			$$ = sdb_ast_op_create(SDB_AST_ISFALSE, NULL, $1);
 			CK_OOM($$);
 			$$ = sdb_ast_op_create(SDB_AST_NOT, NULL, $$);
 			CK_OOM($$);

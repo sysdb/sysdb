@@ -76,20 +76,22 @@ typedef enum {
 		|| (((n)->type == SDB_AST_TYPE_ITERATOR) \
 			&& ((SDB_AST_ALL <= SDB_AST_ITER(n)->kind) \
 				&& (SDB_AST_ITER(n)->kind <= SDB_AST_ANY))))
-	SDB_AST_AND    = 1000,
-	SDB_AST_OR     = 1001,
-	SDB_AST_NOT    = 1002,
+	SDB_AST_AND     = 1000,
+	SDB_AST_OR      = 1001,
+	SDB_AST_NOT     = 1002,
 
-	SDB_AST_LT     = 1010,
-	SDB_AST_LE     = 1011,
-	SDB_AST_EQ     = 1012,
-	SDB_AST_NE     = 1013,
-	SDB_AST_GE     = 1014,
-	SDB_AST_GT     = 1015,
-	SDB_AST_REGEX  = 1016,
-	SDB_AST_NREGEX = 1017,
-	SDB_AST_ISNULL = 1018,
-	SDB_AST_IN     = 1019,
+	SDB_AST_LT      = 1010,
+	SDB_AST_LE      = 1011,
+	SDB_AST_EQ      = 1012,
+	SDB_AST_NE      = 1013,
+	SDB_AST_GE      = 1014,
+	SDB_AST_GT      = 1015,
+	SDB_AST_REGEX   = 1016,
+	SDB_AST_NREGEX  = 1017,
+	SDB_AST_ISNULL  = 1018,
+	SDB_AST_ISTRUE  = 1019,
+	SDB_AST_ISFALSE = 1020,
+	SDB_AST_IN      = 1021,
 
 	/* arithmetic expressions */
 #define SDB_AST_IS_ARITHMETIC(n) \
@@ -99,20 +101,20 @@ typedef enum {
 		|| (((n)->type == SDB_AST_TYPE_OPERATOR) \
 			&& ((SDB_AST_ADD <= SDB_AST_OP(n)->kind) \
 				&& (SDB_AST_OP(n)->kind <= SDB_AST_CONCAT))))
-	SDB_AST_ADD    = 2000,
-	SDB_AST_SUB    = 2001,
-	SDB_AST_MUL    = 2002,
-	SDB_AST_DIV    = 2003,
-	SDB_AST_MOD    = 2004,
-	SDB_AST_CONCAT = 2005,
+	SDB_AST_ADD     = 2000,
+	SDB_AST_SUB     = 2001,
+	SDB_AST_MUL     = 2002,
+	SDB_AST_DIV     = 2003,
+	SDB_AST_MOD     = 2004,
+	SDB_AST_CONCAT  = 2005,
 
 	/* iterators */
 #define SDB_AST_IS_ITERATOR(n) \
 	(((n)->type == SDB_AST_TYPE_ITERATOR) \
 		&& ((SDB_AST_ALL <= SDB_AST_ITER(n)->kind) \
 			&& (SDB_AST_ITER(n)->kind <= SDB_AST_ANY)))
-	SDB_AST_ALL    = 3000,
-	SDB_AST_ANY    = 3001,
+	SDB_AST_ALL     = 3000,
+	SDB_AST_ANY     = 3001,
 } sdb_ast_operator_t;
 
 #define SDB_AST_OP_TO_STRING(op) \
@@ -127,7 +129,9 @@ typedef enum {
 		: ((op) == SDB_AST_GT) ? "GT" \
 		: ((op) == SDB_AST_REGEX) ? "REGEX" \
 		: ((op) == SDB_AST_NREGEX) ? "NREGEX" \
-		: ((op) == SDB_AST_ISNULL) ? "ISNULL" \
+		: ((op) == SDB_AST_ISNULL) ? "IS NULL" \
+		: ((op) == SDB_AST_ISTRUE) ? "IS TRUE" \
+		: ((op) == SDB_AST_ISFALSE) ? "IS FALSE" \
 		: ((op) == SDB_AST_IN) ? "IN" \
 		: ((op) == SDB_AST_ADD) ? "ADD" \
 		: ((op) == SDB_AST_SUB) ? "SUB" \

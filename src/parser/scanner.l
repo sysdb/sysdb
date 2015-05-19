@@ -56,6 +56,7 @@ static struct {
 	{ "AND",         AND },
 	{ "ANY",         ANY },
 	{ "END",         END },
+	{ "FALSE",       FALSE },
 	{ "FETCH",       FETCH },
 	{ "FILTER",      FILTER },
 	{ "IN",          IN },
@@ -70,6 +71,7 @@ static struct {
 	{ "START",       START },
 	{ "STORE",       STORE },
 	{ "TIMESERIES",  TIMESERIES },
+	{ "TRUE",        TRUE },
 	{ "UPDATE",      UPDATE },
 
 	/* object types */

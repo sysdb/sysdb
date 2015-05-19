@@ -372,7 +372,7 @@ struct {
 	  "ANY service.service.name = 's'",
 	                         -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 
-	/* NULL */
+	/* NULL / TRUE / FALSE */
 	{ "LOOKUP hosts MATCHING "
 	  "attribute['foo'] "
 	  "IS NULL",             -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
@@ -384,6 +384,24 @@ struct {
 	  "IS NULL",             -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 	{ "LOOKUP hosts MATCHING "
 	  "ANY service.name IS NULL", -1, -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "attribute['foo'] "
+	  "IS TRUE",             -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "attribute['foo'] "
+	  "IS NOT TRUE",         -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "NOT attribute['foo'] "
+	  "IS TRUE",             -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "attribute['foo'] "
+	  "IS FALSE",            -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "attribute['foo'] "
+	  "IS NOT FALSE",        -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "NOT attribute['foo'] "
+	  "IS FALSE",            -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 
 	/* invalid numeric constants */
 	{ "LOOKUP hosts MATCHING "
@@ -530,6 +548,14 @@ struct {
 	  "name + 1 IS NULL",    -1, -1, 0, 0 },
 	{ "LOOKUP hosts FILTER "
 	  "name + 1 IS NULL",    -1, -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name + 1 IS TRUE",    -1, -1, 0, 0 },
+	{ "LOOKUP hosts FILTER "
+	  "name + 1 IS TRUE",    -1, -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING "
+	  "name + 1 IS FALSE",   -1, -1, 0, 0 },
+	{ "LOOKUP hosts FILTER "
+	  "name + 1 IS FALSE",   -1, -1, 0, 0 },
 
 	/* invalid iterators */
 	{ "LOOKUP hosts MATCHING "
@@ -832,9 +858,13 @@ struct {
 	  "2014-08-16 17:23",               -1,  SDB_AST_EQ },
 	{ "attribute['foo'] = "
 	  "2014-08-16 17:23:53",            -1,  SDB_AST_EQ },
-	/* NULL */
+	/* NULL / TRUE / FALSE */
 	{ "attribute['foo'] IS NULL",       -1,  SDB_AST_ISNULL },
 	{ "attribute['foo'] IS NOT NULL",   -1,  SDB_AST_NOT },
+	{ "attribute['foo'] IS TRUE",       -1,  SDB_AST_ISTRUE },
+	{ "attribute['foo'] IS NOT TRUE",   -1,  SDB_AST_NOT },
+	{ "attribute['foo'] IS FALSE",      -1,  SDB_AST_ISFALSE },
+	{ "attribute['foo'] IS NOT FALSE",  -1,  SDB_AST_NOT },
 	/* array expressions */
 	{ "backend < ['a']",                -1,  SDB_AST_LT },
 	{ "backend <= ['a']",               -1,  SDB_AST_LE },
