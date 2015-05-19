@@ -31,7 +31,7 @@
 
 #include "core/store.h"
 #include "core/store-private.h"
-#include "frontend/parser.h"
+#include "parser/parser.h"
 #include "testutils.h"
 
 #include <assert.h>
@@ -610,6 +610,7 @@ START_TEST(test_scan)
 {
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_store_matcher_t *m, *filter = NULL;
+	sdb_ast_node_t *ast;
 	int check, n;
 
 	n = 0;
@@ -620,17 +621,21 @@ START_TEST(test_scan)
 	fail_unless(n == 3,
 			"sdb_store_scan called callback %d times; expected: 3", (int)n);
 
-	m = sdb_fe_parse_matcher(scan_data[_i].query, -1, errbuf);
+	ast = sdb_parser_parse_conditional(scan_data[_i].query, -1, errbuf);
+	m = sdb_store_query_prepare_matcher(ast);
+	sdb_object_deref(SDB_OBJ(ast));
 	fail_unless(m != NULL,
-			"sdb_fe_parse_matcher(%s, -1) = NULL; expected: <matcher> "
+			"sdb_parser_parse_conditional(%s, -1) = NULL; expected: <ast> "
 			"(parser error: %s)", scan_data[_i].query,
 			sdb_strbuf_string(errbuf));
 
 	if (scan_data[_i].filter) {
-		filter = sdb_fe_parse_matcher(scan_data[_i].filter, -1, errbuf);
+		ast = sdb_parser_parse_conditional(scan_data[_i].filter, -1, errbuf);
+		filter = sdb_store_query_prepare_matcher(ast);
+		sdb_object_deref(SDB_OBJ(ast));
 		fail_unless(filter != NULL,
-				"sdb_fe_parse_matcher(%s, -1) = NULL; "
-				"expected: <matcher> (parser error: %s)",
+				"sdb_parser_parse_conditional(%s, -1) = NULL; "
+				"expected: <ast> (parser error: %s)",
 				scan_data[_i].filter, sdb_strbuf_string(errbuf));
 	}
 

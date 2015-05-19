@@ -339,4 +339,10 @@ sdb_store_query_prepare(sdb_ast_node_t *ast)
 	return QUERY(sdb_object_create(SDB_AST_TYPE_TO_STRING(ast), query_type, ast));
 } /* sdb_store_query_prepare */
 
+sdb_store_matcher_t *
+sdb_store_query_prepare_matcher(sdb_ast_node_t *ast)
+{
+	return node_to_matcher(ast);
+} /* sdb_store_query_prepare_matcher */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

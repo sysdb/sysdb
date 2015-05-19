@@ -392,6 +392,18 @@ sdb_store_query_t *
 sdb_store_query_prepare(sdb_ast_node_t *ast);
 
 /*
+ * sdb_store_query_prepare_matcher:
+ * Prepare the logical expression described by 'ast' for execution as a store
+ * matcher.
+ *
+ * Returns:
+ *  - a matcher on success
+ *  - NULL else
+ */
+sdb_store_matcher_t *
+sdb_store_query_prepare_matcher(sdb_ast_node_t *ast);
+
+/*
  * sdb_store_query_execute:
  * Execute a previously prepared query. The query result will be written to
  * 'buf' and any errors to 'errbuf'.

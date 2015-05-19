@@ -30,7 +30,6 @@
 #endif
 
 #include "frontend/connection.h"
-#include "frontend/parser.h"
 #include "frontend/connection-private.h"
 #include "testutils.h"
 

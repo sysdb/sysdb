@@ -31,7 +31,7 @@
 
 #include "core/store.h"
 #include "core/store-private.h"
-#include "frontend/parser.h"
+#include "parser/parser.h"
 #include "testutils.h"
 
 #include <check.h>
@@ -567,7 +567,10 @@ START_TEST(test_expr_iter)
 	}
 
 	if (expr_iter_data[_i].filter) {
-		filter = sdb_fe_parse_matcher(expr_iter_data[_i].filter, -1, NULL);
+		sdb_ast_node_t *ast;
+		ast = sdb_parser_parse_conditional(expr_iter_data[_i].filter, -1, NULL);
+		filter = sdb_store_query_prepare_matcher(ast);
+		sdb_object_deref(SDB_OBJ(ast));
 		ck_assert(filter != NULL);
 	}
 
