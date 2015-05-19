@@ -164,6 +164,8 @@ enum {
 
 	/* unary operators */
 	MATCHER_ISNULL,
+	MATCHER_ISTRUE,
+	MATCHER_ISFALSE,
 
 	/* ary operators */
 	MATCHER_LT,
@@ -188,6 +190,8 @@ enum {
 		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_NIN) ? "NOT IN" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
+		: ((t) == MATCHER_ISTRUE) ? "IS TRUE" \
+		: ((t) == MATCHER_ISFALSE) ? "IS FALSE" \
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \
@@ -247,8 +251,8 @@ typedef struct {
 typedef struct {
 	sdb_store_matcher_t super;
 	sdb_store_expr_t *expr;
-} isnull_matcher_t;
-#define ISNULL_M(m) ((isnull_matcher_t *)(m))
+} unary_matcher_t;
+#define UNARY_M(m) ((unary_matcher_t *)(m))
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -625,6 +625,15 @@ sdb_store_matcher_t *
 sdb_store_isnull_matcher(sdb_store_expr_t *expr);
 
 /*
+ * sdb_store_istrue_matcher, sdb_store_isfalse_matcher:
+ * Creates a matcher matching boolean values.
+ */
+sdb_store_matcher_t *
+sdb_store_istrue_matcher(sdb_store_expr_t *expr);
+sdb_store_matcher_t *
+sdb_store_isfalse_matcher(sdb_store_expr_t *expr);
+
+/*
  * sdb_store_matcher_matches:
  * Check whether the specified matcher matches the specified store object. If
  * specified, the filter will be used to preselect objects for further

@@ -174,14 +174,14 @@ match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_logical */
 
 static int
-match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_uop(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	assert(m->type == MATCHER_NOT);
 	assert(UOP_M(m)->op);
 
 	return !sdb_store_matcher_matches(UOP_M(m)->op, obj, filter);
-} /* match_unary */
+} /* match_uop */
 
 /* iterate: ANY/ALL <iter> <cmp> <value> */
 static int
@@ -295,32 +295,39 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_regex */
 
 static int
-match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
+match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)
 {
 	sdb_data_t v = SDB_DATA_INIT;
 	int status;
 
-	assert(m->type == MATCHER_ISNULL);
+	assert((m->type == MATCHER_ISNULL)
+			|| (m->type == MATCHER_ISTRUE)
+			|| (m->type == MATCHER_ISFALSE));
 
-	if (ISNULL_M(m)->expr->type) {
+	if (UNARY_M(m)->expr->type) {
 		/* TODO: this might hide real errors;
 		 * improve error reporting and propagation */
-		if (sdb_store_expr_eval(ISNULL_M(m)->expr, obj, &v, filter))
+		if (sdb_store_expr_eval(UNARY_M(m)->expr, obj, &v, filter))
 			return 1;
 	}
 	else
-		v = ISNULL_M(m)->expr->data;
+		v = UNARY_M(m)->expr->data;
 
-	if (sdb_data_isnull(&v))
-		status = 1;
-	else
-		status = 0;
+	if (m->type == MATCHER_ISNULL)
+		status = sdb_data_isnull(&v) ? 1 : 0;
+	else { /* ISTRUE or ISFALSE */
+		if ((v.type == SDB_TYPE_BOOLEAN)
+				&& (v.data.boolean == (m->type == MATCHER_ISTRUE)))
+			status = 1;
+		else
+			status = 0;
+	}
 
-	if (ISNULL_M(m)->expr->type)
+	if (UNARY_M(m)->expr->type)
 		sdb_data_free_datum(&v);
 	return status;
-} /* match_isnull */
+} /* match_unary */
 
 typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_obj_t *,
 		sdb_store_matcher_t *);
@@ -331,14 +338,16 @@ static matcher_cb
 matchers[] = {
 	match_logical,
 	match_logical,
-	match_unary,
+	match_uop,
 	match_iter,
 	match_iter,
 	match_in,
 	match_in,
 
 	/* unary operators */
-	match_isnull,
+	match_unary,
+	match_unary,
+	match_unary,
 
 	/* ary operators */
 	match_cmp,
@@ -450,23 +459,25 @@ uop_matcher_destroy(sdb_object_t *obj)
 } /* uop_matcher_destroy */
 
 static int
-isnull_matcher_init(sdb_object_t *obj, va_list ap)
+unary_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
-	if (M(obj)->type != MATCHER_ISNULL)
+	if ((M(obj)->type != MATCHER_ISNULL)
+			&& (M(obj)->type != MATCHER_ISTRUE)
+			&& (M(obj)->type != MATCHER_ISFALSE))
 		return -1;
 
-	ISNULL_M(obj)->expr = va_arg(ap, sdb_store_expr_t *);
-	sdb_object_ref(SDB_OBJ(ISNULL_M(obj)->expr));
+	UNARY_M(obj)->expr = va_arg(ap, sdb_store_expr_t *);
+	sdb_object_ref(SDB_OBJ(UNARY_M(obj)->expr));
 	return 0;
-} /* isnull_matcher_init */
+} /* unary_matcher_init */
 
 static void
-isnull_matcher_destroy(sdb_object_t *obj)
+unary_matcher_destroy(sdb_object_t *obj)
 {
-	sdb_object_deref(SDB_OBJ(ISNULL_M(obj)->expr));
-	ISNULL_M(obj)->expr = NULL;
-} /* isnull_matcher_destroy */
+	sdb_object_deref(SDB_OBJ(UNARY_M(obj)->expr));
+	UNARY_M(obj)->expr = NULL;
+} /* unary_matcher_destroy */
 
 static sdb_type_t op_type = {
 	/* size = */ sizeof(op_matcher_t),
@@ -492,10 +503,10 @@ static sdb_type_t cmp_type = {
 	/* destroy = */ cmp_matcher_destroy,
 };
 
-static sdb_type_t isnull_type = {
-	/* size = */ sizeof(isnull_matcher_t),
-	/* init = */ isnull_matcher_init,
-	/* destroy = */ isnull_matcher_destroy,
+static sdb_type_t unary_type = {
+	/* size = */ sizeof(unary_matcher_t),
+	/* init = */ unary_matcher_init,
+	/* destroy = */ unary_matcher_destroy,
 };
 
 /*
@@ -630,9 +641,23 @@ sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 sdb_store_matcher_t *
 sdb_store_isnull_matcher(sdb_store_expr_t *expr)
 {
-	return M(sdb_object_create("isnull-matcher", isnull_type,
+	return M(sdb_object_create("isnull-matcher", unary_type,
 				MATCHER_ISNULL, expr));
 } /* sdb_store_isnull_matcher */
+
+sdb_store_matcher_t *
+sdb_store_istrue_matcher(sdb_store_expr_t *expr)
+{
+	return M(sdb_object_create("istrue-matcher", unary_type,
+				MATCHER_ISTRUE, expr));
+} /* sdb_store_istrue_matcher */
+
+sdb_store_matcher_t *
+sdb_store_isfalse_matcher(sdb_store_expr_t *expr)
+{
+	return M(sdb_object_create("isfalse-matcher", unary_type,
+				MATCHER_ISFALSE, expr));
+} /* sdb_store_isfalse_matcher */
 
 sdb_store_matcher_op_cb
 sdb_store_parse_matcher_op(const char *op)
