@@ -129,6 +129,13 @@ Boolean expressions may use the following operators:
 	expression evaluates to NULL if the queried object does not exist (e.g.,
 	when accessing an attribute value).
 
+'<expression>' *IS TRUE*::
+'<expression>' *IS NOT TRUE*::
+'<expression>' *IS FALSE*::
+'<expression>' *IS NOT FALSE*::
+	Check whether an expression evaluates to a boolean *true* or *false* value
+	(or not).
+
 '<expression>' *IN* '<expression>'::
 '<expression>' *NOT IN* '<expression>'::
 	Checks whether the value of the first expression is included in the value
