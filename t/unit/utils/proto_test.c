@@ -48,20 +48,20 @@ streq(const char *s1, const char *s2)
 
 START_TEST(test_marshal_data)
 {
-#define INT_TYPE "\0\0\0\1"
-#define DECIMAL_TYPE "\0\0\0\2"
-#define STRING_TYPE "\0\0\0\3"
-#define DATETIME_TYPE "\0\0\0\4"
-#define BINARY_TYPE "\0\0\0\5"
-#define REGEX_TYPE "\0\0\0\6"
+#define INT_TYPE "\0\0\0\2"
+#define DECIMAL_TYPE "\0\0\0\3"
+#define STRING_TYPE "\0\0\0\4"
+#define DATETIME_TYPE "\0\0\0\5"
+#define BINARY_TYPE "\0\0\0\6"
+#define REGEX_TYPE "\0\0\0\7"
 
 #define NULL_ARRAY "\0\0\1\0"
-#define INT_ARRAY "\0\0\1\1"
-#define DECIMAL_ARRAY "\0\0\1\2"
-#define STRING_ARRAY "\0\0\1\3"
-#define DATETIME_ARRAY "\0\0\1\4"
-#define BINARY_ARRAY "\0\0\1\5"
-#define REGEX_ARRAY "\0\0\1\6"
+#define INT_ARRAY "\0\0\1\2"
+#define DECIMAL_ARRAY "\0\0\1\3"
+#define STRING_ARRAY "\0\0\1\4"
+#define DATETIME_ARRAY "\0\0\1\5"
+#define BINARY_ARRAY "\0\0\1\6"
+#define REGEX_ARRAY "\0\0\1\7"
 
 	regex_t dummy_re;
 	int64_t int_values[] = { 47, 11, 23 };
@@ -440,7 +440,7 @@ END_TEST
 START_TEST(test_marshal_attribute)
 {
 	sdb_data_t v = { SDB_TYPE_INTEGER, { .integer = 4711 } };
-#define VAL "\0\0\0\1" "\0\0\0\0\0\0\x12\x67"
+#define VAL "\0\0\0\2" "\0\0\0\0\0\0\x12\x67"
 	struct {
 		sdb_proto_attribute_t attr;
 		ssize_t expected_len;

@@ -43,6 +43,7 @@ extern "C" {
 
 enum {
 	SDB_TYPE_NULL = 0,
+	SDB_TYPE_BOOLEAN,
 	SDB_TYPE_INTEGER,
 	SDB_TYPE_DECIMAL,
 	SDB_TYPE_STRING,
@@ -56,12 +57,14 @@ enum {
 
 #define SDB_TYPE_TO_STRING(t) \
 	(((t) == SDB_TYPE_NULL) ? "NULL" \
+		: ((t) == SDB_TYPE_BOOLEAN) ? "BOOLEAN" \
 		: ((t) == SDB_TYPE_INTEGER) ? "INTEGER" \
 		: ((t) == SDB_TYPE_DECIMAL) ? "DECIMAL" \
 		: ((t) == SDB_TYPE_STRING) ? "STRING" \
 		: ((t) == SDB_TYPE_DATETIME) ? "DATETIME" \
 		: ((t) == SDB_TYPE_BINARY) ? "BINARY" \
 		: ((t) == SDB_TYPE_REGEX) ? "REGEX" \
+		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN)) ? "[]BOOLEAN" \
 		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_INTEGER)) ? "[]INTEGER" \
 		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_DECIMAL)) ? "[]DECIMAL" \
 		: ((t) == (SDB_TYPE_ARRAY | SDB_TYPE_STRING)) ? "[]STRING" \
@@ -74,6 +77,7 @@ union sdb_datum;
 typedef union sdb_datum sdb_datum_t;
 
 union sdb_datum {
+	bool        boolean;  /* SDB_TYPE_BOOLEAN */
 	int64_t     integer;  /* SDB_TYPE_INTEGER */
 	double      decimal;  /* SDB_TYPE_DECIMAL */
 	char       *string;   /* SDB_TYPE_STRING  */

@@ -42,9 +42,22 @@ START_TEST(test_data)
 	sdb_data_t d1, d2;
 	int check;
 
+	bool bool_values[] = { true, false, false, true };
 	int64_t int_values[] = { 47, 11, 23 };
 	char *string_values[] = { "foo", "bar", "qux" "baz" };
 	size_t i;
+
+	d2.type = SDB_TYPE_BOOLEAN;
+	d2.data.boolean = true;
+	memset(&d1, 0, sizeof(d1));
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.boolean == d2.data.boolean,
+			"sdb_data_copy() didn't copy boolean data: got: %d; expected: %d",
+			d1.data.boolean, d2.data.boolean);
 
 	d2.type = SDB_TYPE_INTEGER;
 	d2.data.integer = 4711;
@@ -183,6 +196,26 @@ START_TEST(test_data)
 			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
 			d1.type, d2.type);
 
+	d2.type = SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN;
+	d2.data.array.length = SDB_STATIC_ARRAY_LEN(bool_values);
+	d2.data.array.values = bool_values;
+	check = sdb_data_copy(&d1, &d2);
+	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
+	fail_unless(d1.type == d2.type,
+			"sdb_data_copy() didn't copy type; got: %i; expected: %i",
+			d1.type, d2.type);
+	fail_unless(d1.data.array.values != d2.data.array.values,
+			"sdb_data_copy() didn't copy values: got: %p; expected: %p",
+			d1.data.array.values, d2.data.array.values);
+	for (i = 0; i < SDB_STATIC_ARRAY_LEN(bool_values); ++i) {
+		bool *b1 = d1.data.array.values;
+		bool *b2 = d2.data.array.values;
+		fail_unless(b1[i] == b2[i],
+				"sdb_data_copy() modified boolean value %d: "
+				"got: %d; expected: %d", i, b1[i], b2[i]);
+	}
+	sdb_data_free_datum(&d1);
+
 	d2.type = SDB_TYPE_ARRAY | SDB_TYPE_INTEGER;
 	d2.data.array.length = SDB_STATIC_ARRAY_LEN(int_values);
 	d2.data.array.values = int_values;
@@ -230,6 +263,8 @@ END_TEST
 START_TEST(test_cmp)
 {
 	regex_t dummy_re;
+	bool bool_values1[] = { true, false, false, true };
+	bool bool_values2[] = { true, false, true, false };
 	int64_t int_values1[] = { 1, 2, 3 };
 	int64_t int_values2[] = { 1, 3, 2 };
 	double dec_values1[] = { 12.34, 47.11 };
@@ -271,6 +306,21 @@ START_TEST(test_cmp)
 		int expected;
 	} golden_data[] = {
 		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			0,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			1,
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 47 } },
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
 			-1,
@@ -436,8 +486,62 @@ START_TEST(test_cmp)
 			-1,
 		},
 		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN, { .array = { 0, NULL } } },
+			{ SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN, { .array = { 0, NULL } } },
+			0,
+		},
+		{
 			{ SDB_TYPE_REGEX, { .re = { "b", empty_re } } },
 			{ SDB_TYPE_REGEX, { .re = { "a", empty_re } } },
+			1,
+		},
+		{
+			{ SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN, { .array = { 0, NULL } } },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
+			{ SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN, { .array = { 0, NULL } } },
+			1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
+			0,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values2), bool_values2 } },
+			},
+			-1,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values2), bool_values2 } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values1), bool_values1 } },
+			},
 			1,
 		},
 		{
@@ -711,6 +815,21 @@ START_TEST(test_strcmp)
 		 * both functions should behave the same (except for some loss in
 		 * precision, e.g. when formatting datetime values) */
 		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			-1,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			0,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			1,
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 47 } },
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
 			-1,
@@ -882,6 +1001,16 @@ START_TEST(test_strcmp)
 		},
 		/* type mismatches */
 		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_INTEGER, { .integer = 1 } },
+			1,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_STRING, { .string = "true" } },
+			0,
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 123 } },
 			{ SDB_TYPE_STRING, { .string = "123" } },
 			0,
@@ -939,6 +1068,10 @@ END_TEST
 
 START_TEST(test_inarray)
 {
+	bool bool_values[] = { true, false, true };
+	bool bool_values2[] = { false, true };
+	bool bool_values3[] = { true, true, true };
+	bool bool_values4[] = { false, false };
 	int64_t int_values[] = { 47, 11, 64 };
 	int64_t int_values2[] = { 64, 11 };
 	int64_t int_values3[] = { 47, 11, 42 };
@@ -949,6 +1082,22 @@ START_TEST(test_inarray)
 	char *string_values2[] = { "qux", "bar" };
 	char *string_values3[] = { "foo", "bar", "qux", "baz", "bay" };
 
+	sdb_data_t bool_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+		{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } }
+	};
+	sdb_data_t bool_array2 = {
+		SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+		{ .array = { SDB_STATIC_ARRAY_LEN(bool_values2), bool_values2 } }
+	};
+	sdb_data_t bool_array3 = {
+		SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+		{ .array = { SDB_STATIC_ARRAY_LEN(bool_values3), bool_values3 } }
+	};
+	sdb_data_t bool_array4 = {
+		SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+		{ .array = { SDB_STATIC_ARRAY_LEN(bool_values4), bool_values4 } }
+	};
 	sdb_data_t int_array = {
 		SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
 		{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } }
@@ -991,6 +1140,9 @@ START_TEST(test_inarray)
 		sdb_data_t array;
 		_Bool expected;
 	} golden_data[] = {
+		{ { SDB_TYPE_BOOLEAN, { .boolean = true  } }, bool_array,   1 },
+		{ { SDB_TYPE_BOOLEAN, { .boolean = true  } }, bool_array4,  0 },
+		{ { SDB_TYPE_BOOLEAN, { .boolean = false } }, bool_array,   1 },
 		{ { SDB_TYPE_INTEGER, { .integer = 47    } }, int_array,    1 },
 		{ { SDB_TYPE_INTEGER, { .integer = 11    } }, int_array,    1 },
 		{ { SDB_TYPE_INTEGER, { .integer = 64    } }, int_array,    1 },
@@ -1011,7 +1163,17 @@ START_TEST(test_inarray)
 		{ { SDB_TYPE_STRING,  { .string  = "ba"  } }, string_array, 0 },
 		{ { SDB_TYPE_STRING,  { .string  = "abc" } }, string_array, 0 },
 		{ { SDB_TYPE_NULL,    { .integer = 0     } }, string_array, 0 },
+		{ bool_array, { SDB_TYPE_BOOLEAN, { .boolean = true } },    0 },
 		{ int_array, { SDB_TYPE_INTEGER, { .integer = 47 } },       0 },
+		{ bool_array,    bool_array,   1 },
+		{ bool_array2,   bool_array,   1 },
+		{ bool_array,    bool_array2,  1 },
+		{ bool_array,    bool_array3,  0 },
+		{ bool_array,    bool_array4,  0 },
+		{ bool_array2,   bool_array3,  0 },
+		{ bool_array2,   bool_array4,  0 },
+		{ bool_array3,   bool_array4,  0 },
+		{ bool_array4,   bool_array3,  0 },
 		{ int_array,     int_array,    1 },
 		{ int_array2,    int_array,    1 },
 		{ int_array3,    int_array,    0 },
@@ -1074,10 +1236,15 @@ END_TEST
 
 START_TEST(test_array_get)
 {
+	bool bool_values[] = { true, false, false };
 	int64_t int_values[] = { 47, 11, 64 };
 	double dec_values[] = { 12.3, 47.11, 64.0 };
 	char *string_values[] = { "foo", "bar", "qux", "baz" };
 
+	sdb_data_t bool_array = {
+		SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+		{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } }
+	};
 	sdb_data_t int_array = {
 		SDB_TYPE_ARRAY | SDB_TYPE_INTEGER,
 		{ .array = { SDB_STATIC_ARRAY_LEN(int_values), int_values } }
@@ -1096,6 +1263,10 @@ START_TEST(test_array_get)
 		size_t i;
 		sdb_data_t expected;
 	} golden_data[] = {
+		{ bool_array, 0, { SDB_TYPE_BOOLEAN, { .boolean = true } } },
+		{ bool_array, 1, { SDB_TYPE_BOOLEAN, { .boolean = false } } },
+		{ bool_array, 2, { SDB_TYPE_BOOLEAN, { .boolean = false } } },
+		{ bool_array, 3, { -1, { .integer = 0 } } },
 		{ int_array, 0, { SDB_TYPE_INTEGER, { .integer = 47 } } },
 		{ int_array, 1, { SDB_TYPE_INTEGER, { .integer = 11 } } },
 		{ int_array, 2, { SDB_TYPE_INTEGER, { .integer = 64 } } },
@@ -1200,6 +1371,10 @@ START_TEST(test_expr_eval)
 {
 	sdb_data_t err = { -1, { .integer = 0 } };
 
+	bool bool_values[] = { true, false, true };
+	bool expected_bool_append[] = { true, false, true, true };
+	bool expected_bool_prepend[] = { true, true, false, true };
+	bool expected_bool_concat[] = { true, false, true, true, false, true };
 	int64_t int_values[] = { 47, 11, 23 };
 	int64_t expected_int_append[] = { 47, 11, 23, 42 };
 	int64_t expected_int_prepend[] = { 42, 47, 11, 23 };
@@ -1220,6 +1395,16 @@ START_TEST(test_expr_eval)
 		sdb_data_t expected_mod;
 		sdb_data_t expected_concat;
 	} golden_data[] = {
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			err,
+			err,
+			err,
+			err,
+			err,
+			err,
+		},
 		{
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
 			{ SDB_TYPE_INTEGER, { .integer = 47 } },
@@ -1348,6 +1533,66 @@ START_TEST(test_expr_eval)
 			err,
 			err,
 			err,
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } },
+			},
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_bool_concat),
+						expected_bool_concat
+				} },
+			},
+		},
+		{
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } },
+			},
+			{ SDB_TYPE_BOOLEAN, { .boolean = true }, },
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_bool_append),
+						expected_bool_append
+				} },
+			},
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true }, },
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } },
+			},
+			err,
+			err,
+			err,
+			err,
+			err,
+			{
+				SDB_TYPE_ARRAY | SDB_TYPE_BOOLEAN,
+				{ .array = {
+						SDB_STATIC_ARRAY_LEN(expected_bool_prepend),
+						expected_bool_prepend
+				} },
+			},
 		},
 		{
 			{
@@ -1710,6 +1955,41 @@ START_TEST(test_expr_eval)
 		},
 		/* unsupported type-mismatches */
 		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_STRING, { .string = "20" } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BINARY, { .binary = { 2, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_BINARY, { .binary = { 3, (unsigned char *)"20" } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_REGEX, { .re = { ".", empty_re } } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			{ SDB_TYPE_REGEX + 1, { .boolean = 0 } },
+			err, err, err, err, err, err,
+		},
+		{
+			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			err, err, err, err, err, err,
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 20 } },
 			{ SDB_TYPE_DECIMAL, { .decimal = 20.0 } },
 			err, err, err, err, err, err,
@@ -2025,6 +2305,7 @@ END_TEST
 
 START_TEST(test_format)
 {
+	bool bool_values[] = { false, true, false };
 	int64_t int_values[] = { 47, 11, 23 };
 	char *string_values[] = { "foo", "bar", "qux", "baz" };
 
@@ -2035,6 +2316,14 @@ START_TEST(test_format)
 		{
 			{ SDB_TYPE_NULL, { .integer = 0 } },
 			"NULL",
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			"true",
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			"false",
 		},
 		{
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
@@ -2082,6 +2371,13 @@ START_TEST(test_format)
 		{
 			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = { 0, NULL } } },
 			"[]",
+		},
+		{
+			{
+				SDB_TYPE_BOOLEAN | SDB_TYPE_ARRAY,
+				{ .array = { SDB_STATIC_ARRAY_LEN(bool_values), bool_values } },
+			},
+			"[false, true, false]",
 		},
 		{
 			{
@@ -2150,6 +2446,9 @@ START_TEST(test_parse)
 		sdb_data_t result;
 		int expected;
 	} golden_data[] = {
+		{ "true",    { SDB_TYPE_BOOLEAN,  { .boolean  = true } },          0 },
+		{ "FALSE",   { SDB_TYPE_BOOLEAN,  { .boolean  = false } },         0 },
+		{ "yes",     { SDB_TYPE_BOOLEAN,  { .boolean  = false } },        -1 },
 		{ "4711",    { SDB_TYPE_INTEGER,  { .integer  = 4711 } },          0 },
 		{ "0x10",    { SDB_TYPE_INTEGER,  { .integer  = 16 } },            0 },
 		{ "010",     { SDB_TYPE_INTEGER,  { .integer  = 8 } },             0 },

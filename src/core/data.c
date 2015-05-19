@@ -55,65 +55,71 @@
 
 /* integer, decimal, string, datetime, binary, regex */
 
-static int op_matrix[6][6][6] = {
+static int op_matrix[6][7][7] = {
 	/* SDB_DATA_ADD */
 	{
-		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
-		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 
 	/* SDB_DATA_SUB */
 	{
-		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
-		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 
 	/* SDB_DATA_MUL */
 	{
-		{ SDB_TYPE_INTEGER, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, SDB_TYPE_DECIMAL, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, SDB_TYPE_INTEGER, -1, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, SDB_TYPE_DECIMAL, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 
 	/* SDB_DATA_DIV */
 	{
-		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
-		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 
 	/* SDB_DATA_MOD */
 	{
-		{ SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
-		{ -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, SDB_TYPE_INTEGER, -1, -1, -1, -1, -1 },
+		{ -1, -1, SDB_TYPE_DECIMAL, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, SDB_TYPE_DATETIME, SDB_TYPE_DATETIME, -1, SDB_TYPE_DATETIME, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 
 	/* SDB_DATA_CONCAT */
 	{
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, SDB_TYPE_STRING, -1, -1, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
-		{ -1, -1, -1, -1, SDB_TYPE_BINARY, -1 },
-		{ -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1, },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, SDB_TYPE_STRING, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
+		{ -1, -1, -1, -1, -1, SDB_TYPE_BINARY, -1 },
+		{ -1, -1, -1, -1, -1, -1, -1 },
 	},
 };
 
@@ -127,7 +133,8 @@ copy_array_values(sdb_data_t *dst, const sdb_data_t *src, size_t elem_size)
 {
 	int type = src->type & 0xff;
 
-	if ((type == SDB_TYPE_INTEGER) || (type == SDB_TYPE_DECIMAL)) {
+	if ((type == SDB_TYPE_BOOLEAN) || (type == SDB_TYPE_INTEGER)
+			|| (type == SDB_TYPE_DECIMAL)) {
 		if (dst != src)
 			memcpy(dst->data.array.values, src->data.array.values,
 					src->data.array.length * elem_size);
@@ -208,7 +215,15 @@ array_cmp(const sdb_data_t *a1, const sdb_data_t *a2)
 
 	len = SDB_MIN(a1->data.array.length, a2->data.array.length);
 
-	if (type == SDB_TYPE_INTEGER) {
+	if (type == SDB_TYPE_BOOLEAN) {
+		bool *v1 = a1->data.array.values;
+		bool *v2 = a2->data.array.values;
+
+		for (i = 0; i < len; ++i)
+			if (v1[i] != v2[i])
+				return SDB_CMP(v1[i], v2[i]);
+	}
+	else if (type == SDB_TYPE_INTEGER) {
 		int64_t *v1 = a1->data.array.values;
 		int64_t *v2 = a2->data.array.values;
 
@@ -619,7 +634,9 @@ sdb_data_cmp(const sdb_data_t *d1, const sdb_data_t *d2)
 	if (d1->type != d2->type)
 		return SDB_CMP(d1->type, d2->type);
 
-	if (d1->type == SDB_TYPE_INTEGER)
+	if (d1->type == SDB_TYPE_BOOLEAN)
+		return SDB_CMP(d1->data.boolean, d2->data.boolean);
+	else if (d1->type == SDB_TYPE_INTEGER)
 		return SDB_CMP(d1->data.integer, d2->data.integer);
 	else if (d1->type == SDB_TYPE_DECIMAL)
 		return SDB_CMP(d1->data.decimal, d2->data.decimal);
@@ -726,7 +743,13 @@ sdb_data_inarray(const sdb_data_t *value, const sdb_data_t *array)
 	for (i = 0; i < length; ++i) {
 		size_t j;
 
-		if (type == SDB_TYPE_INTEGER) {
+		if (type == SDB_TYPE_BOOLEAN) {
+			bool *v = array->data.array.values;
+			for (j = 0; j < array->data.array.length; ++j)
+				if (((const bool *)values)[i] == v[j])
+					break;
+		}
+		else if (type == SDB_TYPE_INTEGER) {
 			int64_t *v = array->data.array.values;
 			for (j = 0; j < array->data.array.length; ++j)
 				if (((const int64_t *)values)[i] == v[j])
@@ -769,7 +792,11 @@ sdb_data_array_get(const sdb_data_t *array, size_t i, sdb_data_t *value)
 		return -1;
 
 	type = array->type & 0xff;
-	if (type == SDB_TYPE_INTEGER) {
+	if (type == SDB_TYPE_BOOLEAN) {
+		bool *v = array->data.array.values;
+		tmp.data.boolean = v[i];
+	}
+	else if (type == SDB_TYPE_INTEGER) {
 		int64_t *v = array->data.array.values;
 		tmp.data.integer = v[i];
 	}
@@ -888,37 +915,36 @@ sdb_data_strlen(const sdb_data_t *datum)
 		/* NULL */
 		return 4;
 	}
-	else if (datum->type == SDB_TYPE_INTEGER) {
+	switch (datum->type) {
+	case SDB_TYPE_BOOLEAN:
+		/* true | false */
+		return 5;
+	case SDB_TYPE_INTEGER:
 		/* log(64) */
 		return 20;
-	}
-	else if (datum->type == SDB_TYPE_DECIMAL) {
+	case SDB_TYPE_DECIMAL:
 		/* XXX: -d.dddddde+dd or -ddddd.dddddd */
 		return 42;
-	}
-	else if (datum->type == SDB_TYPE_STRING) {
+	case SDB_TYPE_STRING:
 		if (! datum->data.string)
 			return 6; /* NULL */
 		/* in the worst case, each character needs to be escaped */
 		return 2 * strlen(datum->data.string) + 2;
-	}
-	else if (datum->type == SDB_TYPE_DATETIME) {
+	case SDB_TYPE_DATETIME:
 		/* "YYYY-MM-DD HH:MM:SS +zzzz" */
 		return 27;
-	}
-	else if (datum->type == SDB_TYPE_BINARY) {
+	case SDB_TYPE_BINARY:
 		if (! datum->data.binary.datum)
 			return 6; /* NULL */
 		/* "\xNN" */
 		return 4 * datum->data.binary.length + 2;
-	}
-	else if (datum->type == SDB_TYPE_REGEX) {
+	case SDB_TYPE_REGEX:
 		if (! datum->data.re.raw)
 			return 6; /* NULL */
 		/* "/.../" */
 		return strlen(datum->data.re.raw) + 4;
 	}
-	else if (datum->type & SDB_TYPE_ARRAY) {
+	if (datum->type & SDB_TYPE_ARRAY) {
 		size_t len = 2; /* [] */
 		size_t i;
 		for (i = 0; i < datum->data.array.length; ++i) {
@@ -947,6 +973,16 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 	if (datum->type == SDB_TYPE_NULL) {
 		strncpy(buf, "NULL", buflen);
 		ret = 4;
+	}
+	else if (datum->type == SDB_TYPE_BOOLEAN) {
+		if (datum->data.boolean) {
+			strncpy(buf, "true", buflen);
+			ret = 4;
+		}
+		else {
+			strncpy(buf, "false", buflen);
+			ret = 5;
+		}
 	}
 	else if (datum->type == SDB_TYPE_INTEGER) {
 		ret = snprintf(buf, buflen, "%"PRIi64, datum->data.integer);
@@ -1080,7 +1116,15 @@ sdb_data_parse(const char *str, int type, sdb_data_t *data)
 	}
 
 	errno = 0;
-	if (type == SDB_TYPE_INTEGER) {
+	if (type == SDB_TYPE_BOOLEAN) {
+		if (! strcasecmp(str, "true"))
+			tmp.data.boolean = true;
+		else if (! strcasecmp(str, "false"))
+			tmp.data.boolean = false;
+		else
+			return -1;
+	}
+	else if (type == SDB_TYPE_INTEGER) {
 		tmp.data.integer = strtoll(str, &endptr, 0);
 	}
 	else if (type == SDB_TYPE_DECIMAL) {
@@ -1154,7 +1198,9 @@ size_t
 sdb_data_sizeof(int type)
 {
 	sdb_data_t v;
-	if (type == SDB_TYPE_INTEGER)
+	if (type == SDB_TYPE_BOOLEAN)
+		return sizeof(v.data.boolean);
+	else if (type == SDB_TYPE_INTEGER)
 		return sizeof(v.data.integer);
 	else if (type == SDB_TYPE_DECIMAL)
 		return sizeof(v.data.decimal);

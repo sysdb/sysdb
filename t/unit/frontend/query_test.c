@@ -282,7 +282,7 @@ fail_if_strneq(const char *got, const char *expected, size_t n, const char *fmt,
  * tests
  */
 
-#define VALUE "\0\0\0\3""v1"
+#define VALUE "\0\0\0\4""v1"
 #define VALUE_LEN 7
 
 static struct {
