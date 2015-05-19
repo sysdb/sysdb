@@ -48,6 +48,7 @@ streq(const char *s1, const char *s2)
 
 START_TEST(test_marshal_data)
 {
+#define BOOL_TYPE "\0\0\0\1"
 #define INT_TYPE "\0\0\0\2"
 #define DECIMAL_TYPE "\0\0\0\3"
 #define STRING_TYPE "\0\0\0\4"
@@ -55,6 +56,7 @@ START_TEST(test_marshal_data)
 #define BINARY_TYPE "\0\0\0\6"
 #define REGEX_TYPE "\0\0\0\7"
 
+#define BOOL_ARRAY "\0\0\1\1"
 #define NULL_ARRAY "\0\0\1\0"
 #define INT_ARRAY "\0\0\1\2"
 #define DECIMAL_ARRAY "\0\0\1\3"
@@ -64,6 +66,7 @@ START_TEST(test_marshal_data)
 #define REGEX_ARRAY "\0\0\1\7"
 
 	regex_t dummy_re;
+	bool bool_values[] = { true, false };
 	int64_t int_values[] = { 47, 11, 23 };
 	double dec_values[] = { 47.11, .5 };
 	char *string_values[] = { "foo", "abcd" };
@@ -92,6 +95,14 @@ START_TEST(test_marshal_data)
 			4, "\0\0\0\0",
 		},
 		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = true } },
+			5, BOOL_TYPE "\1",
+		},
+		{
+			{ SDB_TYPE_BOOLEAN, { .boolean = false } },
+			5, BOOL_TYPE "\0",
+		},
+		{
 			{ SDB_TYPE_INTEGER, { .integer = 4711 } },
 			12, INT_TYPE "\0\0\0\0\0\0\x12\x67",
 		},
@@ -117,37 +128,49 @@ START_TEST(test_marshal_data)
 			10, REGEX_TYPE "dummy\0",
 		},
 		{
+			{ SDB_TYPE_BOOLEAN | SDB_TYPE_ARRAY, { .array = {
+				SDB_STATIC_ARRAY_LEN(bool_values), bool_values,
+			} } },
+			10, BOOL_ARRAY "\0\0\0\x2" "\1\0"
+		},
+		{
 			{ SDB_TYPE_INTEGER | SDB_TYPE_ARRAY, { .array = {
-				3, int_values } } },
+				SDB_STATIC_ARRAY_LEN(int_values), int_values,
+			} } },
 			32, INT_ARRAY "\0\0\0\x3" "\0\0\0\0\0\0\0\x2f"
 				"\0\0\0\0\0\0\0\xb" "\0\0\0\0\0\0\0\x17"
 		},
 		{
 			{ SDB_TYPE_DECIMAL | SDB_TYPE_ARRAY, { .array = {
-				2, dec_values } } },
+				SDB_STATIC_ARRAY_LEN(dec_values), dec_values,
+			} } },
 			24, DECIMAL_ARRAY "\0\0\0\x2" "\x40\x47\x8e\x14\x7a\xe1\x47\xae"
 				"\x3f\xe0\0\0\0\0\0\0"
 		},
 		{
 			{ SDB_TYPE_STRING | SDB_TYPE_ARRAY, { .array = {
-				2, string_values } } },
+				SDB_STATIC_ARRAY_LEN(string_values), string_values,
+			} } },
 			17, STRING_ARRAY "\0\0\0\x2" "foo\0" "abcd\0"
 		},
 		{
 			{ SDB_TYPE_DATETIME | SDB_TYPE_ARRAY, { .array = {
-				2, datetime_values } } },
+				SDB_STATIC_ARRAY_LEN(datetime_values), datetime_values,
+			} } },
 			24, DATETIME_ARRAY "\0\0\0\x2" "\0\0\0\0\0\0\x12\x67"
 				"\x11\x22\x10\xf4\x7d\xe9\x81\x15"
 		},
 		{
 			{ SDB_TYPE_BINARY | SDB_TYPE_ARRAY, { .array = {
-				2, binary_values } } },
+				SDB_STATIC_ARRAY_LEN(binary_values), binary_values,
+			} } },
 			23, BINARY_ARRAY "\0\0\0\x2" "\0\0\0\x3" "\x1\x2\x3"
 				"\0\0\0\4" "\x42\x0\xa\x1b"
 		},
 		{
 			{ SDB_TYPE_REGEX | SDB_TYPE_ARRAY, { .array = {
-				1, regex_values } } },
+				SDB_STATIC_ARRAY_LEN(regex_values), regex_values,
+			} } },
 			20, REGEX_ARRAY "\0\0\0\1" "dummy regex\0"
 		},
 	};

@@ -81,6 +81,30 @@ memdup(const unsigned char *d, size_t length)
  * been available. */
 
 static ssize_t
+marshal_bool(char *buf, size_t buf_len, bool v)
+{
+	uint8_t t;
+	if (buf_len >= sizeof(t)) {
+		t = v ? 1 : 0;
+		memcpy(buf, &t, sizeof(t));
+	}
+	return sizeof(t);
+} /* marshal_bool */
+
+static ssize_t
+unmarshal_bool(const char *buf, size_t len, bool *v)
+{
+	uint8_t t;
+	if (len < sizeof(t))
+		return -1;
+	if (v) {
+		memcpy(&t, buf, sizeof(t));
+		*v = t != 0;
+	}
+	return sizeof(t);
+} /* unmarshal_bool */
+
+static ssize_t
 marshal_int64(char *buf, size_t buf_len, int64_t v)
 {
 	if (buf_len >= sizeof(v)) {
@@ -298,7 +322,9 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, const sdb_data_t *datum)
 	if (datum->type == SDB_TYPE_NULL)
 		return len;
 
-	if (datum->type == SDB_TYPE_INTEGER)
+	if (datum->type == SDB_TYPE_BOOLEAN)
+		n = marshal_bool(buf, buf_len, datum->data.boolean);
+	else if (datum->type == SDB_TYPE_INTEGER)
 		n = marshal_int64(buf, buf_len, datum->data.integer);
 	else if (datum->type == SDB_TYPE_DECIMAL)
 		n = marshal_double(buf, buf_len, datum->data.decimal);
@@ -335,7 +361,11 @@ sdb_proto_marshal_data(char *buf, size_t buf_len, const sdb_data_t *datum)
 
 	type = datum->type & 0xff;
 	for (i = 0; i < datum->data.array.length; ++i) {
-		if (type == SDB_TYPE_INTEGER) {
+		if (type == SDB_TYPE_BOOLEAN) {
+			bool *v = datum->data.array.values;
+			n = marshal_bool(buf, buf_len, v[i]);
+		}
+		else if (type == SDB_TYPE_INTEGER) {
 			int64_t *v = datum->data.array.values;
 			n = marshal_int64(buf, buf_len, v[i]);
 		}
@@ -547,7 +577,9 @@ sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum)
 
 /* Don't populate 'd' if 'datum' is NULL. */
 #define D(field) (datum ? &d.data.field : NULL)
-	if (d.type == SDB_TYPE_INTEGER)
+	if (d.type == SDB_TYPE_BOOLEAN)
+		n = unmarshal_bool(buf, len, D(boolean));
+	else if (d.type == SDB_TYPE_INTEGER)
 		n = unmarshal_int64(buf, len, D(integer));
 	else if (d.type == SDB_TYPE_DECIMAL)
 		n = unmarshal_double(buf, len, D(decimal));
@@ -605,7 +637,11 @@ sdb_proto_unmarshal_data(const char *buf, size_t len, sdb_data_t *datum)
 		d.data.array.values = calloc(d.data.array.length,
 				sdb_data_sizeof(d.type & 0xff));
 	for (i = 0; i < d.data.array.length; ++i) {
-		if ((d.type & 0xff) == SDB_TYPE_INTEGER) {
+		if ((d.type & 0xff) == SDB_TYPE_BOOLEAN) {
+			bool *v = d.data.array.values;
+			n = unmarshal_bool(buf, len, V());
+		}
+		else if ((d.type & 0xff) == SDB_TYPE_INTEGER) {
 			int64_t *v = d.data.array.values;
 			n = unmarshal_int64(buf, len, V());
 		}
