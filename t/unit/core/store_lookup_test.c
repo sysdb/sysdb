@@ -427,8 +427,8 @@ START_TEST(test_store_match_op)
 	sdb_data_t d = { SDB_TYPE_STRING, { .string = "a" } };
 	sdb_store_expr_t *e = sdb_store_expr_constvalue(&d);
 
-	sdb_store_matcher_t *always = sdb_store_isnnull_matcher(e);
 	sdb_store_matcher_t *never = sdb_store_isnull_matcher(e);
+	sdb_store_matcher_t *always = sdb_store_inv_matcher(never);
 
 	struct {
 		const char *op;

@@ -164,7 +164,6 @@ enum {
 
 	/* unary operators */
 	MATCHER_ISNULL,
-	MATCHER_ISNNULL,
 
 	/* ary operators */
 	MATCHER_LT,
@@ -189,7 +188,6 @@ enum {
 		: ((t) == MATCHER_IN) ? "IN" \
 		: ((t) == MATCHER_NIN) ? "NOT IN" \
 		: ((t) == MATCHER_ISNULL) ? "IS NULL" \
-		: ((t) == MATCHER_ISNNULL) ? "IS NOT NULL" \
 		: ((t) == MATCHER_LT) ? "<" \
 		: ((t) == MATCHER_LE) ? "<=" \
 		: ((t) == MATCHER_EQ) ? "=" \

@@ -301,7 +301,7 @@ match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	sdb_data_t v = SDB_DATA_INIT;
 	int status;
 
-	assert((m->type == MATCHER_ISNULL) || (m->type == MATCHER_ISNNULL));
+	assert(m->type == MATCHER_ISNULL);
 
 	if (ISNULL_M(m)->expr->type) {
 		/* TODO: this might hide real errors;
@@ -319,8 +319,6 @@ match_isnull(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 
 	if (ISNULL_M(m)->expr->type)
 		sdb_data_free_datum(&v);
-	if (m->type == MATCHER_ISNNULL)
-		return !status;
 	return status;
 } /* match_isnull */
 
@@ -340,7 +338,6 @@ matchers[] = {
 	match_in,
 
 	/* unary operators */
-	match_isnull,
 	match_isnull,
 
 	/* ary operators */
@@ -456,7 +453,7 @@ static int
 isnull_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
-	if ((M(obj)->type != MATCHER_ISNULL) && (M(obj)->type != MATCHER_ISNNULL))
+	if (M(obj)->type != MATCHER_ISNULL)
 		return -1;
 
 	ISNULL_M(obj)->expr = va_arg(ap, sdb_store_expr_t *);
@@ -636,13 +633,6 @@ sdb_store_isnull_matcher(sdb_store_expr_t *expr)
 	return M(sdb_object_create("isnull-matcher", isnull_type,
 				MATCHER_ISNULL, expr));
 } /* sdb_store_isnull_matcher */
-
-sdb_store_matcher_t *
-sdb_store_isnnull_matcher(sdb_store_expr_t *expr)
-{
-	return M(sdb_object_create("isnull-matcher", isnull_type,
-				MATCHER_ISNNULL, expr));
-} /* sdb_store_isnnull_matcher */
 
 sdb_store_matcher_op_cb
 sdb_store_parse_matcher_op(const char *op)
