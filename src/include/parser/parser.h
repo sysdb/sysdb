@@ -28,9 +28,6 @@
 #ifndef SDB_PARSER_PARSER_H
 #define SDB_PARSER_PARSER_H 1
 
-/* TODO: move SDB_PARSE_* constants here as well */
-#include "frontend/parser.h"
-
 #include "core/store.h"
 #include "parser/ast.h"
 #include "utils/llist.h"
@@ -39,6 +36,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* parser modes */
+enum {
+	/* parser accepts any command statement */
+	SDB_PARSE_DEFAULT = 0,
+
+	/* parser accepts any conditional statement */
+	SDB_PARSE_COND    = 1 << 1,
+
+	/* parser accepts any arithmetic expression */
+	SDB_PARSE_ARITH   = 1 << 2,
+};
 
 /*
  * sdb_parser_parse:

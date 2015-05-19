@@ -38,7 +38,6 @@ UNIT_TESTS = \
 		unit/core/store_test \
 		unit/core/time_test \
 		unit/frontend/connection_test \
-		unit/frontend/parser_test \
 		unit/frontend/query_test \
 		unit/frontend/sock_test \
 		unit/parser/ast_test \

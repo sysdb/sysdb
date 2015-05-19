@@ -12,7 +12,7 @@ AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 AM_YFLAGS = -d
 
 BUILT_SOURCES = include/client/sysdb.h include/sysdb.h \
-		frontend/grammar.h parser/grammar.h
+		parser/grammar.h
 EXTRA_DIST = include/client/sysdb.h.in include/sysdb.h.in
 
 pkginclude_HEADERS = include/sysdb.h
@@ -27,7 +27,6 @@ pkgcoreinclude_HEADERS = \
 pkgfeincludedir = $(pkgincludedir)/frontend
 pkgfeinclude_HEADERS = \
 		include/frontend/connection.h \
-		include/frontend/parser.h \
 		include/frontend/proto.h \
 		include/frontend/sock.h
 pkgutilsincludedir = $(pkgincludedir)/utils
@@ -68,7 +67,6 @@ libsysdbclient_la_LIBADD = $(LIBLTDL) @OPENSSL_LIBS@
 # don't use strict CFLAGS for flex code
 noinst_LTLIBRARIES += libsysdb_fe_parser.la
 libsysdb_fe_parser_la_SOURCES = \
-		frontend/grammar.y frontend/scanner.l \
 		parser/grammar.y parser/scanner.l
 libsysdb_fe_parser_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
 		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
@@ -86,10 +84,8 @@ libsysdb_la_SOURCES = \
 		core/data.c include/core/data.h \
 		core/time.c include/core/time.h \
 		core/timeseries.c include/core/timeseries.h \
-		frontend/analyzer.c \
 		frontend/connection.c include/frontend/connection.h \
 		frontend/connection-private.h \
-		frontend/parser.c include/frontend/parser.h \
 		frontend/sock.c include/frontend/sock.h \
 		frontend/session.c \
 		frontend/query.c \
