@@ -167,7 +167,7 @@ sdb_store_expr_fieldvalue(int field)
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
 	sdb_store_expr_t *e;
 
-	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_VALUE < field))
+	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_TIMESERIES < field))
 		return NULL;
 	e = SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));

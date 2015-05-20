@@ -62,6 +62,7 @@ enum {
 	SDB_FIELD_INTERVAL,      /* type: datetime */
 	SDB_FIELD_BACKEND,       /* type: array of strings */
 	SDB_FIELD_VALUE,         /* attributes only;  type: type of the value */
+	SDB_FIELD_TIMESERIES,    /* metrics only;  type: boolean */
 };
 #define SDB_STORE_TYPE_TO_NAME(t) \
 	(((t) == SDB_HOST) ? "host" \
@@ -80,6 +81,7 @@ enum {
 		: ((f) == SDB_FIELD_INTERVAL) ? "interval" \
 		: ((f) == SDB_FIELD_BACKEND) ? "backend" \
 		: ((f) == SDB_FIELD_VALUE) ? "value" \
+		: ((f) == SDB_FIELD_TIMESERIES) ? "timeseries" \
 		: "unknown")
 
 #define SDB_FIELD_TYPE(f) \
@@ -89,6 +91,7 @@ enum {
 		: ((f) == SDB_FIELD_INTERVAL) ? SDB_TYPE_DATETIME \
 		: ((f) == SDB_FIELD_BACKEND) ? (SDB_TYPE_ARRAY | SDB_TYPE_STRING) \
 		: ((f) == SDB_FIELD_VALUE) ? -1 /* unknown */ \
+		: ((f) == SDB_FIELD_TIMESERIES) ? SDB_TYPE_BOOLEAN \
 		: -1)
 
 /*
@@ -334,8 +337,6 @@ sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
  * responsible for freeing any dynamically allocated memory possibly stored in
  * the returned value. If 'res' is NULL, the function will return whether the
  * field exists.
- *
- * Note: Retrieving the backend this way is not currently supported.
  *
  * Returns:
  *  - 0 on success

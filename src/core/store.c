@@ -946,6 +946,11 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res)
 			if (! res)
 				return 0;
 			return sdb_data_copy(res, &ATTR(obj)->value);
+		case SDB_FIELD_TIMESERIES:
+			if (obj->type != SDB_METRIC)
+				return -1;
+			tmp.type = SDB_TYPE_BOOLEAN;
+			tmp.data.boolean = METRIC(obj)->store.type != NULL;
 		default:
 			return -1;
 	}
