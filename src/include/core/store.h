@@ -570,14 +570,6 @@ sdb_store_matcher_t *
 sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
 
 /*
- * sdb_store_nin_matcher:
- * Like sdb_store_in_matcher but matches if the left value is not included in
- * the right value.
- */
-sdb_store_matcher_t *
-sdb_store_nin_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-
-/*
  * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
  * sdb_store_ge_matcher, sdb_store_gt_matcher:
  * Create conditional matchers comparing the values of two expressions. The
