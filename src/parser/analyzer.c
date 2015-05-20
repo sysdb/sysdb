@@ -319,10 +319,15 @@ analyze_value(int context, sdb_ast_value_t *v, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 
-	if ((context != SDB_ATTRIBUTE) && (v->type == SDB_FIELD_VALUE)) {
-		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value",
-				SDB_FIELD_TO_NAME(v->type));
-		return -1;
+	if (context != UNSPEC_CONTEXT) {
+		/* skip this check if we don't know the context; it's up to the
+		 * caller to check again once the right context information is
+		 * available */
+		if ((context != SDB_ATTRIBUTE) && (v->type == SDB_FIELD_VALUE)) {
+			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value",
+					SDB_FIELD_TO_NAME(context));
+			return -1;
+		}
 	}
 	return 0;
 } /* analyze_value */
