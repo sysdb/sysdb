@@ -184,6 +184,17 @@ The following fields may be queried:
 	an attribute value with some other value, the two values will be cast to
 	strings before comparing them.
 
+*value*::
+	*(Attributes only)* The value of an attribute. Attributes may be accessed
+	by iterating the values of the parent object and this field provides
+	access to its value in that case. See *attribute[*'<name>'*]* above for
+	details about how to handle attribute values.
+
+*timeseries*::
+	*(Metrics only)* A boolean value indicating whether a backend data-store
+	for fetching time-series information is known to SysDB. See the section
+	"Metrics and Time-Series" in manpage:sysdb[7] for details.
+
 Field expressions may be applied to parent or child nodes. For example, a
 host's services are child objects and the host is the parent of the service
 objects. This is done using typed expressions:
