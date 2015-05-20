@@ -32,7 +32,6 @@
 #include "core/data.h"
 #include "testutils.h"
 
-#include <assert.h>
 #include <check.h>
 
 static regex_t empty_re;
@@ -171,7 +170,7 @@ START_TEST(test_data)
 	check = sdb_data_parse(".", SDB_TYPE_REGEX, &d2);
 	fail_unless(check == 0,
 			"INTERNAL ERROR: Failed to parse regex '.'");
-	assert(d2.type == SDB_TYPE_REGEX);
+	ck_assert(d2.type == SDB_TYPE_REGEX);
 	check = sdb_data_copy(&d1, &d2);
 	fail_unless(!check, "sdb_data_copy() = %i; expected: 0", check);
 	fail_unless(d1.type == d2.type,

@@ -34,8 +34,6 @@
 #include "parser/parser.h"
 #include "testutils.h"
 
-#include <assert.h>
-
 #include <check.h>
 #include <string.h>
 
@@ -265,7 +263,7 @@ START_TEST(test_cmp_attr)
 	};
 
 	const char *op_str[] = { "<", "<=", "=", ">=", ">" };
-	assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
 	host = sdb_store_get_host("a");
 	fail_unless(host != NULL,
@@ -373,7 +371,7 @@ START_TEST(test_cmp_obj)
 	};
 	char *op_str[] = { "<", "<=", "=", ">=", ">" };
 
-	assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
+	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
 	host = sdb_store_get_host(cmp_obj_data[_i].host);
 	fail_unless(host != NULL,

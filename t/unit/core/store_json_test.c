@@ -32,8 +32,6 @@
 #include "core/store.h"
 #include "testutils.h"
 
-#include <assert.h>
-
 #include <check.h>
 #include <stdlib.h>
 
@@ -466,7 +464,7 @@ START_TEST(test_store_tojson)
 	sdb_strbuf_clear(buf);
 	f = sdb_store_json_formatter(buf,
 			store_tojson_data[_i].type, SDB_WANT_ARRAY);
-	assert(f);
+	ck_assert(f != NULL);
 
 	status = sdb_store_scan(store_tojson_data[_i].type,
 			/* m = */ NULL, filter, store_tojson_data[_i].f, f);

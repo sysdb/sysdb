@@ -36,7 +36,6 @@
 
 #include "utils/strbuf.h"
 
-#include <assert.h>
 #include <check.h>
 
 #include <stdlib.h>
@@ -72,13 +71,13 @@ mock_conn_destroy(sdb_conn_t *conn)
 static ssize_t
 mock_conn_read(sdb_conn_t *conn, size_t len)
 {
-       return sdb_strbuf_read(conn->buf, conn->fd, len);
+	return sdb_strbuf_read(conn->buf, conn->fd, len);
 } /* conn_read */
 
 static ssize_t
 mock_conn_write(sdb_conn_t *conn, const void *buf, size_t len)
 {
-       return sdb_write(conn->fd, len, buf);
+	return sdb_write(conn->fd, len, buf);
 } /* conn_write */
 
 static sdb_conn_t *
@@ -118,7 +117,7 @@ mock_conn_create(void)
 	conn->write = mock_conn_write;
 
 	conn->username = strdup(username);
-	assert(conn->username);
+	ck_assert(conn->username != NULL);
 
 	conn->cmd = SDB_CONNECTION_IDLE;
 	conn->cmd_len = 0;
@@ -441,7 +440,6 @@ TEST_MAIN("frontend::connection")
 	TCase *tc;
 
 	char *tmp = sdb_get_current_user();
-	assert(tmp);
 	strcpy(username, tmp);
 	free(tmp);
 
