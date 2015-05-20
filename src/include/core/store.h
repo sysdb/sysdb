@@ -652,51 +652,6 @@ typedef sdb_store_matcher_t *(*sdb_store_matcher_op_cb)
 	(sdb_store_expr_t *, sdb_store_expr_t *);
 
 /*
- * sdb_store_parse_matcher_op:
- * Parse a matcher operator and return a constructor for the respective
- * matcher.
- *
- * Returns:
- *  - matcher operator constructor on success
- *  - NULL else
- */
-sdb_store_matcher_op_cb
-sdb_store_parse_matcher_op(const char *op);
-
-/*
- * sdb_store_parse_object_type:
- * Parse the type name of a stored object.
- *
- * Returns:
- *  - the object type on success
- *  - a negative value else
- */
-int
-sdb_store_parse_object_type(const char *name);
-
-/*
- * sdb_store_parse_object_type_plural:
- * Parse the type name (plural) of a stored object.
- *
- * Returns:
- *  - the object type on success
- *  - a negative value else
- */
-int
-sdb_store_parse_object_type_plural(const char *name);
-
-/*
- * sdb_store_parse_field_name:
- * Parse the name of a stored object's queryable field.
- *
- * Returns:
- *  - the field id on success
- *  - a negative value else
- */
-int
-sdb_store_parse_field_name(const char *name);
-
-/*
  * sdb_store_lookup_cb:
  * Lookup callback. It is called for each matching object when looking up data
  * in the store passing on the lookup filter and the specified user-data. The
