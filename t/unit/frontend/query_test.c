@@ -44,134 +44,134 @@ populate(void)
 {
 	sdb_data_t datum;
 
-	sdb_store_host("h1", 1);
-	sdb_store_host("h2", 3);
+	sdb_store_host("h1", 1 * SDB_INTERVAL_SECOND);
+	sdb_store_host("h2", 3 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_store_attribute("h1", "k1", &datum, 1);
+	sdb_store_attribute("h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v2";
-	sdb_store_attribute("h1", "k2", &datum, 2);
+	sdb_store_attribute("h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v3";
-	sdb_store_attribute("h1", "k3", &datum, 2);
+	sdb_store_attribute("h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_store_metric("h1", "m1", /* store */ NULL, 2);
-	sdb_store_metric("h1", "m2", /* store */ NULL, 1);
-	sdb_store_metric("h2", "m1", /* store */ NULL, 1);
+	sdb_store_metric("h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
+	sdb_store_metric("h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_store_metric("h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_store_metric_attr("h1", "m1", "k3", &datum, 2);
+	sdb_store_metric_attr("h1", "m1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_store_service("h2", "s1", 1);
-	sdb_store_service("h2", "s2", 2);
+	sdb_store_service("h2", "s1", 1 * SDB_INTERVAL_SECOND);
+	sdb_store_service("h2", "s2", 2 * SDB_INTERVAL_SECOND);
 
 	datum.data.integer = 123;
-	sdb_store_service_attr("h2", "s2", "k1", &datum, 2);
+	sdb_store_service_attr("h2", "s2", "k1", &datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.integer = 4711;
-	sdb_store_service_attr("h2", "s2", "k2", &datum, 1);
+	sdb_store_service_attr("h2", "s2", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
 } /* populate */
 
 #define HOST_H1 \
-	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"attributes\": [" \
 			"{\"name\": \"k1\", \"value\": \"v1\", " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}," \
 			"{\"name\": \"k2\", \"value\": \"v2\", " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}," \
 			"{\"name\": \"k3\", \"value\": \"v3\", " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h1\", " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}," \
 			"{\"name\": \"m2\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h1\", " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define HOST_H1_ARRAY "["HOST_H1"]"
 #define HOST_H1_LISTING \
-	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": []}"
 #define HOST_H2_LISTING \
-	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": []}"
 
 #define SERVICE_H2_S1 \
-	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"services\": [" \
-			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h2\", " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define SERVICE_H2_S1_ARRAY "["SERVICE_H2_S1"]"
 #define SERVICE_H2_S12_LISTING \
-	"[{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"[{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"services\": [" \
-			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}," \
-			"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+			"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}]}]"
 
 #define METRIC_H1_M1 \
-	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h1\", " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}," \
 					"{\"name\": \"k3\", \"value\": 42, " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define METRIC_H12_M1_ARRAY \
 	"["METRIC_H1_M1"," \
-	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h2\", " \
-						"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}]"
 #define METRIC_H12_M12_LISTING \
-	"[{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"[{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}," \
 			"{\"name\": \"m2\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}]}," \
-	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:00 +0000\", " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": []}]}]"
 
 typedef struct {

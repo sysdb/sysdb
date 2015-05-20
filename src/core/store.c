@@ -488,12 +488,10 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 	size_t i;
 
 	/* TODO: make time format configurable */
-	if (! sdb_strftime(start_str, sizeof(start_str),
-				"%F %T %z", ts->start))
+	if (! sdb_strftime(start_str, sizeof(start_str), ts->start))
 		snprintf(start_str, sizeof(start_str), "<error>");
 	start_str[sizeof(start_str) - 1] = '\0';
-	if (! sdb_strftime(end_str, sizeof(end_str),
-				"%F %T %z", ts->end))
+	if (! sdb_strftime(end_str, sizeof(end_str), ts->end))
 		snprintf(end_str, sizeof(end_str), "<error>");
 	end_str[sizeof(end_str) - 1] = '\0';
 
@@ -507,8 +505,7 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 		for (j = 0; j < ts->data_len; ++j) {
 			char time_str[64];
 
-			if (! sdb_strftime(time_str, sizeof(time_str),
-						"%F %T %z", ts->data[i][j].timestamp))
+			if (! sdb_strftime(time_str, sizeof(time_str), ts->data[i][j].timestamp))
 				snprintf(time_str, sizeof(time_str), "<error>");
 			time_str[sizeof(time_str) - 1] = '\0';
 

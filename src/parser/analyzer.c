@@ -568,8 +568,8 @@ analyze_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *errbuf)
 	}
 	if (ts->end <= ts->start) {
 		char start_str[64], end_str[64];
-		sdb_strftime(start_str, sizeof(start_str), "%F %T Tz", ts->start);
-		sdb_strftime(end_str, sizeof(end_str), "%F %T Tz", ts->end);
+		sdb_strftime(start_str, sizeof(start_str), ts->start);
+		sdb_strftime(end_str, sizeof(end_str), ts->end);
 		sdb_strbuf_sprintf(errbuf, "Start time (%s) greater than "
 				"end time (%s) in STORE command", start_str, end_str);
 		return -1;

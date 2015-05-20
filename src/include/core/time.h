@@ -74,8 +74,7 @@ int
 sdb_sleep(sdb_time_t reg, sdb_time_t *rem);
 
 size_t
-sdb_strftime(char *s, size_t len, const char *format, sdb_time_t)
-		__attribute__((format(strftime, 3, 0)));
+sdb_strftime(char *s, size_t len, sdb_time_t);
 
 size_t
 sdb_strfinterval(char *s, size_t len, sdb_time_t interval);

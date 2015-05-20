@@ -78,18 +78,30 @@ sdb_sleep(sdb_time_t reg, sdb_time_t *rem)
 } /* sdb_sleep */
 
 size_t
-sdb_strftime(char *s, size_t len, const char *format, sdb_time_t t)
+sdb_strftime(char *s, size_t len, sdb_time_t t)
 {
+	char tmp[len];
 	time_t tstamp;
 	struct tm tm;
+	long tz;
 
 	memset(&tm, 0, sizeof(tm));
-
 	tstamp = (time_t)SDB_TIME_TO_SECS(t);
 	if (! localtime_r (&tstamp, &tm))
 		return 0;
 
-	return strftime(s, len, format, &tm);
+	if (! strftime(tmp, len, "%F %T", &tm))
+		return 0;
+	tmp[sizeof(tmp) - 1] = '\0';
+
+	tz = -timezone / 36;
+	if (tm.tm_isdst > 0)
+		tz += 100;
+
+	t %= SDB_INTERVAL_SECOND;
+	if (! t)
+		return snprintf(s, len, "%s %+05ld", tmp, tz);
+	return snprintf(s, len, "%s.%09ld %+05ld", tmp, t, tz);
 } /* sdb_strftime */
 
 size_t

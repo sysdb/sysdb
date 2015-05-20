@@ -931,8 +931,8 @@ sdb_data_strlen(const sdb_data_t *datum)
 		/* in the worst case, each character needs to be escaped */
 		return 2 * strlen(datum->data.string) + 2;
 	case SDB_TYPE_DATETIME:
-		/* "YYYY-MM-DD HH:MM:SS +zzzz" */
-		return 27;
+		/* "YYYY-MM-DD HH:MM:SS[.nnnnnnnnn] +zzzz" */
+		return 37;
 	case SDB_TYPE_BINARY:
 		if (! datum->data.binary.datum)
 			return 6; /* NULL */
@@ -1013,8 +1013,7 @@ sdb_data_format(const sdb_data_t *datum, char *buf, size_t buflen, int quoted)
 		}
 	}
 	else if (datum->type == SDB_TYPE_DATETIME) {
-		if (! sdb_strftime(tmp, sizeof(tmp), "%F %T %z",
-					datum->data.datetime))
+		if (! sdb_strftime(tmp, sizeof(tmp), datum->data.datetime))
 			return -1;
 		tmp[sizeof(tmp) - 1] = '\0';
 		data = tmp;

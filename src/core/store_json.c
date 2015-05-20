@@ -140,8 +140,7 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	}
 
 	/* TODO: make time and interval formats configurable */
-	if (! sdb_strftime(time_str, sizeof(time_str),
-				"%F %T %z", obj->last_update))
+	if (! sdb_strftime(time_str, sizeof(time_str), obj->last_update))
 		snprintf(time_str, sizeof(time_str), "<error>");
 	time_str[sizeof(time_str) - 1] = '\0';
 

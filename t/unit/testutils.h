@@ -37,6 +37,7 @@
 #include <check.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define TEST_MAIN(name) \
 	int main(void) \
@@ -45,6 +46,7 @@
 		Suite *s; \
 		int failed; \
 		putenv("TZ=UTC"); \
+		tzset(); \
 		s = suite_create(name); \
 		sr = srunner_create(s); \
 

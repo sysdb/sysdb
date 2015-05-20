@@ -45,6 +45,51 @@
 #define NS                                        1L
 
 struct {
+	sdb_time_t t;
+	const char *tz;
+	const char *expected;
+} strftime_data[] = {
+	{ 0,                    "UTC",           "1970-01-01 00:00:00 +0000" },
+	{ 1428066243000000000L, "Europe/Berlin", "2015-04-03 15:04:03 +0200" },
+	{ 1420113661000000000L, "Europe/Berlin", "2015-01-01 13:01:01 +0100" },
+	{ 1428066243000000000L, "US/Pacific",    "2015-04-03 06:04:03 -0700" },
+	{ 1420113661000000000L, "US/Pacific",    "2015-01-01 04:01:01 -0800" },
+	{ 1146747723000000123L, "UTC", "2006-05-04 13:02:03.000000123 +0000" },
+	{ 1146747723123456789L, "UTC", "2006-05-04 13:02:03.123456789 +0000" },
+};
+
+START_TEST(test_strftime)
+{
+	char buf[1024], tz[64];
+	size_t check;
+
+	/* strftime does not provide the number of bytes that would have been
+	 * written. Only check that it does not segfault. */
+	sdb_strftime(NULL, 0, strftime_data[_i].t);
+
+	snprintf(tz, sizeof(tz), "TZ=%s", strftime_data[_i].tz);
+	putenv(tz);
+	tzset();
+
+	check = sdb_strftime(buf, sizeof(buf), strftime_data[_i].t);
+	fail_unless(check > 0,
+			"%s; sdb_strftime(<buf>, <size>, %"PRIsdbTIME") = %zu; "
+			"expected: >0", tz, strftime_data[_i].t, check);
+	fail_unless(!strcmp(buf, strftime_data[_i].expected),
+			"%s; sdb_strftime(<buf>, <size>, %"PRIsdbTIME") did not "
+			"format time correctly; got: '%s'; expected: '%s'",
+			tz, strftime_data[_i].t, buf, strftime_data[_i].expected);
+	fail_unless(check == strlen(strftime_data[_i].expected),
+			"%s; sdb_strftime(<buf>, <size>, %"PRIsdbTIME") = %zu; "
+			"expected: %zu", tz, strftime_data[_i].t, check,
+			strlen(strftime_data[_i].expected));
+
+	putenv("TZ=UTC");
+	tzset();
+}
+END_TEST
+
+struct {
 	sdb_time_t  interval;
 	const char *expected;
 } strfinterval_data[] = {
@@ -130,6 +175,7 @@ END_TEST
 TEST_MAIN("core::time")
 {
 	TCase *tc = tcase_create("core");
+	TC_ADD_LOOP_TEST(tc, strftime);
 	TC_ADD_LOOP_TEST(tc, strfinterval);
 	TC_ADD_LOOP_TEST(tc, strpunit);
 	ADD_TCASE(tc);

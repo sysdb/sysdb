@@ -2350,7 +2350,7 @@ START_TEST(test_format)
 		},
 		{
 			{ SDB_TYPE_DATETIME, { .datetime= 471147114711471100 } },
-			"\"1984-12-06 02:11:54 +0000\"",
+			"\"1984-12-06 02:11:54.711471100 +0000\"",
 		},
 		{
 			{ SDB_TYPE_BINARY, { .binary = { 0, NULL } } },
