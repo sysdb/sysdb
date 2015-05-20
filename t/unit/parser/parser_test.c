@@ -402,6 +402,8 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "NOT attribute['foo'] "
 	  "IS FALSE",            -1,  1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP metrics MATCHING "
+	  "timeseries IS TRUE",  -1,  1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
 
 	/* invalid numeric constants */
 	{ "LOOKUP hosts MATCHING "
@@ -457,6 +459,10 @@ struct {
 	  "value = 'a'",           -1, -1, 0, 0 },
 	{ "LIST metrics FILTER "
 	  "name.1 = 'a'",          -1, -1, 0, 0 },
+	{ "LIST hosts FILTER "
+	  "timeseries IS TRUE",    -1, -1, 0, 0 },
+	{ "LIST services FILTER "
+	  "timeseries IS TRUE",    -1, -1, 0, 0 },
 
 	/* type mismatches */
 	{ "LOOKUP hosts MATCHING "
@@ -831,12 +837,13 @@ struct {
 	{ "ALL attribute.name !~ 'pattern'",   -1,  SDB_AST_ALL },
 	{ "ALL attribute.name &^ 'pattern'",   -1,  -1 },
 	{ "ANY attribute !~ 'pattern'",        -1,  -1 },
+
 	/* composite expressions */
 	{ "name =~ 'pattern' AND "
-	  "ANY service.name =~ 'pattern'",     -1,  SDB_AST_AND },
+	  "ANY service.name =~ 'pattern'",  -1,  SDB_AST_AND },
 	{ "name =~ 'pattern' OR "
-	  "ANY service.name =~ 'pattern'",     -1,  SDB_AST_OR },
-	{ "NOT name = 'host'",                 -1,  SDB_AST_NOT },
+	  "ANY service.name =~ 'pattern'",  -1,  SDB_AST_OR },
+	{ "NOT name = 'host'",              -1,  SDB_AST_NOT },
 	/* numeric expressions */
 	{ "attribute['foo'] < 123",         -1,  SDB_AST_LT },
 	{ "attribute['foo'] <= 123",        -1,  SDB_AST_LE },
@@ -908,6 +915,13 @@ struct {
 	{ "'be' NOT IN backend",            -1,  SDB_AST_NOT },
 	{ "['a','b'] IN backend",           -1,  SDB_AST_IN },
 	{ "['a','b'] NOT IN backend",       -1,  SDB_AST_NOT },
+	{ "timeseries IS TRUE",             -1,  SDB_AST_ISTRUE },
+	{ "timeseries IS FALSE",            -1,  SDB_AST_ISFALSE },
+	{ "timeseries IS NOT TRUE",         -1,  SDB_AST_NOT },
+	{ "timeseries IS NOT FALSE",        -1,  SDB_AST_NOT },
+	{ "timeseries > 0",                 -1,  -1 },
+	{ "timeseries = TRUE",              -1,  -1 },
+	{ "timeseries != FALSE",            -1,  -1 },
 
 	/* check operator precedence */
 	{ "name = 'name' OR "
@@ -1037,6 +1051,20 @@ struct {
 	{ "age - age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
 	{ "(age + age) * age",    -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
 	{ "age + (age * age)",    -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+
+	/* boolean expressions */
+	{ "timeseries + 1",               -1, -1, -1 },
+	{ "timeseries - 1",               -1, -1, -1 },
+	{ "timeseries * 1",               -1, -1, -1 },
+	{ "timeseries / 1",               -1, -1, -1 },
+	{ "timeseries \% 1",              -1, -1, -1 },
+	{ "timeseries CONCAT 1",          -1, -1, -1 },
+	{ "timeseries + timeseries",      -1, -1, -1 },
+	{ "timeseries - timeseries",      -1, -1, -1 },
+	{ "timeseries * timeseries",      -1, -1, -1 },
+	{ "timeseries / timeseries",      -1, -1, -1 },
+	{ "timeseries \% timeseries",     -1, -1, -1 },
+	{ "timeseries CONCAT timeseries", -1, -1, -1 },
 
 	/* syntax errors */
 	{ "LIST",                 -1, -1, -1 },

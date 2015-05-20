@@ -634,6 +634,8 @@ field:
 	BACKEND_T { $$ = SDB_FIELD_BACKEND; }
 	|
 	VALUE_T { $$ = SDB_FIELD_VALUE; }
+	|
+	TIMESERIES { $$ = SDB_FIELD_TIMESERIES; }
 	;
 
 cmp:

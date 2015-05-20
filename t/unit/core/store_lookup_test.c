@@ -577,6 +577,9 @@ struct {
 		NULL,                              1 },
 	{ "host.attribute['x1'] IS NULL",
 		NULL,                              3 },
+	/* not a boolean so neither TRUE nor FALSE: */
+	{ "attribute['k1'] IS TRUE", NULL,     0 },
+	{ "attribute['k1'] IS FALSE", NULL,    0 },
 	{ "attribute['k1'] = 'v1'", NULL,      1 },
 	{ "attribute['k1'] = 'v1'",
 		"name != 'k1'",                    0 },
