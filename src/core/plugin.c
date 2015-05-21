@@ -1344,10 +1344,12 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_host(name, last_update, writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_host(name, last_update, writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
@@ -1366,11 +1368,13 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_service(hostname, name, last_update,
-					writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_service(hostname, name, last_update,
+				writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
@@ -1392,11 +1396,13 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_metric(hostname, name, store, last_update,
-					writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_metric(hostname, name, store, last_update,
+				writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
@@ -1415,11 +1421,13 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_attribute(hostname, key, value, last_update,
-					writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_attribute(hostname, key, value, last_update,
+				writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
@@ -1438,11 +1446,13 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_service_attr(hostname, service,
-					key, value, last_update, writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_service_attr(hostname, service,
+				key, value, last_update, writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
@@ -1461,11 +1471,13 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_plugin_writer_t *writer;
+		int s;
 		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
-		if (writer->impl.store_metric_attr(hostname, metric,
-					key, value, last_update, writer->w_user_data))
-			status = -1;
+		s = writer->impl.store_metric_attr(hostname, metric,
+				key, value, last_update, writer->w_user_data);
+		if (((s > 0) && (status >= 0)) || (s < 0))
+			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
 	return status;
