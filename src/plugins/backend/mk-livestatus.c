@@ -68,7 +68,7 @@ sdb_livestatus_get_host(sdb_unixsock_client_t __attribute__((unused)) *client,
 	hostname  = data[0].data.string;
 	timestamp = data[1].data.datetime;
 
-	status = sdb_store_host(hostname, timestamp);
+	status = sdb_plugin_store_host(hostname, timestamp);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "
@@ -104,7 +104,7 @@ sdb_livestatus_get_svc(sdb_unixsock_client_t __attribute__((unused)) *client,
 	svcname   = data[1].data.string;
 	timestamp = data[2].data.datetime;
 
-	status = sdb_store_service(hostname, svcname, timestamp);
+	status = sdb_plugin_store_service(hostname, svcname, timestamp);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "MK Livestatus backend: Failed to "

@@ -57,7 +57,7 @@ fact_iter(std::string const &k, facter::facts::value const *v)
 		return true;
 
 	sdb_data_t value = { SDB_TYPE_STRING, { .string = str } };
-	sdb_store_attribute(hostname, k.c_str(), &value, now);
+	sdb_plugin_store_attribute(hostname, k.c_str(), &value, now);
 	return true;
 } /* fact_iter */
 
@@ -83,7 +83,7 @@ extern "C" {
 		std::string s = ss.str();
 		hostname = s.c_str();
 
-		sdb_store_host(hostname, now);
+		sdb_plugin_store_host(hostname, now);
 		facts.each(fact_iter);
 		sdb_log(SDB_LOG_DEBUG, "facter backend: Processed %zu facts "
 				"for host '%s'", facts.size(), hostname);

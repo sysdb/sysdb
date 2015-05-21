@@ -26,6 +26,7 @@
  */
 
 #include "core/object.h"
+#include "core/plugin.h"
 #include "core/store-private.h"
 #include "frontend/connection.h"
 #include "parser/ast.h"
@@ -227,19 +228,19 @@ exec_store(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, sdb_ast_store_t *st)
 	switch (st->obj_type) {
 	case SDB_HOST:
 		strncpy(name, st->name, sizeof(name));
-		status = sdb_store_host(st->name, st->last_update);
+		status = sdb_plugin_store_host(st->name, st->last_update);
 		break;
 
 	case SDB_SERVICE:
 		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
-		status = sdb_store_service(st->hostname, st->name, st->last_update);
+		status = sdb_plugin_store_service(st->hostname, st->name, st->last_update);
 		break;
 
 	case SDB_METRIC:
 		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
 		metric_store.type = st->store_type;
 		metric_store.id = st->store_id;
-		status = sdb_store_metric(st->hostname, st->name,
+		status = sdb_plugin_store_metric(st->hostname, st->name,
 				&metric_store, st->last_update);
 		break;
 
@@ -255,17 +256,17 @@ exec_store(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, sdb_ast_store_t *st)
 		switch (st->parent_type) {
 		case 0:
 			type |= SDB_HOST;
-			status = sdb_store_attribute(st->hostname,
+			status = sdb_plugin_store_attribute(st->hostname,
 					st->name, &st->value, st->last_update);
 			break;
 
 		case SDB_SERVICE:
-			status = sdb_store_service_attr(st->hostname, st->parent,
+			status = sdb_plugin_store_service_attribute(st->hostname, st->parent,
 					st->name, &st->value, st->last_update);
 			break;
 
 		case SDB_METRIC:
-			status = sdb_store_metric_attr(st->hostname, st->parent,
+			status = sdb_plugin_store_metric_attribute(st->hostname, st->parent,
 					st->name, &st->value, st->last_update);
 			break;
 

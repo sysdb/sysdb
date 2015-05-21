@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif
 
+#include "core/plugin.h"
 #include "core/store.h"
 #include "core/store-private.h"
 #include "parser/parser.h"
@@ -95,37 +96,37 @@ populate(void)
 	sdb_store_init();
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_store_host(hosts[i], 1);
+		int status = sdb_plugin_store_host(hosts[i], 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_store_metric(metrics[i].host,
+		int status = sdb_plugin_store_metric(metrics[i].host,
 				metrics[i].metric, /* store */ NULL, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_store_service(services[i].host,
+		int status = sdb_plugin_store_service(services[i].host,
 				services[i].service, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_store_attribute(attrs[i].host,
+		int status = sdb_plugin_store_attribute(attrs[i].host,
 				attrs[i].name, &attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(svc_attrs); ++i) {
-		int status = sdb_store_service_attr(svc_attrs[i].host,
+		int status = sdb_plugin_store_service_attribute(svc_attrs[i].host,
 				svc_attrs[i].service, svc_attrs[i].name,
 				&svc_attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metric_attrs); ++i) {
-		int status = sdb_store_metric_attr(metric_attrs[i].host,
+		int status = sdb_plugin_store_metric_attribute(metric_attrs[i].host,
 				metric_attrs[i].metric, metric_attrs[i].name,
 				&metric_attrs[i].value, 1);
 		ck_assert(status == 0);

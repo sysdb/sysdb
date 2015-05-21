@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif
 
+#include "core/plugin.h"
 #include "core/store.h"
 #include "core/store-private.h"
 #include "parser/parser.h"
@@ -76,33 +77,33 @@ populate(void)
 	sdb_store_init();
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_store_host(hosts[i], 1);
+		int status = sdb_plugin_store_host(hosts[i], 1);
 		fail_unless(status == 0,
-				"sdb_store_host(%s, 1) = %d; expected: 0",
+				"sdb_plugin_store_host(%s, 1) = %d; expected: 0",
 				hosts[i], status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_store_metric(metrics[i].host,
+		int status = sdb_plugin_store_metric(metrics[i].host,
 				metrics[i].metric, /* store */ NULL, 1);
 		fail_unless(status == 0,
-				"sdb_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
+				"sdb_plugin_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
 				metrics[i].host, metrics[i].metric, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_store_service(services[i].host,
+		int status = sdb_plugin_store_service(services[i].host,
 				services[i].service, 1);
 		fail_unless(status == 0,
-				"sdb_store_service(%s, %s, 1) = %d; expected: 0",
+				"sdb_plugin_store_service(%s, %s, 1) = %d; expected: 0",
 				services[i].host, services[i].service, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_store_attribute(attrs[i].host,
+		int status = sdb_plugin_store_attribute(attrs[i].host,
 				attrs[i].name, &attrs[i].value, 1);
 		fail_unless(status == 0,
-				"sdb_store_attribute(%s, %s, <val>, 1) = %d; expected: 0",
+				"sdb_plugin_store_attribute(%s, %s, <val>, 1) = %d; expected: 0",
 				attrs[i].host, attrs[i].name, status);
 	}
 } /* populate */

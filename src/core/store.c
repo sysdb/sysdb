@@ -858,50 +858,6 @@ sdb_store_clear(void)
 	sdb_avltree_clear(global_store->hosts);
 } /* sdb_store_clear */
 
-int
-sdb_store_host(const char *name, sdb_time_t last_update)
-{
-	return sdb_plugin_store_host(name, last_update);
-} /* sdb_store_host */
-
-int
-sdb_store_attribute(const char *hostname,
-		const char *key, const sdb_data_t *value,
-		sdb_time_t last_update)
-{
-	return sdb_plugin_store_attribute(hostname, key, value, last_update);
-} /* sdb_store_attribute */
-
-int
-sdb_store_service(const char *hostname, const char *name,
-		sdb_time_t last_update)
-{
-	return sdb_plugin_store_service(hostname, name, last_update);
-} /* sdb_store_service */
-
-int
-sdb_store_service_attr(const char *hostname, const char *service,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update)
-{
-	return sdb_plugin_store_service_attribute(hostname, service,
-			key, value, last_update);
-} /* sdb_store_service_attr */
-
-int
-sdb_store_metric(const char *hostname, const char *name,
-		sdb_metric_store_t *store, sdb_time_t last_update)
-{
-	return sdb_plugin_store_metric(hostname, name, store, last_update);
-} /* sdb_store_metric */
-
-int
-sdb_store_metric_attr(const char *hostname, const char *metric,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update)
-{
-	return sdb_plugin_store_metric_attribute(hostname, metric,
-			key, value, last_update);
-} /* sdb_store_metric_attr */
-
 bool
 sdb_store_has_host(const char *name)
 {

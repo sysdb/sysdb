@@ -153,14 +153,14 @@ mock_collect(sdb_object_t *user_data)
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hostnames); ++i) {
-		if ((check = sdb_store_host(hostnames[i], sdb_gettime()))) {
+		if ((check = sdb_plugin_store_host(hostnames[i], sdb_gettime()))) {
 			sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to store host: "
 					"status %d", check);
 			exit(1);
 		}
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		if ((check = sdb_store_metric(metrics[i].hostname,
+		if ((check = sdb_plugin_store_metric(metrics[i].hostname,
 						metrics[i].metric, &metrics[i].store,
 						sdb_gettime()))) {
 			sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to store metric: "
@@ -169,7 +169,7 @@ mock_collect(sdb_object_t *user_data)
 		}
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		if ((check = sdb_store_service(services[i].hostname,
+		if ((check = sdb_plugin_store_service(services[i].hostname,
 						services[i].service, sdb_gettime()))) {
 			sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to store service: "
 					"status %d", check);
@@ -180,7 +180,7 @@ mock_collect(sdb_object_t *user_data)
 		sdb_data_t datum = { SDB_TYPE_STRING, { .string = NULL } };
 		datum.data.string = strdup(attributes[i].value);
 
-		if ((check = sdb_store_attribute(attributes[i].hostname,
+		if ((check = sdb_plugin_store_attribute(attributes[i].hostname,
 						attributes[i].name, &datum, sdb_gettime()))) {
 			sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to store attribute: "
 					"status %d", check);

@@ -125,7 +125,7 @@ store_host(state_t *state, const char *hostname, sdb_time_t last_update)
 		return -1;
 	}
 
-	status = sdb_store_host(hostname, last_update);
+	status = sdb_plugin_store_host(hostname, last_update);
 
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
@@ -161,10 +161,10 @@ add_metrics(const char *hostname, char *plugin, char *type,
 	if (ud->ts_base) {
 		snprintf(metric_id, sizeof(metric_id), "%s/%s/%s.rrd",
 				ud->ts_base, hostname, name);
-		status = sdb_store_metric(hostname, name, &store, last_update);
+		status = sdb_plugin_store_metric(hostname, name, &store, last_update);
 	}
 	else
-		status = sdb_store_metric(hostname, name, NULL, last_update);
+		status = sdb_plugin_store_metric(hostname, name, NULL, last_update);
 	if (status < 0) {
 		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
 				"store/update metric '%s/%s'.", hostname, name);
@@ -177,7 +177,7 @@ add_metrics(const char *hostname, char *plugin, char *type,
 		++plugin_instance;
 
 		data.data.string = plugin_instance;
-		sdb_store_metric_attr(hostname, name,
+		sdb_plugin_store_metric_attribute(hostname, name,
 				"plugin_instance", &data, last_update);
 	}
 
@@ -187,14 +187,14 @@ add_metrics(const char *hostname, char *plugin, char *type,
 		++type_instance;
 
 		data.data.string = type_instance;
-		sdb_store_metric_attr(hostname, name,
+		sdb_plugin_store_metric_attribute(hostname, name,
 				"type_instance", &data, last_update);
 	}
 
 	data.data.string = plugin;
-	sdb_store_metric_attr(hostname, name, "plugin", &data, last_update);
+	sdb_plugin_store_metric_attribute(hostname, name, "plugin", &data, last_update);
 	data.data.string = type;
-	sdb_store_metric_attr(hostname, name, "type", &data, last_update);
+	sdb_plugin_store_metric_attribute(hostname, name, "type", &data, last_update);
 	return 0;
 } /* add_metrics */
 

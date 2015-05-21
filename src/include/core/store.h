@@ -150,21 +150,77 @@ typedef struct sdb_store_json_formatter sdb_store_json_formatter_t;
 
 /*
  * A store writer describes the interface for plugins implementing a store.
+ *
+ * Any of the call-back functions shall return:
+ *  - 0 on success
+ *  - a positive value if the new entry is older than the currently stored
+ *    entry (in this case, no update will happen)
+ *  - a negative value on error
  */
 typedef struct {
+	/*
+	 * store_host:
+	 * Add/update a host in the store. If the host, identified by its
+	 * canonicalized name, already exists, it will be updated according to the
+	 * specified name and timestamp. Else, a new entry will be created in the
+	 * store.
+	 */
 	int (*store_host)(const char *name, sdb_time_t last_update,
 			sdb_object_t *user_data);
+
+	/*
+	 * store_service:
+	 * Add/update a service in the store. If the service, identified by its
+	 * name, already exists for the specified host, it will be updated
+	 * according to the specified name and timestamp. If the referenced host
+	 * does not exist, an error will be reported. Else, a new entry will be
+	 * created in the store.
+	 */
 	int (*store_service)(const char *hostname, const char *name,
 			sdb_time_t last_update, sdb_object_t *user_data);
+
+	/*
+	 * store_metric:
+	 * Add/update a metric in the store. If the metric, identified by its
+	 * name, already exists for the specified host, it will be updated
+	 * according to the specified attributes. If the referenced host does not
+	 * exist, an error will be reported. Else, a new entry will be created in
+	 * the store.
+	 */
 	int (*store_metric)(const char *hostname, const char *name,
 			sdb_metric_store_t *store, sdb_time_t last_update,
 			sdb_object_t *user_data);
+
+	/*
+	 * store_attribute:
+	 * Add/update a host's attribute in the store. If the attribute,
+	 * identified by its key, already exists for the specified host, it will
+	 * be updated to the specified values. If the referenced host does not
+	 * exist, an error will be reported. Else, a new entry will be created in
+	 * the store.
+	 */
 	int (*store_attribute)(const char *hostname,
 			const char *key, const sdb_data_t *value, sdb_time_t last_update,
 			sdb_object_t *user_data);
+
+	/*
+	 * store_service_attr:
+	 * Add/update a service's attribute in the store. If the attribute,
+	 * identified by its key, already exists for the specified service, it
+	 * will be updated to the specified value. If the references service (for
+	 * the specified host) does not exist, an error will be reported.
+	 */
 	int (*store_service_attr)(const char *hostname, const char *service,
 			const char *key, const sdb_data_t *value, sdb_time_t last_update,
 			sdb_object_t *user_data);
+
+	/*
+	 * store_metric_attr:
+	 * Add/update a metric's attribute in the store. If the attribute,
+	 * identified by its key, already exists for the specified metric, it will
+	 * be updated to the specified value. If the references metric (for the
+	 * specified host) does not exist, an error will be reported.
+	 */
 	int (*store_metric_attr)(const char *hostname, const char *metric,
 			const char *key, const sdb_data_t *value, sdb_time_t last_update,
 			sdb_object_t *user_data);
@@ -190,23 +246,6 @@ void
 sdb_store_clear(void);
 
 /*
- * sdb_store_host:
- * Add/update a host in the store. If the host, identified by its
- * canonicalized name, already exists, it will be updated according to the
- * specified name and timestamp. Else, a new entry will be created in the
- * store. Any memory required for storing the entry will be allocated an
- * managed by the store itself.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_host(const char *name, sdb_time_t last_update);
-
-/*
  * sdb_store_has_host:
  * sdb_store_get_host:
  * Query the store for a host by its (canonicalized) name.
@@ -219,102 +258,6 @@ sdb_store_has_host(const char *name);
 
 sdb_store_obj_t *
 sdb_store_get_host(const char *name);
-
-/*
- * sdb_store_attribute:
- * Add/update a host's attribute in the store. If the attribute, identified by
- * its key, already exists for the specified host, it will be updated to the
- * specified values. If the referenced host does not exist, an error will be
- * reported. Else, a new entry will be created in the store. Any memory
- * required for storing the entry will be allocated and managed by the store
- * itself.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_attribute(const char *hostname,
-		const char *key, const sdb_data_t *value,
-		sdb_time_t last_update);
-
-/*
- * sdb_store_service:
- * Add/update a service in the store. If the service, identified by its name,
- * already exists for the specified host, it will be updated according to the
- * specified 'service' object. If the referenced host does not exist, an error
- * will be reported. Else, a new entry will be created in the store. Any
- * memory required for storing the entry will be allocated an managed by the
- * store itself.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_service(const char *hostname, const char *name,
-		sdb_time_t last_update);
-
-/*
- * sdb_store_service_attr:
- * Add/update a service's attribute in the store. If the attribute, identified
- * by its key, already exists for the specified service, it will be updated to
- * the specified value. If the references service (for the specified host)
- * does not exist, an error will be reported. Any memory required for storing
- * the entry will be allocated and managed by the store itself.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_service_attr(const char *hostname, const char *service,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update);
-
-/*
- * sdb_store_metric:
- * Add/update a metric in the store. If the metric, identified by its name,
- * already exists for the specified host, it will be updated according to the
- * specified 'metric' object. If the referenced host does not exist, an error
- * will be reported. Else, a new entry will be created in the store. Any
- * memory required for storing the entry will be allocated an managed by the
- * store itself.
- *
- * If specified, the metric store describes where to access the metric's data.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_metric(const char *hostname, const char *name,
-		sdb_metric_store_t *store, sdb_time_t last_update);
-
-/*
- * sdb_store_metric_attr:
- * Add/update a metric's attribute in the store. If the attribute, identified
- * by its key, already exists for the specified metric, it will be updated to
- * the specified value. If the references metric (for the specified host)
- * does not exist, an error will be reported. Any memory required for storing
- * the entry will be allocated and managed by the store itself.
- *
- * Returns:
- *  - 0 on success
- *  - a positive value if the new entry is older than the currently stored
- *    entry (in this case, no update will happen)
- *  - a negative value on error
- */
-int
-sdb_store_metric_attr(const char *hostname, const char *metric,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 
 /*
  * sdb_store_fetch_timeseries:

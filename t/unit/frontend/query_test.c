@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif
 
+#include "core/plugin.h"
 #include "frontend/connection.h"
 #include "frontend/connection-private.h"
 #include "testutils.h"
@@ -46,32 +47,35 @@ populate(void)
 
 	sdb_store_init();
 
-	sdb_store_host("h1", 1 * SDB_INTERVAL_SECOND);
-	sdb_store_host("h2", 3 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_host("h1", 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_host("h2", 3 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_store_attribute("h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_attribute("h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v2";
-	sdb_store_attribute("h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_attribute("h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v3";
-	sdb_store_attribute("h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_attribute("h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_store_metric("h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
-	sdb_store_metric("h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
-	sdb_store_metric("h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric("h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric("h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_store_metric_attr("h1", "m1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric_attribute("h1", "m1", "k3",
+			&datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_store_service("h2", "s1", 1 * SDB_INTERVAL_SECOND);
-	sdb_store_service("h2", "s2", 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_service("h2", "s1", 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_service("h2", "s2", 2 * SDB_INTERVAL_SECOND);
 
 	datum.data.integer = 123;
-	sdb_store_service_attr("h2", "s2", "k1", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_service_attribute("h2", "s2", "k1",
+			&datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.integer = 4711;
-	sdb_store_service_attr("h2", "s2", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_service_attribute("h2", "s2", "k2",
+			&datum, 1 * SDB_INTERVAL_SECOND);
 } /* populate */
 
 #define HOST_H1 \
