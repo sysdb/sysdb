@@ -648,7 +648,7 @@ START_TEST(test_query)
 	const char *data;
 	ssize_t tmp;
 	size_t len;
-	int check;
+	int check = -1;
 
 	conn->cmd = query_data[_i].cmd;
 	if (query_data[_i].query_len < 0)
