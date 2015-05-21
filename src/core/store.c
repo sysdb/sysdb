@@ -57,10 +57,10 @@ static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
  * private types
  */
 
-static sdb_type_t sdb_host_type;
-static sdb_type_t sdb_service_type;
-static sdb_type_t sdb_metric_type;
-static sdb_type_t sdb_attribute_type;
+static sdb_type_t host_type;
+static sdb_type_t service_type;
+static sdb_type_t metric_type;
+static sdb_type_t attribute_type;
 
 static int
 store_obj_init(sdb_object_t *obj, va_list ap)
@@ -96,7 +96,7 @@ store_obj_destroy(sdb_object_t *obj)
 } /* store_obj_destroy */
 
 static int
-sdb_host_init(sdb_object_t *obj, va_list ap)
+host_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_host_t *sobj = HOST(obj);
 	int ret;
@@ -116,10 +116,10 @@ sdb_host_init(sdb_object_t *obj, va_list ap)
 	if (! sobj->attributes)
 		return -1;
 	return 0;
-} /* sdb_host_init */
+} /* host_init */
 
 static void
-sdb_host_destroy(sdb_object_t *obj)
+host_destroy(sdb_object_t *obj)
 {
 	sdb_host_t *sobj = HOST(obj);
 	assert(obj);
@@ -132,10 +132,10 @@ sdb_host_destroy(sdb_object_t *obj)
 		sdb_avltree_destroy(sobj->metrics);
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
-} /* sdb_host_destroy */
+} /* host_destroy */
 
 static int
-sdb_service_init(sdb_object_t *obj, va_list ap)
+service_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_service_t *sobj = SVC(obj);
 	int ret;
@@ -149,10 +149,10 @@ sdb_service_init(sdb_object_t *obj, va_list ap)
 	if (! sobj->attributes)
 		return -1;
 	return 0;
-} /* sdb_service_init */
+} /* service_init */
 
 static void
-sdb_service_destroy(sdb_object_t *obj)
+service_destroy(sdb_object_t *obj)
 {
 	sdb_service_t *sobj = SVC(obj);
 	assert(obj);
@@ -161,10 +161,10 @@ sdb_service_destroy(sdb_object_t *obj)
 
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
-} /* sdb_service_destroy */
+} /* service_destroy */
 
 static int
-sdb_metric_init(sdb_object_t *obj, va_list ap)
+metric_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_metric_t *sobj = METRIC(obj);
 	int ret;
@@ -180,10 +180,10 @@ sdb_metric_init(sdb_object_t *obj, va_list ap)
 
 	sobj->store.type = sobj->store.id = NULL;
 	return 0;
-} /* sdb_metric_init */
+} /* metric_init */
 
 static void
-sdb_metric_destroy(sdb_object_t *obj)
+metric_destroy(sdb_object_t *obj)
 {
 	sdb_metric_t *sobj = METRIC(obj);
 	assert(obj);
@@ -197,10 +197,10 @@ sdb_metric_destroy(sdb_object_t *obj)
 		free(sobj->store.type);
 	if (sobj->store.id)
 		free(sobj->store.id);
-} /* sdb_metric_destroy */
+} /* metric_destroy */
 
 static int
-sdb_attr_init(sdb_object_t *obj, va_list ap)
+attr_init(sdb_object_t *obj, va_list ap)
 {
 	const sdb_data_t *value;
 	int ret;
@@ -216,39 +216,39 @@ sdb_attr_init(sdb_object_t *obj, va_list ap)
 		if (sdb_data_copy(&ATTR(obj)->value, value))
 			return -1;
 	return 0;
-} /* sdb_attr_init */
+} /* attr_init */
 
 static void
-sdb_attr_destroy(sdb_object_t *obj)
+attr_destroy(sdb_object_t *obj)
 {
 	assert(obj);
 
 	store_obj_destroy(obj);
 	sdb_data_free_datum(&ATTR(obj)->value);
-} /* sdb_attr_destroy */
+} /* attr_destroy */
 
-static sdb_type_t sdb_host_type = {
-	sizeof(sdb_host_t),
-	sdb_host_init,
-	sdb_host_destroy
+static sdb_type_t host_type = {
+	/* size = */ sizeof(sdb_host_t),
+	/* init = */ host_init,
+	/* destroy = */ host_destroy
 };
 
-static sdb_type_t sdb_service_type = {
-	sizeof(sdb_service_t),
-	sdb_service_init,
-	sdb_service_destroy
+static sdb_type_t service_type = {
+	/* size = */ sizeof(sdb_service_t),
+	/* init = */ service_init,
+	/* destroy = */ service_destroy
 };
 
-static sdb_type_t sdb_metric_type = {
-	sizeof(sdb_metric_t),
-	sdb_metric_init,
-	sdb_metric_destroy
+static sdb_type_t metric_type = {
+	/* size = */ sizeof(sdb_metric_t),
+	/* init = */ metric_init,
+	/* destroy = */ metric_destroy
 };
 
-static sdb_type_t sdb_attribute_type = {
-	sizeof(sdb_attribute_t),
-	sdb_attr_init,
-	sdb_attr_destroy
+static sdb_type_t attribute_type = {
+	/* size = */ sizeof(sdb_attribute_t),
+	/* init = */ attr_init,
+	/* destroy = */ attr_destroy
 };
 
 /*
@@ -353,16 +353,16 @@ store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
 	else {
 		if (type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
-			new = STORE_OBJ(sdb_object_create(name, sdb_attribute_type,
+			new = STORE_OBJ(sdb_object_create(name, attribute_type,
 						type, last_update, NULL));
 		}
 		else {
 			sdb_type_t t;
 			t = type == SDB_HOST
-				? sdb_host_type
+				? host_type
 				: type == SDB_SERVICE
-					? sdb_service_type
-					: sdb_metric_type;
+					? service_type
+					: metric_type;
 			new = STORE_OBJ(sdb_object_create(name, t, type, last_update));
 		}
 
