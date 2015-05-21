@@ -171,6 +171,18 @@ typedef struct {
 } sdb_store_writer_t;
 
 /*
+ * sdb_store_init:
+ * Initialize the store sub-system. This function has to be called before
+ * doing any other store operations.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_store_init(void);
+
+/*
  * sdb_store_clear:
  * Clear the entire store and remove all stored objects.
  */

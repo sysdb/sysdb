@@ -92,6 +92,8 @@ populate(void)
 
 	size_t i;
 
+	sdb_store_init();
+
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
 		int status = sdb_store_host(hosts[i], 1);
 		ck_assert(status == 0);

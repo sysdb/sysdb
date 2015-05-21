@@ -44,6 +44,8 @@ populate(void)
 {
 	sdb_data_t datum;
 
+	sdb_store_init();
+
 	sdb_store_host("h1", 1 * SDB_INTERVAL_SECOND);
 	sdb_store_host("h2", 3 * SDB_INTERVAL_SECOND);
 

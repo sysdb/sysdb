@@ -50,8 +50,17 @@
  * private variables
  */
 
-static sdb_avltree_t *hosts = NULL;
-static pthread_rwlock_t host_lock = PTHREAD_RWLOCK_INITIALIZER;
+typedef struct {
+	sdb_object_t super;
+
+	/* hosts are the top-level entries and
+	 * reference everything else */
+	sdb_avltree_t *hosts;
+	pthread_rwlock_t host_lock;
+} sdb_store_t;
+#define ST(obj) ((sdb_store_t *)(obj))
+
+sdb_store_t *global_store = NULL;
 
 /*
  * private types
@@ -61,6 +70,35 @@ static sdb_type_t host_type;
 static sdb_type_t service_type;
 static sdb_type_t metric_type;
 static sdb_type_t attribute_type;
+
+static int
+store_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
+{
+	int err;
+	if (! (ST(obj)->hosts = sdb_avltree_create()))
+		return -1;
+	if ((err = pthread_rwlock_init(&ST(obj)->host_lock, /* attr = */ NULL))) {
+		char errbuf[128];
+		sdb_log(SDB_LOG_ERR, "store: Failed to initialize lock: %s",
+				sdb_strerror(err, errbuf, sizeof(errbuf)));
+		return -1;
+	}
+	return 0;
+} /* store_init */
+
+static void
+store_destroy(sdb_object_t *obj)
+{
+	int err;
+	if ((err = pthread_rwlock_destroy(&ST(obj)->host_lock))) {
+		char errbuf[128];
+		sdb_log(SDB_LOG_ERR, "store: Failed to destroy lock: %s",
+				sdb_strerror(err, errbuf, sizeof(errbuf)));
+		return;
+	}
+	sdb_avltree_destroy(ST(obj)->hosts);
+	ST(obj)->hosts = NULL;
+} /* store_destroy */
 
 static int
 store_obj_init(sdb_object_t *obj, va_list ap)
@@ -227,6 +265,12 @@ attr_destroy(sdb_object_t *obj)
 	sdb_data_free_datum(&ATTR(obj)->value);
 } /* attr_destroy */
 
+static sdb_type_t store_type = {
+	/* size = */ sizeof(sdb_store_t),
+	/* init = */ store_init,
+	/* destroy = */ store_destroy,
+};
+
 static sdb_type_t host_type = {
 	/* size = */ sizeof(sdb_host_t),
 	/* init = */ host_init,
@@ -256,14 +300,14 @@ static sdb_type_t attribute_type = {
  */
 
 static sdb_host_t *
-lookup_host(const char *name, bool canonicalize)
+lookup_host(sdb_store_t *st, const char *name, bool canonicalize)
 {
 	sdb_host_t *host;
 	char *cname;
 
 	assert(name);
 	if (! canonicalize)
-		return HOST(sdb_avltree_lookup(hosts, name));
+		return HOST(sdb_avltree_lookup(st->hosts, name));
 
 	cname = strdup(name);
 	cname = sdb_plugin_cname(cname);
@@ -272,7 +316,7 @@ lookup_host(const char *name, bool canonicalize)
 		return NULL;
 	}
 
-	host = HOST(sdb_avltree_lookup(hosts, cname));
+	host = HOST(sdb_avltree_lookup(st->hosts, cname));
 	free(cname);
 	return host;
 } /* lookup_host */
@@ -454,7 +498,7 @@ store_metric_store(sdb_metric_t *metric, sdb_metric_store_t *store)
 	return 0;
 } /* store_metric_store */
 
-/* The host_lock has to be acquired before calling this function. */
+/* The store's host_lock has to be acquired before calling this function. */
 static sdb_avltree_t *
 get_host_children(sdb_host_t *host, int type)
 {
@@ -533,11 +577,26 @@ ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
  * public API
  */
 
+int
+sdb_store_init(void)
+{
+	if (global_store)
+		return 0;
+
+	global_store = ST(sdb_object_create("store", store_type));
+	if (! global_store) {
+		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
+		return -1;
+	}
+	return 0;
+} /* sdb_store_init */
+
 void
 sdb_store_clear(void)
 {
-	sdb_avltree_destroy(hosts);
-	hosts = NULL;
+	if (! global_store)
+		return;
+	sdb_avltree_clear(global_store->hosts);
 } /* sdb_store_clear */
 
 int
@@ -546,7 +605,7 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 	char *cname = NULL;
 	int status = 0;
 
-	if (! name)
+	if ((! global_store) || (! name))
 		return -1;
 
 	cname = sdb_plugin_cname(strdup(name));
@@ -555,14 +614,10 @@ sdb_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
-	pthread_rwlock_wrlock(&host_lock);
-	if (! hosts)
-		if (! (hosts = sdb_avltree_create()))
-			status = -1;
-
-	if (! status)
-		status = store_obj(NULL, hosts, SDB_HOST, cname, last_update, NULL);
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	status = store_obj(NULL, global_store->hosts,
+			SDB_HOST, cname, last_update, NULL);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (sdb_plugin_store_host(name, last_update))
 		status = -1;
@@ -576,10 +631,10 @@ sdb_store_has_host(const char *name)
 {
 	sdb_host_t *host;
 
-	if (! name)
-		return NULL;
+	if ((! global_store) || (! name))
+		return false;
 
-	host = lookup_host(name, /* canonicalize = */ 0);
+	host = lookup_host(global_store, name, /* canonicalize = */ 0);
 	sdb_object_deref(SDB_OBJ(host));
 	return host != NULL;
 } /* sdb_store_has_host */
@@ -589,10 +644,10 @@ sdb_store_get_host(const char *name)
 {
 	sdb_host_t *host;
 
-	if (! name)
+	if ((! global_store) || (! name))
 		return NULL;
 
-	host = lookup_host(name, /* canonicalize = */ 0);
+	host = lookup_host(global_store, name, /* canonicalize = */ 0);
 	if (! host)
 		return NULL;
 
@@ -608,11 +663,11 @@ sdb_store_attribute(const char *hostname,
 	sdb_avltree_t *attrs;
 	int status = 0;
 
-	if ((! hostname) || (! key))
+	if ((! global_store) || (! hostname) || (! key))
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	attrs = get_host_children(host, SDB_ATTRIBUTE);
 	if (! attrs) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
@@ -624,7 +679,7 @@ sdb_store_attribute(const char *hostname,
 		status = store_attr(STORE_OBJ(host), attrs, key, value, last_update);
 
 	sdb_object_deref(SDB_OBJ(host));
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (sdb_plugin_store_attribute(hostname, key, value, last_update))
 		status = -1;
@@ -641,11 +696,11 @@ sdb_store_service(const char *hostname, const char *name,
 
 	int status = 0;
 
-	if ((! hostname) || (! name))
+	if ((! global_store) || (! hostname) || (! name))
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	services = get_host_children(host, SDB_SERVICE);
 	if (! services) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store service '%s' - "
@@ -658,7 +713,7 @@ sdb_store_service(const char *hostname, const char *name,
 				name, last_update, NULL);
 
 	sdb_object_deref(SDB_OBJ(host));
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (status)
 		return status;
@@ -683,18 +738,18 @@ sdb_store_service_attr(const char *hostname, const char *service,
 	sdb_avltree_t *services;
 	int status = 0;
 
-	if ((! hostname) || (! service) || (! key))
+	if ((! global_store) || (! hostname) || (! service) || (! key))
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	services = get_host_children(host, SDB_SERVICE);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! services) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
 				"for service '%s' - host '%ss' not found",
 				key, service, hostname);
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return -1;
 	}
 
@@ -710,7 +765,7 @@ sdb_store_service_attr(const char *hostname, const char *service,
 				key, value, last_update);
 
 	sdb_object_deref(SDB_OBJ(svc));
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (sdb_plugin_store_service_attribute(hostname, service,
 				key, value, last_update))
@@ -731,7 +786,7 @@ sdb_store_metric(const char *hostname, const char *name,
 
 	int status = 0;
 
-	if ((! hostname) || (! name))
+	if ((! global_store) || (! hostname) || (! name))
 		return -1;
 
 	if (store) {
@@ -741,8 +796,8 @@ sdb_store_metric(const char *hostname, const char *name,
 			store = NULL;
 	}
 
-	pthread_rwlock_wrlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	metrics = get_host_children(host, SDB_METRIC);
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store metric '%s' - "
@@ -756,7 +811,7 @@ sdb_store_metric(const char *hostname, const char *name,
 	sdb_object_deref(SDB_OBJ(host));
 
 	if (status) {
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return status;
 	}
 
@@ -766,7 +821,7 @@ sdb_store_metric(const char *hostname, const char *name,
 	if (store)
 		if (store_metric_store(metric, store))
 			status = -1;
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (sdb_plugin_store_metric(hostname, name, store, last_update))
 		status = -1;
@@ -788,18 +843,18 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 	sdb_metric_t *m;
 	int status = 0;
 
-	if ((! hostname) || (! metric) || (! key))
+	if ((! global_store) || (! hostname) || (! metric) || (! key))
 		return -1;
 
-	pthread_rwlock_wrlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_wrlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	metrics = get_host_children(host, SDB_METRIC);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' "
 				"for metric '%s' - host '%s' not found",
 				key, metric, hostname);
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return -1;
 	}
 
@@ -815,7 +870,7 @@ sdb_store_metric_attr(const char *hostname, const char *metric,
 				key, value, last_update);
 
 	sdb_object_deref(SDB_OBJ(m));
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 
 	if (sdb_plugin_store_metric_attribute(hostname, metric,
 				key, value, last_update))
@@ -849,17 +904,17 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 
 	int status = 0;
 
-	if ((! hostname) || (! metric) || (! opts) || (! buf))
+	if ((! global_store) || (! hostname) || (! metric) || (! opts) || (! buf))
 		return -1;
 
-	pthread_rwlock_rdlock(&host_lock);
-	host = lookup_host(hostname, /* canonicalize = */ 1);
+	pthread_rwlock_rdlock(&global_store->host_lock);
+	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
 	metrics = get_host_children(host, SDB_METRIC);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- host '%s' not found", hostname, metric, hostname);
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return -1;
 	}
 
@@ -867,7 +922,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 	if (! m) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- metric '%s' not found", hostname, metric, metric);
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return -1;
 	}
 
@@ -876,7 +931,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 				"- no data-store configured for the stored metric",
 				hostname, metric);
 		sdb_object_deref(SDB_OBJ(m));
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 		return -1;
 	}
 
@@ -886,7 +941,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 
 		strncpy(type, m->store.type, sizeof(type));
 		strncpy(id, m->store.id, sizeof(id));
-		pthread_rwlock_unlock(&host_lock);
+		pthread_rwlock_unlock(&global_store->host_lock);
 
 		ts = sdb_plugin_fetch_timeseries(type, id, opts);
 		if (! ts) {
@@ -1000,7 +1055,7 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 	sdb_avltree_iter_t *host_iter = NULL;
 	int status = 0;
 
-	if (! cb)
+	if ((! global_store) || (! cb))
 		return -1;
 
 	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC)) {
@@ -1008,13 +1063,10 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		return -1;
 	}
 
-	pthread_rwlock_rdlock(&host_lock);
-
-	if (hosts) {
-		host_iter = sdb_avltree_get_iter(hosts);
-		if (! host_iter)
-			status = -1;
-	}
+	pthread_rwlock_rdlock(&global_store->host_lock);
+	host_iter = sdb_avltree_get_iter(global_store->hosts);
+	if (! host_iter)
+		status = -1;
 
 	/* has_next returns false if the iterator is NULL */
 	while (sdb_avltree_iter_has_next(host_iter)) {
@@ -1062,7 +1114,7 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 	}
 
 	sdb_avltree_iter_destroy(host_iter);
-	pthread_rwlock_unlock(&host_lock);
+	pthread_rwlock_unlock(&global_store->host_lock);
 	return status;
 } /* sdb_store_scan */
 

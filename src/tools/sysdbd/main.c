@@ -370,6 +370,8 @@ main(int argc, char **argv)
 
 	if (sdb_ssl_init())
 		exit(1);
+	if (sdb_store_init())
+		exit(1);
 	sdb_plugin_init_all();
 	plugin_main_loop.default_interval = SECS_TO_SDB_TIME(60);
 

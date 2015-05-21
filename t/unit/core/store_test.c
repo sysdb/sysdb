@@ -38,9 +38,17 @@
 #include <strings.h>
 
 static void
+init(void)
+{
+	sdb_store_init();
+}
+
+static void
 populate(void)
 {
 	sdb_data_t datum;
+
+	sdb_store_init();
 
 	sdb_store_host("h1", 1);
 	sdb_store_host("h2", 3);
@@ -779,7 +787,7 @@ TEST_MAIN("core::store")
 	tcase_add_test(tc, test_get_child);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);
-	tcase_add_unchecked_fixture(tc, NULL, sdb_store_clear);
+	tcase_add_unchecked_fixture(tc, init, sdb_store_clear);
 	ADD_TCASE(tc);
 }
 TEST_MAIN_END
