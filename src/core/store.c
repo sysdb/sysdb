@@ -858,19 +858,6 @@ sdb_store_clear(void)
 	sdb_avltree_clear(global_store->hosts);
 } /* sdb_store_clear */
 
-bool
-sdb_store_has_host(const char *name)
-{
-	sdb_host_t *host;
-
-	if ((! global_store) || (! name))
-		return false;
-
-	host = lookup_host(global_store, name, /* canonicalize = */ 0);
-	sdb_object_deref(SDB_OBJ(host));
-	return host != NULL;
-} /* sdb_store_has_host */
-
 sdb_store_obj_t *
 sdb_store_get_host(const char *name)
 {
@@ -989,6 +976,8 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 	sdb_object_deref(SDB_OBJ(attr));
 	return 0;
 } /* sdb_store_get_attr */
+
+/* TODO: sdb_store_fetch_timeseries should move into the plugin module */
 
 int
 sdb_store_fetch_timeseries(const char *hostname, const char *metric,

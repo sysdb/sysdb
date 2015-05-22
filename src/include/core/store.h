@@ -246,16 +246,12 @@ void
 sdb_store_clear(void);
 
 /*
- * sdb_store_has_host:
  * sdb_store_get_host:
  * Query the store for a host by its (canonicalized) name.
  *
- * sdb_store_get_host increments the ref count of the host object. The caller
- * needs to deref it when no longer using it.
+ * The function increments the ref count of the host object. The caller needs
+ * to deref it when no longer using it.
  */
-bool
-sdb_store_has_host(const char *name);
-
 sdb_store_obj_t *
 sdb_store_get_host(const char *name);
 
