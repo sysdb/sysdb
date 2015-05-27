@@ -144,6 +144,9 @@ typedef struct sdb_store_matcher sdb_store_matcher_t;
 /*
  * A JSON formatter converts stored objects into the JSON format.
  * See http://www.ietf.org/rfc/rfc4627.txt
+ *
+ * A JSON formatter object inherits from sdb_object_t and, thus, may safely be
+ * cast to a generic object.
  */
 struct sdb_store_json_formatter;
 typedef struct sdb_store_json_formatter sdb_store_json_formatter_t;

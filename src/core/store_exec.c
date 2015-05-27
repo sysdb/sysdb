@@ -138,14 +138,14 @@ exec_fetch(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
 				hostname, name);
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
-		free(f);
+		sdb_object_deref(SDB_OBJ(f));
 		sdb_object_deref(SDB_OBJ(obj));
 		return -1;
 	}
 
 	sdb_object_deref(SDB_OBJ(obj));
 	sdb_store_json_finish(f);
-	free(f);
+	sdb_object_deref(SDB_OBJ(f));
 
 	return SDB_CONNECTION_DATA;
 } /* exec_fetch */
@@ -173,12 +173,12 @@ exec_list(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
-		free(f);
+		sdb_object_deref(SDB_OBJ(f));
 		return -1;
 	}
 
 	sdb_store_json_finish(f);
-	free(f);
+	sdb_object_deref(SDB_OBJ(f));
 
 	return SDB_CONNECTION_DATA;
 } /* exec_list */
@@ -208,12 +208,12 @@ exec_lookup(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 				SDB_STORE_TYPE_TO_NAME(type));
 		sdb_strbuf_sprintf(errbuf, "Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
-		free(f);
+		sdb_object_deref(SDB_OBJ(f));
 		return -1;
 	}
 
 	sdb_store_json_finish(f);
-	free(f);
+	sdb_object_deref(SDB_OBJ(f));
 
 	return SDB_CONNECTION_DATA;
 } /* exec_lookup */

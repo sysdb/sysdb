@@ -48,6 +48,9 @@
  */
 
 struct sdb_store_json_formatter {
+	sdb_object_t super;
+
+	/* The string buffer to write to */
 	sdb_strbuf_t *buf;
 
 	/* The context describes the state of the formatter through
@@ -60,6 +63,35 @@ struct sdb_store_json_formatter {
 
 	int type;
 	int flags;
+};
+#define F(obj) ((sdb_store_json_formatter_t *)(obj))
+
+static int
+formatter_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_store_json_formatter_t *f = F(obj);
+
+	f->buf = va_arg(ap, sdb_strbuf_t *);
+	if (! f->buf)
+		return -1;
+
+	f->type = va_arg(ap, int);
+	if ((f->type != SDB_HOST) && (f->type != SDB_SERVICE) && (f->type != SDB_METRIC))
+		return -1;
+
+	f->flags = va_arg(ap, int);
+
+	f->context[0] = 0;
+	f->current = 0;
+
+	f->current_host = NULL;
+	return 0;
+} /* formatter_init */
+
+static sdb_type_t formatter_type = {
+	/* size = */ sizeof(sdb_store_json_formatter_t),
+	/* init = */ formatter_init,
+	/* destroy = */ NULL,
 };
 
 /*
@@ -169,27 +201,8 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 sdb_store_json_formatter_t *
 sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 {
-	sdb_store_json_formatter_t *f;
-
-	if (! buf)
-		return NULL;
-
-	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC))
-		return NULL;
-
-	f = calloc(1, sizeof(*f));
-	if (! f)
-		return NULL;
-
-	f->buf = buf;
-	f->context[0] = 0;
-	f->current = 0;
-
-	f->current_host = NULL;
-
-	f->type = type;
-	f->flags = flags;
-	return f;
+	return F(sdb_object_create("json-formatter", formatter_type,
+				buf, type, flags));
 } /* sdb_store_json_formatter */
 
 int

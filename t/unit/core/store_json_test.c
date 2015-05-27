@@ -486,8 +486,8 @@ START_TEST(test_store_tojson)
 
 	verify_json_output(buf, store_tojson_data[_i].expected);
 
-	free(f);
 	sdb_object_deref(SDB_OBJ(filter));
+	sdb_object_deref(SDB_OBJ(f));
 	sdb_strbuf_destroy(buf);
 }
 END_TEST
