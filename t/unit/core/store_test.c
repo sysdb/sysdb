@@ -104,7 +104,7 @@ START_TEST(test_store_host)
 
 	struct {
 		const char *name;
-		_Bool       has;
+		bool        have;
 	} golden_hosts[] = {
 		{ "a", 1 == 1 },
 		{ "b", 1 == 1 },
@@ -126,12 +126,14 @@ START_TEST(test_store_host)
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		_Bool has;
+		sdb_store_obj_t *have;
 
-		has = sdb_store_has_host(golden_hosts[i].name);
-		fail_unless(has == golden_hosts[i].has,
-				"sdb_store_has_host(%s) = %d; expected: %d",
-				golden_hosts[i].name, has, golden_hosts[i].has);
+		have = sdb_store_get_host(golden_hosts[i].name);
+		fail_unless((have != NULL) == golden_hosts[i].have,
+				"sdb_store_get_host(%s) = %p; expected: %s",
+				golden_hosts[i].name, have,
+				golden_hosts[i].have ? "<host>" : "NULL");
+		sdb_object_deref(SDB_OBJ(have));
 	}
 }
 END_TEST
@@ -152,10 +154,6 @@ START_TEST(test_store_get_host)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
 		sdb_store_obj_t *sobj1, *sobj2;
 		int ref_cnt;
-
-		fail_unless(sdb_store_has_host(golden_hosts[i]),
-				"sdb_store_has_host(%s) = FALSE; expected: TRUE",
-				golden_hosts[i]);
 
 		sobj1 = sdb_store_get_host(golden_hosts[i]);
 		fail_unless(sobj1 != NULL,
@@ -185,10 +183,6 @@ START_TEST(test_store_get_host)
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unknown_hosts); ++i) {
 		sdb_store_obj_t *sobj;
-
-		fail_unless(!sdb_store_has_host(unknown_hosts[i]),
-				"sdb_store_has_host(%s) = TRUE; expected: FALSE",
-				unknown_hosts[i]);
 
 		sobj = sdb_store_get_host(unknown_hosts[i]);
 		fail_unless(!sobj, "sdb_store_get_host(%s) = <host:%s>; expected: NULL",
