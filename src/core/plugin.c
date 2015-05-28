@@ -80,31 +80,31 @@ typedef struct {
 	void *cb_callback;
 	sdb_object_t *cb_user_data;
 	ctx_t *cb_ctx;
-} sdb_plugin_cb_t;
-#define SDB_PLUGIN_CB_INIT { SDB_OBJECT_INIT, \
+} callback_t;
+#define CB_INIT { SDB_OBJECT_INIT, \
 	/* callback = */ NULL, /* user_data = */ NULL, \
 	SDB_PLUGIN_CTX_INIT }
-#define SDB_PLUGIN_CB(obj) ((sdb_plugin_cb_t *)(obj))
-#define SDB_CONST_PLUGIN_CB(obj) ((const sdb_plugin_cb_t *)(obj))
+#define CB(obj) ((callback_t *)(obj))
+#define CONST_CB(obj) ((const callback_t *)(obj))
 
 typedef struct {
-	sdb_plugin_cb_t super;
+	callback_t super;
 #define ccb_callback super.cb_callback
 #define ccb_user_data super.cb_user_data
 #define ccb_ctx super.cb_ctx
 	sdb_time_t ccb_interval;
 	sdb_time_t ccb_next_update;
-} sdb_plugin_collector_cb_t;
-#define SDB_PLUGIN_CCB(obj) ((sdb_plugin_collector_cb_t *)(obj))
-#define SDB_CONST_PLUGIN_CCB(obj) ((const sdb_plugin_collector_cb_t *)(obj))
+} collector_t;
+#define CCB(obj) ((collector_t *)(obj))
+#define CONST_CCB(obj) ((const collector_t *)(obj))
 
 typedef struct {
-	sdb_plugin_cb_t super; /* cb_callback will always be NULL */
+	callback_t super; /* cb_callback will always be NULL */
 #define w_user_data super.cb_user_data
 #define w_ctx super.cb_ctx
 	sdb_store_writer_t impl;
-} sdb_plugin_writer_t;
-#define SDB_PLUGIN_WRITER(obj) ((sdb_plugin_writer_t *)(obj))
+} writer_t;
+#define WRITER(obj) ((writer_t *)(obj))
 
 /*
  * private variables
@@ -181,10 +181,8 @@ ctx_key_init(void)
 static int
 plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 {
-	const sdb_plugin_collector_cb_t *ccb1
-		= (const sdb_plugin_collector_cb_t *)a;
-	const sdb_plugin_collector_cb_t *ccb2
-		= (const sdb_plugin_collector_cb_t *)b;
+	const collector_t *ccb1 = (const collector_t *)a;
+	const collector_t *ccb2 = (const collector_t *)b;
 
 	assert(ccb1 && ccb2);
 
@@ -196,7 +194,7 @@ plugin_cmp_next_update(const sdb_object_t *a, const sdb_object_t *b)
 static int
 plugin_lookup_by_name(const sdb_object_t *obj, const void *id)
 {
-	const sdb_plugin_cb_t *cb = SDB_CONST_PLUGIN_CB(obj);
+	const callback_t *cb = CONST_CB(obj);
 	const char *name = id;
 
 	assert(cb && id);
@@ -225,9 +223,9 @@ plugin_unregister_by_name(const char *plugin_name)
 		sdb_llist_t *list = *all_lists[i].list;
 
 		while (1) {
-			sdb_plugin_cb_t *cb;
+			callback_t *cb;
 
-			cb = SDB_PLUGIN_CB(sdb_llist_remove(list,
+			cb = CB(sdb_llist_remove(list,
 						plugin_lookup_by_name, plugin_name));
 			if (! cb)
 				break;
@@ -358,12 +356,12 @@ plugin_cb_init(sdb_object_t *obj, va_list ap)
 
 	/* cb_ctx may be NULL if the plugin was not registered by a plugin */
 
-	SDB_PLUGIN_CB(obj)->cb_callback = callback;
-	SDB_PLUGIN_CB(obj)->cb_ctx      = ctx_get();
-	sdb_object_ref(SDB_OBJ(SDB_PLUGIN_CB(obj)->cb_ctx));
+	CB(obj)->cb_callback = callback;
+	CB(obj)->cb_ctx      = ctx_get();
+	sdb_object_ref(SDB_OBJ(CB(obj)->cb_ctx));
 
 	sdb_object_ref(ud);
-	SDB_PLUGIN_CB(obj)->cb_user_data = ud;
+	CB(obj)->cb_user_data = ud;
 	return 0;
 } /* plugin_cb_init */
 
@@ -371,19 +369,19 @@ static void
 plugin_cb_destroy(sdb_object_t *obj)
 {
 	assert(obj);
-	sdb_object_deref(SDB_PLUGIN_CB(obj)->cb_user_data);
-	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_CB(obj)->cb_ctx));
+	sdb_object_deref(CB(obj)->cb_user_data);
+	sdb_object_deref(SDB_OBJ(CB(obj)->cb_ctx));
 } /* plugin_cb_destroy */
 
-static sdb_type_t sdb_plugin_cb_type = {
-	sizeof(sdb_plugin_cb_t),
+static sdb_type_t callback_type = {
+	sizeof(callback_t),
 
 	plugin_cb_init,
 	plugin_cb_destroy
 };
 
-static sdb_type_t sdb_plugin_collector_cb_type = {
-	sizeof(sdb_plugin_collector_cb_t),
+static sdb_type_t collector_type = {
+	sizeof(collector_t),
 
 	plugin_cb_init,
 	plugin_cb_destroy
@@ -412,14 +410,14 @@ plugin_writer_init(sdb_object_t *obj, va_list ap)
 		return -1;
 	}
 
-	/* ctx may be NULL if the plugin was not registered by a plugin */
+	/* ctx may be NULL if the callback was not registered by a plugin */
 
-	SDB_PLUGIN_WRITER(obj)->impl = *impl;
-	SDB_PLUGIN_WRITER(obj)->w_ctx  = ctx_get();
-	sdb_object_ref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->w_ctx));
+	WRITER(obj)->impl = *impl;
+	WRITER(obj)->w_ctx  = ctx_get();
+	sdb_object_ref(SDB_OBJ(WRITER(obj)->w_ctx));
 
 	sdb_object_ref(ud);
-	SDB_PLUGIN_WRITER(obj)->w_user_data = ud;
+	WRITER(obj)->w_user_data = ud;
 	return 0;
 } /* plugin_writer_init */
 
@@ -427,12 +425,12 @@ static void
 plugin_writer_destroy(sdb_object_t *obj)
 {
 	assert(obj);
-	sdb_object_deref(SDB_PLUGIN_WRITER(obj)->w_user_data);
-	sdb_object_deref(SDB_OBJ(SDB_PLUGIN_WRITER(obj)->w_ctx));
+	sdb_object_deref(WRITER(obj)->w_user_data);
+	sdb_object_deref(SDB_OBJ(WRITER(obj)->w_ctx));
 } /* plugin_writer_destroy */
 
-static sdb_type_t sdb_plugin_writer_type = {
-	sizeof(sdb_plugin_writer_t),
+static sdb_type_t writer_type = {
+	sizeof(writer_t),
 
 	plugin_writer_init,
 	plugin_writer_destroy
@@ -589,7 +587,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	if (! *list)
 		return -1;
 
-	obj = sdb_object_create(name, sdb_plugin_cb_type,
+	obj = sdb_object_create(name, callback_type,
 			list, type, callback, user_data);
 	if (! obj)
 		return -1;
@@ -783,13 +781,13 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 
 	plugin_get_name(name, cb_name, sizeof(cb_name));
 
-	obj = sdb_object_create(cb_name, sdb_plugin_collector_cb_type,
+	obj = sdb_object_create(cb_name, collector_type,
 			&collector_list, "collector", callback, user_data);
 	if (! obj)
 		return -1;
 
 	if (interval)
-		SDB_PLUGIN_CCB(obj)->ccb_interval = *interval;
+		CCB(obj)->ccb_interval = *interval;
 	else {
 		ctx_t *ctx = ctx_get();
 
@@ -800,10 +798,10 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 			return -1;
 		}
 
-		SDB_PLUGIN_CCB(obj)->ccb_interval = ctx->public.interval;
+		CCB(obj)->ccb_interval = ctx->public.interval;
 	}
 
-	if (! (SDB_PLUGIN_CCB(obj)->ccb_next_update = sdb_gettime())) {
+	if (! (CCB(obj)->ccb_next_update = sdb_gettime())) {
 		char errbuf[1024];
 		sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
 				"time: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
@@ -822,7 +820,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 
 	sdb_log(SDB_LOG_INFO, "core: Registered collector callback '%s' "
 			"(interval = %.3fs).", cb_name,
-			SDB_TIME_TO_DOUBLE(SDB_PLUGIN_CCB(obj)->ccb_interval));
+			SDB_TIME_TO_DOUBLE(CCB(obj)->ccb_interval));
 	return 0;
 } /* sdb_plugin_register_collector */
 
@@ -851,7 +849,7 @@ sdb_plugin_register_writer(const char *name,
 
 	plugin_get_name(name, cb_name, sizeof(cb_name));
 
-	obj = sdb_object_create(cb_name, sdb_plugin_writer_type,
+	obj = sdb_object_create(cb_name, writer_type,
 			writer, user_data);
 	if (! obj)
 		return -1;
@@ -934,7 +932,7 @@ sdb_plugin_current(void)
 int
 sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 {
-	sdb_plugin_cb_t *plugin;
+	callback_t *plugin;
 	sdb_plugin_config_cb callback;
 
 	ctx_t *old_ctx;
@@ -944,7 +942,7 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	if ((! name) || (! ci))
 		return -1;
 
-	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(config_list, name));
+	plugin = CB(sdb_llist_search_by_name(config_list, name));
 	if (! plugin) {
 		ctx_t *ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 		if (! ctx)
@@ -976,11 +974,11 @@ sdb_plugin_reconfigure_init(void)
 
 	/* deconfigure all plugins */
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_cb_t *plugin;
+		callback_t *plugin;
 		sdb_plugin_config_cb callback;
 		ctx_t *old_ctx;
 
-		plugin = SDB_PLUGIN_CB(sdb_llist_iter_get_next(iter));
+		plugin = CB(sdb_llist_iter_get_next(iter));
 		old_ctx = ctx_set(plugin->cb_ctx);
 		callback = (sdb_plugin_config_cb)plugin->cb_callback;
 		callback(NULL);
@@ -1033,13 +1031,13 @@ sdb_plugin_init_all(void)
 
 	iter = sdb_llist_get_iter(init_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_cb_t *cb;
+		callback_t *cb;
 		sdb_plugin_init_cb callback;
 		ctx_t *old_ctx;
 
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
-		cb = SDB_PLUGIN_CB(obj);
+		cb = CB(obj);
 
 		callback = (sdb_plugin_init_cb)cb->cb_callback;
 
@@ -1066,13 +1064,13 @@ sdb_plugin_shutdown_all(void)
 
 	iter = sdb_llist_get_iter(shutdown_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_cb_t *cb;
+		callback_t *cb;
 		sdb_plugin_shutdown_cb callback;
 		ctx_t *old_ctx;
 
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
-		cb = SDB_PLUGIN_CB(obj);
+		cb = CB(obj);
 
 		callback = (sdb_plugin_shutdown_cb)cb->cb_callback;
 
@@ -1110,18 +1108,18 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (! obj)
 			return -1;
 
-		callback = (sdb_plugin_collector_cb)SDB_PLUGIN_CCB(obj)->ccb_callback;
+		callback = (sdb_plugin_collector_cb)CCB(obj)->ccb_callback;
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
 					"time in collector main loop: %s",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			now = SDB_PLUGIN_CCB(obj)->ccb_next_update;
+			now = CCB(obj)->ccb_next_update;
 		}
 
-		if (now < SDB_PLUGIN_CCB(obj)->ccb_next_update) {
-			interval = SDB_PLUGIN_CCB(obj)->ccb_next_update - now;
+		if (now < CCB(obj)->ccb_next_update) {
+			interval = CCB(obj)->ccb_next_update - now;
 
 			errno = 0;
 			while (loop->do_loop && sdb_sleep(interval, &interval)) {
@@ -1147,13 +1145,13 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 			}
 		}
 
-		old_ctx = ctx_set(SDB_PLUGIN_CCB(obj)->ccb_ctx);
-		if (callback(SDB_PLUGIN_CCB(obj)->ccb_user_data)) {
+		old_ctx = ctx_set(CCB(obj)->ccb_ctx);
+		if (callback(CCB(obj)->ccb_user_data)) {
 			/* XXX */
 		}
 		ctx_set(old_ctx);
 
-		interval = SDB_PLUGIN_CCB(obj)->ccb_interval;
+		interval = CCB(obj)->ccb_interval;
 		if (! interval)
 			interval = loop->default_interval;
 		if (! interval) {
@@ -1164,21 +1162,21 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 			continue;
 		}
 
-		SDB_PLUGIN_CCB(obj)->ccb_next_update += interval;
+		CCB(obj)->ccb_next_update += interval;
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
 					"time in collector main loop: %s",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
-			now = SDB_PLUGIN_CCB(obj)->ccb_next_update;
+			now = CCB(obj)->ccb_next_update;
 		}
 
-		if (now > SDB_PLUGIN_CCB(obj)->ccb_next_update) {
+		if (now > CCB(obj)->ccb_next_update) {
 			sdb_log(SDB_LOG_WARNING, "core: Plugin '%s' took too "
 					"long; skipping iterations to keep up.",
 					obj->name);
-			SDB_PLUGIN_CCB(obj)->ccb_next_update = now;
+			CCB(obj)->ccb_next_update = now;
 		}
 
 		if (sdb_llist_insert_sorted(collector_list, obj,
@@ -1216,8 +1214,8 @@ sdb_plugin_cname(char *hostname)
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
 
-		callback = (sdb_plugin_cname_cb)SDB_PLUGIN_CB(obj)->cb_callback;
-		cname = callback(hostname, SDB_PLUGIN_CB(obj)->cb_user_data);
+		callback = (sdb_plugin_cname_cb)CB(obj)->cb_callback;
+		cname = callback(hostname, CB(obj)->cb_user_data);
 		if (cname) {
 			free(hostname);
 			hostname = cname;
@@ -1247,12 +1245,12 @@ sdb_plugin_log(int prio, const char *msg)
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 		assert(obj);
 
-		callback = (sdb_plugin_log_cb)SDB_PLUGIN_CB(obj)->cb_callback;
-		tmp = callback(prio, msg, SDB_PLUGIN_CB(obj)->cb_user_data);
+		callback = (sdb_plugin_log_cb)CB(obj)->cb_callback;
+		tmp = callback(prio, msg, CB(obj)->cb_user_data);
 		if (tmp > ret)
 			ret = tmp;
 
-		if (SDB_PLUGIN_CB(obj)->cb_ctx)
+		if (CB(obj)->cb_ctx)
 			logged = 1;
 		/* else: this is an internally registered callback */
 	}
@@ -1308,7 +1306,7 @@ sdb_timeseries_t *
 sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		sdb_timeseries_opts_t *opts)
 {
-	sdb_plugin_cb_t *plugin;
+	callback_t *plugin;
 	sdb_plugin_fetch_ts_cb callback;
 	sdb_timeseries_t *ts;
 
@@ -1317,7 +1315,7 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	if ((! type) || (! id) || (! opts))
 		return NULL;
 
-	plugin = SDB_PLUGIN_CB(sdb_llist_search_by_name(ts_fetcher_list, type));
+	plugin = CB(sdb_llist_search_by_name(ts_fetcher_list, type));
 	if (! plugin) {
 		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "
 				"no such plugin loaded", type);
@@ -1343,9 +1341,8 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_host(name, last_update, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
@@ -1367,9 +1364,8 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_service(hostname, name, last_update,
 				writer->w_user_data);
@@ -1395,9 +1391,8 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_metric(hostname, name, store, last_update,
 				writer->w_user_data);
@@ -1420,9 +1415,8 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_attribute(hostname, key, value, last_update,
 				writer->w_user_data);
@@ -1445,9 +1439,8 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_service_attr(hostname, service,
 				key, value, last_update, writer->w_user_data);
@@ -1470,9 +1463,8 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_writer_t *writer;
+		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
-		writer = SDB_PLUGIN_WRITER(sdb_llist_iter_get_next(iter));
 		assert(writer);
 		s = writer->impl.store_metric_attr(hostname, metric,
 				key, value, last_update, writer->w_user_data);
