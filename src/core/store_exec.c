@@ -325,33 +325,33 @@ exec_timeseries(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
  */
 
 int
-sdb_store_query_execute(sdb_store_query_t *m,
+sdb_store_query_execute(sdb_store_query_t *q,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 {
 	sdb_timeseries_opts_t ts_opts;
 	sdb_ast_node_t *ast;
 
-	if (! m)
+	if (! q)
 		return -1;
-	if (! QUERY(m)->ast) {
+	if (! q->ast) {
 		sdb_log(SDB_LOG_ERR, "store: Invalid empty query");
 		return -1;
 	}
 
-	ast = QUERY(m)->ast;
+	ast = q->ast;
 	switch (ast->type) {
 	case SDB_AST_TYPE_FETCH:
 		return exec_fetch(buf, errbuf, SDB_AST_FETCH(ast)->obj_type,
 				SDB_AST_FETCH(ast)->hostname, SDB_AST_FETCH(ast)->name,
-				QUERY(m)->filter);
+				q->filter);
 
 	case SDB_AST_TYPE_LIST:
 		return exec_list(buf, errbuf, SDB_AST_LIST(ast)->obj_type,
-				QUERY(m)->filter);
+				q->filter);
 
 	case SDB_AST_TYPE_LOOKUP:
 		return exec_lookup(buf, errbuf, SDB_AST_LOOKUP(ast)->obj_type,
-				QUERY(m)->matcher, QUERY(m)->filter);
+				q->matcher, q->filter);
 
 	case SDB_AST_TYPE_STORE:
 		if (ast->type != SDB_AST_TYPE_STORE) {
