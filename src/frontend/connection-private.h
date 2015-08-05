@@ -35,7 +35,6 @@
 #include "frontend/connection.h"
 
 #include "core/object.h"
-#include "core/store.h"
 #include "core/timeseries.h"
 #include "utils/ssl.h"
 #include "utils/strbuf.h"

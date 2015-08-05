@@ -31,7 +31,7 @@
 
 #include "sysdb.h"
 
-#include "core/store.h"
+#include "core/plugin.h"
 #include "frontend/connection-private.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
@@ -55,7 +55,6 @@ sstrdup(const char *s)
 static int
 query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 {
-	sdb_store_query_t *q;
 	sdb_strbuf_t *buf;
 	int status;
 
@@ -64,21 +63,12 @@ query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 		return -1;
 	}
 
-	q = sdb_store_query_prepare(ast);
-	if (! q) {
-		/* this shouldn't happen */
-		sdb_strbuf_sprintf(conn->errbuf, "failed to compile AST");
-		sdb_log(SDB_LOG_ERR, "frontend: failed to compile AST");
-		return -1;
-	}
-
 	buf = sdb_strbuf_create(1024);
 	if (! buf) {
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
-		sdb_object_deref(SDB_OBJ(q));
 		return -1;
 	}
-	status = sdb_store_query_execute(q, buf, conn->errbuf);
+	status = sdb_plugin_query(ast, buf, conn->errbuf);
 	if (status < 0) {
 		char query[conn->cmd_len + 1];
 		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
@@ -90,7 +80,6 @@ query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 				(uint32_t)sdb_strbuf_len(buf), sdb_strbuf_string(buf));
 
 	sdb_strbuf_destroy(buf);
-	sdb_object_deref(SDB_OBJ(q));
 	return status < 0 ? status : 0;
 } /* query_exec */
 

@@ -871,8 +871,11 @@ sdb_store_init(void)
 		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
 		return -1;
 	}
-	return sdb_plugin_register_writer("memstore",
-			&store_writer, SDB_OBJ(global_store));
+	if (sdb_plugin_register_writer("memstore",
+				&store_writer, SDB_OBJ(global_store)))
+		return -1;
+	return sdb_plugin_register_reader("memstore",
+			&store_reader, SDB_OBJ(global_store));
 } /* sdb_store_init */
 
 void

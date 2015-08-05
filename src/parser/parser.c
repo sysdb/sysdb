@@ -27,8 +27,6 @@
 
 #include "sysdb.h"
 
-#include "core/store.h"
-
 #include "parser/ast.h"
 #include "parser/parser.h"
 #include "parser/grammar.h"
