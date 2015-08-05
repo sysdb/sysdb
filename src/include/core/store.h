@@ -230,6 +230,32 @@ typedef struct {
 } sdb_store_writer_t;
 
 /*
+ * A store reader describes the interface to query a store implementation.
+ */
+typedef struct {
+	/*
+	 * prepare_query:
+	 * Prepare the query described by 'ast' for execution.
+	 */
+	sdb_object_t *(*prepare_query)(sdb_ast_node_t *ast,
+			sdb_strbuf_t *errbuf, sdb_object_t *user_data);
+
+	/*
+	 * execute_query:
+	 * Execute a previously prepared query. The callback may expect that only
+	 * queries prepared by its respective prepare callback will be passed to
+	 * this function.
+	 *
+	 * TODO: Instead of letting the executor write directly to a string buffer
+	 *       (which cannot easily be merged with other results), let it hand
+	 *       all objects to a store-writer.
+	 */
+	int (*execute_query)(sdb_object_t *q,
+			sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+			sdb_object_t *user_data);
+} sdb_store_reader_t;
+
+/*
  * sdb_store_init:
  * Initialize the store sub-system. This function has to be called before
  * doing any other store operations.

@@ -832,6 +832,31 @@ static sdb_store_writer_t store_writer = {
 };
 
 /*
+ * TODO: let prepare and execute accept a store object as their user_data
+ * object
+ */
+
+static sdb_object_t *
+prepare_query(sdb_ast_node_t *ast,
+		sdb_strbuf_t __attribute__((unused)) *errbuf,
+		sdb_object_t __attribute__((unused)) *user_data)
+{
+	return SDB_OBJ(sdb_store_query_prepare(ast));
+} /* prepare_query */
+
+static int
+execute_query(sdb_object_t *q,
+		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+		sdb_object_t __attribute__((unused)) *user_data)
+{
+	return sdb_store_query_execute(QUERY(q), buf, errbuf);
+} /* execute_query */
+
+static sdb_store_reader_t store_reader = {
+	prepare_query, execute_query,
+};
+
+/*
  * public API
  */
 

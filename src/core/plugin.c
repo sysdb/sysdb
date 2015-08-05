@@ -106,6 +106,14 @@ typedef struct {
 } writer_t;
 #define WRITER(obj) ((writer_t *)(obj))
 
+typedef struct {
+	callback_t super; /* cb_callback will always be NULL */
+#define r_user_data super.cb_user_data
+#define r_ctx super.cb_ctx
+	sdb_store_reader_t impl;
+} reader_t;
+#define READER(obj) ((reader_t *)(obj))
+
 /*
  * private variables
  */
@@ -127,6 +135,7 @@ static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
 static sdb_llist_t      *ts_fetcher_list = NULL;
 static sdb_llist_t      *writer_list = NULL;
+static sdb_llist_t      *reader_list = NULL;
 
 static struct {
 	const char   *type;
@@ -140,6 +149,7 @@ static struct {
 	{ "log",                &log_list },
 	{ "timeseries fetcher", &ts_fetcher_list },
 	{ "store writer",       &writer_list },
+	{ "store reader",       &reader_list },
 };
 
 /*
@@ -434,6 +444,53 @@ static sdb_type_t writer_type = {
 
 	plugin_writer_init,
 	plugin_writer_destroy
+};
+
+static int
+plugin_reader_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_store_reader_t *impl = va_arg(ap, sdb_store_reader_t *);
+	sdb_object_t       *ud   = va_arg(ap, sdb_object_t *);
+
+	assert(impl);
+
+	if ((! impl->prepare_query) || (! impl->execute_query)) {
+		sdb_log(SDB_LOG_ERR, "core: store reader callback '%s' "
+				"does not fully implement the reader interface.",
+				obj->name);
+		return -1;
+	}
+	if (sdb_llist_search_by_name(reader_list, obj->name)) {
+		sdb_log(SDB_LOG_WARNING, "core: store reader callback '%s' "
+				"has already been registered. Ignoring newly "
+				"registered version.", obj->name);
+		return -1;
+	}
+
+	/* ctx may be NULL if the callback was not registered by a plugin */
+
+	READER(obj)->impl = *impl;
+	READER(obj)->r_ctx  = ctx_get();
+	sdb_object_ref(SDB_OBJ(READER(obj)->r_ctx));
+
+	sdb_object_ref(ud);
+	READER(obj)->r_user_data = ud;
+	return 0;
+} /* plugin_reader_init */
+
+static void
+plugin_reader_destroy(sdb_object_t *obj)
+{
+	assert(obj);
+	sdb_object_deref(READER(obj)->r_user_data);
+	sdb_object_deref(SDB_OBJ(READER(obj)->r_ctx));
+} /* plugin_reader_destroy */
+
+static sdb_type_t reader_type = {
+	sizeof(reader_t),
+
+	plugin_reader_init,
+	plugin_reader_destroy
 };
 
 static int
@@ -866,6 +923,41 @@ sdb_plugin_register_writer(const char *name,
 			cb_name);
 	return 0;
 } /* sdb_store_register_writer */
+
+int
+sdb_plugin_register_reader(const char *name,
+		sdb_store_reader_t *reader, sdb_object_t *user_data)
+{
+	char cb_name[1024];
+	sdb_object_t *obj;
+
+	if ((! name) || (! reader))
+		return -1;
+
+	if (! reader_list)
+		reader_list = sdb_llist_create();
+	if (! reader_list)
+		return -1;
+
+	plugin_get_name(name, cb_name, sizeof(cb_name));
+
+	obj = sdb_object_create(cb_name, reader_type,
+			reader, user_data);
+	if (! obj)
+		return -1;
+
+	if (sdb_llist_append(reader_list, obj)) {
+		sdb_object_deref(obj);
+		return -1;
+	}
+
+	/* pass control to the list */
+	sdb_object_deref(obj);
+
+	sdb_log(SDB_LOG_INFO, "core: Registered store reader callback '%s'.",
+			cb_name);
+	return 0;
+} /* sdb_plugin_register_reader */
 
 void
 sdb_plugin_unregister_all(void)
@@ -1329,6 +1421,40 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	ctx_set(old_ctx);
 	return ts;
 } /* sdb_plugin_fetch_timeseries */
+
+int
+sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
+{
+	size_t n = sdb_llist_len(reader_list);
+	reader_t *reader;
+	sdb_object_t *q;
+	int status = 0;
+
+	if (! ast)
+		return 0;
+
+	if (n != 1) {
+		char *msg = (n > 0)
+			? "Cannot execute query: multiple readers not supported"
+			: "Cannot execute query: no readers registered";
+		sdb_strbuf_sprintf(errbuf, "%s", msg);
+		sdb_log(SDB_LOG_ERR, "core: %s", msg);
+		return -1;
+	}
+
+	reader = READER(sdb_llist_get(reader_list, 0));
+	assert(reader);
+
+	q = reader->impl.prepare_query(ast, errbuf, reader->r_user_data);
+	if (q)
+		status = reader->impl.execute_query(q, buf, errbuf, reader->r_user_data);
+	else
+		status = -1;
+
+	sdb_object_deref(SDB_OBJ(q));
+	sdb_object_deref(SDB_OBJ(reader));
+	return status;
+} /* sdb_plugin_query */
 
 int
 sdb_plugin_store_host(const char *name, sdb_time_t last_update)

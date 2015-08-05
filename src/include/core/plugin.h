@@ -267,13 +267,29 @@ sdb_plugin_register_ts_fetcher(const char *name,
  *
  * Arguments:
  *  - user_data: If specified, this will be passed on to each call of the
- *    callback. The function will take ownership of the object, that is,
+ *    callbacks. The function will take ownership of the object, that is,
  *    increment the reference count by one. In case the caller does not longer
  *    use the object for other purposes, it should thus deref it.
  */
 int
 sdb_plugin_register_writer(const char *name,
 		sdb_store_writer_t *writer, sdb_object_t *user_data);
+
+/*
+ * sdb_plugin_register_reader:
+ * Register a "reader" implementation for querying the store. It is invalid to
+ * register an incomplete reader which does not implement all of the reader
+ * interface.
+ *
+ * Arguments:
+ *  - user_data: If specified, this will be passed on to each call of the
+ *    callbacks. The function will take ownership of the object, that is,
+ *    increment the reference count by one. In case the caller does not longer
+ *    use the object for other purposes, it should thus deref it.
+ */
+int
+sdb_plugin_register_reader(const char *name,
+		sdb_store_reader_t *reader, sdb_object_t *user_data);
 
 /*
  * sdb_plugin_unregister_all:
@@ -419,6 +435,18 @@ sdb_plugin_logf(int prio, const char *fmt, ...)
 sdb_timeseries_t *
 sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		sdb_timeseries_opts_t *opts);
+
+/*
+ * sdb_plugin_query:
+ * Query the store using the query specified by 'ast'. The result will be
+ * written to 'buf' and any errors will be written to 'errbuf'.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_plugin_store_host, sdb_plugin_store_service, sdb_plugin_store_metric,
