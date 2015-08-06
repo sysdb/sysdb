@@ -24,7 +24,7 @@
    fun:_vgnU_freeres
    fun:__run_exit_handlers
    fun:exit
-   fun:main
+   ...
 }
 {
    <insert_a_suppression_name_here>
