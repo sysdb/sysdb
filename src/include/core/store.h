@@ -95,6 +95,14 @@ enum {
 		: -1)
 
 /*
+ * sdb_store_t represents an in-memory store. It inherits from sdb_object_t
+ * and may safely be case to a generic object.
+ */
+struct sdb_store;
+typedef struct sdb_store sdb_store_t;
+#define SDB_STORE(obj) ((sdb_store_t *)(obj))
+
+/*
  * sdb_store_obj_t represents the super-class of any object stored in the
  * database. It inherits from sdb_object_t and may safely be cast to a generic
  * object to access its name.
@@ -230,6 +238,13 @@ typedef struct {
 } sdb_store_writer_t;
 
 /*
+ * sdb_store_writer:
+ * A store writer implementation that provides an in-memory object store. It
+ * expects a store object as its user-data argument.
+ */
+extern sdb_store_writer_t sdb_store_writer;
+
+/*
  * A store reader describes the interface to query a store implementation.
  */
 typedef struct {
@@ -254,6 +269,20 @@ typedef struct {
 			sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 			sdb_object_t *user_data);
 } sdb_store_reader_t;
+
+/*
+ * sdb_store_reader:
+ * A store reader implementation that uses an in-memory object store. It
+ * expects a store object as its user-data argument.
+ */
+extern sdb_store_reader_t sdb_store_reader;
+
+/*
+ * sdb_store_create:
+ * Allocate a new in-memory store.
+ */
+sdb_store_t *
+sdb_store_create(void);
 
 /*
  * sdb_store_init:

@@ -50,15 +50,14 @@
  * private variables
  */
 
-typedef struct {
+struct sdb_store {
 	sdb_object_t super;
 
 	/* hosts are the top-level entries and
 	 * reference everything else */
 	sdb_avltree_t *hosts;
 	pthread_rwlock_t host_lock;
-} sdb_store_t;
-#define ST(obj) ((sdb_store_t *)(obj))
+};
 
 sdb_store_t *global_store = NULL;
 
@@ -75,9 +74,10 @@ static int
 store_init(sdb_object_t *obj, va_list __attribute__((unused)) ap)
 {
 	int err;
-	if (! (ST(obj)->hosts = sdb_avltree_create()))
+	if (! (SDB_STORE(obj)->hosts = sdb_avltree_create()))
 		return -1;
-	if ((err = pthread_rwlock_init(&ST(obj)->host_lock, /* attr = */ NULL))) {
+	if ((err = pthread_rwlock_init(&SDB_STORE(obj)->host_lock,
+					/* attr = */ NULL))) {
 		char errbuf[128];
 		sdb_log(SDB_LOG_ERR, "store: Failed to initialize lock: %s",
 				sdb_strerror(err, errbuf, sizeof(errbuf)));
@@ -90,14 +90,14 @@ static void
 store_destroy(sdb_object_t *obj)
 {
 	int err;
-	if ((err = pthread_rwlock_destroy(&ST(obj)->host_lock))) {
+	if ((err = pthread_rwlock_destroy(&SDB_STORE(obj)->host_lock))) {
 		char errbuf[128];
 		sdb_log(SDB_LOG_ERR, "store: Failed to destroy lock: %s",
 				sdb_strerror(err, errbuf, sizeof(errbuf)));
 		return;
 	}
-	sdb_avltree_destroy(ST(obj)->hosts);
-	ST(obj)->hosts = NULL;
+	sdb_avltree_destroy(SDB_STORE(obj)->hosts);
+	SDB_STORE(obj)->hosts = NULL;
 } /* store_destroy */
 
 static int
@@ -582,7 +582,7 @@ store_attribute(const char *hostname,
 		const char *key, const sdb_data_t *value,
 		sdb_time_t last_update, sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_host_t *host;
 	sdb_avltree_t *attrs;
@@ -612,7 +612,7 @@ store_attribute(const char *hostname,
 static int
 store_host(const char *name, sdb_time_t last_update, sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	char *cname = NULL;
 	int status = 0;
@@ -640,7 +640,7 @@ store_service_attr(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update,
 		sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_host_t *host;
 	sdb_service_t *svc;
@@ -683,7 +683,7 @@ static int
 store_service(const char *hostname, const char *name,
 		sdb_time_t last_update, sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_host_t *host;
 	sdb_avltree_t *services;
@@ -726,7 +726,7 @@ store_metric_attr(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update,
 		sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_avltree_t *metrics;
 	sdb_host_t *host;
@@ -770,7 +770,7 @@ store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update,
 		sdb_object_t *user_data)
 {
-	sdb_store_t *st = ST(user_data);
+	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_store_obj_t *obj = NULL;
 	sdb_host_t *host;
@@ -826,7 +826,7 @@ store_metric(const char *hostname, const char *name,
 	return status;
 } /* store_metric */
 
-static sdb_store_writer_t store_writer = {
+sdb_store_writer_t sdb_store_writer = {
 	store_host, store_service, store_metric,
 	store_attribute, store_service_attr, store_metric_attr,
 };
@@ -852,7 +852,7 @@ execute_query(sdb_object_t *q,
 	return sdb_store_query_execute(QUERY(q), buf, errbuf);
 } /* execute_query */
 
-static sdb_store_reader_t store_reader = {
+sdb_store_reader_t sdb_store_reader = {
 	prepare_query, execute_query,
 };
 
@@ -860,22 +860,28 @@ static sdb_store_reader_t store_reader = {
  * public API
  */
 
+sdb_store_t *
+sdb_store_create(void)
+{
+	return SDB_STORE(sdb_object_create("store", store_type));
+} /* sdb_store_create */
+
 int
 sdb_store_init(void)
 {
 	if (global_store)
 		return 0;
 
-	global_store = ST(sdb_object_create("store", store_type));
+	global_store = SDB_STORE(sdb_object_create("store", store_type));
 	if (! global_store) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
 		return -1;
 	}
 	if (sdb_plugin_register_writer("memstore",
-				&store_writer, SDB_OBJ(global_store)))
+				&sdb_store_writer, SDB_OBJ(global_store)))
 		return -1;
 	return sdb_plugin_register_reader("memstore",
-			&store_reader, SDB_OBJ(global_store));
+			&sdb_store_reader, SDB_OBJ(global_store));
 } /* sdb_store_init */
 
 void
