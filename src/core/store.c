@@ -892,6 +892,51 @@ sdb_store_clear(void)
 	sdb_avltree_clear(global_store->hosts);
 } /* sdb_store_clear */
 
+int
+sdb_store_host(sdb_store_t *store, const char *name, sdb_time_t last_update)
+{
+	return store_host(name, last_update, SDB_OBJ(store));
+} /* sdb_store_host */
+
+int
+sdb_store_service(sdb_store_t *store, const char *hostname, const char *name,
+		sdb_time_t last_update)
+{
+	return store_service(hostname, name, last_update, SDB_OBJ(store));
+} /* sdb_store_service */
+
+int
+sdb_store_metric(sdb_store_t *store, const char *hostname, const char *name,
+		sdb_metric_store_t *metric_store, sdb_time_t last_update)
+{
+	return store_metric(hostname, name, metric_store, last_update, SDB_OBJ(store));
+} /* sdb_store_metric */
+
+int
+sdb_store_attribute(sdb_store_t *store, const char *hostname,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+{
+	return store_attribute(hostname, key, value, last_update, SDB_OBJ(store));
+} /* sdb_store_attribute */
+
+int
+sdb_store_service_attr(sdb_store_t *store, const char *hostname,
+		const char *service, const char *key, const sdb_data_t *value,
+		sdb_time_t last_update)
+{
+	return store_service_attr(hostname, service, key, value,
+			last_update, SDB_OBJ(store));
+} /* sdb_store_service_attr */
+
+int
+sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
+		const char *metric, const char *key, const sdb_data_t *value,
+		sdb_time_t last_update)
+{
+	return store_metric_attr(hostname, metric, key, value,
+			last_update, SDB_OBJ(store));
+} /* sdb_store_metric_attr */
+
 sdb_store_obj_t *
 sdb_store_get_host(const char *name)
 {

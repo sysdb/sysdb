@@ -304,6 +304,31 @@ void
 sdb_store_clear(void);
 
 /*
+ * sdb_store_host, sdb_store_service, sdb_store_metric, sdb_store_attribute,
+ * sdb_store_metric_attr:
+ * Store an object in the specified store.
+ */
+int
+sdb_store_host(sdb_store_t *store, const char *name, sdb_time_t last_update);
+int
+sdb_store_service(sdb_store_t *store, const char *hostname, const char *name,
+		sdb_time_t last_update);
+int
+sdb_store_metric(sdb_store_t *store, const char *hostname, const char *name,
+		sdb_metric_store_t *metric_store, sdb_time_t last_update);
+int
+sdb_store_attribute(sdb_store_t *store, const char *hostname,
+		const char *key, const sdb_data_t *value, sdb_time_t last_update);
+int
+sdb_store_service_attr(sdb_store_t *store, const char *hostname,
+		const char *service, const char *key, const sdb_data_t *value,
+		sdb_time_t last_update);
+int
+sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
+		const char *metric, const char *key, const sdb_data_t *value,
+		sdb_time_t last_update);
+
+/*
  * sdb_store_get_host:
  * Query the store for a host by its (canonicalized) name.
  *
