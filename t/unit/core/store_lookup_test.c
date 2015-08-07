@@ -38,6 +38,8 @@
 #include <check.h>
 #include <string.h>
 
+static sdb_store_t *store;
+
 static void
 populate(void)
 {
@@ -74,39 +76,47 @@ populate(void)
 
 	size_t i;
 
-	sdb_store_init();
+	store = sdb_store_create();
+	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_plugin_store_host(hosts[i], 1);
+		int status = sdb_store_host(store, hosts[i], 1);
 		fail_unless(status == 0,
-				"sdb_plugin_store_host(%s, 1) = %d; expected: 0",
+				"sdb_store_host(%s, 1) = %d; expected: 0",
 				hosts[i], status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_plugin_store_metric(metrics[i].host,
+		int status = sdb_store_metric(store, metrics[i].host,
 				metrics[i].metric, /* store */ NULL, 1);
 		fail_unless(status == 0,
-				"sdb_plugin_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
+				"sdb_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
 				metrics[i].host, metrics[i].metric, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_plugin_store_service(services[i].host,
+		int status = sdb_store_service(store, services[i].host,
 				services[i].service, 1);
 		fail_unless(status == 0,
-				"sdb_plugin_store_service(%s, %s, 1) = %d; expected: 0",
+				"sdb_store_service(%s, %s, 1) = %d; expected: 0",
 				services[i].host, services[i].service, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_plugin_store_attribute(attrs[i].host,
+		int status = sdb_store_attribute(store, attrs[i].host,
 				attrs[i].name, &attrs[i].value, 1);
 		fail_unless(status == 0,
-				"sdb_plugin_store_attribute(%s, %s, <val>, 1) = %d; expected: 0",
+				"sdb_store_attribute(%s, %s, <val>, 1) = %d; expected: 0",
 				attrs[i].host, attrs[i].name, status);
 	}
 } /* populate */
+
+static void
+turndown(void)
+{
+	sdb_object_deref(SDB_OBJ(store));
+	store = NULL;
+} /* turndown */
 
 struct {
 	int type;
@@ -157,7 +167,7 @@ START_TEST(test_cmp_name)
 	sdb_store_matcher_t *m, *n;
 	int status;
 
-	host = sdb_store_get_host("a");
+	host = sdb_store_get_host(store, "a");
 	fail_unless(host != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
@@ -268,7 +278,7 @@ START_TEST(test_cmp_attr)
 	const char *op_str[] = { "<", "<=", "=", ">=", ">" };
 	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
-	host = sdb_store_get_host("a");
+	host = sdb_store_get_host(store, "a");
 	fail_unless(host != NULL,
 			"sdb_store_get_host(a) = NULL; expected: <host>");
 
@@ -376,7 +386,7 @@ START_TEST(test_cmp_obj)
 
 	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
-	host = sdb_store_get_host(cmp_obj_data[_i].host);
+	host = sdb_store_get_host(store, cmp_obj_data[_i].host);
 	fail_unless(host != NULL,
 			"sdb_store_get_host(%s) = NULL; expected: <host>",
 			cmp_obj_data[_i].host);
@@ -450,7 +460,7 @@ START_TEST(test_store_match_op)
 	int status;
 	size_t i;
 
-	obj = sdb_store_get_host("a");
+	obj = sdb_store_get_host(store, "a");
 
 	status = sdb_store_matcher_matches(always, obj, /* filter */ NULL);
 	fail_unless(status == 1,
@@ -623,7 +633,8 @@ START_TEST(test_scan)
 	int check, n;
 
 	n = 0;
-	check = sdb_store_scan(SDB_HOST, /* matcher */ NULL, /* filter */ NULL,
+	check = sdb_store_scan(store, SDB_HOST,
+			/* matcher */ NULL, /* filter */ NULL,
 			scan_cb, &n);
 	fail_unless(check == 0,
 			"sdb_store_scan() = %d; expected: 0", check);
@@ -649,7 +660,7 @@ START_TEST(test_scan)
 	}
 
 	n = 0;
-	sdb_store_scan(SDB_HOST, m, filter, scan_cb, &n);
+	sdb_store_scan(store, SDB_HOST, m, filter, scan_cb, &n);
 	fail_unless(n == scan_data[_i].expected,
 			"sdb_store_scan(HOST, matcher{%s}, filter{%s}) "
 			"found %d hosts; expected: %d", scan_data[_i].query,
@@ -664,7 +675,7 @@ END_TEST
 TEST_MAIN("core::store_lookup")
 {
 	TCase *tc = tcase_create("core");
-	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
+	tcase_add_checked_fixture(tc, populate, turndown);
 	TC_ADD_LOOP_TEST(tc, cmp_name);
 	TC_ADD_LOOP_TEST(tc, cmp_attr);
 	TC_ADD_LOOP_TEST(tc, cmp_obj);

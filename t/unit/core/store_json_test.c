@@ -40,53 +40,63 @@
 #undef SDB_INTERVAL_SECOND
 #define SDB_INTERVAL_SECOND 1000000000L
 
+static sdb_store_t *store;
+
 static void
 populate(void)
 {
 	sdb_data_t datum;
 
-	sdb_store_init();
+	store = sdb_store_create();
+	ck_assert(store != NULL);
 
-	sdb_plugin_store_host("h1", 1 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_host("h2", 3 * SDB_INTERVAL_SECOND);
+	sdb_store_host(store, "h1", 1 * SDB_INTERVAL_SECOND);
+	sdb_store_host(store, "h2", 3 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_plugin_store_attribute("h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_store_attribute(store, "h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v2";
-	sdb_plugin_store_attribute("h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_store_attribute(store, "h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v3";
-	sdb_plugin_store_attribute("h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_store_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_plugin_store_attribute("h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_attribute("h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_store_attribute(store, "h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_store_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_plugin_store_metric("h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_metric("h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_store_metric(store, "h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
+	sdb_store_metric(store, "h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_store_metric(store, "h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
 
-	sdb_plugin_store_service("h2", "s1", 1 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_service("h2", "s2", 2 * SDB_INTERVAL_SECOND);
+	sdb_store_service(store, "h2", "s1", 1 * SDB_INTERVAL_SECOND);
+	sdb_store_service(store, "h2", "s2", 2 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_plugin_store_metric_attribute("h1", "m1", "k3",
+	sdb_store_metric_attr(store, "h1", "m1", "k3",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 
 	datum.data.integer = 123;
-	sdb_plugin_store_service_attribute("h2", "s2", "k1",
+	sdb_store_service_attr(store, "h2", "s2", "k1",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.integer = 4711;
-	sdb_plugin_store_service_attribute("h2", "s2", "k2",
+	sdb_store_service_attr(store, "h2", "s2", "k2",
 			&datum, 1 * SDB_INTERVAL_SECOND);
 
 	/* don't overwrite k1 */
 	datum.data.integer = 666;
-	sdb_plugin_store_service_attribute("h2", "s2", "k1",
+	sdb_store_service_attr(store, "h2", "s2", "k1",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 } /* populate */
+
+static void
+turndown(void)
+{
+	sdb_object_deref(SDB_OBJ(store));
+	store = NULL;
+} /* turndown */
 
 static int
 scan_tojson(sdb_store_obj_t *obj,
@@ -477,7 +487,7 @@ START_TEST(test_store_tojson)
 			store_tojson_data[_i].type, SDB_WANT_ARRAY);
 	ck_assert(f != NULL);
 
-	status = sdb_store_scan(store_tojson_data[_i].type,
+	status = sdb_store_scan(store, store_tojson_data[_i].type,
 			/* m = */ NULL, filter, store_tojson_data[_i].f, f);
 	fail_unless(status == 0,
 			"sdb_store_scan(HOST, ..., tojson) = %d; expected: 0",
@@ -495,8 +505,8 @@ END_TEST
 TEST_MAIN("core::store_json")
 {
 	TCase *tc = tcase_create("core");
+	tcase_add_unchecked_fixture(tc, populate, turndown);
 	TC_ADD_LOOP_TEST(tc, store_tojson);
-	tcase_add_unchecked_fixture(tc, populate, sdb_store_clear);
 	ADD_TCASE(tc);
 }
 TEST_MAIN_END

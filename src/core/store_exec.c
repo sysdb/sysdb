@@ -71,8 +71,9 @@ sstrlen(const char *s)
  */
 
 static int
-exec_fetch(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
-		const char *hostname, const char *name, sdb_store_matcher_t *filter)
+exec_fetch(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+		int type, const char *hostname, const char *name,
+		sdb_store_matcher_t *filter)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_FETCH);
 
@@ -92,7 +93,7 @@ exec_fetch(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 	if (type == SDB_HOST)
 		hostname = name;
 
-	host = sdb_store_get_host(hostname);
+	host = sdb_store_get_host(store, hostname);
 	if ((! host)
 			|| (filter && (! sdb_store_matcher_matches(filter, host, NULL)))) {
 		sdb_strbuf_sprintf(errbuf, "Failed to fetch %s %s: "
@@ -151,8 +152,8 @@ exec_fetch(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 } /* exec_fetch */
 
 static int
-exec_list(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
-		sdb_store_matcher_t *filter)
+exec_list(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+		int type, sdb_store_matcher_t *filter)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_LIST);
 	sdb_store_json_formatter_t *f;
@@ -169,7 +170,7 @@ exec_list(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 	}
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_scan(type, /* m = */ NULL, filter, list_tojson, f)) {
+	if (sdb_store_scan(store, type, /* m = */ NULL, filter, list_tojson, f)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
@@ -184,8 +185,8 @@ exec_list(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 } /* exec_list */
 
 static int
-exec_lookup(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
-		sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
+exec_lookup(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+		int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_LOOKUP);
 	sdb_store_json_formatter_t *f;
@@ -203,7 +204,7 @@ exec_lookup(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, int type,
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
 
-	if (sdb_store_scan(type, m, filter, lookup_tojson, f)) {
+	if (sdb_store_scan(store, type, m, filter, lookup_tojson, f)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
 		sdb_strbuf_sprintf(errbuf, "Failed to lookup %ss",
@@ -304,14 +305,14 @@ exec_store(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, sdb_ast_store_t *st)
 } /* exec_store */
 
 static int
-exec_timeseries(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+exec_timeseries(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 		const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_TIMESERIES);
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_fetch_timeseries(hostname, metric, opts, buf)) {
+	if (sdb_store_fetch_timeseries(store, hostname, metric, opts, buf)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series");
 		sdb_strbuf_sprintf(errbuf, "Failed to fetch time-series");
 		return -1;
@@ -325,7 +326,7 @@ exec_timeseries(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
  */
 
 int
-sdb_store_query_execute(sdb_store_query_t *q,
+sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *q,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 {
 	sdb_timeseries_opts_t ts_opts;
@@ -341,16 +342,16 @@ sdb_store_query_execute(sdb_store_query_t *q,
 	ast = q->ast;
 	switch (ast->type) {
 	case SDB_AST_TYPE_FETCH:
-		return exec_fetch(buf, errbuf, SDB_AST_FETCH(ast)->obj_type,
+		return exec_fetch(store, buf, errbuf, SDB_AST_FETCH(ast)->obj_type,
 				SDB_AST_FETCH(ast)->hostname, SDB_AST_FETCH(ast)->name,
 				q->filter);
 
 	case SDB_AST_TYPE_LIST:
-		return exec_list(buf, errbuf, SDB_AST_LIST(ast)->obj_type,
+		return exec_list(store, buf, errbuf, SDB_AST_LIST(ast)->obj_type,
 				q->filter);
 
 	case SDB_AST_TYPE_LOOKUP:
-		return exec_lookup(buf, errbuf, SDB_AST_LOOKUP(ast)->obj_type,
+		return exec_lookup(store, buf, errbuf, SDB_AST_LOOKUP(ast)->obj_type,
 				q->matcher, q->filter);
 
 	case SDB_AST_TYPE_STORE:
@@ -364,7 +365,8 @@ sdb_store_query_execute(sdb_store_query_t *q,
 	case SDB_AST_TYPE_TIMESERIES:
 		ts_opts.start = SDB_AST_TIMESERIES(ast)->start;
 		ts_opts.end = SDB_AST_TIMESERIES(ast)->end;
-		return exec_timeseries(buf, errbuf, SDB_AST_TIMESERIES(ast)->hostname,
+		return exec_timeseries(store, buf, errbuf,
+				SDB_AST_TIMESERIES(ast)->hostname,
 				SDB_AST_TIMESERIES(ast)->metric, &ts_opts);
 
 	default:

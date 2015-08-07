@@ -38,10 +38,13 @@
 #include <string.h>
 #include <strings.h>
 
+static sdb_store_t *store;
+
 static void
 init(void)
 {
-	sdb_store_init();
+	store = sdb_store_create();
+	ck_assert(store != NULL);
 }
 
 static void
@@ -49,42 +52,49 @@ populate(void)
 {
 	sdb_data_t datum;
 
-	sdb_plugin_store_host("h1", 1);
-	sdb_plugin_store_host("h2", 3);
+	sdb_store_host(store, "h1", 1);
+	sdb_store_host(store, "h2", 3);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_plugin_store_attribute("h1", "k1", &datum, 1);
+	sdb_store_attribute(store, "h1", "k1", &datum, 1);
 	datum.data.string = "v2";
-	sdb_plugin_store_attribute("h1", "k2", &datum, 2);
+	sdb_store_attribute(store, "h1", "k2", &datum, 2);
 	datum.data.string = "v3";
-	sdb_plugin_store_attribute("h1", "k3", &datum, 2);
+	sdb_store_attribute(store, "h1", "k3", &datum, 2);
 
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_plugin_store_attribute("h1", "k2", &datum, 1);
-	sdb_plugin_store_attribute("h1", "k3", &datum, 2);
+	sdb_store_attribute(store, "h1", "k2", &datum, 1);
+	sdb_store_attribute(store, "h1", "k3", &datum, 2);
 
-	sdb_plugin_store_metric("h1", "m1", /* store */ NULL, 2);
-	sdb_plugin_store_metric("h1", "m2", /* store */ NULL, 1);
-	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 1);
+	sdb_store_metric(store, "h1", "m1", /* store */ NULL, 2);
+	sdb_store_metric(store, "h1", "m2", /* store */ NULL, 1);
+	sdb_store_metric(store, "h2", "m1", /* store */ NULL, 1);
 
-	sdb_plugin_store_service("h2", "s1", 1);
-	sdb_plugin_store_service("h2", "s2", 2);
+	sdb_store_service(store, "h2", "s1", 1);
+	sdb_store_service(store, "h2", "s2", 2);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_plugin_store_metric_attribute("h1", "m1", "k3", &datum, 2);
+	sdb_store_metric_attr(store, "h1", "m1", "k3", &datum, 2);
 
 	datum.data.integer = 123;
-	sdb_plugin_store_service_attribute("h2", "s2", "k1", &datum, 2);
+	sdb_store_service_attr(store, "h2", "s2", "k1", &datum, 2);
 	datum.data.integer = 4711;
-	sdb_plugin_store_service_attribute("h2", "s2", "k2", &datum, 1);
+	sdb_store_service_attr(store, "h2", "s2", "k2", &datum, 1);
 
 	/* don't overwrite k1 */
 	datum.data.integer = 666;
-	sdb_plugin_store_service_attribute("h2", "s2", "k1", &datum, 2);
+	sdb_store_service_attr(store, "h2", "s2", "k1", &datum, 2);
 } /* populate */
+
+static void
+turndown(void)
+{
+	sdb_object_deref(SDB_OBJ(store));
+	store = NULL;
+} /* turndown */
 
 START_TEST(test_store_host)
 {
@@ -117,10 +127,10 @@ START_TEST(test_store_host)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_plugin_store_host(golden_data[i].name,
+		status = sdb_store_host(store, golden_data[i].name,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_host(%s, %d) = %d; expected: %d",
+				"sdb_store_host(%s, %d) = %d; expected: %d",
 				golden_data[i].name, (int)golden_data[i].last_update,
 				status, golden_data[i].expected);
 	}
@@ -128,7 +138,7 @@ START_TEST(test_store_host)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
 		sdb_store_obj_t *have;
 
-		have = sdb_store_get_host(golden_hosts[i].name);
+		have = sdb_store_get_host(store, golden_hosts[i].name);
 		fail_unless((have != NULL) == golden_hosts[i].have,
 				"sdb_store_get_host(%s) = %p; expected: %s",
 				golden_hosts[i].name, have,
@@ -145,9 +155,9 @@ START_TEST(test_store_get_host)
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		int status = sdb_plugin_store_host(golden_hosts[i], 1);
+		int status = sdb_store_host(store, golden_hosts[i], 1);
 		fail_unless(status >= 0,
-				"sdb_plugin_store_host(%s) = %d; expected: >=0",
+				"sdb_store_host(%s) = %d; expected: >=0",
 				golden_hosts[i], status);
 	}
 
@@ -155,7 +165,7 @@ START_TEST(test_store_get_host)
 		sdb_store_obj_t *sobj1, *sobj2;
 		int ref_cnt;
 
-		sobj1 = sdb_store_get_host(golden_hosts[i]);
+		sobj1 = sdb_store_get_host(store, golden_hosts[i]);
 		fail_unless(sobj1 != NULL,
 				"sdb_store_get_host(%s) = NULL; expected: <host>",
 				golden_hosts[i]);
@@ -165,7 +175,7 @@ START_TEST(test_store_get_host)
 				"sdb_store_get_host(%s) did not increment ref count: "
 				"got: %d; expected: >1", golden_hosts[i], ref_cnt);
 
-		sobj2 = sdb_store_get_host(golden_hosts[i]);
+		sobj2 = sdb_store_get_host(store, golden_hosts[i]);
 		fail_unless(sobj2 != NULL,
 				"sdb_store_get_host(%s) = NULL; expected: <host>",
 				golden_hosts[i]);
@@ -184,7 +194,7 @@ START_TEST(test_store_get_host)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unknown_hosts); ++i) {
 		sdb_store_obj_t *sobj;
 
-		sobj = sdb_store_get_host(unknown_hosts[i]);
+		sobj = sdb_store_get_host(store, unknown_hosts[i]);
 		fail_unless(!sobj, "sdb_store_get_host(%s) = <host:%s>; expected: NULL",
 				unknown_hosts[i], sobj ? SDB_OBJ(sobj)->name : "NULL");
 	}
@@ -212,8 +222,8 @@ START_TEST(test_store_attr)
 
 	size_t i;
 
-	sdb_plugin_store_host("l", 1);
-	sdb_plugin_store_host("m", 1);
+	sdb_store_host(store, "l", 1);
+	sdb_store_host(store, "m", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_data_t datum;
 		int status;
@@ -222,11 +232,11 @@ START_TEST(test_store_attr)
 		datum.type = SDB_TYPE_STRING;
 		datum.data.string = golden_data[i].value;
 
-		status = sdb_plugin_store_attribute(golden_data[i].host,
+		status = sdb_store_attribute(store, golden_data[i].host,
 				golden_data[i].key, &datum,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_attribute(%s, %s, %s, %d) = %d; expected: %d",
+				"sdb_store_attribute(%s, %s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].key, golden_data[i].value,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -265,16 +275,16 @@ START_TEST(test_store_metric)
 
 	size_t i;
 
-	sdb_plugin_store_host("m", 1);
-	sdb_plugin_store_host("l", 1);
+	sdb_store_host(store, "m", 1);
+	sdb_store_host(store, "l", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_plugin_store_metric(golden_data[i].host,
+		status = sdb_store_metric(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].store,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_metric(%s, %s, %p, %d) = %d; expected: %d",
+				"sdb_store_metric(%s, %s, %p, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].metric,
 				golden_data[i].store, golden_data[i].last_update,
 				status, golden_data[i].expected);
@@ -309,20 +319,20 @@ START_TEST(test_store_metric_attr)
 
 	size_t i;
 
-	sdb_plugin_store_host("m", 1);
-	sdb_plugin_store_host("l", 1);
-	sdb_plugin_store_metric("m", "m1", NULL, 1);
-	sdb_plugin_store_metric("l", "m1", NULL, 1);
-	sdb_plugin_store_metric("l", "m2", NULL, 1);
+	sdb_store_host(store, "m", 1);
+	sdb_store_host(store, "l", 1);
+	sdb_store_metric(store, "m", "m1", NULL, 1);
+	sdb_store_metric(store, "l", "m1", NULL, 1);
+	sdb_store_metric(store, "l", "m2", NULL, 1);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_plugin_store_metric_attribute(golden_data[i].host,
+		status = sdb_store_metric_attr(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].attr,
 				&golden_data[i].value, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_metric_attribute(%s, %s, %s, %d, %d) = %d; "
+				"sdb_store_metric_attr(%s, %s, %s, %d, %d) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].metric,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -350,15 +360,15 @@ START_TEST(test_store_service)
 
 	size_t i;
 
-	sdb_plugin_store_host("m", 1);
-	sdb_plugin_store_host("l", 1);
+	sdb_store_host(store, "m", 1);
+	sdb_store_host(store, "l", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_plugin_store_service(golden_data[i].host,
+		status = sdb_store_service(store, golden_data[i].host,
 				golden_data[i].svc, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_service(%s, %s, %d) = %d; expected: %d",
+				"sdb_store_service(%s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].svc,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -392,20 +402,20 @@ START_TEST(test_store_service_attr)
 
 	size_t i;
 
-	sdb_plugin_store_host("m", 1);
-	sdb_plugin_store_host("l", 1);
-	sdb_plugin_store_service("m", "s1", 1);
-	sdb_plugin_store_service("l", "s1", 1);
-	sdb_plugin_store_service("l", "s2", 1);
+	sdb_store_host(store, "m", 1);
+	sdb_store_host(store, "l", 1);
+	sdb_store_service(store, "m", "s1", 1);
+	sdb_store_service(store, "l", "s1", 1);
+	sdb_store_service(store, "l", "s2", 1);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_plugin_store_service_attribute(golden_data[i].host,
+		status = sdb_store_service_attr(store, golden_data[i].host,
 				golden_data[i].svc, golden_data[i].attr,
 				&golden_data[i].value, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_plugin_store_service_attribute(%s, %s, %s, %d, %d) = %d; "
+				"sdb_store_service_attr(%s, %s, %s, %d, %d) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].svc,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -467,13 +477,13 @@ START_TEST(test_get_field)
 	sdb_time_t now = sdb_gettime();
 	int check;
 
-	sdb_plugin_store_host("host", 10);
-	sdb_plugin_store_host("host", 20);
-	sdb_plugin_store_attribute("host", "attr", &get_field_data[_i].value, 10);
-	sdb_plugin_store_attribute("host", "attr", &get_field_data[_i].value, 20);
+	sdb_store_host(store, "host", 10);
+	sdb_store_host(store, "host", 20);
+	sdb_store_attribute(store, "host", "attr", &get_field_data[_i].value, 10);
+	sdb_store_attribute(store, "host", "attr", &get_field_data[_i].value, 20);
 
 	if (get_field_data[_i].hostname) {
-		obj = sdb_store_get_host(get_field_data[_i].hostname);
+		obj = sdb_store_get_host(store, get_field_data[_i].hostname);
 		ck_assert(obj != NULL);
 
 		if (get_field_data[_i].attr) {
@@ -566,7 +576,7 @@ START_TEST(test_get_child)
 		sdb_store_obj_t *obj;
 		const char *expected_name = golden_data[i].host;
 
-		obj = sdb_store_get_host(golden_data[i].host);
+		obj = sdb_store_get_host(store, golden_data[i].host);
 		if (golden_data[i].expected && (golden_data[i].type == SDB_HOST))
 			fail_unless(obj == NULL,
 					"sdb_store_get_host(%s) = %p; expected: NULL",
@@ -624,51 +634,51 @@ START_TEST(test_interval)
 	sdb_store_obj_t *host;
 
 	/* 10 us interval */
-	sdb_plugin_store_host("host", 10);
-	sdb_plugin_store_host("host", 20);
-	sdb_plugin_store_host("host", 30);
-	sdb_plugin_store_host("host", 40);
+	sdb_store_host(store, "host", 10);
+	sdb_store_host(store, "host", 20);
+	sdb_store_host(store, "host", 30);
+	sdb_store_host(store, "host", 40);
 
-	host = sdb_store_get_host("host");
+	host = sdb_store_get_host(store, "host");
 	fail_unless(host != NULL,
 			"INTERNAL ERROR: store doesn't have host after adding it");
 
 	fail_unless(host->interval == 10,
-			"sdb_plugin_store_host() did not calculate interval correctly: "
+			"sdb_store_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates for the same timestamp don't modify the interval */
-	sdb_plugin_store_host("host", 40);
-	sdb_plugin_store_host("host", 40);
-	sdb_plugin_store_host("host", 40);
-	sdb_plugin_store_host("host", 40);
+	sdb_store_host(store, "host", 40);
+	sdb_store_host(store, "host", 40);
+	sdb_store_host(store, "host", 40);
+	sdb_store_host(store, "host", 40);
 
 	fail_unless(host->interval == 10,
-			"sdb_plugin_store_host() changed interval when doing multiple updates "
+			"sdb_store_host() changed interval when doing multiple updates "
 			"using the same timestamp; got: %"PRIsdbTIME"; "
 			"expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates using an timestamp don't modify the interval */
-	sdb_plugin_store_host("host", 20);
-	sdb_plugin_store_host("host", 20);
-	sdb_plugin_store_host("host", 20);
-	sdb_plugin_store_host("host", 20);
+	sdb_store_host(store, "host", 20);
+	sdb_store_host(store, "host", 20);
+	sdb_store_host(store, "host", 20);
+	sdb_store_host(store, "host", 20);
 
 	fail_unless(host->interval == 10,
-			"sdb_plugin_store_host() changed interval when doing multiple updates "
+			"sdb_store_host() changed interval when doing multiple updates "
 			"using an old timestamp; got: %"PRIsdbTIME"; expected: %"PRIsdbTIME,
 			host->interval, 10);
 
 	/* new interval: 20 us */
-	sdb_plugin_store_host("host", 60);
+	sdb_store_host(store, "host", 60);
 	fail_unless(host->interval == 11,
-			"sdb_plugin_store_host() did not calculate interval correctly: "
+			"sdb_store_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	/* new interval: 40 us */
-	sdb_plugin_store_host("host", 100);
+	sdb_store_host(store, "host", 100);
 	fail_unless(host->interval == 13,
-			"sdb_plugin_store_host() did not calculate interval correctly: "
+			"sdb_store_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	sdb_object_deref(SDB_OBJ(host));
@@ -719,7 +729,7 @@ START_TEST(test_scan)
 	int check;
 
 	/* empty store */
-	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
 			"sdb_store_scan(HOST), empty store = %d; expected: 0", check);
@@ -729,7 +739,7 @@ START_TEST(test_scan)
 
 	populate();
 
-	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
 			"sdb_store_scan(HOST) = %d; expected: 0", check);
@@ -738,7 +748,7 @@ START_TEST(test_scan)
 			"expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_error, &i);
 	fail_unless(check == -1,
 			"sdb_store_scan(HOST), error callback = %d; expected: -1", check);
@@ -747,7 +757,7 @@ START_TEST(test_scan)
 			"(callback returned error); expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(SDB_SERVICE, /* m, filter = */ NULL, NULL,
+	check = sdb_store_scan(store, SDB_SERVICE, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
 			"sdb_store_scan(SERVICE) = %d; expected: 0", check);
@@ -756,7 +766,7 @@ START_TEST(test_scan)
 			"expected: 2", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(SDB_METRIC, /* m, filter = */ NULL, NULL,
+	check = sdb_store_scan(store, SDB_METRIC, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
 			"sdb_store_scan(METRIC) = %d; expected: 0", check);
@@ -769,6 +779,7 @@ END_TEST
 TEST_MAIN("core::store")
 {
 	TCase *tc = tcase_create("core");
+	tcase_add_unchecked_fixture(tc, init, turndown);
 	tcase_add_test(tc, test_store_host);
 	tcase_add_test(tc, test_store_get_host);
 	tcase_add_test(tc, test_store_attr);
@@ -780,7 +791,6 @@ TEST_MAIN("core::store")
 	tcase_add_test(tc, test_get_child);
 	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);
-	tcase_add_unchecked_fixture(tc, init, sdb_store_clear);
 	ADD_TCASE(tc);
 }
 TEST_MAIN_END

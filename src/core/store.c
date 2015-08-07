@@ -847,9 +847,10 @@ prepare_query(sdb_ast_node_t *ast,
 static int
 execute_query(sdb_object_t *q,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
-		sdb_object_t __attribute__((unused)) *user_data)
+		sdb_object_t *user_data)
 {
-	return sdb_store_query_execute(QUERY(q), buf, errbuf);
+	return sdb_store_query_execute(SDB_STORE(user_data),
+			QUERY(q), buf, errbuf);
 } /* execute_query */
 
 sdb_store_reader_t sdb_store_reader = {
@@ -938,14 +939,14 @@ sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
 } /* sdb_store_metric_attr */
 
 sdb_store_obj_t *
-sdb_store_get_host(const char *name)
+sdb_store_get_host(sdb_store_t *store, const char *name)
 {
 	sdb_host_t *host;
 
-	if ((! global_store) || (! name))
+	if ((! store) || (! name))
 		return NULL;
 
-	host = lookup_host(global_store, name, /* canonicalize = */ 0);
+	host = lookup_host(store, name, /* canonicalize = */ 0);
 	if (! host)
 		return NULL;
 
@@ -1059,7 +1060,8 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 /* TODO: sdb_store_fetch_timeseries should move into the plugin module */
 
 int
-sdb_store_fetch_timeseries(const char *hostname, const char *metric,
+sdb_store_fetch_timeseries(sdb_store_t *store,
+		const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf)
 {
 	sdb_avltree_t *metrics;
@@ -1070,17 +1072,17 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 
 	int status = 0;
 
-	if ((! global_store) || (! hostname) || (! metric) || (! opts) || (! buf))
+	if ((! store) || (! hostname) || (! metric) || (! opts) || (! buf))
 		return -1;
 
-	pthread_rwlock_rdlock(&global_store->host_lock);
-	host = lookup_host(global_store, hostname, /* canonicalize = */ 1);
+	pthread_rwlock_rdlock(&store->host_lock);
+	host = lookup_host(store, hostname, /* canonicalize = */ 1);
 	metrics = get_host_children(host, SDB_METRIC);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- host '%s' not found", hostname, metric, hostname);
-		pthread_rwlock_unlock(&global_store->host_lock);
+		pthread_rwlock_unlock(&store->host_lock);
 		return -1;
 	}
 
@@ -1088,7 +1090,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 	if (! m) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
 				"- metric '%s' not found", hostname, metric, metric);
-		pthread_rwlock_unlock(&global_store->host_lock);
+		pthread_rwlock_unlock(&store->host_lock);
 		return -1;
 	}
 
@@ -1097,7 +1099,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 				"- no data-store configured for the stored metric",
 				hostname, metric);
 		sdb_object_deref(SDB_OBJ(m));
-		pthread_rwlock_unlock(&global_store->host_lock);
+		pthread_rwlock_unlock(&store->host_lock);
 		return -1;
 	}
 
@@ -1107,7 +1109,7 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 
 		strncpy(type, m->store.type, sizeof(type));
 		strncpy(id, m->store.id, sizeof(id));
-		pthread_rwlock_unlock(&global_store->host_lock);
+		pthread_rwlock_unlock(&store->host_lock);
 
 		ts = sdb_plugin_fetch_timeseries(type, id, opts);
 		if (! ts) {
@@ -1125,13 +1127,14 @@ sdb_store_fetch_timeseries(const char *hostname, const char *metric,
 } /* sdb_store_fetch_timeseries */
 
 int
-sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+sdb_store_scan(sdb_store_t *store, int type,
+		sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data)
 {
 	sdb_avltree_iter_t *host_iter = NULL;
 	int status = 0;
 
-	if ((! global_store) || (! cb))
+	if ((! store) || (! cb))
 		return -1;
 
 	if ((type != SDB_HOST) && (type != SDB_SERVICE) && (type != SDB_METRIC)) {
@@ -1139,8 +1142,8 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		return -1;
 	}
 
-	pthread_rwlock_rdlock(&global_store->host_lock);
-	host_iter = sdb_avltree_get_iter(global_store->hosts);
+	pthread_rwlock_rdlock(&store->host_lock);
+	host_iter = sdb_avltree_get_iter(store->hosts);
 	if (! host_iter)
 		status = -1;
 
@@ -1190,7 +1193,7 @@ sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 	}
 
 	sdb_avltree_iter_destroy(host_iter);
-	pthread_rwlock_unlock(&global_store->host_lock);
+	pthread_rwlock_unlock(&store->host_lock);
 	return status;
 } /* sdb_store_scan */
 

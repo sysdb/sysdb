@@ -330,25 +330,27 @@ sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
 
 /*
  * sdb_store_get_host:
- * Query the store for a host by its (canonicalized) name.
+ * Query the specified store for a host by its (canonicalized) name.
  *
  * The function increments the ref count of the host object. The caller needs
  * to deref it when no longer using it.
  */
 sdb_store_obj_t *
-sdb_store_get_host(const char *name);
+sdb_store_get_host(sdb_store_t *store, const char *name);
 
 /*
  * sdb_store_fetch_timeseries:
  * Fetch the time-series described by the specified host's metric and
- * serialize it as JSON into the provided string buffer.
+ * serialize it as JSON into the provided string buffer. The host data is
+ * retrieved from the specified store.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_fetch_timeseries(const char *hostname, const char *metric,
+sdb_store_fetch_timeseries(sdb_store_t *store,
+		const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf);
 
 /*
@@ -440,15 +442,15 @@ sdb_store_query_prepare_matcher(sdb_ast_node_t *ast);
 
 /*
  * sdb_store_query_execute:
- * Execute a previously prepared query. The query result will be written to
- * 'buf' and any errors to 'errbuf'.
+ * Execute a previously prepared query in the specified store. The query
+ * result will be written to 'buf' and any errors to 'errbuf'.
  *
  * Returns:
  *  - the result type (to be used by the server reply)
  *  - a negative value on error
  */
 int
-sdb_store_query_execute(sdb_store_query_t *m,
+sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *m,
 		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
 
 /*
@@ -697,18 +699,19 @@ typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj,
 
 /*
  * sdb_store_scan:
- * Look up objects of the specified type in the store. The specified callback
- * function is called for each object in the store matching 'm'. The function
- * performs a full scan of all objects stored in the database. If specified,
- * the filter will be used to preselect objects for further evaluation. See
- * the description of 'sdb_store_matcher_matches' for details.
+ * Look up objects of the specified type in the specified store. The specified
+ * callback function is called for each object in the store matching 'm'. The
+ * function performs a full scan of all objects stored in the database. If
+ * specified, the filter will be used to preselect objects for further
+ * evaluation. See the description of 'sdb_store_matcher_matches' for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_scan(int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
+sdb_store_scan(sdb_store_t *store, int type,
+		sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
 		sdb_store_lookup_cb cb, void *user_data);
 
 /*

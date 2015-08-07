@@ -37,6 +37,8 @@
 
 #include <check.h>
 
+static sdb_store_t *store;
+
 static void
 populate(void)
 {
@@ -93,45 +95,53 @@ populate(void)
 
 	size_t i;
 
-	sdb_store_init();
+	store = sdb_store_create();
+	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_plugin_store_host(hosts[i], 1);
+		int status = sdb_store_host(store, hosts[i], 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_plugin_store_metric(metrics[i].host,
+		int status = sdb_store_metric(store, metrics[i].host,
 				metrics[i].metric, /* store */ NULL, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_plugin_store_service(services[i].host,
+		int status = sdb_store_service(store, services[i].host,
 				services[i].service, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_plugin_store_attribute(attrs[i].host,
+		int status = sdb_store_attribute(store, attrs[i].host,
 				attrs[i].name, &attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(svc_attrs); ++i) {
-		int status = sdb_plugin_store_service_attribute(svc_attrs[i].host,
+		int status = sdb_store_service_attr(store, svc_attrs[i].host,
 				svc_attrs[i].service, svc_attrs[i].name,
 				&svc_attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metric_attrs); ++i) {
-		int status = sdb_plugin_store_metric_attribute(metric_attrs[i].host,
+		int status = sdb_store_metric_attr(store, metric_attrs[i].host,
 				metric_attrs[i].metric, metric_attrs[i].name,
 				&metric_attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 } /* populate */
+
+static void
+turndown(void)
+{
+	sdb_object_deref(SDB_OBJ(store));
+	store = NULL;
+} /* turndown */
 
 #define NAME { SDB_TYPE_INTEGER, { .integer = SDB_FIELD_NAME } }
 #define LAST_UPDATE { SDB_TYPE_INTEGER, { .integer = SDB_FIELD_LAST_UPDATE } }
@@ -555,7 +565,7 @@ START_TEST(test_expr_iter)
 	size_t i;
 
 	if (expr_iter_data[_i].host) {
-		obj = sdb_store_get_host(expr_iter_data[_i].host);
+		obj = sdb_store_get_host(store, expr_iter_data[_i].host);
 		ck_assert(obj != NULL);
 
 		if (expr_iter_data[_i].child) {
@@ -637,7 +647,7 @@ END_TEST
 TEST_MAIN("core::store_expr")
 {
 	TCase *tc = tcase_create("core");
-	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
+	tcase_add_checked_fixture(tc, populate, turndown);
 	TC_ADD_LOOP_TEST(tc, expr_iter);
 	ADD_TCASE(tc);
 }
