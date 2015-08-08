@@ -43,10 +43,19 @@
 static void
 populate(void)
 {
+	sdb_store_t *store;
 	sdb_data_t datum;
 
-	sdb_store_init();
+	/* the frontend accesses the store via the plugin API */
+	store = sdb_store_create();
+	ck_assert(store != NULL);
+	ck_assert(sdb_plugin_register_writer("test-writer",
+				&sdb_store_writer, SDB_OBJ(store)) == 0);
+	ck_assert(sdb_plugin_register_reader("test-reader",
+				&sdb_store_reader, SDB_OBJ(store)) == 0);
+	sdb_object_deref(SDB_OBJ(store));
 
+	/* populate the store */
 	sdb_plugin_store_host("h1", 1 * SDB_INTERVAL_SECOND);
 	sdb_plugin_store_host("h2", 3 * SDB_INTERVAL_SECOND);
 
@@ -77,6 +86,12 @@ populate(void)
 	sdb_plugin_store_service_attribute("h2", "s2", "k2",
 			&datum, 1 * SDB_INTERVAL_SECOND);
 } /* populate */
+
+static void
+turndown(void)
+{
+	sdb_plugin_unregister_all();
+} /* turndown */
 
 #define HOST_H1 \
 	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
@@ -732,7 +747,7 @@ END_TEST
 TEST_MAIN("frontend::query")
 {
 	TCase *tc = tcase_create("core");
-	tcase_add_checked_fixture(tc, populate, sdb_store_clear);
+	tcase_add_checked_fixture(tc, populate, turndown);
 	TC_ADD_LOOP_TEST(tc, query);
 	ADD_TCASE(tc);
 }

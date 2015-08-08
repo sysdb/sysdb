@@ -59,8 +59,6 @@ struct sdb_store {
 	pthread_rwlock_t host_lock;
 };
 
-sdb_store_t *global_store = NULL;
-
 /*
  * private types
  */
@@ -866,32 +864,6 @@ sdb_store_create(void)
 {
 	return SDB_STORE(sdb_object_create("store", store_type));
 } /* sdb_store_create */
-
-int
-sdb_store_init(void)
-{
-	if (global_store)
-		return 0;
-
-	global_store = SDB_STORE(sdb_object_create("store", store_type));
-	if (! global_store) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
-		return -1;
-	}
-	if (sdb_plugin_register_writer("memstore",
-				&sdb_store_writer, SDB_OBJ(global_store)))
-		return -1;
-	return sdb_plugin_register_reader("memstore",
-			&sdb_store_reader, SDB_OBJ(global_store));
-} /* sdb_store_init */
-
-void
-sdb_store_clear(void)
-{
-	if (! global_store)
-		return;
-	sdb_avltree_clear(global_store->hosts);
-} /* sdb_store_clear */
 
 int
 sdb_store_host(sdb_store_t *store, const char *name, sdb_time_t last_update)

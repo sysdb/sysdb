@@ -285,25 +285,6 @@ sdb_store_t *
 sdb_store_create(void);
 
 /*
- * sdb_store_init:
- * Initialize the store sub-system. This function has to be called before
- * doing any other store operations.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value else
- */
-int
-sdb_store_init(void);
-
-/*
- * sdb_store_clear:
- * Clear the entire store and remove all stored objects.
- */
-void
-sdb_store_clear(void);
-
-/*
  * sdb_store_host, sdb_store_service, sdb_store_metric, sdb_store_attribute,
  * sdb_store_metric_attr:
  * Store an object in the specified store.
