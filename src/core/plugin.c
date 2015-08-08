@@ -1465,6 +1465,12 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 	if (! name)
 		return -1;
 
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store host: "
+				"no writers registered");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
@@ -1487,6 +1493,12 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 
 	if ((! hostname) || (! name))
 		return -1;
+
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store service: "
+				"no writers registered");
+		return -1;
+	}
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1511,6 +1523,12 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 
 	if ((! hostname) || (! name))
 		return -1;
+
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store metric: "
+				"no writers registered");
+		return -1;
+	}
 
 	if (store && ((! store->type) || (! store->id)))
 		store = NULL;
@@ -1539,6 +1557,12 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 	if ((! hostname) || (! key) || (! value))
 		return -1;
 
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store attribute: "
+				"no writers registered");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
@@ -1563,6 +1587,12 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 	if ((! hostname) || (! service) || (! key) || (! value))
 		return -1;
 
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store service attribute: "
+				"no writers registered");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
@@ -1586,6 +1616,12 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 
 	if ((! hostname) || (! metric) || (! key) || (! value))
 		return -1;
+
+	if (! sdb_llist_len(writer_list)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot store metric attribute: "
+				"no writers registered");
+		return -1;
+	}
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
