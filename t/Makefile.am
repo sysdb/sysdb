@@ -94,10 +94,6 @@ unit_frontend_connection_test_SOURCES = $(UNIT_TEST_SOURCES) unit/frontend/conne
 unit_frontend_connection_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_frontend_connection_test_LDADD = $(UNIT_TEST_LDADD)
 
-unit_frontend_parser_test_SOURCES = $(UNIT_TEST_SOURCES) unit/frontend/parser_test.c
-unit_frontend_parser_test_CFLAGS = $(UNIT_TEST_CFLAGS)
-unit_frontend_parser_test_LDADD = $(UNIT_TEST_LDADD)
-
 unit_frontend_query_test_SOURCES = $(UNIT_TEST_SOURCES) unit/frontend/query_test.c
 unit_frontend_query_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_frontend_query_test_LDADD = $(UNIT_TEST_LDADD)
