@@ -95,7 +95,8 @@ SOCKET_FILE="$ORIG_SOCKET-3"
 cat <<EOF > "$SYSDBD_CONF"
 Listen "${SOCKET_FILE}"
 PluginDir "$PLUGIN_DIR"
-LoadBackend mock_plugin
+LoadPlugin "store::memory"
+LoadBackend "mock_plugin"
 <Backend "mock_plugin">
 </Backend>
 EOF
@@ -107,7 +108,8 @@ SOCKET_FILE="$ORIG_SOCKET-4"
 cat <<EOF > "$SYSDBD_CONF"
 Listen "${SOCKET_FILE}"
 PluginDir "$PLUGIN_DIR"
-LoadBackend mock_plugin
+LoadPlugin "store::memory"
+LoadBackend "mock_plugin"
 <Backend "mock_plugin">
 </Backend>
 EOF

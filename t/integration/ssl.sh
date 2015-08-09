@@ -41,6 +41,8 @@ cat <<EOF > "$SYSDBD_CONF"
 	SSLCertificateKey "$SERVER_KEY"
 	SSLCACertificates "$CA_CERT"
 </Listen>
+PluginDir "$PLUGIN_DIR"
+LoadPlugin "store::memory"
 EOF
 run_sysdbd -D -C "$SYSDBD_CONF"
 wait_for_sysdbd_tcp localhost 12345

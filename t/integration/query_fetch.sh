@@ -38,7 +38,8 @@ Listen "$SOCKET_FILE"
 PluginDir "$PLUGIN_DIR"
 Interval 2
 
-LoadPlugin mock_timeseries
+LoadPlugin "store::memory"
+LoadPlugin "mock_timeseries"
 EOF
 
 run_sysdbd -D -C "$SYSDBD_CONF"
@@ -54,7 +55,7 @@ LoadPlugin "store::network"
   Server "$SOCKET_FILE"
 </Plugin>
 
-LoadBackend mock_plugin
+LoadBackend "mock_plugin"
 <Backend "mock_plugin">
 </Backend>
 EOF

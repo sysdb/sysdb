@@ -182,31 +182,6 @@ daemonize(void)
 } /* daemonize */
 
 static int
-store_init(void)
-{
-	sdb_store_t *store = sdb_store_create();
-
-	if (! store) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
-		return -1;
-	}
-	if (sdb_plugin_register_writer("memstore",
-				&sdb_store_writer, SDB_OBJ(store))) {
-		sdb_object_deref(SDB_OBJ(store));
-		return -1;
-	}
-	if (sdb_plugin_register_reader("memstore",
-				&sdb_store_reader, SDB_OBJ(store))) {
-		sdb_object_deref(SDB_OBJ(store));
-		return -1;
-	}
-
-	/* Pass ownership to the plugins */
-	sdb_object_deref(SDB_OBJ(store));
-	return 0;
-} /* store_init */
-
-static int
 configure(void)
 {
 	int status;
@@ -217,10 +192,6 @@ configure(void)
 		else
 			sdb_log(SDB_LOG_ERR, "Failed to load configuration file.\n"
 					"\tCheck other error messages for details.");
-		return 1;
-	}
-	if (store_init()) {
-		sdb_log(SDB_LOG_ERR, "Failed to initialize the store");
 		return 1;
 	}
 

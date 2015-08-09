@@ -28,6 +28,12 @@ LoadPlugin "syslog"
 #============================================================================#
 
 #----------------------------------------------------------------------------#
+# "Store" plugins provide means to store and/or query information.           #
+#----------------------------------------------------------------------------#
+LoadPlugin "store::memory"
+LoadPlugin "store::network"
+
+#----------------------------------------------------------------------------#
 # "cname" plugins canonicalize hostnames before actually storing them. All   #
 # cname callbacks are applied to an hostname in the order in which they have #
 # been loaded, each receiving the result of the previous call.               #

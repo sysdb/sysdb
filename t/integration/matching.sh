@@ -38,7 +38,8 @@ Listen "$SOCKET_FILE"
 PluginDir "$PLUGIN_DIR"
 Interval 2
 
-LoadBackend mock_plugin
+LoadPlugin "store::memory"
+LoadBackend "mock_plugin"
 <Backend "mock_plugin">
 </Backend>
 EOF

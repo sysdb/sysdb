@@ -225,6 +225,14 @@ sysdbd_LDADD += -dlopen plugins/timeseries/rrdtool.la
 sysdbd_DEPENDENCIES += plugins/timeseries/rrdtool.la
 endif
 
+if BUILD_PLUGIN_STOREMEMORY
+pkgstorelib_LTLIBRARIES += plugins/store/memory.la
+plugins_store_memory_la_SOURCES = plugins/store/memory.c
+plugins_store_memory_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version
+sysdbd_LDADD += -dlopen plugins/store/memory.la
+sysdbd_DEPENDENCIES += plugins/store/memory.la
+endif
+
 if BUILD_PLUGIN_STORENETWORK
 pkgstorelib_LTLIBRARIES += plugins/store/network.la
 plugins_store_network_la_SOURCES = plugins/store/network.c

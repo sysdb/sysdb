@@ -685,9 +685,11 @@ AC_SDB_PLUGIN([timeseries-rrdtool], [$rrdtool_default],
 		[fetch time-series data from RRD files])
 
 m4_divert_once([HELP_ENABLE], [
-Store writers:])
+Store implementations:])
+AC_SDB_PLUGIN([store-memory], [yes],
+		[store objects in a volatile, in-memory database (read/write)])
 AC_SDB_PLUGIN([store-network], [yes],
-		[send stored objects to a remote instance])
+		[send stored objects to a remote instance (write only)])
 
 m4_divert_once([HELP_ENABLE], [
 Plugins:])
@@ -771,8 +773,9 @@ AC_MSG_RESULT()
 AC_MSG_RESULT([  Time-series fetchers:])
 AC_MSG_RESULT([    rrdtool:  . . . . . . . . . $enable_timeseries_rrdtool])
 AC_MSG_RESULT()
-AC_MSG_RESULT([  Store writers:])
-AC_MSG_RESULT([    network:  . . . . . . . . . $enable_store_network])
+AC_MSG_RESULT([  Store implementations:])
+AC_MSG_RESULT([    memory: . . . . . . . . . . $enable_store_memory])
+AC_MSG_RESULT([    network (writer): . . . . . $enable_store_network])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Plugins:])
 AC_MSG_RESULT([    cname::dns: . . . . . . . . $enable_cname_dns])

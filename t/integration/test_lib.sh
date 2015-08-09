@@ -47,6 +47,7 @@ cp "$TOP_BUILDDIR/t/integration/.libs/mock_timeseries.so" "$TESTDIR"
 cp "$TOP_BUILDDIR/t/integration/.libs/mock_plugin.so" "$TESTDIR/backend"
 
 mkdir "$TESTDIR/store"
+cp "$TOP_BUILDDIR/src/plugins/store/.libs/memory.so" "$TESTDIR/store"
 cp "$TOP_BUILDDIR/src/plugins/store/.libs/network.so" "$TESTDIR/store"
 
 cp "$TOP_BUILDDIR"/src/sysdb "$TESTDIR"
