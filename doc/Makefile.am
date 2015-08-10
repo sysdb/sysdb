@@ -13,6 +13,7 @@ BUILT_SOURCES = \
 		sysdbd-facter.5.xml \
 		sysdbd-mk-livestatus.5.xml \
 		sysdbd-puppet-store-configs.5.xml \
+		sysdbd-store-memory.5.xml \
 		sysdbd-store-network.5.xml \
 		sysdbd-syslog.5.xml \
 		sysdbd-timeseries-rrdtool.5.xml \
@@ -31,6 +32,7 @@ EXTRA_DIST = \
 		sysdbd-facter.5.txt \
 		sysdbd-mk-livestatus.5.txt \
 		sysdbd-puppet-store-configs.5.txt \
+		sysdbd-store-memory.5.txt \
 		sysdbd-store-network.5.txt \
 		sysdbd-syslog.5.txt \
 		sysdbd-timeseries-rrdtool.5.txt \
@@ -45,6 +47,7 @@ CLEANFILES = \
 		sysdbd-facter.5 \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
+		sysdbd-store-memory.5 \
 		sysdbd-store-network.5 \
 		sysdbd-syslog.5 \
 		sysdbd-timeseries-rrdtool.5 \
@@ -58,6 +61,7 @@ CLEANFILES = \
 		sysdbd-facter.5.html \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
+		sysdbd-store-memory.5.html \
 		sysdbd-store-network.5.html \
 		sysdbd-syslog.5.html \
 		sysdbd-timeseries-rrdtool.5.html \
@@ -71,6 +75,7 @@ CLEANFILES = \
 		sysdbd-facter.5.xml \
 		sysdbd-mk-livestatus.5.xml \
 		sysdbd-puppet-store-configs.5.xml \
+		sysdbd-store-memory.5.xml \
 		sysdbd-store-network.5.xml \
 		sysdbd-syslog.5.xml \
 		sysdbd-timeseries-rrdtool.5.xml \
@@ -86,6 +91,7 @@ man_MANS = \
 		sysdbd-facter.5 \
 		sysdbd-mk-livestatus.5 \
 		sysdbd-puppet-store-configs.5 \
+		sysdbd-store-memory.5 \
 		sysdbd-store-network.5 \
 		sysdbd-syslog.5 \
 		sysdbd-timeseries-rrdtool.5 \
@@ -101,6 +107,7 @@ html_DATA = \
 		sysdbd-facter.5.html \
 		sysdbd-mk-livestatus.5.html \
 		sysdbd-puppet-store-configs.5.html \
+		sysdbd-store-memory.5.html \
 		sysdbd-store-network.5.html \
 		sysdbd-syslog.5.html \
 		sysdbd-timeseries-rrdtool.5.html \
@@ -123,6 +130,7 @@ sysdbd-collectd-unixsock.5.xml: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
 sysdbd-facter.5.xml: sysdbd-facter.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.xml: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.xml: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
+sysdbd-store-memory.5.xml: sysdbd-store-memory.5.txt $(MAN_DEPS)
 sysdbd-store-network.5.xml: sysdbd-store-network.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.xml: sysdbd-syslog.5.txt $(MAN_DEPS)
 sysdbd-timeseries-rrdtool.5.xml: sysdbd-timeseries-rrdtool.5.txt $(MAN_DEPS)
@@ -137,6 +145,7 @@ sysdbd-collectd-unixsock.5: sysdbd-collectd-unixsock.5.xml
 sysdbd-facter.5: sysdbd-facter.5.xml
 sysdbd-mk-livestatus.5: sysdbd-mk-livestatus.5.xml
 sysdbd-puppet-store-configs.5: sysdbd-puppet-store-configs.5.xml
+sysdbd-store-memory.5: sysdbd-store-memory.5.xml
 sysdbd-store-network.5: sysdbd-store-network.5.xml
 sysdbd-syslog.5: sysdbd-syslog.5.xml
 sysdbd-timeseries-rrdtool.5: sysdbd-timeseries-rrdtool.5.xml
@@ -151,6 +160,7 @@ sysdbd-collectd-unixsock.5.html: sysdbd-collectd-unixsock.5.txt $(MAN_DEPS)
 sysdbd-facter.5.html: sysdbd-facter.5.txt $(MAN_DEPS)
 sysdbd-mk-livestatus.5.html: sysdbd-mk-livestatus.5.txt $(MAN_DEPS)
 sysdbd-puppet-store-configs.5.html: sysdbd-puppet-store-configs.5.txt $(MAN_DEPS)
+sysdbd-store-memory.5.html: sysdbd-store-memory.5.txt $(MAN_DEPS)
 sysdbd-store-network.5.html: sysdbd-store-network.5.txt $(MAN_DEPS)
 sysdbd-syslog.5.html: sysdbd-syslog.5.txt $(MAN_DEPS)
 sysdbd-timeseries-rrdtool.5.html: sysdbd-timeseries-rrdtool.5.txt $(MAN_DEPS)
