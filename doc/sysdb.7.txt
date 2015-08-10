@@ -43,6 +43,13 @@ CONCEPTS
 SysDB's features are build around a set of concepts which are explained in
 this section.
 
+Object Store
+~~~~~~~~~~~~
+The central part of SysDB's database is the object store which stores all
+objects (hosts, services) known to SysDB. The implementation is provided by a
+"store" plugin and may be backed by arbitrary data-stores. At least one store
+plugin has to be loaded to let the daemon do its work.
+
 Hosts and Services
 ~~~~~~~~~~~~~~~~~~
 The basic building block of SysDB's store are host and service objects
@@ -60,8 +67,8 @@ attributed with all "fact" values known to Puppet. This allows to query hosts
 based on facts like architecture or LSB information using query commands like
 *LOOKUP* (see manpage:sysdbql[7]).
 
-Host and service objects are managed by backend plugins and queried from other
-systems, like inventory databases or monitoring systems.
+Host and service objects are provided and updated by backend plugins and
+queried from other systems, like inventory databases or monitoring systems.
 
 Hostname Canonicalization
 ~~~~~~~~~~~~~~~~~~~~~~~~~
