@@ -590,7 +590,7 @@ store_attribute(const char *hostname,
 		return -1;
 
 	pthread_rwlock_wrlock(&st->host_lock);
-	host = lookup_host(st, hostname, /* canonicalize = */ 1);
+	host = lookup_host(st, hostname, /* canonicalize = */ 0);
 	attrs = get_host_children(host, SDB_ATTRIBUTE);
 	if (! attrs) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
@@ -611,25 +611,16 @@ static int
 store_host(const char *name, sdb_time_t last_update, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
-
-	char *cname = NULL;
 	int status = 0;
 
 	if (! name)
 		return -1;
 
-	cname = sdb_plugin_cname(strdup(name));
-	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "store: strdup failed");
-		return -1;
-	}
-
 	pthread_rwlock_wrlock(&st->host_lock);
 	status = store_obj(NULL, st->hosts,
-			SDB_HOST, cname, last_update, NULL);
+			SDB_HOST, name, last_update, NULL);
 	pthread_rwlock_unlock(&st->host_lock);
 
-	free(cname);
 	return status;
 } /* store_host */
 
@@ -649,7 +640,7 @@ store_service_attr(const char *hostname, const char *service,
 		return -1;
 
 	pthread_rwlock_wrlock(&st->host_lock);
-	host = lookup_host(st, hostname, /* canonicalize = */ 1);
+	host = lookup_host(st, hostname, /* canonicalize = */ 0);
 	services = get_host_children(host, SDB_SERVICE);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! services) {
@@ -693,7 +684,7 @@ store_service(const char *hostname, const char *name,
 		return -1;
 
 	pthread_rwlock_wrlock(&st->host_lock);
-	host = lookup_host(st, hostname, /* canonicalize = */ 1);
+	host = lookup_host(st, hostname, /* canonicalize = */ 0);
 	services = get_host_children(host, SDB_SERVICE);
 	if (! services) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store service '%s' - "
@@ -735,7 +726,7 @@ store_metric_attr(const char *hostname, const char *metric,
 		return -1;
 
 	pthread_rwlock_wrlock(&st->host_lock);
-	host = lookup_host(st, hostname, /* canonicalize = */ 1);
+	host = lookup_host(st, hostname, /* canonicalize = */ 0);
 	metrics = get_host_children(host, SDB_METRIC);
 	sdb_object_deref(SDB_OBJ(host));
 	if (! metrics) {
@@ -790,7 +781,7 @@ store_metric(const char *hostname, const char *name,
 	}
 
 	pthread_rwlock_wrlock(&st->host_lock);
-	host = lookup_host(st, hostname, /* canonicalize = */ 1);
+	host = lookup_host(st, hostname, /* canonicalize = */ 0);
 	metrics = get_host_children(host, SDB_METRIC);
 	if (! metrics) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store metric '%s' - "

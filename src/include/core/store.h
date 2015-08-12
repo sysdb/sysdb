@@ -287,7 +287,8 @@ sdb_store_create(void);
 /*
  * sdb_store_host, sdb_store_service, sdb_store_metric, sdb_store_attribute,
  * sdb_store_metric_attr:
- * Store an object in the specified store.
+ * Store an object in the specified store. The hostname is expected to be
+ * canonical.
  */
 int
 sdb_store_host(sdb_store_t *store, const char *name, sdb_time_t last_update);

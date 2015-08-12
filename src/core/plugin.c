@@ -1459,6 +1459,8 @@ sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 int
 sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1471,16 +1473,23 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(name));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_host(name, last_update, writer->w_user_data);
+		s = writer->impl.store_host(cname, last_update, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_host */
 
@@ -1488,6 +1497,8 @@ int
 sdb_plugin_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1500,17 +1511,24 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_service(hostname, name, last_update,
+		s = writer->impl.store_service(cname, name, last_update,
 				writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_service */
 
@@ -1518,6 +1536,8 @@ int
 sdb_plugin_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1530,6 +1550,12 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	if (store && ((! store->type) || (! store->id)))
 		store = NULL;
 
@@ -1538,12 +1564,13 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_metric(hostname, name, store, last_update,
+		s = writer->impl.store_metric(cname, name, store, last_update,
 				writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_metric */
 
@@ -1551,6 +1578,8 @@ int
 sdb_plugin_store_attribute(const char *hostname, const char *key,
 		const sdb_data_t *value, sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1563,17 +1592,24 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_attribute(hostname, key, value, last_update,
+		s = writer->impl.store_attribute(cname, key, value, last_update,
 				writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_attribute */
 
@@ -1581,6 +1617,8 @@ int
 sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1593,17 +1631,24 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_service_attr(hostname, service,
+		s = writer->impl.store_service_attr(cname, service,
 				key, value, last_update, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_service_attribute */
 
@@ -1611,6 +1656,8 @@ int
 sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	int status = 0;
 
@@ -1623,17 +1670,24 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		return -1;
 	}
 
+	cname = sdb_plugin_cname(strdup(hostname));
+	if (! cname) {
+		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		return -1;
+	}
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_metric_attr(hostname, metric,
+		s = writer->impl.store_metric_attr(cname, metric,
 				key, value, last_update, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+	free(cname);
 	return status;
 } /* sdb_plugin_store_metric_attribute */
 
