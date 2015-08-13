@@ -820,11 +820,6 @@ sdb_store_writer_t sdb_store_writer = {
 	store_attribute, store_service_attr, store_metric_attr,
 };
 
-/*
- * TODO: let prepare and execute accept a store object as their user_data
- * object
- */
-
 static sdb_object_t *
 prepare_query(sdb_ast_node_t *ast,
 		sdb_strbuf_t __attribute__((unused)) *errbuf,
