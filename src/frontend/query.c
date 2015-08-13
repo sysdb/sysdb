@@ -88,7 +88,7 @@ query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
  */
 
 int
-sdb_fe_query(sdb_conn_t *conn)
+sdb_conn_query(sdb_conn_t *conn)
 {
 	sdb_llist_t *parsetree;
 	sdb_ast_node_t *ast = NULL;
@@ -137,10 +137,10 @@ sdb_fe_query(sdb_conn_t *conn)
 	}
 	sdb_llist_destroy(parsetree);
 	return status;
-} /* sdb_fe_query */
+} /* sdb_conn_query */
 
 int
-sdb_fe_fetch(sdb_conn_t *conn)
+sdb_conn_fetch(sdb_conn_t *conn)
 {
 	sdb_ast_node_t *ast;
 	char hostname[conn->cmd_len + 1];
@@ -174,10 +174,10 @@ sdb_fe_fetch(sdb_conn_t *conn)
 	status = query_exec(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
-} /* sdb_fe_fetch */
+} /* sdb_conn_fetch */
 
 int
-sdb_fe_list(sdb_conn_t *conn)
+sdb_conn_list(sdb_conn_t *conn)
 {
 	sdb_ast_node_t *ast;
 	uint32_t type = SDB_HOST;
@@ -200,10 +200,10 @@ sdb_fe_list(sdb_conn_t *conn)
 	status = query_exec(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
-} /* sdb_fe_list */
+} /* sdb_conn_list */
 
 int
-sdb_fe_lookup(sdb_conn_t *conn)
+sdb_conn_lookup(sdb_conn_t *conn)
 {
 	sdb_ast_node_t *ast, *m;
 	const char *matcher;
@@ -254,10 +254,10 @@ sdb_fe_lookup(sdb_conn_t *conn)
 		sdb_object_deref(SDB_OBJ(m));
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
-} /* sdb_fe_lookup */
+} /* sdb_conn_lookup */
 
 int
-sdb_fe_store(sdb_conn_t *conn)
+sdb_conn_store(sdb_conn_t *conn)
 {
 	sdb_ast_node_t *ast;
 	const char *buf = sdb_strbuf_string(conn->buf);
@@ -359,7 +359,7 @@ sdb_fe_store(sdb_conn_t *conn)
 		status = query_exec(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
-} /* sdb_fe_store */
+} /* sdb_conn_store */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

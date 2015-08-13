@@ -294,18 +294,18 @@ command_handle(sdb_conn_t *conn)
 	if (conn->cmd == SDB_CONNECTION_PING)
 		status = sdb_connection_ping(conn);
 	else if (conn->cmd == SDB_CONNECTION_STARTUP)
-		status = sdb_fe_session_start(conn);
+		status = sdb_conn_session_start(conn);
 
 	else if (conn->cmd == SDB_CONNECTION_QUERY)
-		status = sdb_fe_query(conn);
+		status = sdb_conn_query(conn);
 	else if (conn->cmd == SDB_CONNECTION_FETCH)
-		status = sdb_fe_fetch(conn);
+		status = sdb_conn_fetch(conn);
 	else if (conn->cmd == SDB_CONNECTION_LIST)
-		status = sdb_fe_list(conn);
+		status = sdb_conn_list(conn);
 	else if (conn->cmd == SDB_CONNECTION_LOOKUP)
-		status = sdb_fe_lookup(conn);
+		status = sdb_conn_lookup(conn);
 	else if (conn->cmd == SDB_CONNECTION_STORE)
-		status = sdb_fe_store(conn);
+		status = sdb_conn_store(conn);
 
 	else if (conn->cmd == SDB_CONNECTION_SERVER_VERSION)
 		status = sdb_connection_server_version(conn);

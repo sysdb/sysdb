@@ -40,7 +40,7 @@
  */
 
 int
-sdb_fe_session_start(sdb_conn_t *conn)
+sdb_conn_session_start(sdb_conn_t *conn)
 {
 	char username[sdb_strbuf_len(conn->buf) + 1];
 	const char *tmp;
@@ -70,7 +70,7 @@ sdb_fe_session_start(sdb_conn_t *conn)
 	sdb_connection_send(conn, SDB_CONNECTION_OK, 0, NULL);
 	conn->ready = 1;
 	return 0;
-} /* sdb_fe_session_start */
+} /* sdb_conn_session_start */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

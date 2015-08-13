@@ -151,7 +151,7 @@ sdb_connection_server_version(sdb_conn_t *conn);
  */
 
 /*
- * sdb_fe_session_start:
+ * sdb_conn_session_start:
  * Start a new user session on the specified connection.
  *
  * Returns:
@@ -159,14 +159,15 @@ sdb_connection_server_version(sdb_conn_t *conn);
  *  - a negative value else
  */
 int
-sdb_fe_session_start(sdb_conn_t *conn);
+sdb_conn_session_start(sdb_conn_t *conn);
 
 /*
  * store access
  */
 
 /*
- * sdb_fe_query, sdb_fe_fetch, sdb_fe_list, sdb_fe_lookup, sdb_fe_store:
+ * sdb_conn_query, sdb_conn_fetch, sdb_conn_list, sdb_conn_lookup,
+ * sdb_conn_store:
  * Handle the SDB_CONNECTION_QUERY, SDB_CONNECTION_FETCH, SDB_CONNECTION_LIST,
  * SDB_CONNECTION_LOOKUP, and SDB_CONNECTION_STORE commands respectively. It
  * is expected that the current command has been initialized already.
@@ -176,19 +177,19 @@ sdb_fe_session_start(sdb_conn_t *conn);
  *  - a negative value else
  */
 int
-sdb_fe_query(sdb_conn_t *conn);
+sdb_conn_query(sdb_conn_t *conn);
 int
-sdb_fe_fetch(sdb_conn_t *conn);
+sdb_conn_fetch(sdb_conn_t *conn);
 int
-sdb_fe_list(sdb_conn_t *conn);
+sdb_conn_list(sdb_conn_t *conn);
 int
-sdb_fe_lookup(sdb_conn_t *conn);
+sdb_conn_lookup(sdb_conn_t *conn);
 int
-sdb_fe_store(sdb_conn_t *conn);
+sdb_conn_store(sdb_conn_t *conn);
 
 /*
- * sdb_fe_store_host, sdb_fe_store_service, sdb_fe_store_metric,
- * sdb_fe_store_attribute:
+ * sdb_conn_store_host, sdb_conn_store_service, sdb_conn_store_metric,
+ * sdb_conn_store_attribute:
  * Execute the 'STORE' command for the respective object type.
  *
  * Returns:
@@ -196,13 +197,13 @@ sdb_fe_store(sdb_conn_t *conn);
  *  - a negative value else
  */
 int
-sdb_fe_store_host(sdb_conn_t *conn, const sdb_proto_host_t *host);
+sdb_conn_store_host(sdb_conn_t *conn, const sdb_proto_host_t *host);
 int
-sdb_fe_store_service(sdb_conn_t *conn, const sdb_proto_service_t *svc);
+sdb_conn_store_service(sdb_conn_t *conn, const sdb_proto_service_t *svc);
 int
-sdb_fe_store_metric(sdb_conn_t *conn, const sdb_proto_metric_t *metric);
+sdb_conn_store_metric(sdb_conn_t *conn, const sdb_proto_metric_t *metric);
 int
-sdb_fe_store_attribute(sdb_conn_t *conn, const sdb_proto_attribute_t *attr);
+sdb_conn_store_attribute(sdb_conn_t *conn, const sdb_proto_attribute_t *attr);
 
 #ifdef __cplusplus
 } /* extern "C" */

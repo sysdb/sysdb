@@ -680,27 +680,27 @@ START_TEST(test_query)
 
 	switch (conn->cmd) {
 	case SDB_CONNECTION_QUERY:
-		check = sdb_fe_query(conn);
+		check = sdb_conn_query(conn);
 		break;
 	case SDB_CONNECTION_FETCH:
-		check = sdb_fe_fetch(conn);
+		check = sdb_conn_fetch(conn);
 		break;
 	case SDB_CONNECTION_LIST:
-		check = sdb_fe_list(conn);
+		check = sdb_conn_list(conn);
 		break;
 	case SDB_CONNECTION_LOOKUP:
-		check = sdb_fe_lookup(conn);
+		check = sdb_conn_lookup(conn);
 		break;
 	/* SDB_CONNECTION_TIMESERIES not supported yet */
 	case SDB_CONNECTION_STORE:
-		check = sdb_fe_store(conn);
+		check = sdb_conn_store(conn);
 		break;
 	default:
 		fail("Invalid command %#x", conn->cmd);
 	}
 
 	fail_unless(check == query_data[_i].expected,
-			"sdb_fe_query(%s) = %d; expected: %d (err: %s)",
+			"sdb_conn_query(%s) = %d; expected: %d (err: %s)",
 			query_data[_i].query, check, query_data[_i].expected,
 			sdb_strbuf_string(conn->errbuf));
 
@@ -709,7 +709,7 @@ START_TEST(test_query)
 
 	if (query_data[_i].code == UINT32_MAX) {
 		fail_unless(len == 0,
-				"sdb_fe_query(%s) returned data on error: '%s'",
+				"sdb_conn_query(%s) returned data on error: '%s'",
 			query_data[_i].query, data);
 		mock_conn_destroy(conn);
 		return;
@@ -722,14 +722,14 @@ START_TEST(test_query)
 
 	fail_unless((code == query_data[_i].code)
 				&& ((size_t)msg_len == query_data[_i].len),
-			"sdb_fe_query(%s) returned %u, %u; expected: %u, %zu",
+			"sdb_conn_query(%s) returned %u, %u; expected: %u, %zu",
 			query_data[_i].query, code, msg_len,
 			query_data[_i].code, query_data[_i].len);
 
 	if (code == SDB_CONNECTION_DATA) {
 		tmp = sdb_proto_unmarshal_int32(data, len, &code);
 		fail_unless(code == query_data[_i].type,
-				"sdb_fe_query(%s) returned %s object; expected: %s",
+				"sdb_conn_query(%s) returned %s object; expected: %s",
 				query_data[_i].query, SDB_CONN_MSGTYPE_TO_STRING((int)code),
 				SDB_CONN_MSGTYPE_TO_STRING((int)query_data[_i].type));
 		data += tmp;
@@ -737,7 +737,7 @@ START_TEST(test_query)
 	}
 
 	fail_if_strneq(data, query_data[_i].data, (size_t)msg_len,
-			"sdb_fe_query(%s) returned unexpected data",
+			"sdb_conn_query(%s) returned unexpected data",
 			query_data[_i].query, data, query_data[_i].data);
 
 	mock_conn_destroy(conn);
