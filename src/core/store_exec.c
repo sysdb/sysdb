@@ -35,7 +35,6 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -59,12 +58,6 @@ lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 	sdb_store_json_formatter_t *f = user_data;
 	return sdb_store_json_emit_full(f, obj, filter);
 } /* lookup_tojson */
-
-static size_t
-sstrlen(const char *s)
-{
-	return s ? strlen(s) : 0;
-} /* sstrlen */
 
 /*
  * query implementations
@@ -220,91 +213,6 @@ exec_lookup(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 } /* exec_lookup */
 
 static int
-exec_store(sdb_strbuf_t *buf, sdb_strbuf_t *errbuf, sdb_ast_store_t *st)
-{
-	char name[sstrlen(st->hostname) + sstrlen(st->parent) + sstrlen(st->name) + 3];
-	sdb_metric_store_t metric_store;
-	int type = st->obj_type, status = -1;
-
-	switch (st->obj_type) {
-	case SDB_HOST:
-		strncpy(name, st->name, sizeof(name));
-		status = sdb_plugin_store_host(st->name, st->last_update);
-		break;
-
-	case SDB_SERVICE:
-		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
-		status = sdb_plugin_store_service(st->hostname, st->name, st->last_update);
-		break;
-
-	case SDB_METRIC:
-		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
-		metric_store.type = st->store_type;
-		metric_store.id = st->store_id;
-		status = sdb_plugin_store_metric(st->hostname, st->name,
-				&metric_store, st->last_update);
-		break;
-
-	case SDB_ATTRIBUTE:
-		type |= st->parent_type;
-
-		if (st->parent)
-			snprintf(name, sizeof(name), "%s.%s.%s",
-					st->hostname, st->parent, st->name);
-		else
-			snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
-
-		switch (st->parent_type) {
-		case 0:
-			type |= SDB_HOST;
-			status = sdb_plugin_store_attribute(st->hostname,
-					st->name, &st->value, st->last_update);
-			break;
-
-		case SDB_SERVICE:
-			status = sdb_plugin_store_service_attribute(st->hostname, st->parent,
-					st->name, &st->value, st->last_update);
-			break;
-
-		case SDB_METRIC:
-			status = sdb_plugin_store_metric_attribute(st->hostname, st->parent,
-					st->name, &st->value, st->last_update);
-			break;
-
-		default:
-			sdb_log(SDB_LOG_ERR, "store: Invalid parent type in STORE: %s",
-					SDB_STORE_TYPE_TO_NAME(st->parent_type));
-			return -1;
-		}
-		break;
-
-	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid object type in STORE: %s",
-				SDB_STORE_TYPE_TO_NAME(st->obj_type));
-		return -1;
-	}
-
-	if (status < 0) {
-		sdb_strbuf_sprintf(errbuf, "STORE: Failed to store %s object",
-				SDB_STORE_TYPE_TO_NAME(type));
-		return -1;
-	}
-
-	if (! status) {
-		sdb_strbuf_sprintf(buf, "Successfully stored %s %s",
-				SDB_STORE_TYPE_TO_NAME(type), name);
-	}
-	else {
-		char type_str[32];
-		strncpy(type_str, SDB_STORE_TYPE_TO_NAME(type), sizeof(type_str));
-		type_str[0] = (char)toupper((int)type_str[0]);
-		sdb_strbuf_sprintf(buf, "%s %s already up to date", type_str, name);
-	}
-
-	return SDB_CONNECTION_OK;
-} /* exec_store */
-
-static int
 exec_timeseries(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 		const char *hostname, const char *metric,
 		sdb_timeseries_opts_t *opts)
@@ -353,14 +261,6 @@ sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *q,
 	case SDB_AST_TYPE_LOOKUP:
 		return exec_lookup(store, buf, errbuf, SDB_AST_LOOKUP(ast)->obj_type,
 				q->matcher, q->filter);
-
-	case SDB_AST_TYPE_STORE:
-		if (ast->type != SDB_AST_TYPE_STORE) {
-			sdb_log(SDB_LOG_ERR, "store: Invalid AST node for STORE command: %s",
-					SDB_AST_TYPE_TO_STRING(ast));
-			return -1;
-		}
-		return exec_store(buf, errbuf, SDB_AST_STORE(ast));
 
 	case SDB_AST_TYPE_TIMESERIES:
 		ts_opts.start = SDB_AST_TIMESERIES(ast)->start;

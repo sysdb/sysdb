@@ -1433,6 +1433,17 @@ sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 	if (! ast)
 		return 0;
 
+	if ((ast->type != SDB_AST_TYPE_FETCH)
+			&& (ast->type != SDB_AST_TYPE_LIST)
+			&& (ast->type != SDB_AST_TYPE_LOOKUP)
+			&& (ast->type != SDB_AST_TYPE_TIMESERIES)) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot execute query of type %s",
+				SDB_AST_TYPE_TO_STRING(ast));
+		sdb_strbuf_sprintf(errbuf, "Cannot execute query of type %s",
+				SDB_AST_TYPE_TO_STRING(ast));
+		return -1;
+	}
+
 	if (n != 1) {
 		char *msg = (n > 0)
 			? "Cannot execute query: multiple readers not supported"

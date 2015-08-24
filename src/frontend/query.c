@@ -40,6 +40,7 @@
 #include "utils/strbuf.h"
 
 #include <errno.h>
+#include <ctype.h>
 #include <string.h>
 
 /*
@@ -52,8 +53,99 @@ sstrdup(const char *s)
 	return s ? strdup(s) : NULL;
 } /* sstrdup */
 
+static size_t
+sstrlen(const char *s)
+{
+	return s ? strlen(s) : 0;
+} /* sstrlen */
+
 static int
-query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
+exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
+{
+	char name[sstrlen(st->hostname) + sstrlen(st->parent) + sstrlen(st->name) + 3];
+	sdb_metric_store_t metric_store;
+	int type = st->obj_type, status = -1;
+
+	switch (st->obj_type) {
+	case SDB_HOST:
+		strncpy(name, st->name, sizeof(name));
+		status = sdb_plugin_store_host(st->name, st->last_update);
+		break;
+
+	case SDB_SERVICE:
+		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
+		status = sdb_plugin_store_service(st->hostname, st->name, st->last_update);
+		break;
+
+	case SDB_METRIC:
+		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
+		metric_store.type = st->store_type;
+		metric_store.id = st->store_id;
+		status = sdb_plugin_store_metric(st->hostname, st->name,
+				&metric_store, st->last_update);
+		break;
+
+	case SDB_ATTRIBUTE:
+		type |= st->parent_type;
+
+		if (st->parent)
+			snprintf(name, sizeof(name), "%s.%s.%s",
+					st->hostname, st->parent, st->name);
+		else
+			snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
+
+		switch (st->parent_type) {
+		case 0:
+			type |= SDB_HOST;
+			status = sdb_plugin_store_attribute(st->hostname,
+					st->name, &st->value, st->last_update);
+			break;
+
+		case SDB_SERVICE:
+			status = sdb_plugin_store_service_attribute(st->hostname, st->parent,
+					st->name, &st->value, st->last_update);
+			break;
+
+		case SDB_METRIC:
+			status = sdb_plugin_store_metric_attribute(st->hostname, st->parent,
+					st->name, &st->value, st->last_update);
+			break;
+
+		default:
+			sdb_log(SDB_LOG_ERR, "store: Invalid parent type in STORE: %s",
+					SDB_STORE_TYPE_TO_NAME(st->parent_type));
+			return -1;
+		}
+		break;
+
+	default:
+		sdb_log(SDB_LOG_ERR, "store: Invalid object type in STORE: %s",
+				SDB_STORE_TYPE_TO_NAME(st->obj_type));
+		return -1;
+	}
+
+	if (status < 0) {
+		sdb_strbuf_sprintf(errbuf, "STORE: Failed to store %s object",
+				SDB_STORE_TYPE_TO_NAME(type));
+		return -1;
+	}
+
+	if (! status) {
+		sdb_strbuf_sprintf(buf, "Successfully stored %s %s",
+				SDB_STORE_TYPE_TO_NAME(type), name);
+	}
+	else {
+		char type_str[32];
+		strncpy(type_str, SDB_STORE_TYPE_TO_NAME(type), sizeof(type_str));
+		type_str[0] = (char)toupper((int)type_str[0]);
+		sdb_strbuf_sprintf(buf, "%s %s already up to date", type_str, name);
+	}
+
+	return SDB_CONNECTION_OK;
+} /* exec_store */
+
+static int
+exec_query(sdb_conn_t *conn, sdb_ast_node_t *ast)
 {
 	sdb_strbuf_t *buf;
 	int status;
@@ -68,7 +160,10 @@ query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		return -1;
 	}
-	status = sdb_plugin_query(ast, buf, conn->errbuf);
+	if (ast->type == SDB_AST_TYPE_STORE)
+		status = exec_store(SDB_AST_STORE(ast), buf, conn->errbuf);
+	else
+		status = sdb_plugin_query(ast, buf, conn->errbuf);
 	if (status < 0) {
 		char query[conn->cmd_len + 1];
 		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
@@ -81,7 +176,7 @@ query_exec(sdb_conn_t *conn, sdb_ast_node_t *ast)
 
 	sdb_strbuf_destroy(buf);
 	return status < 0 ? status : 0;
-} /* query_exec */
+} /* exec_query */
 
 /*
  * public API
@@ -132,7 +227,7 @@ sdb_conn_query(sdb_conn_t *conn)
 	}
 
 	if (ast) {
-		status = query_exec(conn, ast);
+		status = exec_query(conn, ast);
 		sdb_object_deref(SDB_OBJ(ast));
 	}
 	sdb_llist_destroy(parsetree);
@@ -171,7 +266,7 @@ sdb_conn_fetch(sdb_conn_t *conn)
 			hostname[0] ? strdup(hostname) : NULL,
 			name[0] ? strdup(name) : NULL,
 			/* filter = */ NULL);
-	status = query_exec(conn, ast);
+	status = exec_query(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_fetch */
@@ -197,7 +292,7 @@ sdb_conn_list(sdb_conn_t *conn)
 	}
 
 	ast = sdb_ast_list_create((int)type, /* filter = */ NULL);
-	status = query_exec(conn, ast);
+	status = exec_query(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_list */
@@ -249,7 +344,7 @@ sdb_conn_lookup(sdb_conn_t *conn)
 		status = -1;
 	}
 	else
-		status = query_exec(conn, ast);
+		status = exec_query(conn, ast);
 	if (! ast)
 		sdb_object_deref(SDB_OBJ(m));
 	sdb_object_deref(SDB_OBJ(ast));
@@ -356,7 +451,7 @@ sdb_conn_store(sdb_conn_t *conn)
 
 	status = sdb_parser_analyze(ast, conn->errbuf);
 	if (! status)
-		status = query_exec(conn, ast);
+		status = exec_query(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_store */
