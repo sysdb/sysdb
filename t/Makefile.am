@@ -4,6 +4,7 @@ EXTRA_DIST = \
 		integration/client.sh \
 		integration/config.sh \
 		integration/ssl.sh \
+		integration/store.sh \
 		integration/query_fetch.sh \
 		integration/query_list.sh \
 		integration/query_timeseries.sh \
@@ -151,6 +152,7 @@ INTEGRATION_TESTS = \
 		integration/client.sh \
 		integration/config.sh \
 		integration/ssl.sh \
+		integration/store.sh \
 		integration/query_fetch.sh \
 		integration/query_list.sh \
 		integration/query_timeseries.sh \
