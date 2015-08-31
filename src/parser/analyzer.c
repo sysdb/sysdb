@@ -553,11 +553,11 @@ static int
 analyze_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *errbuf)
 {
 	if (! ts->hostname) {
-		sdb_strbuf_sprintf(errbuf, "Missing hostname in STORE command");
+		sdb_strbuf_sprintf(errbuf, "Missing hostname in TIMESERIES command");
 		return -1;
 	}
 	if (! ts->metric) {
-		sdb_strbuf_sprintf(errbuf, "Missing metric name in STORE command");
+		sdb_strbuf_sprintf(errbuf, "Missing metric name in TIMESERIES command");
 		return -1;
 	}
 	if (ts->end <= ts->start) {
@@ -565,7 +565,7 @@ analyze_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *errbuf)
 		sdb_strftime(start_str, sizeof(start_str), ts->start);
 		sdb_strftime(end_str, sizeof(end_str), ts->end);
 		sdb_strbuf_sprintf(errbuf, "Start time (%s) greater than "
-				"end time (%s) in STORE command", start_str, end_str);
+				"end time (%s) in TIMESERIES command", start_str, end_str);
 		return -1;
 	}
 	return 0;
