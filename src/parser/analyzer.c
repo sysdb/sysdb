@@ -38,7 +38,6 @@
 #define VALID_OBJ_TYPE(t) ((SDB_HOST <= (t)) && ((t) <= SDB_METRIC))
 
 #define FILTER_CONTEXT -1
-#define UNSPEC_CONTEXT -2
 
 static int
 analyze_node(int context, sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
@@ -234,7 +233,7 @@ analyze_iter(int context, sdb_ast_iter_t *iter, sdb_strbuf_t *errbuf)
 			/* attributes are always iterable */
 		}
 		else if ((context != SDB_HOST) && (context != SDB_SERVICE)
-				&& (context != SDB_METRIC) && (context != UNSPEC_CONTEXT)) {
+				&& (context != SDB_METRIC)) {
 			iter_error(errbuf, iter, "%s not iterable in %s context",
 					SDB_STORE_TYPE_TO_NAME(iter_type),
 					SDB_STORE_TYPE_TO_NAME(context));
@@ -319,20 +318,15 @@ analyze_value(int context, sdb_ast_value_t *v, sdb_strbuf_t *errbuf)
 		return -1;
 	}
 
-	if (context != UNSPEC_CONTEXT) {
-		/* skip these checks if we don't know the context; it's up to the
-		 * caller to check again once the right context information is
-		 * available */
-		if ((context != SDB_ATTRIBUTE) && (v->type == SDB_FIELD_VALUE)) {
-			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value",
-					SDB_FIELD_TO_NAME(context));
-			return -1;
-		}
-		if ((context != SDB_METRIC) && (v->type == SDB_FIELD_TIMESERIES)) {
-			sdb_strbuf_sprintf(errbuf, "Invalid expression %s.timeseries",
-					SDB_FIELD_TO_NAME(context));
-			return -1;
-		}
+	if ((context != SDB_ATTRIBUTE) && (v->type == SDB_FIELD_VALUE)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.value",
+				SDB_FIELD_TO_NAME(context));
+		return -1;
+	}
+	if ((context != SDB_METRIC) && (v->type == SDB_FIELD_TIMESERIES)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid expression %s.timeseries",
+				SDB_FIELD_TO_NAME(context));
+		return -1;
 	}
 	return 0;
 } /* analyze_value */
@@ -609,8 +603,13 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 } /* sdb_parser_analyze */
 
 int
-sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
+sdb_parser_analyze_conditional(int context,
+		sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 {
+	if (! VALID_OBJ_TYPE(context)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid object type %#x", context);
+		return -1;
+	}
 	if (! node) {
 		sdb_strbuf_sprintf(errbuf, "Empty conditional node");
 		return -1;
@@ -620,12 +619,17 @@ sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 				SDB_AST_TYPE_TO_STRING(node));
 		return -1;
 	}
-	return analyze_node(UNSPEC_CONTEXT, node, errbuf);
+	return analyze_node(context, node, errbuf);
 } /* sdb_parser_analyze_conditional */
 
 int
-sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
+sdb_parser_analyze_arith(int context,
+		sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 {
+	if (! VALID_OBJ_TYPE(context)) {
+		sdb_strbuf_sprintf(errbuf, "Invalid object type %#x", context);
+		return -1;
+	}
 	if (! node) {
 		sdb_strbuf_sprintf(errbuf, "Empty arithmetic node");
 		return -1;
@@ -635,7 +639,7 @@ sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 				SDB_AST_TYPE_TO_STRING(node));
 		return -1;
 	}
-	return analyze_node(UNSPEC_CONTEXT, node, errbuf);
+	return analyze_node(context, node, errbuf);
 } /* sdb_parser_analyze_arith */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

@@ -641,20 +641,20 @@ START_TEST(test_scan)
 	fail_unless(n == 3,
 			"sdb_store_scan called callback %d times; expected: 3", (int)n);
 
-	ast = sdb_parser_parse_conditional(scan_data[_i].query, -1, errbuf);
+	ast = sdb_parser_parse_conditional(SDB_HOST, scan_data[_i].query, -1, errbuf);
 	m = sdb_store_query_prepare_matcher(ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	fail_unless(m != NULL,
-			"sdb_parser_parse_conditional(%s, -1) = NULL; expected: <ast> "
+			"sdb_parser_parse_conditional(HOST, %s, -1) = NULL; expected: <ast> "
 			"(parser error: %s)", scan_data[_i].query,
 			sdb_strbuf_string(errbuf));
 
 	if (scan_data[_i].filter) {
-		ast = sdb_parser_parse_conditional(scan_data[_i].filter, -1, errbuf);
+		ast = sdb_parser_parse_conditional(SDB_HOST, scan_data[_i].filter, -1, errbuf);
 		filter = sdb_store_query_prepare_matcher(ast);
 		sdb_object_deref(SDB_OBJ(ast));
 		fail_unless(filter != NULL,
-				"sdb_parser_parse_conditional(%s, -1) = NULL; "
+				"sdb_parser_parse_conditional(HOST, %s, -1) = NULL; "
 				"expected: <ast> (parser error: %s)",
 				scan_data[_i].filter, sdb_strbuf_string(errbuf));
 	}

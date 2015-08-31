@@ -743,214 +743,215 @@ START_TEST(test_parse)
 END_TEST
 
 struct {
+	int context;
 	const char *expr;
 	int len;
 	int expected;
 } parse_conditional_data[] = {
 	/* empty expressions */
-	{ NULL,                           -1, -1 },
-	{ "",                             -1, -1 },
+	{ SDB_HOST, NULL,                           -1, -1 },
+	{ SDB_HOST, "",                             -1, -1 },
 
 	/* match hosts by name */
-	{ "name < 'localhost'",           -1,  SDB_AST_LT },
-	{ "name <= 'localhost'",          -1,  SDB_AST_LE },
-	{ "name = 'localhost'",           -1,  SDB_AST_EQ },
-	{ "name != 'localhost'",          -1,  SDB_AST_NE },
-	{ "name >= 'localhost'",          -1,  SDB_AST_GE },
-	{ "name > 'localhost'",           -1,  SDB_AST_GT },
-	{ "name =~ 'host'",               -1,  SDB_AST_REGEX },
-	{ "name !~ 'host'",               -1,  SDB_AST_NREGEX },
-	{ "name = 'localhost' -- foo",    -1,  SDB_AST_EQ },
-	{ "name = 'host' <garbage>",      13,  SDB_AST_EQ },
-	{ "name &^ 'localhost'",          -1,  -1 },
+	{ SDB_HOST, "name < 'localhost'",           -1,  SDB_AST_LT },
+	{ SDB_HOST, "name <= 'localhost'",          -1,  SDB_AST_LE },
+	{ SDB_HOST, "name = 'localhost'",           -1,  SDB_AST_EQ },
+	{ SDB_HOST, "name != 'localhost'",          -1,  SDB_AST_NE },
+	{ SDB_HOST, "name >= 'localhost'",          -1,  SDB_AST_GE },
+	{ SDB_HOST, "name > 'localhost'",           -1,  SDB_AST_GT },
+	{ SDB_HOST, "name =~ 'host'",               -1,  SDB_AST_REGEX },
+	{ SDB_HOST, "name !~ 'host'",               -1,  SDB_AST_NREGEX },
+	{ SDB_HOST, "name = 'localhost' -- foo",    -1,  SDB_AST_EQ },
+	{ SDB_HOST, "name = 'host' <garbage>",      13,  SDB_AST_EQ },
+	{ SDB_HOST, "name &^ 'localhost'",          -1,  -1 },
 	/* match by backend */
-	{ "ANY backend < 'be'",           -1,  SDB_AST_ANY },
-	{ "ANY backend <= 'be'",          -1,  SDB_AST_ANY },
-	{ "ANY backend = 'be'",           -1,  SDB_AST_ANY },
-	{ "ANY backend != 'be'",          -1,  SDB_AST_ANY },
-	{ "ANY backend >= 'be'",          -1,  SDB_AST_ANY },
-	{ "ANY backend > 'be'",           -1,  SDB_AST_ANY },
-	{ "ALL backend < 'be'",           -1,  SDB_AST_ALL },
-	{ "ALL backend <= 'be'",          -1,  SDB_AST_ALL },
-	{ "ALL backend = 'be'",           -1,  SDB_AST_ALL },
-	{ "ALL backend != 'be'",          -1,  SDB_AST_ALL },
-	{ "ALL backend >= 'be'",          -1,  SDB_AST_ALL },
-	{ "ALL backend > 'be'",           -1,  SDB_AST_ALL },
-	{ "ANY backend &^ 'be'",          -1,  -1 },
+	{ SDB_HOST, "ANY backend < 'be'",           -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY backend <= 'be'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY backend = 'be'",           -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY backend != 'be'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY backend >= 'be'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY backend > 'be'",           -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ALL backend < 'be'",           -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL backend <= 'be'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL backend = 'be'",           -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL backend != 'be'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL backend >= 'be'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL backend > 'be'",           -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ANY backend &^ 'be'",          -1,  -1 },
 	/* match hosts by service */
-	{ "ANY service.name < 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY service.name <= 'name'",        -1,  SDB_AST_ANY },
-	{ "ANY service.name = 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY service.name != 'name'",        -1,  SDB_AST_ANY },
-	{ "ANY service.name >= 'name'",        -1,  SDB_AST_ANY },
-	{ "ANY service.name > 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY service.name =~ 'pattern'",     -1,  SDB_AST_ANY },
-	{ "ANY service.name !~ 'pattern'",     -1,  SDB_AST_ANY },
-	{ "ANY service.name &^ 'name'",        -1,  -1 },
-	{ "ALL service.name < 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL service.name <= 'name'",        -1,  SDB_AST_ALL },
-	{ "ALL service.name = 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL service.name != 'name'",        -1,  SDB_AST_ALL },
-	{ "ALL service.name >= 'name'",        -1,  SDB_AST_ALL },
-	{ "ALL service.name > 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL service.name =~ 'pattern'",     -1,  SDB_AST_ALL },
-	{ "ALL service.name !~ 'pattern'",     -1,  SDB_AST_ALL },
-	{ "ALL service.name &^ 'name'",        -1,  -1 },
-	{ "ANY service < 'name'",              -1,  -1 },
+	{ SDB_HOST, "ANY service.name < 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name <= 'name'",        -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name = 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name != 'name'",        -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name >= 'name'",        -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name > 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name =~ 'pattern'",     -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name !~ 'pattern'",     -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY service.name &^ 'name'",        -1,  -1 },
+	{ SDB_HOST, "ALL service.name < 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name <= 'name'",        -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name = 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name != 'name'",        -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name >= 'name'",        -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name > 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name =~ 'pattern'",     -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name !~ 'pattern'",     -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL service.name &^ 'name'",        -1,  -1 },
+	{ SDB_HOST, "ANY service < 'name'",              -1,  -1 },
 	/* match hosts by metric */
-	{ "ANY metric.name < 'name'",          -1,  SDB_AST_ANY },
-	{ "ANY metric.name <= 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY metric.name = 'name'",          -1,  SDB_AST_ANY },
-	{ "ANY metric.name != 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY metric.name >= 'name'",         -1,  SDB_AST_ANY },
-	{ "ANY metric.name > 'name'",          -1,  SDB_AST_ANY },
-	{ "ANY metric.name =~ 'pattern'",      -1,  SDB_AST_ANY },
-	{ "ANY metric.name !~ 'pattern'",      -1,  SDB_AST_ANY },
-	{ "ANY metric.name &^ 'pattern'",      -1,  -1 },
-	{ "ALL metric.name < 'name'",          -1,  SDB_AST_ALL },
-	{ "ALL metric.name <= 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL metric.name = 'name'",          -1,  SDB_AST_ALL },
-	{ "ALL metric.name != 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL metric.name >= 'name'",         -1,  SDB_AST_ALL },
-	{ "ALL metric.name > 'name'",          -1,  SDB_AST_ALL },
-	{ "ALL metric.name =~ 'pattern'",      -1,  SDB_AST_ALL },
-	{ "ALL metric.name !~ 'pattern'",      -1,  SDB_AST_ALL },
-	{ "ALL metric.name &^ 'pattern'",      -1,  -1 },
-	{ "ANY metric <= 'name'",              -1,  -1 },
+	{ SDB_HOST, "ANY metric.name < 'name'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name <= 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name = 'name'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name != 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name >= 'name'",         -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name > 'name'",          -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name =~ 'pattern'",      -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name !~ 'pattern'",      -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY metric.name &^ 'pattern'",      -1,  -1 },
+	{ SDB_HOST, "ALL metric.name < 'name'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name <= 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name = 'name'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name != 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name >= 'name'",         -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name > 'name'",          -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name =~ 'pattern'",      -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name !~ 'pattern'",      -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL metric.name &^ 'pattern'",      -1,  -1 },
+	{ SDB_HOST, "ANY metric <= 'name'",              -1,  -1 },
 	/* match hosts by attribute */
-	{ "ANY attribute.name < 'name'",       -1,  SDB_AST_ANY },
-	{ "ANY attribute.name <= 'name'",      -1,  SDB_AST_ANY },
-	{ "ANY attribute.name = 'name'",       -1,  SDB_AST_ANY },
-	{ "ANY attribute.name != 'name'",      -1,  SDB_AST_ANY },
-	{ "ANY attribute.name >= 'name'",      -1,  SDB_AST_ANY },
-	{ "ANY attribute.name > 'name'",       -1,  SDB_AST_ANY },
-	{ "ANY attribute.name =~ 'pattern'",   -1,  SDB_AST_ANY },
-	{ "ANY attribute.name !~ 'pattern'",   -1,  SDB_AST_ANY },
-	{ "ANY attribute.name &^ 'pattern'",   -1,  -1 },
-	{ "ALL attribute.name < 'name'",       -1,  SDB_AST_ALL },
-	{ "ALL attribute.name <= 'name'",      -1,  SDB_AST_ALL },
-	{ "ALL attribute.name = 'name'",       -1,  SDB_AST_ALL },
-	{ "ALL attribute.name != 'name'",      -1,  SDB_AST_ALL },
-	{ "ALL attribute.name >= 'name'",      -1,  SDB_AST_ALL },
-	{ "ALL attribute.name > 'name'",       -1,  SDB_AST_ALL },
-	{ "ALL attribute.name =~ 'pattern'",   -1,  SDB_AST_ALL },
-	{ "ALL attribute.name !~ 'pattern'",   -1,  SDB_AST_ALL },
-	{ "ALL attribute.name &^ 'pattern'",   -1,  -1 },
-	{ "ANY attribute !~ 'pattern'",        -1,  -1 },
+	{ SDB_HOST, "ANY attribute.name < 'name'",       -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name <= 'name'",      -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name = 'name'",       -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name != 'name'",      -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name >= 'name'",      -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name > 'name'",       -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name =~ 'pattern'",   -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name !~ 'pattern'",   -1,  SDB_AST_ANY },
+	{ SDB_HOST, "ANY attribute.name &^ 'pattern'",   -1,  -1 },
+	{ SDB_HOST, "ALL attribute.name < 'name'",       -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name <= 'name'",      -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name = 'name'",       -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name != 'name'",      -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name >= 'name'",      -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name > 'name'",       -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name =~ 'pattern'",   -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name !~ 'pattern'",   -1,  SDB_AST_ALL },
+	{ SDB_HOST, "ALL attribute.name &^ 'pattern'",   -1,  -1 },
+	{ SDB_HOST, "ANY attribute !~ 'pattern'",        -1,  -1 },
 
 	/* composite expressions */
-	{ "name =~ 'pattern' AND "
+	{ SDB_HOST, "name =~ 'pattern' AND "
 	  "ANY service.name =~ 'pattern'",  -1,  SDB_AST_AND },
-	{ "name =~ 'pattern' OR "
+	{ SDB_HOST, "name =~ 'pattern' OR "
 	  "ANY service.name =~ 'pattern'",  -1,  SDB_AST_OR },
-	{ "NOT name = 'host'",              -1,  SDB_AST_NOT },
+	{ SDB_HOST, "NOT name = 'host'",              -1,  SDB_AST_NOT },
 	/* numeric expressions */
-	{ "attribute['foo'] < 123",         -1,  SDB_AST_LT },
-	{ "attribute['foo'] <= 123",        -1,  SDB_AST_LE },
-	{ "attribute['foo'] = 123",         -1,  SDB_AST_EQ },
-	{ "attribute['foo'] >= 123",        -1,  SDB_AST_GE },
-	{ "attribute['foo'] > 123",         -1,  SDB_AST_GT },
+	{ SDB_HOST, "attribute['foo'] < 123",         -1,  SDB_AST_LT },
+	{ SDB_HOST, "attribute['foo'] <= 123",        -1,  SDB_AST_LE },
+	{ SDB_HOST, "attribute['foo'] = 123",         -1,  SDB_AST_EQ },
+	{ SDB_HOST, "attribute['foo'] >= 123",        -1,  SDB_AST_GE },
+	{ SDB_HOST, "attribute['foo'] > 123",         -1,  SDB_AST_GT },
 	/* datetime expressions */
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "2014-08-16",                     -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "17:23",                          -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "17:23:53",                       -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "17:23:53.123",                   -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "17:23:53.123456789",             -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "2014-08-16 17:23",               -1,  SDB_AST_EQ },
-	{ "attribute['foo'] = "
+	{ SDB_HOST, "attribute['foo'] = "
 	  "2014-08-16 17:23:53",            -1,  SDB_AST_EQ },
 	/* NULL / TRUE / FALSE */
-	{ "attribute['foo'] IS NULL",       -1,  SDB_AST_ISNULL },
-	{ "attribute['foo'] IS NOT NULL",   -1,  SDB_AST_NOT },
-	{ "attribute['foo'] IS TRUE",       -1,  SDB_AST_ISTRUE },
-	{ "attribute['foo'] IS NOT TRUE",   -1,  SDB_AST_NOT },
-	{ "attribute['foo'] IS FALSE",      -1,  SDB_AST_ISFALSE },
-	{ "attribute['foo'] IS NOT FALSE",  -1,  SDB_AST_NOT },
+	{ SDB_HOST, "attribute['foo'] IS NULL",       -1,  SDB_AST_ISNULL },
+	{ SDB_HOST, "attribute['foo'] IS NOT NULL",   -1,  SDB_AST_NOT },
+	{ SDB_HOST, "attribute['foo'] IS TRUE",       -1,  SDB_AST_ISTRUE },
+	{ SDB_HOST, "attribute['foo'] IS NOT TRUE",   -1,  SDB_AST_NOT },
+	{ SDB_HOST, "attribute['foo'] IS FALSE",      -1,  SDB_AST_ISFALSE },
+	{ SDB_HOST, "attribute['foo'] IS NOT FALSE",  -1,  SDB_AST_NOT },
 	/* array expressions */
-	{ "backend < ['a']",                -1,  SDB_AST_LT },
-	{ "backend <= ['a']",               -1,  SDB_AST_LE },
-	{ "backend = ['a']",                -1,  SDB_AST_EQ },
-	{ "backend != ['a']",               -1,  SDB_AST_NE },
-	{ "backend >= ['a']",               -1,  SDB_AST_GE },
-	{ "backend > ['a']",                -1,  SDB_AST_GT },
-	{ "backend &^ ['a']",               -1,  -1 },
+	{ SDB_HOST, "backend < ['a']",                -1,  SDB_AST_LT },
+	{ SDB_HOST, "backend <= ['a']",               -1,  SDB_AST_LE },
+	{ SDB_HOST, "backend = ['a']",                -1,  SDB_AST_EQ },
+	{ SDB_HOST, "backend != ['a']",               -1,  SDB_AST_NE },
+	{ SDB_HOST, "backend >= ['a']",               -1,  SDB_AST_GE },
+	{ SDB_HOST, "backend > ['a']",                -1,  SDB_AST_GT },
+	{ SDB_HOST, "backend &^ ['a']",               -1,  -1 },
 
 	/* object field comparison */
-	{ "name < 'a'",                     -1,  SDB_AST_LT },
-	{ "name <= 'a'",                    -1,  SDB_AST_LE },
-	{ "name = 'a'",                     -1,  SDB_AST_EQ },
-	{ "name != 'a'",                    -1,  SDB_AST_NE },
-	{ "name >= 'a'",                    -1,  SDB_AST_GE },
-	{ "name > 'a'",                     -1,  SDB_AST_GT },
-	{ "last_update < 2014-10-01",       -1,  SDB_AST_LT },
-	{ "last_update <= 2014-10-01",      -1,  SDB_AST_LE },
-	{ "last_update = 2014-10-01",       -1,  SDB_AST_EQ },
-	{ "last_update != 2014-10-01",      -1,  SDB_AST_NE },
-	{ "last_update >= 2014-10-01",      -1,  SDB_AST_GE },
-	{ "last_update > 2014-10-01",       -1,  SDB_AST_GT },
-	{ "Last_Update >= 24D",             -1,  SDB_AST_GE },
-	{ "age < 20s",                      -1,  SDB_AST_LT },
-	{ "age <= 20s",                     -1,  SDB_AST_LE },
-	{ "age = 20s",                      -1,  SDB_AST_EQ },
-	{ "age != 20s",                     -1,  SDB_AST_NE },
-	{ "age >= 20s",                     -1,  SDB_AST_GE },
-	{ "age > 20s",                      -1,  SDB_AST_GT },
-	{ "AGE <= 1m",                      -1,  SDB_AST_LE },
-	{ "age > 1M",                       -1,  SDB_AST_GT },
-	{ "age != 20Y",                     -1,  SDB_AST_NE },
-	{ "age <= 2 * interval",            -1,  SDB_AST_LE },
-	{ "interval < 20s",                 -1,  SDB_AST_LT },
-	{ "interval <= 20s",                -1,  SDB_AST_LE },
-	{ "interval = 20s",                 -1,  SDB_AST_EQ },
-	{ "interval != 20s",                -1,  SDB_AST_NE },
-	{ "interval >= 20s",                -1,  SDB_AST_GE },
-	{ "interval > 20s",                 -1,  SDB_AST_GT },
-	{ "'be' IN backend",                -1,  SDB_AST_IN },
-	{ "'be' NOT IN backend",            -1,  SDB_AST_NOT },
-	{ "['a','b'] IN backend",           -1,  SDB_AST_IN },
-	{ "['a','b'] NOT IN backend",       -1,  SDB_AST_NOT },
-	{ "timeseries IS TRUE",             -1,  SDB_AST_ISTRUE },
-	{ "timeseries IS FALSE",            -1,  SDB_AST_ISFALSE },
-	{ "timeseries IS NOT TRUE",         -1,  SDB_AST_NOT },
-	{ "timeseries IS NOT FALSE",        -1,  SDB_AST_NOT },
-	{ "timeseries > 0",                 -1,  -1 },
-	{ "timeseries = TRUE",              -1,  -1 },
-	{ "timeseries != FALSE",            -1,  -1 },
+	{ SDB_HOST, "name < 'a'",                     -1,  SDB_AST_LT },
+	{ SDB_HOST, "name <= 'a'",                    -1,  SDB_AST_LE },
+	{ SDB_HOST, "name = 'a'",                     -1,  SDB_AST_EQ },
+	{ SDB_HOST, "name != 'a'",                    -1,  SDB_AST_NE },
+	{ SDB_HOST, "name >= 'a'",                    -1,  SDB_AST_GE },
+	{ SDB_HOST, "name > 'a'",                     -1,  SDB_AST_GT },
+	{ SDB_HOST, "last_update < 2014-10-01",       -1,  SDB_AST_LT },
+	{ SDB_HOST, "last_update <= 2014-10-01",      -1,  SDB_AST_LE },
+	{ SDB_HOST, "last_update = 2014-10-01",       -1,  SDB_AST_EQ },
+	{ SDB_HOST, "last_update != 2014-10-01",      -1,  SDB_AST_NE },
+	{ SDB_HOST, "last_update >= 2014-10-01",      -1,  SDB_AST_GE },
+	{ SDB_HOST, "last_update > 2014-10-01",       -1,  SDB_AST_GT },
+	{ SDB_HOST, "Last_Update >= 24D",             -1,  SDB_AST_GE },
+	{ SDB_HOST, "age < 20s",                      -1,  SDB_AST_LT },
+	{ SDB_HOST, "age <= 20s",                     -1,  SDB_AST_LE },
+	{ SDB_HOST, "age = 20s",                      -1,  SDB_AST_EQ },
+	{ SDB_HOST, "age != 20s",                     -1,  SDB_AST_NE },
+	{ SDB_HOST, "age >= 20s",                     -1,  SDB_AST_GE },
+	{ SDB_HOST, "age > 20s",                      -1,  SDB_AST_GT },
+	{ SDB_HOST, "AGE <= 1m",                      -1,  SDB_AST_LE },
+	{ SDB_HOST, "age > 1M",                       -1,  SDB_AST_GT },
+	{ SDB_HOST, "age != 20Y",                     -1,  SDB_AST_NE },
+	{ SDB_HOST, "age <= 2 * interval",            -1,  SDB_AST_LE },
+	{ SDB_HOST, "interval < 20s",                 -1,  SDB_AST_LT },
+	{ SDB_HOST, "interval <= 20s",                -1,  SDB_AST_LE },
+	{ SDB_HOST, "interval = 20s",                 -1,  SDB_AST_EQ },
+	{ SDB_HOST, "interval != 20s",                -1,  SDB_AST_NE },
+	{ SDB_HOST, "interval >= 20s",                -1,  SDB_AST_GE },
+	{ SDB_HOST, "interval > 20s",                 -1,  SDB_AST_GT },
+	{ SDB_HOST, "'be' IN backend",                -1,  SDB_AST_IN },
+	{ SDB_HOST, "'be' NOT IN backend",            -1,  SDB_AST_NOT },
+	{ SDB_HOST, "['a','b'] IN backend",           -1,  SDB_AST_IN },
+	{ SDB_HOST, "['a','b'] NOT IN backend",       -1,  SDB_AST_NOT },
+	{ SDB_METRIC, "timeseries IS TRUE",           -1,  SDB_AST_ISTRUE },
+	{ SDB_METRIC, "timeseries IS FALSE",          -1,  SDB_AST_ISFALSE },
+	{ SDB_METRIC, "timeseries IS NOT TRUE",       -1,  SDB_AST_NOT },
+	{ SDB_METRIC, "timeseries IS NOT FALSE",      -1,  SDB_AST_NOT },
+	{ SDB_METRIC, "timeseries > 0",               -1,  -1 },
+	{ SDB_METRIC, "timeseries = TRUE",            -1,  -1 },
+	{ SDB_METRIC, "timeseries != FALSE",          -1,  -1 },
 
 	/* check operator precedence */
-	{ "name = 'name' OR "
+	{ SDB_HOST, "name = 'name' OR "
 	  "ANY service.name = 'name' AND "
 	  "ANY attribute.name = 'name' OR "
 	  "attribute['foo'] = 'bar'",       -1,  SDB_AST_OR },
-	{ "name = 'name' AND "
+	{ SDB_HOST, "name = 'name' AND "
 	  "ANY service.name = 'name' AND "
 	  "ANY attribute.name = 'name' OR "
 	  "attribute['foo'] = 'bar'",       -1,  SDB_AST_OR },
-	{ "name = 'name' AND "
+	{ SDB_HOST, "name = 'name' AND "
 	  "ANY service.name = 'name' OR "
 	  "ANY attribute.name = 'name' AND "
 	  "attribute['foo'] = 'bar'",       -1,  SDB_AST_OR },
-	{ "(name = 'name' OR "
+	{ SDB_HOST, "(name = 'name' OR "
 	  "ANY service.name = 'name') AND "
 	  "(ANY attribute.name = 'name' OR "
 	  "attribute['foo'] = 'bar')",      -1,  SDB_AST_AND },
-	{ "NOT name = 'name' OR "
+	{ SDB_HOST, "NOT name = 'name' OR "
 	  "ANY service.name = 'name'",      -1,  SDB_AST_OR },
-	{ "NOT name = 'name' OR "
+	{ SDB_HOST, "NOT name = 'name' OR "
 	  "NOT ANY service.name = 'name'",  -1,  SDB_AST_OR },
-	{ "NOT (name = 'name' OR "
+	{ SDB_HOST, "NOT (name = 'name' OR "
 	  "NOT ANY service.name = 'name')", -1,  SDB_AST_NOT },
 
 	/* syntax errors */
-	{ "LIST hosts",                     -1, -1 },
-	{ "foo &^ bar",                     -1, -1 },
-	{ "invalid",                        -1, -1 },
+	{ SDB_HOST, "LIST hosts",                     -1, -1 },
+	{ SDB_HOST, "foo &^ bar",                     -1, -1 },
+	{ SDB_HOST, "invalid",                        -1, -1 },
 };
 
 START_TEST(test_parse_conditional)
@@ -958,35 +959,43 @@ START_TEST(test_parse_conditional)
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_ast_node_t *node;
 
-	node = sdb_parser_parse_conditional(parse_conditional_data[_i].expr,
-			parse_conditional_data[_i].len, errbuf);
+	node = sdb_parser_parse_conditional(parse_conditional_data[_i].context,
+			parse_conditional_data[_i].expr, parse_conditional_data[_i].len, errbuf);
 
 	if (parse_conditional_data[_i].expected < 0) {
 		fail_unless(node == NULL,
-				"sdb_parser_parse_conditional(%s) = %p; expected: NULL",
+				"sdb_parser_parse_conditional(%s, %s) = %p; expected: NULL",
+				SDB_STORE_TYPE_TO_NAME(parse_conditional_data[_i].context),
 				parse_conditional_data[_i].expr, node);
 		sdb_object_deref(SDB_OBJ(node));
 		sdb_strbuf_destroy(errbuf);
 		return;
 	}
 
-	fail_unless(node != NULL, "sdb_parser_parse_conditional(%s) = NULL; "
+	fail_unless(node != NULL, "sdb_parser_parse_conditional(%s, %s) = NULL; "
 			"expected: <cond> (parse error: %s)",
+			SDB_STORE_TYPE_TO_NAME(parse_conditional_data[_i].context),
 			parse_conditional_data[_i].expr, sdb_strbuf_string(errbuf));
 	if (node->type == SDB_AST_TYPE_OPERATOR)
 		fail_unless(SDB_AST_OP(node)->kind == parse_conditional_data[_i].expected,
-				"sdb_parser_parse_conditional(%s) returned conditional of type %d; "
-				"expected: %d", parse_conditional_data[_i].expr,
+				"sdb_parser_parse_conditional(%s, %s) returned conditional of type %d; "
+				"expected: %d",
+				SDB_STORE_TYPE_TO_NAME(parse_conditional_data[_i].context),
+				parse_conditional_data[_i].expr,
 				SDB_AST_OP(node)->kind, parse_conditional_data[_i].expected);
 	else if (node->type == SDB_AST_TYPE_ITERATOR)
 		fail_unless(SDB_AST_ITER(node)->kind == parse_conditional_data[_i].expected,
-				"sdb_parser_parse_conditional(%s) returned conditional of type %d; "
-				"expected: %d", parse_conditional_data[_i].expr,
+				"sdb_parser_parse_conditional(%s, %s) returned conditional of type %d; "
+				"expected: %d",
+				SDB_STORE_TYPE_TO_NAME(parse_conditional_data[_i].context),
+				parse_conditional_data[_i].expr,
 				SDB_AST_ITER(node)->kind, parse_conditional_data[_i].expected);
 
 	fail_unless(node->data_type == -1,
-			"sdb_parser_parse_conditional(%s) returned conditional of data-type %s; "
-			"expected: %s", parse_conditional_data[_i].expr,
+			"sdb_parser_parse_conditional(%s, %s) returned conditional "
+			"of data-type %s; expected: %s",
+			SDB_STORE_TYPE_TO_NAME(parse_conditional_data[_i].context),
+			parse_conditional_data[_i].expr,
 			SDB_TYPE_TO_STRING(node->data_type), SDB_TYPE_TO_STRING(-1));
 
 	sdb_object_deref(SDB_OBJ(node));
@@ -995,81 +1004,82 @@ START_TEST(test_parse_conditional)
 END_TEST
 
 struct {
+	int context;
 	const char *expr;
 	int len;
 	int expected;
 	int data_type;
 } parse_arith_data[] = {
 	/* empty expressions */
-	{ NULL,                   -1, -1, -1 },
-	{ "",                     -1, -1, -1 },
+	{ SDB_HOST, NULL,                   -1, -1, -1 },
+	{ SDB_HOST, "",                     -1, -1, -1 },
 
 	/* constant expressions */
-	{ "'localhost'",          -1, SDB_AST_TYPE_CONST, SDB_TYPE_STRING },
-	{ "123",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_INTEGER },
-	{ "42.3",                 -1, SDB_AST_TYPE_CONST, SDB_TYPE_DECIMAL },
-	{ "2014-08-16",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "17:23",                -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "17:23:53",             -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "17:23:53.123",         -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "17:23:53.123456789",   -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "2014-08-16 17:23",     -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "2014-08-16 17:23:53",  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "10s",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "60m",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
-	{ "10Y 24D 1h",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "'localhost'",          -1, SDB_AST_TYPE_CONST, SDB_TYPE_STRING },
+	{ SDB_HOST, "123",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_INTEGER },
+	{ SDB_HOST, "42.3",                 -1, SDB_AST_TYPE_CONST, SDB_TYPE_DECIMAL },
+	{ SDB_HOST, "2014-08-16",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "17:23",                -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "17:23:53",             -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "17:23:53.123",         -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "17:23:53.123456789",   -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "2014-08-16 17:23",     -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "2014-08-16 17:23:53",  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "10s",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "60m",                  -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "10Y 24D 1h",           -1, SDB_AST_TYPE_CONST, SDB_TYPE_DATETIME },
 
 	/* TODO: the analyzer and/or optimizer should turn these into constants */
-	{ "123 + 456",            -1, SDB_AST_ADD, SDB_TYPE_INTEGER },
-	{ "'foo' || 'bar'",       -1, SDB_AST_CONCAT, SDB_TYPE_STRING },
-	{ "456 - 123",            -1, SDB_AST_SUB, SDB_TYPE_INTEGER },
-	{ "1.2 * 3.4",            -1, SDB_AST_MUL, SDB_TYPE_DECIMAL },
-	{ "1.2 / 3.4",            -1, SDB_AST_DIV, SDB_TYPE_DECIMAL },
-	{ "5 % 2",                -1, SDB_AST_MOD, SDB_TYPE_INTEGER },
+	{ SDB_HOST, "123 + 456",            -1, SDB_AST_ADD, SDB_TYPE_INTEGER },
+	{ SDB_HOST, "'foo' || 'bar'",       -1, SDB_AST_CONCAT, SDB_TYPE_STRING },
+	{ SDB_HOST, "456 - 123",            -1, SDB_AST_SUB, SDB_TYPE_INTEGER },
+	{ SDB_HOST, "1.2 * 3.4",            -1, SDB_AST_MUL, SDB_TYPE_DECIMAL },
+	{ SDB_HOST, "1.2 / 3.4",            -1, SDB_AST_DIV, SDB_TYPE_DECIMAL },
+	{ SDB_HOST, "5 % 2",                -1, SDB_AST_MOD, SDB_TYPE_INTEGER },
 
 	/* queryable fields */
-	{ "last_update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
-	{ "AGE",                  -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
-	{ "interval",             -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
-	{ "Last_Update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
-	{ "backend",              -1, SDB_AST_TYPE_VALUE, SDB_TYPE_ARRAY | SDB_TYPE_STRING },
+	{ SDB_HOST, "last_update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "AGE",                  -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "interval",             -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "Last_Update",          -1, SDB_AST_TYPE_VALUE, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "backend",              -1, SDB_AST_TYPE_VALUE, SDB_TYPE_ARRAY | SDB_TYPE_STRING },
 
 	/* attributes */
-	{ "attribute['foo']",     -1, SDB_AST_TYPE_VALUE, -1 },
+	{ SDB_HOST, "attribute['foo']",     -1, SDB_AST_TYPE_VALUE, -1 },
 
 	/* arithmetic expressions */
-	{ "age + age",            -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
-	{ "age - age",            -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
-	{ "age * age",            -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
-	{ "age / age",            -1, SDB_AST_DIV, SDB_TYPE_DATETIME },
-	{ "age \% age",           -1, SDB_AST_MOD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age + age",            -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age - age",            -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age * age",            -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age / age",            -1, SDB_AST_DIV, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age \% age",           -1, SDB_AST_MOD, SDB_TYPE_DATETIME },
 
 	/* operator precedence */
-	{ "age + age * age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
-	{ "age * age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
-	{ "age + age - age",      -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
-	{ "age - age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
-	{ "(age + age) * age",    -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
-	{ "age + (age * age)",    -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age + age * age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age * age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age + age - age",      -1, SDB_AST_SUB, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age - age + age",      -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "(age + age) * age",    -1, SDB_AST_MUL, SDB_TYPE_DATETIME },
+	{ SDB_HOST, "age + (age * age)",    -1, SDB_AST_ADD, SDB_TYPE_DATETIME },
 
 	/* boolean expressions */
-	{ "timeseries + 1",               -1, -1, -1 },
-	{ "timeseries - 1",               -1, -1, -1 },
-	{ "timeseries * 1",               -1, -1, -1 },
-	{ "timeseries / 1",               -1, -1, -1 },
-	{ "timeseries \% 1",              -1, -1, -1 },
-	{ "timeseries CONCAT 1",          -1, -1, -1 },
-	{ "timeseries + timeseries",      -1, -1, -1 },
-	{ "timeseries - timeseries",      -1, -1, -1 },
-	{ "timeseries * timeseries",      -1, -1, -1 },
-	{ "timeseries / timeseries",      -1, -1, -1 },
-	{ "timeseries \% timeseries",     -1, -1, -1 },
-	{ "timeseries CONCAT timeseries", -1, -1, -1 },
+	{ SDB_METRIC, "timeseries + 1",               -1, -1, -1 },
+	{ SDB_METRIC, "timeseries - 1",               -1, -1, -1 },
+	{ SDB_METRIC, "timeseries * 1",               -1, -1, -1 },
+	{ SDB_METRIC, "timeseries / 1",               -1, -1, -1 },
+	{ SDB_METRIC, "timeseries \% 1",              -1, -1, -1 },
+	{ SDB_METRIC, "timeseries CONCAT 1",          -1, -1, -1 },
+	{ SDB_METRIC, "timeseries + timeseries",      -1, -1, -1 },
+	{ SDB_METRIC, "timeseries - timeseries",      -1, -1, -1 },
+	{ SDB_METRIC, "timeseries * timeseries",      -1, -1, -1 },
+	{ SDB_METRIC, "timeseries / timeseries",      -1, -1, -1 },
+	{ SDB_METRIC, "timeseries \% timeseries",     -1, -1, -1 },
+	{ SDB_METRIC, "timeseries CONCAT timeseries", -1, -1, -1 },
 
 	/* syntax errors */
-	{ "LIST",                 -1, -1, -1 },
-	{ "foo &^ bar",           -1, -1, -1 },
-	{ "invalid",              -1, -1, -1 },
+	{ SDB_HOST, "LIST",                 -1, -1, -1 },
+	{ SDB_HOST, "foo &^ bar",           -1, -1, -1 },
+	{ SDB_HOST, "invalid",              -1, -1, -1 },
 };
 
 START_TEST(test_parse_arith)
@@ -1077,36 +1087,40 @@ START_TEST(test_parse_arith)
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_ast_node_t *node;
 
-	node = sdb_parser_parse_arith(parse_arith_data[_i].expr,
-			parse_arith_data[_i].len, errbuf);
+	node = sdb_parser_parse_arith(parse_arith_data[_i].context,
+			parse_arith_data[_i].expr, parse_arith_data[_i].len, errbuf);
 
 	if (parse_arith_data[_i].expected < 0) {
 		fail_unless(node == NULL,
-				"sdb_parser_parse_arith(%s) = %p; expected: NULL",
+				"sdb_parser_parse_arith(%s, %s) = %p; expected: NULL",
+				SDB_STORE_TYPE_TO_NAME(parse_arith_data[_i].context),
 				parse_arith_data[_i].expr, node);
 		sdb_object_deref(SDB_OBJ(node));
 		sdb_strbuf_destroy(errbuf);
 		return;
 	}
 
-	fail_unless(node != NULL, "sdb_parser_parse_arith(%s) = NULL; "
+	fail_unless(node != NULL, "sdb_parser_parse_arith(%s, %s) = NULL; "
 			"expected: <expr> (parse error: %s)",
+			SDB_STORE_TYPE_TO_NAME(parse_arith_data[_i].context),
 			parse_arith_data[_i].expr, sdb_strbuf_string(errbuf));
 	if (node->type == SDB_AST_TYPE_OPERATOR)
 		fail_unless(SDB_AST_OP(node)->kind == parse_arith_data[_i].expected,
-				"sdb_parser_parse_arith(%s) returned expression of type %d; "
-				"expected: %d", parse_arith_data[_i].expr,
-				SDB_AST_OP(node)->kind, parse_arith_data[_i].expected);
+				"sdb_parser_parse_arith(%s, %s) returned expression of type %d; "
+				"expected: %d", SDB_STORE_TYPE_TO_NAME(parse_arith_data[_i].context),
+				parse_arith_data[_i].expr, SDB_AST_OP(node)->kind,
+				parse_arith_data[_i].expected);
 	else
 		fail_unless(node->type == parse_arith_data[_i].expected,
-				"sdb_parser_parse_arith(%s) returned expression of type %d; "
-				"expected: %d", parse_arith_data[_i].expr, node->type,
+				"sdb_parser_parse_arith(%s, %s) returned expression of type %d; "
+				"expected: %d", SDB_STORE_TYPE_TO_NAME(parse_arith_data[_i].context),
+				parse_arith_data[_i].expr, node->type,
 				parse_arith_data[_i].expected);
 
 	fail_unless(node->data_type == parse_arith_data[_i].data_type,
-			"sdb_parser_parse_arith(%s) returned expression of data-type %s; "
-			"expected: %s", parse_arith_data[_i].expr,
-			SDB_TYPE_TO_STRING(node->data_type),
+			"sdb_parser_parse_arith(%s, %s) returned expression of data-type %s; "
+			"expected: %s", SDB_STORE_TYPE_TO_NAME(parse_arith_data[_i].context),
+			parse_arith_data[_i].expr, SDB_TYPE_TO_STRING(node->data_type),
 			SDB_TYPE_TO_STRING(parse_arith_data[_i].data_type));
 
 	sdb_object_deref(SDB_OBJ(node));

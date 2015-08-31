@@ -321,30 +321,22 @@ sdb_conn_lookup(sdb_conn_t *conn)
 
 	matcher = sdb_strbuf_string(conn->buf) + sizeof(uint32_t);
 	matcher_len = conn->cmd_len - sizeof(uint32_t);
-	m = sdb_parser_parse_conditional(matcher, (int)matcher_len, conn->errbuf);
+	m = sdb_parser_parse_conditional((int)type,
+			matcher, (int)matcher_len, conn->errbuf);
 	if (! m) {
-		char expr[matcher_len + 1];
-		strncpy(expr, matcher, sizeof(expr));
-		expr[sizeof(expr) - 1] = '\0';
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to parse lookup condition '%s': %s",
-				expr, sdb_strbuf_string(conn->errbuf));
-		return -1;
-	}
-
-	ast = sdb_ast_lookup_create((int)type, m, /* filter = */ NULL);
-	/* run analyzer using the full context */
-	if (ast && sdb_parser_analyze(ast, conn->errbuf)) {
 		char expr[matcher_len + 1];
 		char err[sdb_strbuf_len(conn->errbuf) + sizeof(expr) + 64];
 		strncpy(expr, matcher, sizeof(expr));
 		expr[sizeof(expr) - 1] = '\0';
 		snprintf(err, sizeof(err), "Failed to parse lookup condition '%s': %s",
 				expr, sdb_strbuf_string(conn->errbuf));
+		sdb_log(SDB_LOG_ERR, "frontend: %s", err);
 		sdb_strbuf_sprintf(conn->errbuf, "%s", err);
-		status = -1;
+		return -1;
 	}
-	else
-		status = exec_query(conn, ast);
+
+	ast = sdb_ast_lookup_create((int)type, m, /* filter = */ NULL);
+	status = exec_query(conn, ast);
 	if (! ast)
 		sdb_object_deref(SDB_OBJ(m));
 	sdb_object_deref(SDB_OBJ(ast));

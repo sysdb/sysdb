@@ -581,7 +581,7 @@ START_TEST(test_expr_iter)
 
 	if (expr_iter_data[_i].filter) {
 		sdb_ast_node_t *ast;
-		ast = sdb_parser_parse_conditional(expr_iter_data[_i].filter, -1, NULL);
+		ast = sdb_parser_parse_conditional(context, expr_iter_data[_i].filter, -1, NULL);
 		filter = sdb_store_query_prepare_matcher(ast);
 		sdb_object_deref(SDB_OBJ(ast));
 		ck_assert(filter != NULL);

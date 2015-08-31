@@ -65,21 +65,25 @@ sdb_parser_parse(const char *query, int len, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_parser_parse_conditional:
- * Parse a single conditional expression. This function is similar to
- * sdb_parse_parse but will only accept a single conditional expression. The
- * return value is guaranteed to satisfy SDB_AST_IS_LOGICAL().
+ * Parse a single conditional expression which can be evaluated in the
+ * specified context (any valid store object type). This function is similar
+ * to sdb_parse_parse but will only accept a single conditional expression.
+ * The return value is guaranteed to satisfy SDB_AST_IS_LOGICAL().
  */
 sdb_ast_node_t *
-sdb_parser_parse_conditional(const char *cond, int len, sdb_strbuf_t *errbuf);
+sdb_parser_parse_conditional(int context,
+		const char *cond, int len, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_parser_parse_arith:
- * Parse a single arithmetic expression. This function is similar to
- * sdb_parse_parse but will only accept a single arithmetic expression. The
+ * Parse a single arithmetic expression which can be evaluated in the
+ * specified context (any valid store object type). This function is similar
+ * to sdb_parse_parse but will only accept a single arithmetic expression. The
  * return value is guaranteed to satisfy SDB_AST_IS_ARITHMETIC().
  */
 sdb_ast_node_t *
-sdb_parser_parse_arith(const char *expr, int len, sdb_strbuf_t *errbuf);
+sdb_parser_parse_arith(int context,
+		const char *expr, int len, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_parser_analyze:
@@ -95,7 +99,8 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_parser_analyze_conditional:
- * Semantical analysis of a conditional node.
+ * Semantical analysis of a conditional node in the specified context (any
+ * valid store object type).
  *
  * Returns:
  *  - 0 on success
@@ -103,11 +108,13 @@ sdb_parser_analyze(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
  *    error buffer
  */
 int
-sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+sdb_parser_analyze_conditional(int context,
+		sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_parser_analyze_arith:
- * Semantical analysis of an arithmetic node.
+ * Semantical analysis of an arithmetic node in the specified context (any
+ * valid store object type).
  *
  * Returns:
  *  - 0 on success
@@ -115,7 +122,8 @@ sdb_parser_analyze_conditional(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
  *    error buffer
  */
 int
-sdb_parser_analyze_arith(sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
+sdb_parser_analyze_arith(int context,
+		sdb_ast_node_t *node, sdb_strbuf_t *errbuf);
 
 /*
  * Low-level interface.
