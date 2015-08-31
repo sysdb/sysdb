@@ -157,6 +157,8 @@ struct {
 	  "host.name = 'p'",         -1,   1, SDB_AST_TYPE_LOOKUP, SDB_SERVICE },
 	{ "LOOKUP services MATCHING "
 	  "service.name = 'p'",      -1,   1, SDB_AST_TYPE_LOOKUP, SDB_SERVICE },
+	{ "LOOKUP services MATCHING ANY "
+	  "host.backend =~ 'b'",     -1,   1, SDB_AST_TYPE_LOOKUP, SDB_SERVICE },
 	{ "LOOKUP metrics",          -1,   1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
 	{ "LOOKUP metrics MATCHING ANY "
 	  "attribute.name =~ 'a'",   -1,   1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
@@ -164,6 +166,8 @@ struct {
 	  "host.name = 'p'",         -1,   1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
 	{ "LOOKUP metrics MATCHING "
 	  "metric.name = 'p'",       -1,   1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
+	{ "LOOKUP metrics MATCHING ANY "
+	  "host.service.name = 'p'", -1,   1, SDB_AST_TYPE_LOOKUP, SDB_METRIC },
 
 	/* TIMESERIES commands */
 	{ "TIMESERIES 'host'.'metric' "
@@ -579,6 +583,12 @@ struct {
 	{ "LOOKUP hosts MATCHING "
 	  "ANY backend || 'a' = 'b'",
 	                        -1,  -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING ANY "
+	  "host.name = 'h'",    -1, -1, 0, 0 },
+	{ "LOOKUP services MATCHING ANY "
+	  "host.name = 'h'",    -1, -1, 0, 0 },
+	{ "LOOKUP metrics MATCHING ANY "
+	  "host.name = 'h'",    -1, -1, 0, 0 },
 
 	/* invalid LIST commands */
 	{ "LIST",                -1, -1, 0, 0 },
