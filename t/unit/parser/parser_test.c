@@ -339,6 +339,9 @@ struct {
 	  "ALL backend =~ 'b'", -1,   1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 	{ "LOOKUP hosts MATCHING "
 	  "ALL backend !~ 'b'", -1,   1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
+	{ "LOOKUP hosts MATCHING "
+	  "ANY backend || 'a' = 'b'",
+	                        -1,   1, SDB_AST_TYPE_LOOKUP, SDB_HOST },
 	/* attribute type is unknown */
 	{ "LOOKUP hosts MATCHING "
 	  "ANY backend = attribute['backend']",
@@ -579,16 +582,14 @@ struct {
 	  "ALL 1 || '2' < '3'", -1,  -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING "
 	  "ALL name =~ 'a'",    -1,  -1, 0, 0 },
-	/* this could work in theory but is not supported atm */
-	{ "LOOKUP hosts MATCHING "
-	  "ANY backend || 'a' = 'b'",
-	                        -1,  -1, 0, 0 },
 	{ "LOOKUP hosts MATCHING ANY "
 	  "host.name = 'h'",    -1, -1, 0, 0 },
 	{ "LOOKUP services MATCHING ANY "
 	  "host.name = 'h'",    -1, -1, 0, 0 },
 	{ "LOOKUP metrics MATCHING ANY "
 	  "host.name = 'h'",    -1, -1, 0, 0 },
+	{ "LOOKUP hosts MATCHING ANY "
+	  "name || 'a' = 'b'",  -1, -1, 0, 0 },
 
 	/* invalid LIST commands */
 	{ "LIST",                -1, -1, 0, 0 },

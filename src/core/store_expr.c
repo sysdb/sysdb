@@ -39,6 +39,7 @@
 #include "core/object.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -55,6 +56,7 @@ struct sdb_store_expr_iter {
 
 	sdb_data_t array;
 	size_t array_idx;
+	bool free_array;
 
 	sdb_store_matcher_t *filter;
 };
@@ -306,6 +308,7 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	sdb_store_expr_iter_t *iter;
 	sdb_avltree_iter_t *tree = NULL;
 	sdb_data_t array = SDB_DATA_INIT;
+	bool free_array = 0;
 
 	if (! expr)
 		return NULL;
@@ -345,15 +348,27 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		if (expr->data.type & SDB_TYPE_ARRAY)
 			array = expr->data;
 	}
-	else
-		return NULL;
+	else {
+		sdb_data_t value = SDB_DATA_INIT;
+		if (sdb_store_expr_eval(expr, obj, &value, filter))
+			return NULL;
+		if (! (value.type & SDB_TYPE_ARRAY)) {
+			sdb_data_free_datum(&value);
+			return NULL;
+		}
+		array = value;
+		free_array = 1;
+	}
 
 	if ((! tree) && (array.type == SDB_TYPE_NULL))
 		return NULL;
 
 	iter = calloc(1, sizeof(*iter));
-	if (! iter)
+	if (! iter) {
+		if (free_array)
+			sdb_data_free_datum(&array);
 		return NULL;
+	}
 
 	sdb_object_ref(SDB_OBJ(obj));
 	sdb_object_ref(SDB_OBJ(expr));
@@ -363,6 +378,7 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	iter->expr = expr;
 	iter->tree = tree;
 	iter->array = array;
+	iter->free_array = free_array;
 	iter->filter = filter;
 	return iter;
 } /* sdb_store_expr_iter */
@@ -379,6 +395,8 @@ sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter)
 		sdb_avltree_iter_destroy(iter->tree);
 	iter->tree = NULL;
 
+	if (iter->free_array)
+		sdb_data_free_datum(&iter->array);
 	iter->array = null;
 	iter->array_idx = 0;
 

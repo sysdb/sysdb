@@ -202,11 +202,6 @@ analyze_logical(context_t ctx, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 static int
 analyze_arith(context_t ctx, sdb_ast_op_t *op, sdb_strbuf_t *errbuf)
 {
-	if (ctx.iter) {
-		op_error(errbuf, op, "cannot evaluate in iterator context");
-		return -1;
-	}
-
 	if (analyze_node(ctx, op->left, errbuf))
 		return -1;
 	if (analyze_node(ctx, op->right, errbuf))

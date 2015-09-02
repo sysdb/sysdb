@@ -196,8 +196,10 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	assert((! CMP_M(ITER_M(m)->m)->left) && CMP_M(ITER_M(m)->m)->right);
 
 	iter = sdb_store_expr_iter(ITER_M(m)->iter, obj, filter);
-	if (! iter)
+	if (! iter) {
+		sdb_log(SDB_LOG_WARNING, "store: Invalid iterator");
 		return 0;
+	}
 
 	status = all;
 	while (sdb_store_expr_iter_has_next(iter)) {

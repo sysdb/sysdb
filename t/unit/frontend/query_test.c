@@ -124,7 +124,38 @@ turndown(void)
 					"{\"name\": \"hostname\", \"value\": \"h1\", " \
 						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
+#define HOST_H2 \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"metrics\": [" \
+			"{\"name\": \"m1\", \"timeseries\": false, " \
+				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}], " \
+		"\"services\": [" \
+			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}," \
+			"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
+					"{\"name\": \"k1\", \"value\": 123, " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
+					"{\"name\": \"k2\", \"value\": 4711, " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define HOST_H1_ARRAY "["HOST_H1"]"
+#define HOST_H12_ARRAY "["HOST_H1","HOST_H2"]"
 #define HOST_H1_LISTING \
 	"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": []}"
@@ -370,6 +401,14 @@ static struct {
 	{
 		SDB_CONNECTION_QUERY, "LOOKUP hosts MATCHING name = 'h1' FILTER age >= 0s", -1, /* always matches */
 		0, SDB_CONNECTION_DATA, 1112, SDB_CONNECTION_LOOKUP, HOST_H1_ARRAY,
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP hosts MATCHING ANY backend = 'b'", -1,
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP hosts MATCHING ANY backend || 'b' = 'b'", -1,
+		0, SDB_CONNECTION_DATA, 2205, SDB_CONNECTION_LOOKUP, HOST_H12_ARRAY,
 	},
 	{
 		SDB_CONNECTION_QUERY, "FETCH host 'h1' FILTER age < 0s", -1, /* never matches */
