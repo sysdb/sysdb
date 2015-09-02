@@ -130,8 +130,7 @@ typedef struct sdb_store_expr sdb_store_expr_t;
 #define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
 
 /*
- * An expression iterator iterates over the values of an iterable expression
- * (see sdb_store_expr_iterable).
+ * An expression iterator iterates over the values of an iterable expression.
  */
 struct sdb_store_expr_iter;
 typedef struct sdb_store_expr_iter sdb_store_expr_iter_t;
@@ -513,19 +512,9 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_data_t *res, sdb_store_matcher_t *filter);
 
 /*
- * sdb_store_expr_iterable:
- * Check whether an expression, evaluated in the specified context (HOST,
- * SERVICE, METRIC) is iterable, that is, if it may evaluate to multiple
- * values.
- */
-bool
-sdb_store_expr_iterable(sdb_store_expr_t *expr, int context);
-
-/*
  * sdb_store_expr_iter:
  * Iterate over the elements of an iterable expression. sdb_store_expr_iter
  * returns NULL if the expression is not iterable (for the specified object).
- * See also sdb_store_expr_iterable.
  *
  * sdb_store_expr_iter_get_next returns NULL if there is no next element.
  */

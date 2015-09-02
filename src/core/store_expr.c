@@ -263,44 +263,6 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	return status;
 } /* sdb_store_expr_eval */
 
-bool
-sdb_store_expr_iterable(sdb_store_expr_t *expr, int context)
-{
-	if (expr->type == TYPED_EXPR) {
-		if ((context != SDB_HOST) && (context != SDB_SERVICE)
-				&& (context != SDB_METRIC))
-			return 0;
-		if (context == expr->data.data.integer)
-			return 0;
-		if ((expr->data.data.integer != SDB_SERVICE)
-				&& (expr->data.data.integer != SDB_METRIC)
-				&& (expr->data.data.integer != SDB_ATTRIBUTE))
-			return 0;
-		if ((context == SDB_SERVICE)
-				&& (expr->data.data.integer == SDB_METRIC))
-			return 0;
-		else if ((context == SDB_METRIC)
-				&& (expr->data.data.integer == SDB_SERVICE))
-			return 0;
-		return 1;
-	}
-	else if (expr->type == FIELD_VALUE) {
-		if ((context != SDB_HOST) && (context != SDB_SERVICE)
-				&& (context != SDB_METRIC) && (context != SDB_ATTRIBUTE))
-			return 0;
-		if (expr->data.data.integer == SDB_FIELD_BACKEND)
-			return 1;
-		else if (expr->data.data.integer == SDB_FIELD_VALUE)
-			/* we don't current support this just like when using
-			 * the attribute[<name>] syntax */
-			return 0;
-	}
-	else if (! expr->type) {
-		return !!(expr->data.type & SDB_TYPE_ARRAY);
-	}
-	return 0;
-} /* sdb_store_expr_iterable */
-
 sdb_store_expr_iter_t *
 sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 		sdb_store_matcher_t *filter)

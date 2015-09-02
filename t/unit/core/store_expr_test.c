@@ -560,7 +560,6 @@ START_TEST(test_expr_iter)
 	sdb_store_matcher_t *filter = NULL;
 	int context = SDB_HOST;
 
-	bool iterable;
 	sdb_store_expr_iter_t *iter;
 	size_t i;
 
@@ -587,19 +586,13 @@ START_TEST(test_expr_iter)
 		ck_assert(filter != NULL);
 	}
 
-	iterable = sdb_store_expr_iterable(&expr_iter_data[_i].expr, context);
-	fail_unless(iterable == expr_iter_data[_i].iterable,
-			"%s expression not iterable in %s context",
-			EXPR_TO_STRING(&expr_iter_data[_i].expr),
-			SDB_STORE_TYPE_TO_NAME(context));
-
 	iter = sdb_store_expr_iter(&expr_iter_data[_i].expr, obj, filter);
-	fail_unless((iter != NULL) == iterable,
+	fail_unless((iter != NULL) == expr_iter_data[_i].iterable,
 			"sdb_store_expr_iter(%s expression, %s, %s) = %s; expected: %s",
 			EXPR_TO_STRING(&expr_iter_data[_i].expr),
 			obj ? SDB_STORE_TYPE_TO_NAME(obj->type) : "<array>",
 			expr_iter_data[_i].filter, iter ? "<iter>" : "NULL",
-			iterable ? "<iter>" : "NULL");
+			expr_iter_data[_i].iterable ? "<iter>" : "NULL");
 
 	/* the iterator will keep a reference */
 	sdb_object_deref(SDB_OBJ(obj)); obj = NULL;
