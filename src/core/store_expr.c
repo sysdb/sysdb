@@ -275,6 +275,23 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	if (! expr)
 		return NULL;
 
+	while (expr->type == TYPED_EXPR) {
+		int type = (int)expr->data.data.integer;
+
+		if (obj->type == type) {
+			/* self reference */
+		}
+		else if ((type == SDB_HOST)
+				&& ((obj->type == SDB_SERVICE)
+					|| (obj->type == SDB_METRIC))) {
+			/* reference to parent host */
+			obj = obj->parent;
+		}
+		else
+			break;
+		expr = expr->left;
+	}
+
 	if (expr->type == TYPED_EXPR) {
 		if (! obj)
 			return NULL;

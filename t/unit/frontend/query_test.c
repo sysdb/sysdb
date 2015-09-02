@@ -173,6 +173,28 @@ turndown(void)
 					"{\"name\": \"hostname\", \"value\": \"h2\", " \
 						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
+#define SERVICE_H2_S12 \
+	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
+			"\"update_interval\": \"0s\", \"backends\": [], " \
+		"\"services\": [" \
+			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}," \
+			"{\"name\": \"s2\", \"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"attributes\": [" \
+					"{\"name\": \"hostname\", \"value\": \"h2\", " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
+					"{\"name\": \"k1\", \"value\": 123, " \
+						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}," \
+					"{\"name\": \"k2\", \"value\": 4711, " \
+						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
+						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
 #define SERVICE_H2_S1_ARRAY "["SERVICE_H2_S1"]"
 #define SERVICE_H2_S12_LISTING \
 	"[{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
@@ -470,6 +492,22 @@ static struct {
 	{
 		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING name = 's1'", -1,
 		0, SDB_CONNECTION_DATA, 358, SDB_CONNECTION_LOOKUP, SERVICE_H2_S1_ARRAY,
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING host.name = 'h2'", -1,
+		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.metric.name = 'm1'", -1,
+		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.metric.last_update = 1s", -1,
+		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
+	},
+	{
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.metric.name = 'mX'", -1,
+		0, SDB_CONNECTION_DATA, 6, SDB_CONNECTION_LOOKUP, "[]",
 	},
 	{
 		SDB_CONNECTION_LOOKUP, "\0\0\0\2""name = 's1'", 16,
