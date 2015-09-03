@@ -69,7 +69,8 @@ populate(void)
 
 	sdb_plugin_store_metric("h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
 	sdb_plugin_store_metric("h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
-	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 5 * SDB_INTERVAL_SECOND);
+	sdb_plugin_store_metric("h2", "m1", /* store */ NULL, 10 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
@@ -129,12 +130,12 @@ turndown(void)
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"last_update\": \"1970-01-01 00:00:10 +0000\", " \
+				"\"update_interval\": \"5s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h2\", " \
-						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
-						"\"update_interval\": \"0s\", \"backends\": []}]}], " \
+						"\"last_update\": \"1970-01-01 00:00:10 +0000\", " \
+						"\"update_interval\": \"5s\", \"backends\": []}]}], " \
 		"\"services\": [" \
 			"{\"name\": \"s1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 				"\"update_interval\": \"0s\", \"backends\": [], " \
@@ -219,18 +220,19 @@ turndown(void)
 					"{\"name\": \"k3\", \"value\": 42, " \
 						"\"last_update\": \"1970-01-01 00:00:02 +0000\", " \
 						"\"update_interval\": \"0s\", \"backends\": []}]}]}"
-#define METRIC_H12_M1_ARRAY \
-	"["METRIC_H1_M1"," \
+#define METRIC_H2_M1 \
 	"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": [], " \
+				"\"last_update\": \"1970-01-01 00:00:10 +0000\", " \
+				"\"update_interval\": \"5s\", \"backends\": [], " \
 				"\"attributes\": [" \
 					"{\"name\": \"hostname\", \"value\": \"h2\", " \
-						"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
-						"\"update_interval\": \"0s\", \"backends\": []}]}]}]"
+						"\"last_update\": \"1970-01-01 00:00:10 +0000\", " \
+						"\"update_interval\": \"5s\", \"backends\": []}]}]}"
+#define METRIC_H12_M1_ARRAY \
+	"["METRIC_H1_M1","METRIC_H2_M1"]"
 #define METRIC_H12_M12_LISTING \
 	"[{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", " \
 			"\"update_interval\": \"0s\", \"backends\": [], " \
@@ -245,8 +247,8 @@ turndown(void)
 			"\"update_interval\": \"0s\", \"backends\": [], " \
 		"\"metrics\": [" \
 			"{\"name\": \"m1\", \"timeseries\": false, " \
-				"\"last_update\": \"1970-01-01 00:00:01 +0000\", " \
-				"\"update_interval\": \"0s\", \"backends\": []}]}]"
+				"\"last_update\": \"1970-01-01 00:00:10 +0000\", " \
+				"\"update_interval\": \"5s\", \"backends\": []}]}]"
 
 typedef struct {
 	sdb_conn_t conn;
@@ -502,7 +504,12 @@ static struct {
 		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
 	},
 	{
-		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.metric.last_update = 1s", -1,
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.metric.last_update = 10s", -1,
+		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
+	},
+	{
+		/* stupid but valid ;-) */
+		SDB_CONNECTION_QUERY, "LOOKUP services MATCHING ANY host.host.metric.metric.interval = 5s", -1,
 		0, SDB_CONNECTION_DATA, 825, SDB_CONNECTION_LOOKUP, "["SERVICE_H2_S12"]",
 	},
 	{
@@ -582,6 +589,16 @@ static struct {
 	{
 		SDB_CONNECTION_QUERY, "LOOKUP metrics MATCHING name = 'm1'", -1,
 		0, SDB_CONNECTION_DATA, 864, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
+	},
+	{
+		/* stupid but valid ;-) */
+		SDB_CONNECTION_QUERY, "LOOKUP metrics MATCHING metric.metric.name = 'm1'", -1,
+		0, SDB_CONNECTION_DATA, 864, SDB_CONNECTION_LOOKUP, METRIC_H12_M1_ARRAY,
+	},
+	{
+		/* also stupid but valid ;-) */
+		SDB_CONNECTION_QUERY, "LOOKUP metrics MATCHING metric.metric.host.host.last_update = 3s", -1,
+		0, SDB_CONNECTION_DATA, 378, SDB_CONNECTION_LOOKUP, "["METRIC_H2_M1"]",
 	},
 	{
 		SDB_CONNECTION_LOOKUP, "\0\0\0\3""name = 'm1'", 16,
