@@ -654,7 +654,6 @@ store_service(const char *hostname, const char *name,
 
 	sdb_host_t *host;
 	sdb_avltree_t *services;
-	sdb_data_t d;
 
 	int status = 0;
 
@@ -676,15 +675,6 @@ store_service(const char *hostname, const char *name,
 
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&st->host_lock);
-
-	if (status)
-		return status;
-
-	/* record the hostname as an attribute */
-	d.type = SDB_TYPE_STRING;
-	d.data.string = SDB_OBJ(host)->name;
-	if (store_service_attr(hostname, name, "hostname", &d, last_update, user_data))
-		status = -1;
 	return status;
 } /* store_service */
 
@@ -742,7 +732,6 @@ store_metric(const char *hostname, const char *name,
 	sdb_store_obj_t *obj = NULL;
 	sdb_host_t *host;
 	sdb_metric_t *metric;
-	sdb_data_t d;
 
 	sdb_avltree_t *metrics;
 
@@ -784,12 +773,6 @@ store_metric(const char *hostname, const char *name,
 		if (store_metric_store(metric, store))
 			status = -1;
 	pthread_rwlock_unlock(&st->host_lock);
-
-	/* record the hostname as an attribute */
-	d.type = SDB_TYPE_STRING;
-	d.data.string = SDB_OBJ(host)->name;
-	if (store_metric_attr(hostname, name, "hostname", &d, last_update, user_data))
-		status = -1;
 	return status;
 } /* store_metric */
 

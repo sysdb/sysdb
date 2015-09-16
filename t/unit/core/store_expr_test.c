@@ -29,7 +29,6 @@
 #	include "config.h"
 #endif
 
-#include "core/plugin.h"
 #include "core/store.h"
 #include "core/store-private.h"
 #include "parser/parser.h"
@@ -322,23 +321,23 @@ struct {
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,
 		"a", SDB_SERVICE, "s1", NULL,
 		{
-			{ SDB_TYPE_STRING, { .string = "hostname" } },
 			{ SDB_TYPE_STRING, { .string = "k1" } },
 			{ 0 },
 			{ 0 },
 			{ 0 },
-		}, 2,
+			{ 0 },
+		}, 1,
 	},
 	{
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,
 		"a", SDB_SERVICE, "s1", "age >= 0s",
 		{
-			{ SDB_TYPE_STRING, { .string = "hostname" } },
 			{ SDB_TYPE_STRING, { .string = "k1" } },
 			{ 0 },
 			{ 0 },
 			{ 0 },
-		}, 2,
+			{ 0 },
+		}, 1,
 	},
 	{
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,
@@ -391,23 +390,23 @@ struct {
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,
 		"b", SDB_METRIC, "m2", NULL,
 		{
-			{ SDB_TYPE_STRING, { .string = "hostname" } },
 			{ SDB_TYPE_STRING, { .string = "k1" } },
 			{ SDB_TYPE_STRING, { .string = "k2" } },
 			{ 0 },
 			{ 0 },
-		}, 3,
+			{ 0 },
+		}, 2,
 	},
 	{
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,
 		"b", SDB_METRIC, "m2", "age >= 0s",
 		{
-			{ SDB_TYPE_STRING, { .string = "hostname" } },
 			{ SDB_TYPE_STRING, { .string = "k1" } },
 			{ SDB_TYPE_STRING, { .string = "k2" } },
 			{ 0 },
 			{ 0 },
-		}, 3,
+			{ 0 },
+		}, 2,
 	},
 	{
 		{ SDB_OBJECT_INIT, TYPED_EXPR, -1, &namer, NULL, ATTRS }, true,

@@ -1508,9 +1508,10 @@ int
 sdb_plugin_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	char *cname;
-
 	sdb_llist_iter_t *iter;
+	sdb_data_t d;
+
+	char *cname;
 	int status = 0;
 
 	if ((! hostname) || (! name))
@@ -1539,6 +1540,16 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+
+	if (! status) {
+		/* record the hostname as an attribute */
+		d.type = SDB_TYPE_STRING;
+		d.data.string = cname;
+		if (sdb_plugin_store_service_attribute(cname, name,
+					"hostname", &d, last_update))
+			status = -1;
+	}
+
 	free(cname);
 	return status;
 } /* sdb_plugin_store_service */
@@ -1547,9 +1558,10 @@ int
 sdb_plugin_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
-	char *cname;
-
 	sdb_llist_iter_t *iter;
+	sdb_data_t d;
+
+	char *cname;
 	int status = 0;
 
 	if ((! hostname) || (! name))
@@ -1581,6 +1593,16 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 			status = s;
 	}
 	sdb_llist_iter_destroy(iter);
+
+	if (! status) {
+		/* record the hostname as an attribute */
+		d.type = SDB_TYPE_STRING;
+		d.data.string = cname;
+		if (sdb_plugin_store_metric_attribute(cname, name,
+					"hostname", &d, last_update))
+			status = -1;
+	}
+
 	free(cname);
 	return status;
 } /* sdb_plugin_store_metric */
