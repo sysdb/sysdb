@@ -103,9 +103,9 @@ typedef struct sdb_store sdb_store_t;
 #define SDB_STORE(obj) ((sdb_store_t *)(obj))
 
 /*
- * sdb_store_obj_t represents the super-class of any object stored in the
- * database. It inherits from sdb_object_t and may safely be cast to a generic
- * object to access its name.
+ * sdb_store_obj_t represents the super-class of any stored object. It
+ * inherits from sdb_object_t and may safely be cast to a generic object to
+ * access its name.
  */
 struct sdb_store_obj;
 typedef struct sdb_store_obj sdb_store_obj_t;
@@ -672,9 +672,9 @@ typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj,
  * sdb_store_scan:
  * Look up objects of the specified type in the specified store. The specified
  * callback function is called for each object in the store matching 'm'. The
- * function performs a full scan of all objects stored in the database. If
- * specified, the filter will be used to preselect objects for further
- * evaluation. See the description of 'sdb_store_matcher_matches' for details.
+ * function performs a full scan of all stored objects. If specified, the
+ * filter will be used to preselect objects for further evaluation. See the
+ * description of 'sdb_store_matcher_matches' for details.
  *
  * Returns:
  *  - 0 on success
