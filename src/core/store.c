@@ -134,7 +134,7 @@ store_obj_destroy(sdb_object_t *obj)
 static int
 host_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_host_t *sobj = HOST(obj);
+	host_t *sobj = HOST(obj);
 	int ret;
 
 	/* this will consume the first argument (type) of ap */
@@ -157,7 +157,7 @@ host_init(sdb_object_t *obj, va_list ap)
 static void
 host_destroy(sdb_object_t *obj)
 {
-	sdb_host_t *sobj = HOST(obj);
+	host_t *sobj = HOST(obj);
 	assert(obj);
 
 	store_obj_destroy(obj);
@@ -173,7 +173,7 @@ host_destroy(sdb_object_t *obj)
 static int
 service_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_service_t *sobj = SVC(obj);
+	service_t *sobj = SVC(obj);
 	int ret;
 
 	/* this will consume the first argument (type) of ap */
@@ -190,7 +190,7 @@ service_init(sdb_object_t *obj, va_list ap)
 static void
 service_destroy(sdb_object_t *obj)
 {
-	sdb_service_t *sobj = SVC(obj);
+	service_t *sobj = SVC(obj);
 	assert(obj);
 
 	store_obj_destroy(obj);
@@ -270,13 +270,13 @@ static sdb_type_t store_type = {
 };
 
 static sdb_type_t host_type = {
-	/* size = */ sizeof(sdb_host_t),
+	/* size = */ sizeof(host_t),
 	/* init = */ host_init,
 	/* destroy = */ host_destroy
 };
 
 static sdb_type_t service_type = {
-	/* size = */ sizeof(sdb_service_t),
+	/* size = */ sizeof(service_t),
 	/* init = */ service_init,
 	/* destroy = */ service_destroy
 };
@@ -288,7 +288,7 @@ static sdb_type_t metric_type = {
 };
 
 static sdb_type_t attribute_type = {
-	/* size = */ sizeof(sdb_attribute_t),
+	/* size = */ sizeof(attr_t),
 	/* init = */ attr_init,
 	/* destroy = */ attr_destroy
 };
@@ -476,7 +476,7 @@ store_metric_store(sdb_metric_t *metric, sdb_metric_store_t *store)
 
 /* The store's host_lock has to be acquired before calling this function. */
 static sdb_avltree_t *
-get_host_children(sdb_host_t *host, int type)
+get_host_children(host_t *host, int type)
 {
 	if ((type != SDB_SERVICE) && (type != SDB_METRIC)
 			&& (type != SDB_ATTRIBUTE))
@@ -560,7 +560,7 @@ store_attribute(const char *hostname,
 {
 	sdb_store_t *st = SDB_STORE(user_data);
 
-	sdb_host_t *host;
+	host_t *host;
 	sdb_avltree_t *attrs;
 	int status = 0;
 
@@ -609,8 +609,8 @@ store_service_attr(const char *hostname, const char *service,
 {
 	sdb_store_t *st = SDB_STORE(user_data);
 
-	sdb_host_t *host;
-	sdb_service_t *svc;
+	host_t *host;
+	service_t *svc;
 	sdb_avltree_t *services;
 	int status = 0;
 
@@ -652,7 +652,7 @@ store_service(const char *hostname, const char *name,
 {
 	sdb_store_t *st = SDB_STORE(user_data);
 
-	sdb_host_t *host;
+	host_t *host;
 	sdb_avltree_t *services;
 
 	int status = 0;
@@ -686,7 +686,7 @@ store_metric_attr(const char *hostname, const char *metric,
 	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_avltree_t *metrics;
-	sdb_host_t *host;
+	host_t *host;
 	sdb_metric_t *m;
 	int status = 0;
 
@@ -730,7 +730,7 @@ store_metric(const char *hostname, const char *name,
 	sdb_store_t *st = SDB_STORE(user_data);
 
 	sdb_store_obj_t *obj = NULL;
-	sdb_host_t *host;
+	host_t *host;
 	sdb_metric_t *metric;
 
 	sdb_avltree_t *metrics;
@@ -860,7 +860,7 @@ sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
 sdb_store_obj_t *
 sdb_store_get_host(sdb_store_t *store, const char *name)
 {
-	sdb_host_t *host;
+	host_t *host;
 
 	if ((! store) || (! name))
 		return NULL;
@@ -984,7 +984,7 @@ sdb_store_fetch_timeseries(sdb_store_t *store,
 		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf)
 {
 	sdb_avltree_t *metrics;
-	sdb_host_t *host;
+	host_t *host;
 	sdb_metric_t *m;
 
 	sdb_timeseries_t *ts;

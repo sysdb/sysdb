@@ -66,17 +66,17 @@ typedef struct {
 	sdb_store_obj_t super;
 
 	sdb_data_t value;
-} sdb_attribute_t;
-#define ATTR(obj) ((sdb_attribute_t *)(obj))
-#define CONST_ATTR(obj) ((const sdb_attribute_t *)(obj))
+} attr_t;
+#define ATTR(obj) ((attr_t *)(obj))
+#define CONST_ATTR(obj) ((const attr_t *)(obj))
 
 typedef struct {
 	sdb_store_obj_t super;
 
 	sdb_avltree_t *attributes;
-} sdb_service_t;
-#define SVC(obj) ((sdb_service_t *)(obj))
-#define CONST_SVC(obj) ((const sdb_service_t *)(obj))
+} service_t;
+#define SVC(obj) ((service_t *)(obj))
+#define CONST_SVC(obj) ((const service_t *)(obj))
 
 typedef struct {
 	sdb_store_obj_t super;
@@ -95,9 +95,9 @@ typedef struct {
 	sdb_avltree_t *services;
 	sdb_avltree_t *metrics;
 	sdb_avltree_t *attributes;
-} sdb_host_t;
-#define HOST(obj) ((sdb_host_t *)(obj))
-#define CONST_HOST(obj) ((const sdb_host_t *)(obj))
+} host_t;
+#define HOST(obj) ((host_t *)(obj))
+#define CONST_HOST(obj) ((const host_t *)(obj))
 
 /* shortcuts for accessing service/host attributes */
 #define _last_update super.last_update
