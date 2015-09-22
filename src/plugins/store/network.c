@@ -121,91 +121,59 @@ store_rpc(user_data_t *ud, const char *msg, size_t msg_len)
 } /* store_rpc */
 
 static int
-store_host(const char *name, sdb_time_t last_update, sdb_object_t *user_data)
+store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 {
-	sdb_proto_host_t host = { last_update, name };
-	size_t len = sdb_proto_marshal_host(NULL, 0, &host);
+	sdb_proto_host_t h = { host->last_update, host->name };
+	size_t len = sdb_proto_marshal_host(NULL, 0, &h);
 	char buf[len];
 
-	sdb_proto_marshal_host(buf, len, &host);
+	sdb_proto_marshal_host(buf, len, &h);
 	return store_rpc(UD(user_data), buf, len);
 } /* store_host */
 
 static int
-store_service(const char *hostname, const char *name, sdb_time_t last_update,
-		sdb_object_t *user_data)
+store_service(sdb_store_service_t *service, sdb_object_t *user_data)
 {
-	sdb_proto_service_t svc = { last_update, hostname, name };
-	ssize_t len = sdb_proto_marshal_service(NULL, 0, &svc);
+	sdb_proto_service_t s = {
+		service->last_update, service->hostname, service->name,
+	};
+	ssize_t len = sdb_proto_marshal_service(NULL, 0, &s);
 	char buf[len];
 
-	sdb_proto_marshal_service(buf, len, &svc);
+	sdb_proto_marshal_service(buf, len, &s);
 	return store_rpc(UD(user_data), buf, len);
 } /* store_service */
 
 static int
-store_metric(const char *hostname, const char *name,
-		sdb_metric_store_t *store, sdb_time_t last_update,
-		sdb_object_t *user_data)
+store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 {
-	sdb_proto_metric_t metric = {
-		last_update, hostname, name,
-		store ? store->type : NULL, store ? store->id : NULL,
+	sdb_proto_metric_t m = {
+		metric->last_update, metric->hostname, metric->name,
+		metric->store.type, metric->store.id,
 	};
-	size_t len = sdb_proto_marshal_metric(NULL, 0, &metric);
+	size_t len = sdb_proto_marshal_metric(NULL, 0, &m);
 	char buf[len];
 
-	sdb_proto_marshal_metric(buf, len, &metric);
+	sdb_proto_marshal_metric(buf, len, &m);
 	return store_rpc(UD(user_data), buf, len);
 } /* store_metric */
 
 static int
-store_attr(const char *hostname, const char *key, const sdb_data_t *value,
-		sdb_time_t last_update, sdb_object_t *user_data)
+store_attr(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 {
-	sdb_proto_attribute_t attr = {
-		last_update, SDB_HOST, NULL, hostname, key, *value,
+	sdb_proto_attribute_t a = {
+		attr->last_update, attr->parent_type, attr->hostname, attr->parent,
+		attr->key, attr->value,
 	};
-	size_t len = sdb_proto_marshal_attribute(NULL, 0, &attr);
+	size_t len = sdb_proto_marshal_attribute(NULL, 0, &a);
 	char buf[len];
 
-	sdb_proto_marshal_attribute(buf, len, &attr);
+	sdb_proto_marshal_attribute(buf, len, &a);
 	return store_rpc(UD(user_data), buf, len);
 } /* store_attr */
 
-static int
-store_service_attr(const char *hostname, const char *service,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update,
-		sdb_object_t *user_data)
-{
-	sdb_proto_attribute_t attr = {
-		last_update, SDB_SERVICE, hostname, service, key, *value,
-	};
-	size_t len = sdb_proto_marshal_attribute(NULL, 0, &attr);
-	char buf[len];
-
-	sdb_proto_marshal_attribute(buf, len, &attr);
-	return store_rpc(UD(user_data), buf, len);
-} /* store_service_attr */
-
-static int
-store_metric_attr(const char *hostname, const char *metric,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update,
-		sdb_object_t *user_data)
-{
-	sdb_proto_attribute_t attr = {
-		last_update, SDB_METRIC, hostname, metric, key, *value,
-	};
-	size_t len = sdb_proto_marshal_attribute(NULL, 0, &attr);
-	char buf[len];
-
-	sdb_proto_marshal_attribute(buf, len, &attr);
-	return store_rpc(UD(user_data), buf, len);
-} /* store_metric_attr */
-
 static sdb_store_writer_t store_impl = {
-	store_host, store_service, store_metric,
-	store_attr, store_service_attr, store_metric_attr,
+	store_host, store_service, store_metric, store_attr,
 };
 
 /*

@@ -406,8 +406,7 @@ plugin_writer_init(sdb_object_t *obj, va_list ap)
 	assert(impl);
 
 	if ((! impl->store_host) || (! impl->store_service)
-			|| (! impl->store_metric) || (! impl->store_attribute)
-			|| (! impl->store_service_attr) || (! impl->store_metric_attr)) {
+			|| (! impl->store_metric) || (! impl->store_attribute)) {
 		sdb_log(SDB_LOG_ERR, "core: store writer callback '%s' "
 				"does not fully implement the writer interface.",
 				obj->name);
@@ -1470,6 +1469,7 @@ sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 int
 sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 {
+	sdb_store_host_t host = { 0 };
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1490,12 +1490,15 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 	}
 
+	host.name = cname;
+	host.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_host(cname, last_update, writer->w_user_data);
+		s = writer->impl.store_host(&host, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
@@ -1508,10 +1511,12 @@ int
 sdb_plugin_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
+	sdb_store_service_t service = { 0 };
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	sdb_data_t d;
 
-	char *cname;
 	int status = 0;
 
 	if ((! hostname) || (! name))
@@ -1529,13 +1534,16 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		return -1;
 	}
 
+	service.hostname = cname;
+	service.name = name;
+	service.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_service(cname, name, last_update,
-				writer->w_user_data);
+		s = writer->impl.store_service(&service, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
@@ -1558,10 +1566,12 @@ int
 sdb_plugin_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
+	sdb_store_metric_t metric = { 0 };
+	char *cname;
+
 	sdb_llist_iter_t *iter;
 	sdb_data_t d;
 
-	char *cname;
 	int status = 0;
 
 	if ((! hostname) || (! name))
@@ -1582,13 +1592,20 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 	if (store && ((! store->type) || (! store->id)))
 		store = NULL;
 
+	metric.hostname = cname;
+	metric.name = name;
+	if (store) {
+		metric.store.type = store->type;
+		metric.store.id = store->id;
+	}
+	metric.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_metric(cname, name, store, last_update,
-				writer->w_user_data);
+		s = writer->impl.store_metric(&metric, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
@@ -1611,6 +1628,7 @@ int
 sdb_plugin_store_attribute(const char *hostname, const char *key,
 		const sdb_data_t *value, sdb_time_t last_update)
 {
+	sdb_store_attribute_t attr = { 0 };
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1631,13 +1649,18 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 		return -1;
 	}
 
+	attr.parent_type = SDB_HOST;
+	attr.parent = cname;
+	attr.key = key;
+	attr.value = *value;
+	attr.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_attribute(cname, key, value, last_update,
-				writer->w_user_data);
+		s = writer->impl.store_attribute(&attr, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
@@ -1650,6 +1673,7 @@ int
 sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
+	sdb_store_attribute_t attr = { 0 };
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1670,13 +1694,19 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		return -1;
 	}
 
+	attr.hostname = cname;
+	attr.parent_type = SDB_SERVICE;
+	attr.parent = service;
+	attr.key = key;
+	attr.value = *value;
+	attr.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_service_attr(cname, service,
-				key, value, last_update, writer->w_user_data);
+		s = writer->impl.store_attribute(&attr, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}
@@ -1689,6 +1719,7 @@ int
 sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
+	sdb_store_attribute_t attr = { 0 };
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1709,13 +1740,19 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		return -1;
 	}
 
+	attr.hostname = cname;
+	attr.parent_type = SDB_METRIC;
+	attr.parent = metric;
+	attr.key = key;
+	attr.value = *value;
+	attr.last_update = last_update;
+
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
 		writer_t *writer = WRITER(sdb_llist_iter_get_next(iter));
 		int s;
 		assert(writer);
-		s = writer->impl.store_metric_attr(cname, metric,
-				key, value, last_update, writer->w_user_data);
+		s = writer->impl.store_attribute(&attr, writer->w_user_data);
 		if (((s > 0) && (status >= 0)) || (s < 0))
 			status = s;
 	}

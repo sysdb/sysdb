@@ -111,12 +111,70 @@ struct sdb_store_obj;
 typedef struct sdb_store_obj sdb_store_obj_t;
 
 /*
- * A metric store describes how to access a metric's data.
+ * sdb_store_host_t represents the meta-data of a stored host object.
+ */
+typedef struct {
+	const char *name;
+
+	sdb_time_t last_update;
+	sdb_time_t interval;
+	char **backends;
+	size_t backends_num;
+} sdb_store_host_t;
+
+/*
+ * sdb_store_service_t represents the meta-data of a stored service object.
+ */
+typedef struct {
+	const char *hostname;
+	const char *name;
+
+	sdb_time_t last_update;
+	sdb_time_t interval;
+	char **backends;
+	size_t backends_num;
+} sdb_store_service_t;
+
+/*
+ * sdb_metric_store_t specifies how to access a metric's data.
  */
 typedef struct {
 	const char *type;
 	const char *id;
 } sdb_metric_store_t;
+
+/*
+ * sdb_store_metric_t represents the meta-data of a stored metric object.
+ */
+typedef struct {
+	const char *hostname;
+	const char *name;
+	struct {
+		const char *type;
+		const char *id;
+	} store;
+
+	sdb_time_t last_update;
+	sdb_time_t interval;
+	char **backends;
+	size_t backends_num;
+} sdb_store_metric_t;
+
+/*
+ * sdb_store_attribute_t represents a stored attribute.
+ */
+typedef struct {
+	const char *hostname; /* optional */
+	int parent_type;
+	const char *parent;
+	const char *key;
+	sdb_data_t value;
+
+	sdb_time_t last_update;
+	sdb_time_t interval;
+	char **backends;
+	size_t backends_num;
+} sdb_store_attribute_t;
 
 /*
  * Expressions represent arithmetic expressions based on stored objects and
@@ -175,8 +233,7 @@ typedef struct {
 	 * specified name and timestamp. Else, a new entry will be created in the
 	 * store.
 	 */
-	int (*store_host)(const char *name, sdb_time_t last_update,
-			sdb_object_t *user_data);
+	int (*store_host)(sdb_store_host_t *host, sdb_object_t *user_data);
 
 	/*
 	 * store_service:
@@ -186,8 +243,7 @@ typedef struct {
 	 * does not exist, an error will be reported. Else, a new entry will be
 	 * created in the store.
 	 */
-	int (*store_service)(const char *hostname, const char *name,
-			sdb_time_t last_update, sdb_object_t *user_data);
+	int (*store_service)(sdb_store_service_t *service, sdb_object_t *user_data);
 
 	/*
 	 * store_metric:
@@ -197,9 +253,7 @@ typedef struct {
 	 * exist, an error will be reported. Else, a new entry will be created in
 	 * the store.
 	 */
-	int (*store_metric)(const char *hostname, const char *name,
-			sdb_metric_store_t *store, sdb_time_t last_update,
-			sdb_object_t *user_data);
+	int (*store_metric)(sdb_store_metric_t *metric, sdb_object_t *user_data);
 
 	/*
 	 * store_attribute:
@@ -209,31 +263,7 @@ typedef struct {
 	 * exist, an error will be reported. Else, a new entry will be created in
 	 * the store.
 	 */
-	int (*store_attribute)(const char *hostname,
-			const char *key, const sdb_data_t *value, sdb_time_t last_update,
-			sdb_object_t *user_data);
-
-	/*
-	 * store_service_attr:
-	 * Add/update a service's attribute in the store. If the attribute,
-	 * identified by its key, already exists for the specified service, it
-	 * will be updated to the specified value. If the references service (for
-	 * the specified host) does not exist, an error will be reported.
-	 */
-	int (*store_service_attr)(const char *hostname, const char *service,
-			const char *key, const sdb_data_t *value, sdb_time_t last_update,
-			sdb_object_t *user_data);
-
-	/*
-	 * store_metric_attr:
-	 * Add/update a metric's attribute in the store. If the attribute,
-	 * identified by its key, already exists for the specified metric, it will
-	 * be updated to the specified value. If the references metric (for the
-	 * specified host) does not exist, an error will be reported.
-	 */
-	int (*store_metric_attr)(const char *hostname, const char *metric,
-			const char *key, const sdb_data_t *value, sdb_time_t last_update,
-			sdb_object_t *user_data);
+	int (*store_attribute)(sdb_store_attribute_t *attr, sdb_object_t *user_data);
 } sdb_store_writer_t;
 
 /*
