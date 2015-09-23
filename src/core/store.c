@@ -422,28 +422,6 @@ store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
 } /* store_obj */
 
 static int
-store_attr(sdb_store_obj_t *parent, sdb_avltree_t *attributes,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update)
-{
-	sdb_store_obj_t *attr = NULL;
-	int status;
-
-	status = store_obj(parent, attributes, SDB_ATTRIBUTE,
-			key, last_update, &attr);
-	if (status)
-		return status;
-
-	/* don't update unchanged values */
-	if (! sdb_data_cmp(&ATTR(attr)->value, value))
-		return status;
-
-	assert(attr);
-	if (sdb_data_copy(&ATTR(attr)->value, value))
-		return -1;
-	return status;
-} /* store_attr */
-
-static int
 store_metric_store(sdb_metric_t *metric, sdb_store_metric_t *m)
 {
 	char *type = metric->store.type;
@@ -557,12 +535,13 @@ static int
 store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
+	sdb_store_obj_t *parent = NULL;
+	sdb_store_obj_t *new = NULL;
 	const char *hostname;
 	host_t *host;
 
-	sdb_store_obj_t *obj = NULL;
 	sdb_avltree_t *children = NULL;
-	sdb_avltree_t *attrs;
+	sdb_avltree_t *attributes;
 	int status = 0;
 
 	if ((! attr) || (! attr->parent) || (! attr->key))
@@ -584,8 +563,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 
 	switch (attr->parent_type) {
 	case SDB_HOST:
-		obj = STORE_OBJ(host);
-		attrs = get_host_children(host, SDB_ATTRIBUTE);
+		parent = STORE_OBJ(host);
+		attributes = get_host_children(host, SDB_ATTRIBUTE);
 		break;
 	case SDB_SERVICE:
 		children = get_host_children(host, SDB_SERVICE);
@@ -599,8 +578,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 	}
 
 	if (children) {
-		obj = STORE_OBJ(sdb_avltree_lookup(children, attr->parent));
-		if (! obj) {
+		parent = STORE_OBJ(sdb_avltree_lookup(children, attr->parent));
+		if (! parent) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
 					"%s '%s/%s' not found", attr->key,
 					SDB_STORE_TYPE_TO_NAME(attr->parent_type),
@@ -608,16 +587,25 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 			status = -1;
 		}
 		else
-			attrs = attr->parent_type == SDB_SERVICE
-				? SVC(obj)->attributes
-				: METRIC(obj)->attributes;
+			attributes = attr->parent_type == SDB_SERVICE
+				? SVC(parent)->attributes
+				: METRIC(parent)->attributes;
 	}
 
 	if (! status)
-		status = store_attr(obj, attrs, attr->key, &attr->value, attr->last_update);
+		status = store_obj(parent, attributes, SDB_ATTRIBUTE,
+				attr->key, attr->last_update, &new);
 
-	if (obj != STORE_OBJ(host))
-		sdb_object_deref(SDB_OBJ(obj));
+	if (! status) {
+		assert(new);
+		/* update the value if it changed */
+		if (sdb_data_cmp(&ATTR(new)->value, &attr->value))
+			if (sdb_data_copy(&ATTR(new)->value, &attr->value))
+				status = -1;
+	}
+
+	if (parent != STORE_OBJ(host))
+		sdb_object_deref(SDB_OBJ(parent));
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&st->host_lock);
 
