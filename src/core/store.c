@@ -47,7 +47,7 @@
 #include <pthread.h>
 
 /*
- * private variables
+ * private types
  */
 
 struct sdb_store {
@@ -59,9 +59,15 @@ struct sdb_store {
 	pthread_rwlock_t host_lock;
 };
 
-/*
- * private types
- */
+/* internal representation of a to-be-stored object */
+typedef struct {
+	sdb_store_obj_t *parent;
+	sdb_avltree_t *parent_tree;
+	int type;
+	const char *name;
+	sdb_time_t last_update;
+} store_obj_t;
+#define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0 }
 
 static sdb_type_t host_type;
 static sdb_type_t service_type;
@@ -327,37 +333,35 @@ record_backend(sdb_store_obj_t *obj)
 } /* record_backend */
 
 static int
-store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
-		int type, const char *name, sdb_time_t last_update,
-		sdb_store_obj_t **updated_obj)
+store_obj(store_obj_t *obj, sdb_store_obj_t **updated_obj)
 {
 	sdb_store_obj_t *old, *new;
 	int status = 0;
 
-	assert(parent_tree);
+	assert(obj->parent_tree);
 
-	if (last_update <= 0)
-		last_update = sdb_gettime();
+	if (obj->last_update <= 0)
+		obj->last_update = sdb_gettime();
 
-	old = STORE_OBJ(sdb_avltree_lookup(parent_tree, name));
+	old = STORE_OBJ(sdb_avltree_lookup(obj->parent_tree, obj->name));
 	if (old) {
-		if (old->last_update > last_update) {
+		if (old->last_update > obj->last_update) {
 			sdb_log(SDB_LOG_DEBUG, "store: Cannot update %s '%s' - "
 					"value too old (%"PRIsdbTIME" < %"PRIsdbTIME")",
-					SDB_STORE_TYPE_TO_NAME(type), name,
-					last_update, old->last_update);
+					SDB_STORE_TYPE_TO_NAME(obj->type), obj->name,
+					obj->last_update, old->last_update);
 			/* don't report an error; the object may be updated by multiple
 			 * backends */
 			status = 1;
 		}
-		else if (old->last_update == last_update) {
+		else if (old->last_update == obj->last_update) {
 			/* don't report an error and also don't even log this to avoid
 			 * excessive noise on high sampling frequencies */
 			status = 1;
 		}
 		else {
-			sdb_time_t interval = last_update - old->last_update;
-			old->last_update = last_update;
+			sdb_time_t interval = obj->last_update - old->last_update;
+			old->last_update = obj->last_update;
 			if (interval) {
 				if (old->interval)
 					old->interval = (sdb_time_t)((0.9 * (double)old->interval)
@@ -371,23 +375,24 @@ store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
 		sdb_object_deref(SDB_OBJ(old));
 	}
 	else {
-		if (type == SDB_ATTRIBUTE) {
+		if (obj->type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
-			new = STORE_OBJ(sdb_object_create(name, attribute_type,
-						type, last_update, NULL));
+			new = STORE_OBJ(sdb_object_create(obj->name, attribute_type,
+						obj->type, obj->last_update, NULL));
 		}
 		else {
 			sdb_type_t t;
-			t = type == SDB_HOST
+			t = obj->type == SDB_HOST
 				? host_type
-				: type == SDB_SERVICE
+				: obj->type == SDB_SERVICE
 					? service_type
 					: metric_type;
-			new = STORE_OBJ(sdb_object_create(name, t, type, last_update));
+			new = STORE_OBJ(sdb_object_create(obj->name, t,
+						obj->type, obj->last_update));
 		}
 
 		if (new) {
-			status = sdb_avltree_insert(parent_tree, SDB_OBJ(new));
+			status = sdb_avltree_insert(obj->parent_tree, SDB_OBJ(new));
 
 			/* pass control to the tree or destroy in case of an error */
 			sdb_object_deref(SDB_OBJ(new));
@@ -395,7 +400,7 @@ store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
 		else {
 			char errbuf[1024];
 			sdb_log(SDB_LOG_ERR, "store: Failed to create %s '%s': %s",
-					SDB_STORE_TYPE_TO_NAME(type), name,
+					SDB_STORE_TYPE_TO_NAME(obj->type), obj->name,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			status = -1;
 		}
@@ -405,12 +410,12 @@ store_obj(sdb_store_obj_t *parent, sdb_avltree_t *parent_tree,
 		return status;
 	assert(new);
 
-	if (new->parent != parent) {
+	if (new->parent != obj->parent) {
 		// Avoid circular self-references which are not handled
 		// correctly by the ref-count based management layer.
 		//sdb_object_deref(SDB_OBJ(new->parent));
-		//sdb_object_ref(SDB_OBJ(parent));
-		new->parent = parent;
+		//sdb_object_ref(SDB_OBJ(obj->parent));
+		new->parent = obj->parent;
 	}
 
 	if (updated_obj)
@@ -535,13 +540,12 @@ static int
 store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
-	sdb_store_obj_t *parent = NULL;
+	store_obj_t obj = STORE_OBJ_INIT;
 	sdb_store_obj_t *new = NULL;
 	const char *hostname;
 	host_t *host;
 
 	sdb_avltree_t *children = NULL;
-	sdb_avltree_t *attributes;
 	int status = 0;
 
 	if ((! attr) || (! attr->parent) || (! attr->key))
@@ -563,8 +567,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 
 	switch (attr->parent_type) {
 	case SDB_HOST:
-		parent = STORE_OBJ(host);
-		attributes = get_host_children(host, SDB_ATTRIBUTE);
+		obj.parent = STORE_OBJ(host);
+		obj.parent_tree = get_host_children(host, SDB_ATTRIBUTE);
 		break;
 	case SDB_SERVICE:
 		children = get_host_children(host, SDB_SERVICE);
@@ -578,8 +582,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 	}
 
 	if (children) {
-		parent = STORE_OBJ(sdb_avltree_lookup(children, attr->parent));
-		if (! parent) {
+		obj.parent = STORE_OBJ(sdb_avltree_lookup(children, attr->parent));
+		if (! obj.parent) {
 			sdb_log(SDB_LOG_ERR, "store: Failed to store attribute '%s' - "
 					"%s '%s/%s' not found", attr->key,
 					SDB_STORE_TYPE_TO_NAME(attr->parent_type),
@@ -587,14 +591,16 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 			status = -1;
 		}
 		else
-			attributes = attr->parent_type == SDB_SERVICE
-				? SVC(parent)->attributes
-				: METRIC(parent)->attributes;
+			obj.parent_tree = attr->parent_type == SDB_SERVICE
+				? SVC(obj.parent)->attributes
+				: METRIC(obj.parent)->attributes;
 	}
 
+	obj.type = SDB_ATTRIBUTE;
+	obj.name = attr->key;
+	obj.last_update = attr->last_update;
 	if (! status)
-		status = store_obj(parent, attributes, SDB_ATTRIBUTE,
-				attr->key, attr->last_update, &new);
+		status = store_obj(&obj, &new);
 
 	if (! status) {
 		assert(new);
@@ -604,8 +610,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 				status = -1;
 	}
 
-	if (parent != STORE_OBJ(host))
-		sdb_object_deref(SDB_OBJ(parent));
+	if (obj.parent != STORE_OBJ(host))
+		sdb_object_deref(SDB_OBJ(obj.parent));
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&st->host_lock);
 
@@ -616,14 +622,16 @@ static int
 store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
+	store_obj_t obj = { NULL, st->hosts, SDB_HOST, NULL, 0 };
 	int status = 0;
 
 	if ((! host) || (! host->name))
 		return -1;
 
+	obj.name = host->name;
+	obj.last_update = host->last_update;
 	pthread_rwlock_wrlock(&st->host_lock);
-	status = store_obj(NULL, st->hosts,
-			SDB_HOST, host->name, host->last_update, NULL);
+	status = store_obj(&obj, NULL);
 	pthread_rwlock_unlock(&st->host_lock);
 
 	return status;
@@ -633,9 +641,8 @@ static int
 store_service(sdb_store_service_t *service, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
-
+	store_obj_t obj = STORE_OBJ_INIT;
 	host_t *host;
-	sdb_avltree_t *services;
 
 	int status = 0;
 
@@ -644,16 +651,19 @@ store_service(sdb_store_service_t *service, sdb_object_t *user_data)
 
 	pthread_rwlock_wrlock(&st->host_lock);
 	host = HOST(sdb_avltree_lookup(st->hosts, service->hostname));
-	services = get_host_children(host, SDB_SERVICE);
-	if (! services) {
+	obj.parent = STORE_OBJ(host);
+	obj.parent_tree = get_host_children(host, SDB_SERVICE);
+	obj.type = SDB_SERVICE;
+	if (! obj.parent_tree) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store service '%s' - "
 				"host '%s' not found", service->name, service->hostname);
 		status = -1;
 	}
 
+	obj.name = service->name;
+	obj.last_update = service->last_update;
 	if (! status)
-		status = store_obj(STORE_OBJ(host), services, SDB_SERVICE,
-				service->name, service->last_update, NULL);
+		status = store_obj(&obj, NULL);
 
 	sdb_object_deref(SDB_OBJ(host));
 	pthread_rwlock_unlock(&st->host_lock);
@@ -664,9 +674,8 @@ static int
 store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
-
-	sdb_store_obj_t *obj = NULL;
-	sdb_avltree_t *metrics;
+	store_obj_t obj = STORE_OBJ_INIT;
+	sdb_store_obj_t *new = NULL;
 	host_t *host;
 
 	int status = 0;
@@ -679,16 +688,19 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 
 	pthread_rwlock_wrlock(&st->host_lock);
 	host = HOST(sdb_avltree_lookup(st->hosts, metric->hostname));
-	metrics = get_host_children(host, SDB_METRIC);
-	if (! metrics) {
+	obj.parent = STORE_OBJ(host);
+	obj.parent_tree = get_host_children(host, SDB_METRIC);
+	obj.type = SDB_METRIC;
+	if (! obj.parent_tree) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to store metric '%s' - "
 				"host '%s' not found", metric->name, metric->hostname);
 		status = -1;
 	}
 
+	obj.name = metric->name;
+	obj.last_update = metric->last_update;
 	if (! status)
-		status = store_obj(STORE_OBJ(host), metrics, SDB_METRIC,
-				metric->name, metric->last_update, &obj);
+		status = store_obj(&obj, &new);
 	sdb_object_deref(SDB_OBJ(host));
 
 	if (status) {
@@ -696,9 +708,9 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 		return status;
 	}
 
-	assert(obj);
+	assert(new);
 	if (metric->store.type && metric->store.id)
-		if (store_metric_store(METRIC(obj), metric))
+		if (store_metric_store(METRIC(new), metric))
 			status = -1;
 	pthread_rwlock_unlock(&st->host_lock);
 	return status;
