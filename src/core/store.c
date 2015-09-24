@@ -66,8 +66,10 @@ typedef struct {
 	int type;
 	const char *name;
 	sdb_time_t last_update;
+	const char **backends;
+	size_t backends_num;
 } store_obj_t;
-#define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0 }
+#define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0, NULL, 0 }
 
 static sdb_type_t host_type;
 static sdb_type_t service_type;
@@ -304,33 +306,39 @@ static sdb_type_t attribute_type = {
  */
 
 static int
-record_backend(sdb_store_obj_t *obj)
+record_backends(sdb_store_obj_t *obj,
+		const char **backends, size_t backends_num)
 {
-	const sdb_plugin_info_t *info;
 	char **tmp;
 	size_t i;
 
-	info = sdb_plugin_current();
-	if (! info)
-		return 0;
+	for (i = 0; i < backends_num; i++) {
+		bool found = 0;
+		size_t j;
 
-	for (i = 0; i < obj->backends_num; ++i)
-		if (!strcasecmp(obj->backends[i], info->plugin_name))
-			return 0;
+		for (j = 0; j < obj->backends_num; ++j) {
+			if (!strcasecmp(obj->backends[j], backends[i])) {
+				found = 1;
+				break;
+			}
+		}
+		if (found)
+			continue;
 
-	tmp = realloc(obj->backends,
-			(obj->backends_num + 1) * sizeof(*obj->backends));
-	if (! tmp)
-		return -1;
+		tmp = realloc(obj->backends,
+				(obj->backends_num + 1) * sizeof(*obj->backends));
+		if (! tmp)
+			return -1;
 
-	obj->backends = tmp;
-	obj->backends[obj->backends_num] = strdup(info->plugin_name);
-	if (! obj->backends[obj->backends_num])
-		return -1;
+		obj->backends = tmp;
+		obj->backends[obj->backends_num] = strdup(backends[i]);
+		if (! obj->backends[obj->backends_num])
+			return -1;
 
-	++obj->backends_num;
+		++obj->backends_num;
+	}
 	return 0;
-} /* record_backend */
+} /* record_backends */
 
 static int
 store_obj(store_obj_t *obj, sdb_store_obj_t **updated_obj)
@@ -421,7 +429,7 @@ store_obj(store_obj_t *obj, sdb_store_obj_t **updated_obj)
 	if (updated_obj)
 		*updated_obj = new;
 
-	if (record_backend(new))
+	if (record_backends(new, obj->backends, obj->backends_num))
 		return -1;
 	return status;
 } /* store_obj */
@@ -599,6 +607,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 	obj.type = SDB_ATTRIBUTE;
 	obj.name = attr->key;
 	obj.last_update = attr->last_update;
+	obj.backends = attr->backends;
+	obj.backends_num = attr->backends_num;
 	if (! status)
 		status = store_obj(&obj, &new);
 
@@ -622,7 +632,7 @@ static int
 store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 {
 	sdb_store_t *st = SDB_STORE(user_data);
-	store_obj_t obj = { NULL, st->hosts, SDB_HOST, NULL, 0 };
+	store_obj_t obj = { NULL, st->hosts, SDB_HOST, NULL, 0, NULL, 0 };
 	int status = 0;
 
 	if ((! host) || (! host->name))
@@ -630,6 +640,8 @@ store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 
 	obj.name = host->name;
 	obj.last_update = host->last_update;
+	obj.backends = host->backends;
+	obj.backends_num = host->backends_num;
 	pthread_rwlock_wrlock(&st->host_lock);
 	status = store_obj(&obj, NULL);
 	pthread_rwlock_unlock(&st->host_lock);
@@ -662,6 +674,8 @@ store_service(sdb_store_service_t *service, sdb_object_t *user_data)
 
 	obj.name = service->name;
 	obj.last_update = service->last_update;
+	obj.backends = service->backends;
+	obj.backends_num = service->backends_num;
 	if (! status)
 		status = store_obj(&obj, NULL);
 
@@ -699,6 +713,8 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 
 	obj.name = metric->name;
 	obj.last_update = metric->last_update;
+	obj.backends = metric->backends;
+	obj.backends_num = metric->backends_num;
 	if (! status)
 		status = store_obj(&obj, &new);
 	sdb_object_deref(SDB_OBJ(host));

@@ -118,7 +118,7 @@ typedef struct {
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
-	char **backends;
+	const char **backends;
 	size_t backends_num;
 } sdb_store_host_t;
 
@@ -131,7 +131,7 @@ typedef struct {
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
-	char **backends;
+	const char **backends;
 	size_t backends_num;
 } sdb_store_service_t;
 
@@ -156,7 +156,7 @@ typedef struct {
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
-	char **backends;
+	const char **backends;
 	size_t backends_num;
 } sdb_store_metric_t;
 
@@ -172,7 +172,7 @@ typedef struct {
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
-	char **backends;
+	const char **backends;
 	size_t backends_num;
 } sdb_store_attribute_t;
 

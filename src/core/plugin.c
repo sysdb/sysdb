@@ -661,6 +661,21 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	return 0;
 } /* plugin_add_callback */
 
+static void
+get_backend(const char **backends, size_t *backends_num)
+{
+	const sdb_plugin_info_t *info;
+
+	info = sdb_plugin_current();
+	if ((! info) || (! info->plugin_name) || (! *info->plugin_name)) {
+		*backends_num = 0;
+		return;
+	}
+
+	backends[0] = info->plugin_name;
+	*backends_num = 1;
+} /* get_backend */
+
 /*
  * public API
  */
@@ -1470,6 +1485,7 @@ int
 sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 {
 	sdb_store_host_t host = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1492,6 +1508,8 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 
 	host.name = cname;
 	host.last_update = last_update;
+	host.backends = backends;
+	get_backend(host.backends, &host.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1512,6 +1530,7 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
 	sdb_store_service_t service = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1537,6 +1556,8 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 	service.hostname = cname;
 	service.name = name;
 	service.last_update = last_update;
+	service.backends = backends;
+	get_backend(service.backends, &service.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1567,6 +1588,7 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
 	sdb_store_metric_t metric = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1599,6 +1621,8 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		metric.store.id = store->id;
 	}
 	metric.last_update = last_update;
+	metric.backends = backends;
+	get_backend(metric.backends, &metric.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1629,6 +1653,7 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 		const sdb_data_t *value, sdb_time_t last_update)
 {
 	sdb_store_attribute_t attr = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1654,6 +1679,8 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 	attr.key = key;
 	attr.value = *value;
 	attr.last_update = last_update;
+	attr.backends = backends;
+	get_backend(attr.backends, &attr.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1674,6 +1701,7 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
 	sdb_store_attribute_t attr = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1700,6 +1728,8 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 	attr.key = key;
 	attr.value = *value;
 	attr.last_update = last_update;
+	attr.backends = backends;
+	get_backend(attr.backends, &attr.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
@@ -1720,6 +1750,7 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
 	sdb_store_attribute_t attr = { 0 };
+	const char *backends[1];
 	char *cname;
 
 	sdb_llist_iter_t *iter;
@@ -1746,6 +1777,8 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 	attr.key = key;
 	attr.value = *value;
 	attr.last_update = last_update;
+	attr.backends = backends;
+	get_backend(attr.backends, &attr.backends_num);
 
 	iter = sdb_llist_get_iter(writer_list);
 	while (sdb_llist_iter_has_next(iter)) {
