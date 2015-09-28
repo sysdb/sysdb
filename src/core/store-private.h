@@ -48,6 +48,7 @@ extern "C" {
 
 struct sdb_store_obj {
 	sdb_object_t super;
+#define _name super.name
 
 	/* object type */
 	int type;

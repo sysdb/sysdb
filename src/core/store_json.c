@@ -89,6 +89,28 @@ static sdb_type_t formatter_type = {
 	/* destroy = */ NULL,
 };
 
+/* A generic representation of a stored object. */
+typedef struct {
+	/* identifier */
+	int type;
+	const char *name;
+
+	/* attribute value (optional) */
+	sdb_data_t *value;
+
+	/* metric's timeseries (optional)
+	 * -1: unset
+	 *  0: false
+	 *  1: true */
+	int timeseries;
+
+	/* generic meta-data */
+	sdb_time_t last_update;
+	sdb_time_t interval;
+	size_t backends_num;
+	const char * const *backends;
+} obj_t;
+
 /*
  * private helper functions
  */
@@ -124,78 +146,78 @@ escape_string(const char *src, char *dest)
  * new object. That is, it manages context information and emit the prefix and
  * suffix of an object. */
 static int
-handle_new_object(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
+handle_new_object(sdb_store_json_formatter_t *f, int type)
 {
 	/* first top-level object */
 	if (! f->context[0]) {
-		if ((obj->type != f->type) && (obj->type != SDB_HOST)) {
+		if ((type != f->type) && (type != SDB_HOST)) {
 			sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
 					"as the first element during %s JSON serialization",
-					SDB_STORE_TYPE_TO_NAME(obj->type),
+					SDB_STORE_TYPE_TO_NAME(type),
 					SDB_STORE_TYPE_TO_NAME(f->type));
 			return -1;
 		}
 		if (f->flags & SDB_WANT_ARRAY)
 			sdb_strbuf_append(f->buf, "[");
 		assert(f->current == 0);
-		f->context[f->current] = obj->type;
+		f->context[f->current] = type;
 		return 0;
 	}
 
 	if ((f->context[f->current] != SDB_HOST)
-			&& (obj->type != SDB_ATTRIBUTE)) {
+			&& (type != SDB_ATTRIBUTE)) {
 		/* new entry of the same type or a parent object;
 		 * rewind to the right state */
 		while ((f->current > 0)
-				&& (f->context[f->current] != obj->type)) {
+				&& (f->context[f->current] != type)) {
 			sdb_strbuf_append(f->buf, "}]");
 			--f->current;
 		}
 	}
 
-	if (obj->type == f->context[f->current]) {
+	if (type == f->context[f->current]) {
 		/* new entry of the same type */
 		sdb_strbuf_append(f->buf, "},");
 	}
 	else if ((f->context[f->current] == SDB_HOST)
-			|| (obj->type == SDB_ATTRIBUTE)) {
-		assert(obj->type != SDB_HOST);
+			|| (type == SDB_ATTRIBUTE)) {
+		assert(type != SDB_HOST);
 		/* all object types may be children of a host;
 		 * attributes may be children of any type */
 		sdb_strbuf_append(f->buf, ", \"%ss\": [",
-				SDB_STORE_TYPE_TO_NAME(obj->type));
+				SDB_STORE_TYPE_TO_NAME(type));
 		++f->current;
 	}
 	else {
 		sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
 				"on level %zu during JSON serialization",
-				SDB_STORE_TYPE_TO_NAME(obj->type), f->current);
+				SDB_STORE_TYPE_TO_NAME(type), f->current);
 		return -1;
 	}
 
 	assert(f->current < SDB_STATIC_ARRAY_LEN(f->context));
-	f->context[f->current] = obj->type;
+	f->context[f->current] = type;
 	return 0;
 } /* handle_new_object */
 
 static int
-json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
+json_emit(sdb_store_json_formatter_t *f, obj_t *obj)
 {
 	char time_str[64];
 	char interval_str[64];
-	char name[2 * strlen(SDB_OBJ(obj)->name) + 3];
+	char name[2 * strlen(obj->name) + 3];
 	size_t i;
 
 	assert(f && obj);
 
-	handle_new_object(f, obj);
+	handle_new_object(f, obj->type);
 
-	escape_string(SDB_OBJ(obj)->name, name);
+	escape_string(obj->name, name);
 	sdb_strbuf_append(f->buf, "{\"name\": %s, ", name);
-	if (obj->type == SDB_ATTRIBUTE) {
-		char tmp[sdb_data_strlen(&ATTR(obj)->value) + 1];
+	if ((obj->type == SDB_ATTRIBUTE) && (obj->value)) {
+		char tmp[sdb_data_strlen(obj->value) + 1];
 		char val[2 * sizeof(tmp) + 3];
-		if (! sdb_data_format(&ATTR(obj)->value, tmp, sizeof(tmp),
+		if (! sdb_data_format(obj->value, tmp, sizeof(tmp),
 					SDB_DOUBLE_QUOTED))
 			snprintf(tmp, sizeof(tmp), "<error>");
 
@@ -208,8 +230,8 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		else
 			sdb_strbuf_append(f->buf, "\"value\": %s, ", tmp);
 	}
-	else if (obj->type == SDB_METRIC) {
-		if (METRIC(obj)->store.type != NULL)
+	else if ((obj->type == SDB_METRIC) && (obj->timeseries >= 0)) {
+		if (obj->timeseries)
 			sdb_strbuf_append(f->buf, "\"timeseries\": true, ");
 		else
 			sdb_strbuf_append(f->buf, "\"timeseries\": false, ");
@@ -254,7 +276,28 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 {
 	if ((! f) || (! obj))
 		return -1;
-	return json_emit(f, obj);
+
+	{
+		obj_t o = {
+			obj->type,
+			obj->_name,
+
+			/* value */ NULL,
+			/* timeseries */ -1,
+
+			obj->last_update,
+			obj->interval,
+			obj->backends_num,
+			(const char * const *)obj->backends,
+		};
+
+		if (obj->type == SDB_ATTRIBUTE)
+			o.value = &ATTR(obj)->value;
+		if (obj->type == SDB_METRIC)
+			o.timeseries = METRIC(obj)->store.type != NULL;
+
+		return json_emit(f, &o);
+	}
 } /* sdb_store_json_emit */
 
 int
