@@ -142,11 +142,12 @@ handle_new_object(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		return 0;
 	}
 
-	if ((f->current >= 1) && (obj->type != SDB_ATTRIBUTE)) {
-		/* new entry of a previous type or a new type on the same level;
+	if ((f->context[f->current] != SDB_HOST)
+			&& (obj->type != SDB_ATTRIBUTE)) {
+		/* new entry of the same type or a parent object;
 		 * rewind to the right state */
 		while ((f->current > 0)
-				&& (f->context[f->current] == obj->type)) {
+				&& (f->context[f->current] != obj->type)) {
 			sdb_strbuf_append(f->buf, "}]");
 			--f->current;
 		}
