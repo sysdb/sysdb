@@ -42,21 +42,39 @@
  * private helper functions
  */
 
+typedef struct {
+	sdb_store_json_formatter_t *f;
+	sdb_store_obj_t *current_host;
+} iter_t;
+
+static int
+maybe_emit_host(iter_t *iter, sdb_store_obj_t *obj)
+{
+	if ((obj->type == SDB_HOST) || (obj->type == SDB_ATTRIBUTE))
+		return 0;
+	if (iter->current_host == obj->parent)
+		return 0;
+	iter->current_host = obj->parent;
+	return sdb_store_json_emit(iter->f, obj->parent);
+} /* maybe_emit_host */
+
 static int
 list_tojson(sdb_store_obj_t *obj,
 		sdb_store_matcher_t __attribute__((unused)) *filter,
 		void *user_data)
 {
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit(f, obj);
+	iter_t *iter = user_data;
+	maybe_emit_host(iter, obj);
+	return sdb_store_json_emit(iter->f, obj);
 } /* list_tojson */
 
 static int
 lookup_tojson(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 		void *user_data)
 {
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit_full(f, obj, filter);
+	iter_t *iter = user_data;
+	maybe_emit_host(iter, obj);
+	return sdb_store_json_emit_full(iter->f, obj, filter);
 } /* lookup_tojson */
 
 /*
@@ -74,6 +92,7 @@ exec_fetch(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 	sdb_store_obj_t *obj;
 
 	sdb_store_json_formatter_t *f;
+	int status = 0;
 
 	if ((! name) || ((type == SDB_HOST) && hostname)
 			|| ((type != SDB_HOST) && (! hostname))) {
@@ -127,7 +146,9 @@ exec_fetch(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 	}
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_json_emit_full(f, obj, filter)) {
+	if (type != SDB_HOST)
+		status = sdb_store_json_emit(f, obj->parent);
+	if (status || sdb_store_json_emit_full(f, obj, filter)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
 				hostname, name);
@@ -149,10 +170,10 @@ exec_list(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 		int type, sdb_store_matcher_t *filter)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_LIST);
-	sdb_store_json_formatter_t *f;
+	iter_t iter = { NULL, NULL };
 
-	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
-	if (! f) {
+	iter.f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
+	if (! iter.f) {
 		char err[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
 				"JSON formatter to handle LIST command: %s",
@@ -163,16 +184,16 @@ exec_list(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 	}
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
-	if (sdb_store_scan(store, type, /* m = */ NULL, filter, list_tojson, f)) {
+	if (sdb_store_scan(store, type, /* m = */ NULL, filter, list_tojson, &iter)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
-		sdb_object_deref(SDB_OBJ(f));
+		sdb_object_deref(SDB_OBJ(iter.f));
 		return -1;
 	}
 
-	sdb_store_json_finish(f);
-	sdb_object_deref(SDB_OBJ(f));
+	sdb_store_json_finish(iter.f);
+	sdb_object_deref(SDB_OBJ(iter.f));
 
 	return SDB_CONNECTION_DATA;
 } /* exec_list */
@@ -182,10 +203,10 @@ exec_lookup(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 		int type, sdb_store_matcher_t *m, sdb_store_matcher_t *filter)
 {
 	uint32_t res_type = htonl(SDB_CONNECTION_LOOKUP);
-	sdb_store_json_formatter_t *f;
+	iter_t iter = { NULL, NULL };
 
-	f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
-	if (! f) {
+	iter.f = sdb_store_json_formatter(buf, type, SDB_WANT_ARRAY);
+	if (! iter.f) {
 		char err[1024];
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to create "
 				"JSON formatter to handle LOOKUP command: %s",
@@ -197,17 +218,17 @@ exec_lookup(sdb_store_t *store, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
 
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(uint32_t));
 
-	if (sdb_store_scan(store, type, m, filter, lookup_tojson, f)) {
+	if (sdb_store_scan(store, type, m, filter, lookup_tojson, &iter)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
 		sdb_strbuf_sprintf(errbuf, "Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
-		sdb_object_deref(SDB_OBJ(f));
+		sdb_object_deref(SDB_OBJ(iter.f));
 		return -1;
 	}
 
-	sdb_store_json_finish(f);
-	sdb_object_deref(SDB_OBJ(f));
+	sdb_store_json_finish(iter.f);
+	sdb_object_deref(SDB_OBJ(iter.f));
 
 	return SDB_CONNECTION_DATA;
 } /* exec_lookup */

@@ -1,6 +1,6 @@
 /*
  * SysDB - src/core/store_json.c
- * Copyright (C) 2013-2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2013-2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,9 +58,6 @@ struct sdb_store_json_formatter {
 	int context[8];
 	size_t current;
 
-	/* The current host context when processing non-host objects */
-	sdb_store_obj_t *current_host;
-
 	int type;
 	int flags;
 };
@@ -83,8 +80,6 @@ formatter_init(sdb_object_t *obj, va_list ap)
 
 	f->context[0] = 0;
 	f->current = 0;
-
-	f->current_host = NULL;
 	return 0;
 } /* formatter_init */
 
@@ -134,17 +129,6 @@ json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	size_t i;
 
 	assert(f && obj);
-
-	if ((f->type != SDB_HOST) && (f->type == obj->type)) {
-		/* create the host for the current entry first */
-		assert(obj->parent && (obj->parent->type == SDB_HOST));
-		if (f->current_host != obj->parent) {
-			json_emit(f, obj->parent);
-			sdb_strbuf_append(f->buf, ", \"%ss\": [",
-					SDB_STORE_TYPE_TO_NAME(obj->type));
-			f->current_host = obj->parent;
-		}
-	}
 
 	escape_string(SDB_OBJ(obj)->name, name);
 	sdb_strbuf_append(f->buf, "{\"name\": %s, ", name);
@@ -211,16 +195,9 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	if ((! f) || (! obj))
 		return -1;
 
-	if ((f->type != SDB_HOST) && (obj->type == SDB_HOST)) {
-		sdb_log(SDB_LOG_ERR, "store: Unexpected object of type host "
-				"during %s JSON serialization",
-				SDB_STORE_TYPE_TO_NAME(f->type));
-		return -1;
-	}
-
 	/* first top-level object */
 	if (! f->context[0]) {
-		if (obj->type != f->type) {
+		if ((obj->type != f->type) && (obj->type != SDB_HOST)) {
 			sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
 					"as the first element during %s JSON serialization",
 					SDB_STORE_TYPE_TO_NAME(obj->type),
@@ -230,42 +207,38 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 		if (f->flags & SDB_WANT_ARRAY)
 			sdb_strbuf_append(f->buf, "[");
 		assert(f->current == 0);
-		f->context[0] = obj->type;
-		return json_emit(f, obj);
-	}
-
-	if ((f->current >= 1) && (obj->type != SDB_ATTRIBUTE)) {
-		/* new entry of a previous type or a new type on the same level;
-		 * rewind to the right state */
-		while (f->current > 0) {
-			if (f->context[f->current] == obj->type)
-				break;
-			sdb_strbuf_append(f->buf, "}]");
-			--f->current;
-		}
-	}
-	if ((obj->type == f->type) && (f->type != SDB_HOST))
-		if (obj->parent != f->current_host)
-			sdb_strbuf_append(f->buf, "}]");
-
-	if (obj->type == f->context[f->current]) {
-		/* new entry of the same type */
-		sdb_strbuf_append(f->buf, "},");
-	}
-	else if ((f->context[f->current] == SDB_HOST)
-			|| (obj->type == SDB_ATTRIBUTE)) {
-		assert(obj->type != SDB_HOST);
-		/* all object types may be children of a host;
-		 * attributes may be children of any type */
-		sdb_strbuf_append(f->buf, ", \"%ss\": [",
-				SDB_STORE_TYPE_TO_NAME(obj->type));
-		++f->current;
 	}
 	else {
-		sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
-				"on level %zu during JSON serialization",
-				SDB_STORE_TYPE_TO_NAME(obj->type), f->current);
-		return -1;
+		if ((f->current >= 1) && (obj->type != SDB_ATTRIBUTE)) {
+			/* new entry of a previous type or a new type on the same level;
+			 * rewind to the right state */
+			while (f->current > 0) {
+				if (f->context[f->current] == obj->type)
+					break;
+				sdb_strbuf_append(f->buf, "}]");
+				--f->current;
+			}
+		}
+
+		if (obj->type == f->context[f->current]) {
+			/* new entry of the same type */
+			sdb_strbuf_append(f->buf, "},");
+		}
+		else if ((f->context[f->current] == SDB_HOST)
+				|| (obj->type == SDB_ATTRIBUTE)) {
+			assert(obj->type != SDB_HOST);
+			/* all object types may be children of a host;
+			 * attributes may be children of any type */
+			sdb_strbuf_append(f->buf, ", \"%ss\": [",
+					SDB_STORE_TYPE_TO_NAME(obj->type));
+			++f->current;
+		}
+		else {
+			sdb_log(SDB_LOG_ERR, "store: Unexpected object of type %s "
+					"on level %zu during JSON serialization",
+					SDB_STORE_TYPE_TO_NAME(obj->type), f->current);
+			return -1;
+		}
 	}
 
 	json_emit(f, obj);
@@ -339,12 +312,7 @@ sdb_store_json_finish(sdb_store_json_formatter_t *f)
 		sdb_strbuf_append(f->buf, "}]");
 		--f->current;
 	}
-	if (f->context[0] != SDB_HOST) {
-		assert(f->type != SDB_HOST);
-		sdb_strbuf_append(f->buf, "}]}");
-	}
-	else
-		sdb_strbuf_append(f->buf, "}");
+	sdb_strbuf_append(f->buf, "}");
 
 	if (f->flags & SDB_WANT_ARRAY)
 		sdb_strbuf_append(f->buf, "]");
