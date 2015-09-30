@@ -775,6 +775,13 @@ sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
 int
 sdb_store_json_finish(sdb_store_json_formatter_t *f);
 
+/*
+ * sdb_store_json_writer:
+ * A store writer implementation that generates JSON output. It expects a
+ * store JSON formatter as its user-data argument.
+ */
+extern sdb_store_writer_t sdb_store_json_writer;
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

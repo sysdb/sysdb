@@ -260,9 +260,117 @@ json_emit(sdb_store_json_formatter_t *f, obj_t *obj)
 	return 0;
 } /* json_emit */
 
+static int
+emit_host(sdb_store_host_t *host, sdb_object_t *user_data)
+{
+	sdb_store_json_formatter_t *f = F(user_data);
+
+	if ((! host) || (! user_data))
+		return -1;
+
+	{
+		obj_t o = {
+			SDB_HOST,
+			host->name,
+
+			/* value */ NULL,
+			/* timeseries */ -1,
+
+			host->last_update,
+			host->interval,
+			host->backends_num,
+			(const char * const *)host->backends,
+		};
+
+		return json_emit(f, &o);
+	}
+} /* emit_host */
+
+static int
+emit_service(sdb_store_service_t *service, sdb_object_t *user_data)
+{
+	sdb_store_json_formatter_t *f = F(user_data);
+
+	if ((! service) || (! user_data))
+		return -1;
+
+	{
+		obj_t o = {
+			SDB_SERVICE,
+			service->name,
+
+			/* value */ NULL,
+			/* timeseries */ -1,
+
+			service->last_update,
+			service->interval,
+			service->backends_num,
+			(const char * const *)service->backends,
+		};
+
+		return json_emit(f, &o);
+	}
+} /* emit_service */
+
+static int
+emit_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
+{
+	sdb_store_json_formatter_t *f = F(user_data);
+
+	if ((! metric) || (! user_data))
+		return -1;
+
+	{
+		obj_t o = {
+			SDB_METRIC,
+			metric->name,
+
+			/* value */ NULL,
+			/* timeseries */ metric->store.type != NULL,
+
+			metric->last_update,
+			metric->interval,
+			metric->backends_num,
+			(const char * const *)metric->backends,
+		};
+
+		return json_emit(f, &o);
+	}
+} /* emit_metric */
+
+static int
+emit_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
+{
+	sdb_store_json_formatter_t *f = F(user_data);
+
+	if ((! attr) || (! user_data))
+		return -1;
+
+	{
+		obj_t o = {
+			SDB_ATTRIBUTE,
+			attr->key,
+
+			/* value */ &attr->value,
+			/* timeseries */ -1,
+
+			attr->last_update,
+			attr->interval,
+			attr->backends_num,
+			(const char * const *)attr->backends,
+		};
+
+		return json_emit(f, &o);
+	}
+} /* emit_attribute */
+
 /*
  * public API
  */
+
+sdb_store_writer_t sdb_store_json_writer = {
+	emit_host, emit_service, emit_metric, emit_attribute,
+};
 
 sdb_store_json_formatter_t *
 sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
