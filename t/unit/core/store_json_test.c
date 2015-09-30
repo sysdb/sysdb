@@ -102,16 +102,14 @@ scan_tojson(sdb_store_obj_t *obj,
 		sdb_store_matcher_t __attribute__((unused)) *filter,
 		void *user_data)
 {
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit(f, obj);
+	return sdb_store_emit(obj, &sdb_store_json_writer, user_data);
 } /* scan_tojson */
 
 static int
 scan_tojson_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 		void *user_data)
 {
-	sdb_store_json_formatter_t *f = user_data;
-	return sdb_store_json_emit_full(f, obj, filter);
+	return sdb_store_emit_full(obj, filter, &sdb_store_json_writer, user_data);
 } /* scan_tojson_full */
 
 static void
@@ -392,8 +390,7 @@ START_TEST(test_store_tojson)
 	}
 
 	sdb_strbuf_clear(buf);
-	f = sdb_store_json_formatter(buf,
-			store_tojson_data[_i].type, SDB_WANT_ARRAY);
+	f = sdb_store_json_formatter(buf, store_tojson_data[_i].type, SDB_WANT_ARRAY);
 	ck_assert(f != NULL);
 
 	status = sdb_store_scan(store, store_tojson_data[_i].type,

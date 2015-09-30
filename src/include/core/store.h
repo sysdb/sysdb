@@ -731,13 +731,12 @@ sdb_store_json_formatter_t *
 sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags);
 
 /*
- * sdb_store_json_emit:
+ * sdb_store_emit:
  * Serialize a single object to JSON adding it to the string buffer associated
  * with the formatter object. The serialized object will not include
  * attributes or any child objects. Instead, call the function again for each
  * of those objects. All attributes have to be emitted before any other
- * children types. Use sdb_store_json_emit_full() to emit a full (filtered)
- * object.
+ * children types. Use sdb_store_emit_full() to emit a full (filtered) object.
  *
  * Note that the output might not be valid JSON before calling
  * sdb_store_json_finish().
@@ -747,10 +746,10 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags);
  *  - a negative value else
  */
 int
-sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj);
+sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd);
 
 /*
- * sdb_store_json_emit_full:
+ * sdb_store_emit_full:
  * Serialize a single object including it's attributes and all children to
  * JSON, adding it to the string buffer associated with the formatter object.
  * The filter, if specified, is applied to each attribute and child object.
@@ -764,8 +763,8 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj);
  *  - a negative value else
  */
 int
-sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter);
+sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+		sdb_store_writer_t *w, sdb_object_t *wd);
 
 /*
  * sdb_store_json_finish:

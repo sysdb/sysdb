@@ -379,10 +379,14 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 				buf, type, flags));
 } /* sdb_store_json_formatter */
 
+/* TODO: Move sdb_store_emit* somewhere else. */
+
 int
-sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
+sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 {
-	if ((! f) || (! obj))
+	if ((! obj) || (! w)
+			|| (! w->store_host) || (! w->store_service)
+			|| (! w->store_metric) || (! w->store_attribute))
 		return -1;
 
 	switch (obj->type) {
@@ -395,7 +399,7 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
-			return sdb_store_json_writer.store_host(&host, SDB_OBJ(f));
+			return w->store_host(&host, wd);
 		}
 	case SDB_SERVICE:
 		{
@@ -407,7 +411,7 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
-			return sdb_store_json_writer.store_service(&service, SDB_OBJ(f));
+			return w->store_service(&service, wd);
 		}
 	case SDB_METRIC:
 		{
@@ -423,7 +427,7 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
-			return sdb_store_json_writer.store_metric(&metric, SDB_OBJ(f));
+			return w->store_metric(&metric, wd);
 		}
 	case SDB_ATTRIBUTE:
 		{
@@ -441,21 +445,21 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 			if (obj->parent && (obj->parent->type != SDB_HOST)
 					&& obj->parent->parent)
 				attr.hostname = obj->parent->parent->_name;
-			return sdb_store_json_writer.store_attribute(&attr, SDB_OBJ(f));
+			return w->store_attribute(&attr, wd);
 		}
 	}
 
 	return -1;
-} /* sdb_store_json_emit */
+} /* sdb_store_emit */
 
 int
-sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+		sdb_store_writer_t *w, sdb_object_t *wd)
 {
 	sdb_avltree_t *trees[] = { NULL, NULL, NULL };
 	size_t i;
 
-	if (sdb_store_json_emit(f, obj))
+	if (sdb_store_emit(obj, w, wd))
 		return -1;
 
 	if (obj->type == SDB_HOST) {
@@ -486,7 +490,7 @@ sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
 			if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
 				continue;
 
-			if (sdb_store_json_emit_full(f, child, filter)) {
+			if (sdb_store_emit_full(child, filter, w, wd)) {
 				sdb_avltree_iter_destroy(iter);
 				return -1;
 			}
@@ -494,7 +498,7 @@ sdb_store_json_emit_full(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj,
 		sdb_avltree_iter_destroy(iter);
 	}
 	return 0;
-} /* sdb_store_json_emit_full */
+} /* sdb_store_emit_full */
 
 int
 sdb_store_json_finish(sdb_store_json_formatter_t *f)
