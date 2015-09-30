@@ -385,27 +385,67 @@ sdb_store_json_emit(sdb_store_json_formatter_t *f, sdb_store_obj_t *obj)
 	if ((! f) || (! obj))
 		return -1;
 
-	{
-		obj_t o = {
-			obj->type,
-			obj->_name,
-
-			/* value */ NULL,
-			/* timeseries */ -1,
-
-			obj->last_update,
-			obj->interval,
-			obj->backends_num,
-			(const char * const *)obj->backends,
-		};
-
-		if (obj->type == SDB_ATTRIBUTE)
-			o.value = &ATTR(obj)->value;
-		if (obj->type == SDB_METRIC)
-			o.timeseries = METRIC(obj)->store.type != NULL;
-
-		return json_emit(f, &o);
+	switch (obj->type) {
+	case SDB_HOST:
+		{
+			sdb_store_host_t host = {
+				obj->_name,
+				obj->last_update,
+				obj->interval,
+				(const char * const *)obj->backends,
+				obj->backends_num,
+			};
+			return sdb_store_json_writer.store_host(&host, SDB_OBJ(f));
+		}
+	case SDB_SERVICE:
+		{
+			sdb_store_service_t service = {
+				obj->parent ? obj->parent->_name : NULL,
+				obj->_name,
+				obj->last_update,
+				obj->interval,
+				(const char * const *)obj->backends,
+				obj->backends_num,
+			};
+			return sdb_store_json_writer.store_service(&service, SDB_OBJ(f));
+		}
+	case SDB_METRIC:
+		{
+			sdb_store_metric_t metric = {
+				obj->parent ? obj->parent->_name : NULL,
+				obj->_name,
+				{
+					METRIC(obj)->store.type,
+					METRIC(obj)->store.id,
+				},
+				obj->last_update,
+				obj->interval,
+				(const char * const *)obj->backends,
+				obj->backends_num,
+			};
+			return sdb_store_json_writer.store_metric(&metric, SDB_OBJ(f));
+		}
+	case SDB_ATTRIBUTE:
+		{
+			sdb_store_attribute_t attr = {
+				NULL,
+				obj->parent ? obj->parent->type : 0,
+				obj->parent ? obj->parent->_name : NULL,
+				obj->_name,
+				ATTR(obj)->value,
+				obj->last_update,
+				obj->interval,
+				(const char * const *)obj->backends,
+				obj->backends_num,
+			};
+			if (obj->parent && (obj->parent->type != SDB_HOST)
+					&& obj->parent->parent)
+				attr.hostname = obj->parent->parent->_name;
+			return sdb_store_json_writer.store_attribute(&attr, SDB_OBJ(f));
+		}
 	}
+
+	return -1;
 } /* sdb_store_json_emit */
 
 int
