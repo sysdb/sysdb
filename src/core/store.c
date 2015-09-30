@@ -66,7 +66,7 @@ typedef struct {
 	int type;
 	const char *name;
 	sdb_time_t last_update;
-	const char **backends;
+	const char * const *backends;
 	size_t backends_num;
 } store_obj_t;
 #define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0, NULL, 0 }
@@ -307,7 +307,7 @@ static sdb_type_t attribute_type = {
 
 static int
 record_backends(sdb_store_obj_t *obj,
-		const char **backends, size_t backends_num)
+		const char * const *backends, size_t backends_num)
 {
 	char **tmp;
 	size_t i;
