@@ -384,9 +384,7 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 int
 sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 {
-	if ((! obj) || (! w)
-			|| (! w->store_host) || (! w->store_service)
-			|| (! w->store_metric) || (! w->store_attribute))
+	if ((! obj) || (! w))
 		return -1;
 
 	switch (obj->type) {
@@ -399,6 +397,8 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
+			if (! w->store_host)
+				return -1;
 			return w->store_host(&host, wd);
 		}
 	case SDB_SERVICE:
@@ -411,6 +411,8 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
+			if (! w->store_service)
+				return -1;
 			return w->store_service(&service, wd);
 		}
 	case SDB_METRIC:
@@ -427,6 +429,8 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
+			if (! w->store_metric)
+				return -1;
 			return w->store_metric(&metric, wd);
 		}
 	case SDB_ATTRIBUTE:
@@ -445,6 +449,8 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 			if (obj->parent && (obj->parent->type != SDB_HOST)
 					&& obj->parent->parent)
 				attr.hostname = obj->parent->parent->_name;
+			if (! w->store_attribute)
+				return -1;
 			return w->store_attribute(&attr, wd);
 		}
 	}
