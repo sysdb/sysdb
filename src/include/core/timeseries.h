@@ -30,6 +30,7 @@
 
 #include "sysdb.h"
 #include "core/time.h"
+#include "utils/strbuf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,6 +90,17 @@ sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
  */
 void
 sdb_timeseries_destroy(sdb_timeseries_t *ts);
+
+/*
+ * sdb_timeseries_tojson:
+ * Serialize a time-series to JSON written to the specified string buffer.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+sdb_timeseries_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf);
 
 #ifdef __cplusplus
 } /* extern "C" */

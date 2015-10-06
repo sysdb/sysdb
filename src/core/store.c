@@ -43,7 +43,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <math.h>
 #include <pthread.h>
 
 /*
@@ -483,62 +482,6 @@ get_host_children(host_t *host, int type)
 	else
 		return host->services;
 } /* get_host_children */
-
-/*
- * ts_tojson serializes a time-series to JSON.
- *
- * The function never returns an error. Rather, an error message will be part
- * of the serialized data.
- */
-static void
-ts_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
-{
-	char start_str[64];
-	char end_str[64];
-
-	size_t i;
-
-	/* TODO: make time format configurable */
-	if (! sdb_strftime(start_str, sizeof(start_str), ts->start))
-		snprintf(start_str, sizeof(start_str), "<error>");
-	start_str[sizeof(start_str) - 1] = '\0';
-	if (! sdb_strftime(end_str, sizeof(end_str), ts->end))
-		snprintf(end_str, sizeof(end_str), "<error>");
-	end_str[sizeof(end_str) - 1] = '\0';
-
-	sdb_strbuf_append(buf, "{\"start\": \"%s\", \"end\": \"%s\", \"data\": {",
-			start_str, end_str);
-
-	for (i = 0; i < ts->data_names_len; ++i) {
-		size_t j;
-		sdb_strbuf_append(buf, "\"%s\": [", ts->data_names[i]);
-
-		for (j = 0; j < ts->data_len; ++j) {
-			char time_str[64];
-
-			if (! sdb_strftime(time_str, sizeof(time_str), ts->data[i][j].timestamp))
-				snprintf(time_str, sizeof(time_str), "<error>");
-			time_str[sizeof(time_str) - 1] = '\0';
-
-			/* Some GNU libc versions may print '-nan' which we dont' want */
-			if (isnan(ts->data[i][j].value))
-				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
-						"\"value\": \"nan\"}", time_str);
-			else
-				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
-						"\"value\": \"%f\"}", time_str, ts->data[i][j].value);
-
-			if (j < ts->data_len - 1)
-				sdb_strbuf_append(buf, ",");
-		}
-
-		if (i < ts->data_names_len - 1)
-			sdb_strbuf_append(buf, "],");
-		else
-			sdb_strbuf_append(buf, "]");
-	}
-	sdb_strbuf_append(buf, "}}");
-} /* ts_tojson */
 
 /*
  * store writer API
@@ -1023,7 +966,7 @@ sdb_store_fetch_timeseries(sdb_store_t *store,
 		}
 	}
 
-	ts_tojson(ts, buf);
+	sdb_timeseries_tojson(ts, buf);
 	sdb_object_deref(SDB_OBJ(m));
 	sdb_timeseries_destroy(ts);
 	return status;

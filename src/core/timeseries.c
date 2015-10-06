@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 /*
  * public API
@@ -112,5 +113,58 @@ sdb_timeseries_destroy(sdb_timeseries_t *ts)
 	free(ts);
 } /* sdb_timeseries_destroy */
 
+int
+sdb_timeseries_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
+{
+	char start_str[64];
+	char end_str[64];
+
+	size_t i;
+
+	if ((! ts) || (! buf))
+		return -1;
+
+	/* TODO: make time format configurable */
+	if (! sdb_strftime(start_str, sizeof(start_str), ts->start))
+		snprintf(start_str, sizeof(start_str), "<error>");
+	start_str[sizeof(start_str) - 1] = '\0';
+	if (! sdb_strftime(end_str, sizeof(end_str), ts->end))
+		snprintf(end_str, sizeof(end_str), "<error>");
+	end_str[sizeof(end_str) - 1] = '\0';
+
+	sdb_strbuf_append(buf, "{\"start\": \"%s\", \"end\": \"%s\", \"data\": {",
+			start_str, end_str);
+
+	for (i = 0; i < ts->data_names_len; ++i) {
+		size_t j;
+		sdb_strbuf_append(buf, "\"%s\": [", ts->data_names[i]);
+
+		for (j = 0; j < ts->data_len; ++j) {
+			char time_str[64];
+
+			if (! sdb_strftime(time_str, sizeof(time_str), ts->data[i][j].timestamp))
+				snprintf(time_str, sizeof(time_str), "<error>");
+			time_str[sizeof(time_str) - 1] = '\0';
+
+			/* Some GNU libc versions may print '-nan' which we dont' want */
+			if (isnan(ts->data[i][j].value))
+				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
+						"\"value\": \"nan\"}", time_str);
+			else
+				sdb_strbuf_append(buf, "{\"timestamp\": \"%s\", "
+						"\"value\": \"%f\"}", time_str, ts->data[i][j].value);
+
+			if (j < ts->data_len - 1)
+				sdb_strbuf_append(buf, ",");
+		}
+
+		if (i < ts->data_names_len - 1)
+			sdb_strbuf_append(buf, "],");
+		else
+			sdb_strbuf_append(buf, "]");
+	}
+	sdb_strbuf_append(buf, "}}");
+	return 0;
+} /* sdb_timeseries_tojson */
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 
