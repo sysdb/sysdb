@@ -121,6 +121,7 @@ typedef struct {
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_host_t;
+#define SDB_STORE_HOST_INIT { NULL, 0, 0, NULL, 0 }
 
 /*
  * sdb_store_service_t represents the meta-data of a stored service object.
@@ -134,6 +135,7 @@ typedef struct {
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_service_t;
+#define SDB_STORE_SERVICE_INIT { NULL, NULL, 0, 0, NULL, 0 }
 
 /*
  * sdb_metric_store_t specifies how to access a metric's data.
@@ -159,6 +161,7 @@ typedef struct {
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_metric_t;
+#define SDB_STORE_METRIC_INIT { NULL, NULL, { NULL, NULL }, 0, 0, NULL, 0 }
 
 /*
  * sdb_store_attribute_t represents a stored attribute.
@@ -175,6 +178,7 @@ typedef struct {
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_attribute_t;
+#define SDB_STORE_ATTRIBUTE_INIT { NULL, 0, NULL, NULL, SDB_DATA_INIT, 0, 0, NULL, 0 }
 
 /*
  * Expressions represent arithmetic expressions based on stored objects and

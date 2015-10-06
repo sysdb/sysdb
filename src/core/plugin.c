@@ -1485,7 +1485,7 @@ sdb_plugin_query(sdb_ast_node_t *ast,
 int
 sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 {
-	sdb_store_host_t host = { 0 };
+	sdb_store_host_t host = SDB_STORE_HOST_INIT;
 	char *backends[1];
 	char *cname;
 
@@ -1530,7 +1530,7 @@ int
 sdb_plugin_store_service(const char *hostname, const char *name,
 		sdb_time_t last_update)
 {
-	sdb_store_service_t service = { 0 };
+	sdb_store_service_t service = SDB_STORE_SERVICE_INIT;
 	char *backends[1];
 	char *cname;
 
@@ -1588,7 +1588,7 @@ int
 sdb_plugin_store_metric(const char *hostname, const char *name,
 		sdb_metric_store_t *store, sdb_time_t last_update)
 {
-	sdb_store_metric_t metric = { 0 };
+	sdb_store_metric_t metric = SDB_STORE_METRIC_INIT;
 	char *backends[1];
 	char *cname;
 
@@ -1653,7 +1653,7 @@ int
 sdb_plugin_store_attribute(const char *hostname, const char *key,
 		const sdb_data_t *value, sdb_time_t last_update)
 {
-	sdb_store_attribute_t attr = { 0 };
+	sdb_store_attribute_t attr = SDB_STORE_ATTRIBUTE_INIT;
 	char *backends[1];
 	char *cname;
 
@@ -1701,7 +1701,7 @@ int
 sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
-	sdb_store_attribute_t attr = { 0 };
+	sdb_store_attribute_t attr = SDB_STORE_ATTRIBUTE_INIT;
 	char *backends[1];
 	char *cname;
 
@@ -1750,7 +1750,7 @@ int
 sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update)
 {
-	sdb_store_attribute_t attr = { 0 };
+	sdb_store_attribute_t attr = SDB_STORE_ATTRIBUTE_INIT;
 	char *backends[1];
 	char *cname;
 
