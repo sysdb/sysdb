@@ -621,7 +621,8 @@ else
 fi; fi
 
 if test "x$have_librrd" = "xyes"; then
-	AC_CHECK_HEADERS([rrd_client.h])
+	AC_CHECK_HEADERS([rrd.h])
+	AC_CHECK_HEADERS([rrd_client.h], [], [], [[#include <rrd.h>]])
 fi
 
 dnl Feature checks.
