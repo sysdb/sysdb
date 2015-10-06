@@ -689,11 +689,11 @@ prepare_query(sdb_ast_node_t *ast,
 
 static int
 execute_query(sdb_object_t *q,
-		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
+		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf,
 		sdb_object_t *user_data)
 {
 	return sdb_store_query_execute(SDB_STORE(user_data),
-			QUERY(q), buf, errbuf);
+			QUERY(q), w, wd, errbuf);
 } /* execute_query */
 
 sdb_store_reader_t sdb_store_reader = {
@@ -902,75 +902,6 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
 	sdb_object_deref(SDB_OBJ(attr));
 	return 0;
 } /* sdb_store_get_attr */
-
-/* TODO: sdb_store_fetch_timeseries should move into the plugin module */
-
-int
-sdb_store_fetch_timeseries(sdb_store_t *store,
-		const char *hostname, const char *metric,
-		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf)
-{
-	sdb_avltree_t *metrics;
-	host_t *host;
-	sdb_metric_t *m;
-
-	sdb_timeseries_t *ts;
-
-	int status = 0;
-
-	if ((! store) || (! hostname) || (! metric) || (! opts) || (! buf))
-		return -1;
-
-	pthread_rwlock_rdlock(&store->host_lock);
-	host = HOST(sdb_avltree_lookup(store->hosts, hostname));
-	metrics = get_host_children(host, SDB_METRIC);
-	sdb_object_deref(SDB_OBJ(host));
-	if (! metrics) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
-				"- host '%s' not found", hostname, metric, hostname);
-		pthread_rwlock_unlock(&store->host_lock);
-		return -1;
-	}
-
-	m = METRIC(sdb_avltree_lookup(metrics, metric));
-	if (! m) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
-				"- metric '%s' not found", hostname, metric, metric);
-		pthread_rwlock_unlock(&store->host_lock);
-		return -1;
-	}
-
-	if ((! m->store.type) || (! m->store.id)) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
-				"- no data-store configured for the stored metric",
-				hostname, metric);
-		sdb_object_deref(SDB_OBJ(m));
-		pthread_rwlock_unlock(&store->host_lock);
-		return -1;
-	}
-
-	{
-		char type[strlen(m->store.type) + 1];
-		char id[strlen(m->store.id) + 1];
-
-		strncpy(type, m->store.type, sizeof(type));
-		strncpy(id, m->store.id, sizeof(id));
-		pthread_rwlock_unlock(&store->host_lock);
-
-		ts = sdb_plugin_fetch_timeseries(type, id, opts);
-		if (! ts) {
-			sdb_log(SDB_LOG_ERR, "store: Failed to fetch time-series '%s/%s' "
-					"- %s fetcher callback returned no data for '%s'",
-					hostname, metric, type, id);
-			status = -1;
-		}
-	}
-
-	sdb_timeseries_tojson(ts, buf);
-	sdb_object_deref(SDB_OBJ(m));
-	sdb_timeseries_destroy(ts);
-	return status;
-} /* sdb_store_fetch_timeseries */
 
 int
 sdb_store_scan(sdb_store_t *store, int type,

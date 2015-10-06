@@ -288,15 +288,12 @@ typedef struct {
 	 * execute_query:
 	 * Execute a previously prepared query. The callback may expect that only
 	 * queries prepared by its respective prepare callback will be passed to
-	 * this function.
-	 *
-	 * TODO: Instead of letting the executor write directly to a string buffer
-	 *       (which cannot easily be merged with other results), let it hand
-	 *       all objects to a store-writer.
+	 * this function. The query result will be passed back via the specified
+	 * store writer.
 	 */
 	int (*execute_query)(sdb_object_t *q,
-			sdb_strbuf_t *buf, sdb_strbuf_t *errbuf,
-			sdb_object_t *user_data);
+			sdb_store_writer_t *w, sdb_object_t *wd,
+			sdb_strbuf_t *errbuf, sdb_object_t *user_data);
 } sdb_store_reader_t;
 
 /*
@@ -462,7 +459,7 @@ sdb_store_query_prepare_matcher(sdb_ast_node_t *ast);
  */
 int
 sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *m,
-		sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
+		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_store_expr_create:

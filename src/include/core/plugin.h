@@ -446,7 +446,8 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
  *  - a negative value else
  */
 int
-sdb_plugin_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf);
+sdb_plugin_query(sdb_ast_node_t *ast,
+		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_plugin_store_host, sdb_plugin_store_service, sdb_plugin_store_metric,

@@ -44,6 +44,51 @@
 #include <string.h>
 
 /*
+ * metric fetcher:
+ * Implements the callbacks necessary to read a metric object.
+ * TODO: FETCH should allow to ignore child elements (attributes); then, we'd
+ * only need store_host/store_metric.
+ */
+
+typedef struct {
+	char *type;
+	char *id;
+} metric_store_t;
+
+static int
+metric_fetcher_host(sdb_store_host_t __attribute__((unused)) *host,
+		sdb_object_t __attribute__((unused)) *user_data)
+{
+	return 0;
+} /* metric_fetcher_host */
+
+static int
+metric_fetcher_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
+{
+	metric_store_t *st = SDB_OBJ_WRAPPER(user_data)->data;
+
+	if ((! metric->store.type) || (! metric->store.id))
+		return 0;
+
+	st->type = strdup(metric->store.type);
+	st->id = strdup(metric->store.id);
+	if ((! st->type) || (! st->id))
+		return -1;
+	return 0;
+} /* metric_fetcher_metric */
+
+static int
+metric_fetcher_attr(sdb_store_attribute_t __attribute__((unused)) *attr,
+		sdb_object_t __attribute__((unused)) *user_data)
+{
+	return 0;
+} /* metric_fetcher_attr */
+
+static sdb_store_writer_t metric_fetcher = {
+	metric_fetcher_host, NULL, metric_fetcher_metric, metric_fetcher_attr,
+};
+
+/*
  * private helper functions
  */
 
@@ -58,6 +103,45 @@ sstrlen(const char *s)
 {
 	return s ? strlen(s) : 0;
 } /* sstrlen */
+
+static int
+exec_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
+{
+	sdb_store_json_formatter_t *f;
+	int type = 0, flags = 0;
+	uint32_t res_type = 0;
+	int status;
+
+	switch (ast->type) {
+	case SDB_AST_TYPE_FETCH:
+		type = SDB_AST_FETCH(ast)->obj_type;
+		res_type = htonl(SDB_CONNECTION_FETCH);
+		break;
+	case SDB_AST_TYPE_LIST:
+		type = SDB_AST_LIST(ast)->obj_type;
+		flags = SDB_WANT_ARRAY;
+		res_type = htonl(SDB_CONNECTION_LIST);
+		break;
+	case SDB_AST_TYPE_LOOKUP:
+		type = SDB_AST_LOOKUP(ast)->obj_type;
+		flags = SDB_WANT_ARRAY;
+		res_type = htonl(SDB_CONNECTION_LOOKUP);
+		break;
+	default:
+		sdb_strbuf_sprintf(errbuf, "invalid command %s (%#x)",
+				SDB_AST_TYPE_TO_STRING(ast), ast->type);
+		return -1;
+	}
+
+	f = sdb_store_json_formatter(buf, type, flags);
+	sdb_strbuf_memcpy(buf, &res_type, sizeof(res_type));
+	status = sdb_plugin_query(ast, &sdb_store_json_writer, SDB_OBJ(f), errbuf);
+	if (status < 0)
+		sdb_strbuf_clear(buf);
+	sdb_store_json_finish(f);
+	sdb_object_deref(SDB_OBJ(f));
+	return status;
+} /* exec_query */
 
 static int
 exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
@@ -145,7 +229,58 @@ exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 } /* exec_store */
 
 static int
-exec_query(sdb_conn_t *conn, sdb_ast_node_t *ast)
+exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
+{
+	metric_store_t st = { NULL, NULL };
+	sdb_object_wrapper_t obj = SDB_OBJECT_WRAPPER_STATIC(&st);
+	sdb_ast_fetch_t fetch = SDB_AST_FETCH_INIT;
+	sdb_timeseries_opts_t opts = { 0, 0 };
+	sdb_timeseries_t *series = NULL;
+	int status;
+
+	if ((! ts) || (! ts->hostname) || (! ts->metric))
+		return -1;
+
+	fetch.obj_type = SDB_METRIC;
+	fetch.hostname = strdup(ts->hostname);
+	fetch.name = strdup(ts->metric);
+	opts.start = ts->start;
+	opts.end = ts->end;
+
+	status = sdb_plugin_query(SDB_AST_NODE(&fetch),
+			&metric_fetcher, SDB_OBJ(&obj), errbuf);
+	if ((status < 0) || (! st.type) || (! st.id)) {
+		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series '%s/%s' "
+				"- no data-store configured for the stored metric",
+				ts->hostname, ts->metric);
+		status = -1;
+	}
+	if (status >= 0) {
+		series = sdb_plugin_fetch_timeseries(st.type, st.id, &opts);
+		if (! series) {
+			sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series '%s/%s' "
+					"- %s fetcher callback returned no data for '%s'",
+					ts->hostname, ts->metric, st.type, st.id);
+			status = -1;
+		}
+	}
+
+	if (status >= 0) {
+		sdb_timeseries_tojson(series, buf);
+		sdb_timeseries_destroy(series);
+	}
+
+	free(fetch.hostname);
+	free(fetch.name);
+	if (st.type)
+		free(st.type);
+	if (st.id)
+		free(st.id);
+	return status;
+} /* exec_timeseries */
+
+static int
+exec_cmd(sdb_conn_t *conn, sdb_ast_node_t *ast)
 {
 	sdb_strbuf_t *buf;
 	int status;
@@ -160,10 +295,14 @@ exec_query(sdb_conn_t *conn, sdb_ast_node_t *ast)
 		sdb_strbuf_sprintf(conn->errbuf, "Out of memory");
 		return -1;
 	}
+
 	if (ast->type == SDB_AST_TYPE_STORE)
 		status = exec_store(SDB_AST_STORE(ast), buf, conn->errbuf);
+	else if (ast->type == SDB_AST_TYPE_TIMESERIES)
+		status = exec_timeseries(SDB_AST_TIMESERIES(ast), buf, conn->errbuf);
 	else
-		status = sdb_plugin_query(ast, buf, conn->errbuf);
+		status = exec_query(ast, buf, conn->errbuf);
+
 	if (status < 0) {
 		char query[conn->cmd_len + 1];
 		strncpy(query, sdb_strbuf_string(conn->buf), conn->cmd_len);
@@ -176,7 +315,7 @@ exec_query(sdb_conn_t *conn, sdb_ast_node_t *ast)
 
 	sdb_strbuf_destroy(buf);
 	return status < 0 ? status : 0;
-} /* exec_query */
+} /* exec_cmd */
 
 /*
  * public API
@@ -227,7 +366,7 @@ sdb_conn_query(sdb_conn_t *conn)
 	}
 
 	if (ast) {
-		status = exec_query(conn, ast);
+		status = exec_cmd(conn, ast);
 		sdb_object_deref(SDB_OBJ(ast));
 	}
 	sdb_llist_destroy(parsetree);
@@ -266,7 +405,7 @@ sdb_conn_fetch(sdb_conn_t *conn)
 			hostname[0] ? strdup(hostname) : NULL,
 			name[0] ? strdup(name) : NULL,
 			/* filter = */ NULL);
-	status = exec_query(conn, ast);
+	status = exec_cmd(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_fetch */
@@ -292,7 +431,7 @@ sdb_conn_list(sdb_conn_t *conn)
 	}
 
 	ast = sdb_ast_list_create((int)type, /* filter = */ NULL);
-	status = exec_query(conn, ast);
+	status = exec_cmd(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_list */
@@ -336,7 +475,7 @@ sdb_conn_lookup(sdb_conn_t *conn)
 	}
 
 	ast = sdb_ast_lookup_create((int)type, m, /* filter = */ NULL);
-	status = exec_query(conn, ast);
+	status = exec_cmd(conn, ast);
 	if (! ast)
 		sdb_object_deref(SDB_OBJ(m));
 	sdb_object_deref(SDB_OBJ(ast));
@@ -443,7 +582,7 @@ sdb_conn_store(sdb_conn_t *conn)
 
 	status = sdb_parser_analyze(ast, conn->errbuf);
 	if (! status)
-		status = exec_query(conn, ast);
+		status = exec_cmd(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;
 } /* sdb_conn_store */
