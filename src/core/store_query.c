@@ -32,14 +32,14 @@
 
 #include <assert.h>
 
-static sdb_store_matcher_t *
+static sdb_memstore_matcher_t *
 node_to_matcher(sdb_ast_node_t *n);
 
-static sdb_store_expr_t *
+static sdb_memstore_expr_t *
 node_to_expr(sdb_ast_node_t *n)
 {
-	sdb_store_expr_t *left = NULL, *right = NULL;
-	sdb_store_expr_t *e;
+	sdb_memstore_expr_t *left = NULL, *right = NULL;
+	sdb_memstore_expr_t *e;
 	int op;
 
 	if (! n) {
@@ -64,22 +64,22 @@ node_to_expr(sdb_ast_node_t *n)
 			return NULL;
 		}
 		op = SDB_AST_OP_TO_DATA_OP(SDB_AST_OP(n)->kind);
-		e = sdb_store_expr_create(op, left, right);
+		e = sdb_memstore_expr_create(op, left, right);
 		break;
 
 	case SDB_AST_TYPE_CONST:
-		return sdb_store_expr_constvalue(&SDB_AST_CONST(n)->value);
+		return sdb_memstore_expr_constvalue(&SDB_AST_CONST(n)->value);
 
 	case SDB_AST_TYPE_VALUE:
 		if (SDB_AST_VALUE(n)->type == SDB_ATTRIBUTE)
-			return sdb_store_expr_attrvalue(SDB_AST_VALUE(n)->name);
-		return sdb_store_expr_fieldvalue(SDB_AST_VALUE(n)->type);
+			return sdb_memstore_expr_attrvalue(SDB_AST_VALUE(n)->name);
+		return sdb_memstore_expr_fieldvalue(SDB_AST_VALUE(n)->type);
 
 	case SDB_AST_TYPE_TYPED:
 		right = node_to_expr(SDB_AST_TYPED(n)->expr);
 		if (! right)
 			return NULL;
-		e = sdb_store_expr_typed(SDB_AST_TYPED(n)->type, right);
+		e = sdb_memstore_expr_typed(SDB_AST_TYPED(n)->type, right);
 		break;
 
 	default:
@@ -94,11 +94,11 @@ node_to_expr(sdb_ast_node_t *n)
 	return e;
 } /* node_to_expr */
 
-static sdb_store_matcher_t *
+static sdb_memstore_matcher_t *
 logical_to_matcher(sdb_ast_node_t *n)
 {
-	sdb_store_matcher_t *left = NULL, *right;
-	sdb_store_matcher_t *m;
+	sdb_memstore_matcher_t *left = NULL, *right;
+	sdb_memstore_matcher_t *m;
 
 	if (SDB_AST_OP(n)->left) {
 		left = node_to_matcher(SDB_AST_OP(n)->left);
@@ -113,13 +113,13 @@ logical_to_matcher(sdb_ast_node_t *n)
 
 	switch (SDB_AST_OP(n)->kind) {
 	case SDB_AST_AND:
-		m = sdb_store_con_matcher(left, right);
+		m = sdb_memstore_con_matcher(left, right);
 		break;
 	case SDB_AST_OR:
-		m = sdb_store_dis_matcher(left, right);
+		m = sdb_memstore_dis_matcher(left, right);
 		break;
 	case SDB_AST_NOT:
-		m = sdb_store_inv_matcher(right);
+		m = sdb_memstore_inv_matcher(right);
 		break;
 
 	default:
@@ -132,11 +132,11 @@ logical_to_matcher(sdb_ast_node_t *n)
 	return m;
 } /* logical_to_matcher */
 
-static sdb_store_matcher_t *
+static sdb_memstore_matcher_t *
 cmp_to_matcher(sdb_ast_node_t *n)
 {
-	sdb_store_expr_t *left = NULL, *right;
-	sdb_store_matcher_t *m;
+	sdb_memstore_expr_t *left = NULL, *right;
+	sdb_memstore_matcher_t *m;
 
 	if (SDB_AST_OP(n)->left) {
 		left = node_to_expr(SDB_AST_OP(n)->left);
@@ -151,40 +151,40 @@ cmp_to_matcher(sdb_ast_node_t *n)
 
 	switch (SDB_AST_OP(n)->kind) {
 	case SDB_AST_LT:
-		m = sdb_store_lt_matcher(left, right);
+		m = sdb_memstore_lt_matcher(left, right);
 		break;
 	case SDB_AST_LE:
-		m = sdb_store_le_matcher(left, right);
+		m = sdb_memstore_le_matcher(left, right);
 		break;
 	case SDB_AST_EQ:
-		m = sdb_store_eq_matcher(left, right);
+		m = sdb_memstore_eq_matcher(left, right);
 		break;
 	case SDB_AST_NE:
-		m = sdb_store_ne_matcher(left, right);
+		m = sdb_memstore_ne_matcher(left, right);
 		break;
 	case SDB_AST_GE:
-		m = sdb_store_ge_matcher(left, right);
+		m = sdb_memstore_ge_matcher(left, right);
 		break;
 	case SDB_AST_GT:
-		m = sdb_store_gt_matcher(left, right);
+		m = sdb_memstore_gt_matcher(left, right);
 		break;
 	case SDB_AST_REGEX:
-		m = sdb_store_regex_matcher(left, right);
+		m = sdb_memstore_regex_matcher(left, right);
 		break;
 	case SDB_AST_NREGEX:
-		m = sdb_store_nregex_matcher(left, right);
+		m = sdb_memstore_nregex_matcher(left, right);
 		break;
 	case SDB_AST_ISNULL:
-		m = sdb_store_isnull_matcher(right);
+		m = sdb_memstore_isnull_matcher(right);
 		break;
 	case SDB_AST_ISTRUE:
-		m = sdb_store_istrue_matcher(right);
+		m = sdb_memstore_istrue_matcher(right);
 		break;
 	case SDB_AST_ISFALSE:
-		m = sdb_store_isfalse_matcher(right);
+		m = sdb_memstore_isfalse_matcher(right);
 		break;
 	case SDB_AST_IN:
-		m = sdb_store_in_matcher(left, right);
+		m = sdb_memstore_in_matcher(left, right);
 		break;
 
 	default:
@@ -199,11 +199,11 @@ cmp_to_matcher(sdb_ast_node_t *n)
 	return m;
 } /* cmp_to_matcher */
 
-static sdb_store_matcher_t *
+static sdb_memstore_matcher_t *
 iter_to_matcher(sdb_ast_node_t *n)
 {
-	sdb_store_expr_t *iter;
-	sdb_store_matcher_t *expr, *m;
+	sdb_memstore_expr_t *iter;
+	sdb_memstore_matcher_t *expr, *m;
 
 	assert((SDB_AST_ITER(n)->expr->type == SDB_AST_TYPE_OPERATOR)
 			&& (! SDB_AST_OP(SDB_AST_ITER(n)->expr)->left));
@@ -219,10 +219,10 @@ iter_to_matcher(sdb_ast_node_t *n)
 
 	switch (SDB_AST_ITER(n)->kind) {
 	case SDB_AST_ALL:
-		m = sdb_store_all_matcher(iter, expr);
+		m = sdb_memstore_all_matcher(iter, expr);
 		break;
 	case SDB_AST_ANY:
-		m = sdb_store_any_matcher(iter, expr);
+		m = sdb_memstore_any_matcher(iter, expr);
 		break;
 
 	default:
@@ -237,7 +237,7 @@ iter_to_matcher(sdb_ast_node_t *n)
 	return m;
 } /* iter_to_matcher */
 
-static sdb_store_matcher_t *
+static sdb_memstore_matcher_t *
 node_to_matcher(sdb_ast_node_t *n)
 {
 	int kind;
@@ -328,7 +328,7 @@ query_destroy(sdb_object_t *obj)
 } /* query_destroy */
 
 static sdb_type_t query_type = {
-	/* size = */ sizeof(sdb_store_query_t),
+	/* size = */ sizeof(sdb_memstore_query_t),
 	/* init = */ query_init,
 	/* destroy = */ query_destroy,
 };
@@ -337,18 +337,18 @@ static sdb_type_t query_type = {
  * public API
  */
 
-sdb_store_query_t *
-sdb_store_query_prepare(sdb_ast_node_t *ast)
+sdb_memstore_query_t *
+sdb_memstore_query_prepare(sdb_ast_node_t *ast)
 {
 	if (! ast)
 		return NULL;
 	return QUERY(sdb_object_create(SDB_AST_TYPE_TO_STRING(ast), query_type, ast));
-} /* sdb_store_query_prepare */
+} /* sdb_memstore_query_prepare */
 
-sdb_store_matcher_t *
-sdb_store_query_prepare_matcher(sdb_ast_node_t *ast)
+sdb_memstore_matcher_t *
+sdb_memstore_query_prepare_matcher(sdb_ast_node_t *ast)
 {
 	return node_to_matcher(ast);
-} /* sdb_store_query_prepare_matcher */
+} /* sdb_memstore_query_prepare_matcher */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */

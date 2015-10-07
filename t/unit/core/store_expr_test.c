@@ -36,7 +36,7 @@
 
 #include <check.h>
 
-static sdb_store_t *store;
+static sdb_memstore_t *store;
 
 static void
 populate(void)
@@ -94,41 +94,41 @@ populate(void)
 
 	size_t i;
 
-	store = sdb_store_create();
+	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_store_host(store, hosts[i], 1);
+		int status = sdb_memstore_host(store, hosts[i], 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_store_metric(store, metrics[i].host,
+		int status = sdb_memstore_metric(store, metrics[i].host,
 				metrics[i].metric, /* store */ NULL, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_store_service(store, services[i].host,
+		int status = sdb_memstore_service(store, services[i].host,
 				services[i].service, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_store_attribute(store, attrs[i].host,
+		int status = sdb_memstore_attribute(store, attrs[i].host,
 				attrs[i].name, &attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(svc_attrs); ++i) {
-		int status = sdb_store_service_attr(store, svc_attrs[i].host,
+		int status = sdb_memstore_service_attr(store, svc_attrs[i].host,
 				svc_attrs[i].service, svc_attrs[i].name,
 				&svc_attrs[i].value, 1);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metric_attrs); ++i) {
-		int status = sdb_store_metric_attr(store, metric_attrs[i].host,
+		int status = sdb_memstore_metric_attr(store, metric_attrs[i].host,
 				metric_attrs[i].metric, metric_attrs[i].name,
 				&metric_attrs[i].value, 1);
 		ck_assert(status == 0);
@@ -151,7 +151,7 @@ turndown(void)
 #define SERVICES { SDB_TYPE_INTEGER, { .integer = SDB_SERVICE } }
 #define METRICS { SDB_TYPE_INTEGER, { .integer = SDB_METRIC } }
 #define ATTRS { SDB_TYPE_INTEGER, { .integer = SDB_ATTRIBUTE } }
-static sdb_store_expr_t namer = {
+static sdb_memstore_expr_t namer = {
 	SDB_OBJECT_INIT, FIELD_VALUE, -1, NULL, NULL, NAME,
 };
 static int64_t int_values[] = { 1, 2, 3, 4, 5 };
@@ -163,7 +163,7 @@ static struct {
 	unsigned char *datum;
 } bin_values[] = { { 4, (unsigned char *)"\3\2\0\1" } };
 struct {
-	sdb_store_expr_t expr;
+	sdb_memstore_expr_t expr;
 	bool iterable;
 
 	char *host;
@@ -555,19 +555,19 @@ struct {
 
 START_TEST(test_expr_iter)
 {
-	sdb_store_obj_t *obj = NULL;
-	sdb_store_matcher_t *filter = NULL;
+	sdb_memstore_obj_t *obj = NULL;
+	sdb_memstore_matcher_t *filter = NULL;
 	int context = SDB_HOST;
 
-	sdb_store_expr_iter_t *iter;
+	sdb_memstore_expr_iter_t *iter;
 	size_t i;
 
 	if (expr_iter_data[_i].host) {
-		obj = sdb_store_get_host(store, expr_iter_data[_i].host);
+		obj = sdb_memstore_get_host(store, expr_iter_data[_i].host);
 		ck_assert(obj != NULL);
 
 		if (expr_iter_data[_i].child) {
-			sdb_store_obj_t *child = sdb_store_get_child(obj,
+			sdb_memstore_obj_t *child = sdb_memstore_get_child(obj,
 					expr_iter_data[_i].child_type, expr_iter_data[_i].child);
 			ck_assert(child != NULL);
 			sdb_object_deref(SDB_OBJ(obj));
@@ -580,14 +580,14 @@ START_TEST(test_expr_iter)
 	if (expr_iter_data[_i].filter) {
 		sdb_ast_node_t *ast;
 		ast = sdb_parser_parse_conditional(context, expr_iter_data[_i].filter, -1, NULL);
-		filter = sdb_store_query_prepare_matcher(ast);
+		filter = sdb_memstore_query_prepare_matcher(ast);
 		sdb_object_deref(SDB_OBJ(ast));
 		ck_assert(filter != NULL);
 	}
 
-	iter = sdb_store_expr_iter(&expr_iter_data[_i].expr, obj, filter);
+	iter = sdb_memstore_expr_iter(&expr_iter_data[_i].expr, obj, filter);
 	fail_unless((iter != NULL) == expr_iter_data[_i].iterable,
-			"sdb_store_expr_iter(%s expression, %s, %s) = %s; expected: %s",
+			"sdb_memstore_expr_iter(%s expression, %s, %s) = %s; expected: %s",
 			EXPR_TO_STRING(&expr_iter_data[_i].expr),
 			obj ? SDB_STORE_TYPE_TO_NAME(obj->type) : "<array>",
 			expr_iter_data[_i].filter, iter ? "<iter>" : "NULL",
@@ -598,7 +598,7 @@ START_TEST(test_expr_iter)
 	sdb_object_deref(SDB_OBJ(filter)); filter = NULL;
 
 	i = 0;
-	while (sdb_store_expr_iter_has_next(iter)) {
+	while (sdb_memstore_expr_iter_has_next(iter)) {
 		char v_str[64], expected_str[64];
 		sdb_data_t v;
 
@@ -608,7 +608,7 @@ START_TEST(test_expr_iter)
 				SDB_STORE_TYPE_TO_NAME(context), expr_iter_data[_i].filter,
 				i + 1, expr_iter_data[_i].expected_len);
 
-		v = sdb_store_expr_iter_get_next(iter);
+		v = sdb_memstore_expr_iter_get_next(iter);
 		sdb_data_format(&v, v_str, sizeof(v_str), SDB_DOUBLE_QUOTED);
 		sdb_data_format(&expr_iter_data[_i].expected[i],
 				expected_str, sizeof(expected_str), SDB_DOUBLE_QUOTED);
@@ -627,12 +627,12 @@ START_TEST(test_expr_iter)
 			"expected: %zu", EXPR_TO_STRING(&expr_iter_data[_i].expr),
 			SDB_STORE_TYPE_TO_NAME(context), expr_iter_data[_i].filter,
 			i, expr_iter_data[_i].expected_len);
-	fail_unless(sdb_store_expr_iter_get_next(iter).type == SDB_TYPE_NULL,
+	fail_unless(sdb_memstore_expr_iter_get_next(iter).type == SDB_TYPE_NULL,
 			"iter<%s expression, %s, %s> returned further elements "
 			"passed the end", EXPR_TO_STRING(&expr_iter_data[_i].expr),
 			SDB_STORE_TYPE_TO_NAME(context), expr_iter_data[_i].filter);
 
-	sdb_store_expr_iter_destroy(iter);
+	sdb_memstore_expr_iter_destroy(iter);
 }
 END_TEST
 

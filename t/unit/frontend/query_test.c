@@ -43,16 +43,16 @@
 static void
 populate(void)
 {
-	sdb_store_t *store;
+	sdb_memstore_t *store;
 	sdb_data_t datum;
 
 	/* the frontend accesses the store via the plugin API */
-	store = sdb_store_create();
+	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 	ck_assert(sdb_plugin_register_writer("test-writer",
-				&sdb_store_writer, SDB_OBJ(store)) == 0);
+				&sdb_memstore_writer, SDB_OBJ(store)) == 0);
 	ck_assert(sdb_plugin_register_reader("test-reader",
-				&sdb_store_reader, SDB_OBJ(store)) == 0);
+				&sdb_memstore_reader, SDB_OBJ(store)) == 0);
 	sdb_object_deref(SDB_OBJ(store));
 
 	/* populate the store */

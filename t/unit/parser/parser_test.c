@@ -678,7 +678,7 @@ START_TEST(test_parse)
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
 	sdb_llist_t *check;
 	sdb_ast_node_t *node;
-	sdb_store_query_t *q;
+	sdb_memstore_query_t *q;
 	_Bool ok;
 
 	check = sdb_parser_parse(parse_data[_i].query,
@@ -741,7 +741,7 @@ START_TEST(test_parse)
 	}
 
 	/* TODO: this should move into front-end specific tests */
-	q = sdb_store_query_prepare(node);
+	q = sdb_memstore_query_prepare(node);
 	fail_unless(q != NULL,
 			"sdb_store_query_prepare(AST<%s>) = NULL; expected: <query>",
 			parse_data[_i].query);

@@ -382,7 +382,7 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 /* TODO: Move sdb_store_emit* somewhere else. */
 
 int
-sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
+sdb_memstore_emit(sdb_memstore_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 {
 	if ((! obj) || (! w))
 		return -1;
@@ -456,16 +456,16 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
 	}
 
 	return -1;
-} /* sdb_store_emit */
+} /* sdb_memstore_emit */
 
 int
-sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+sdb_memstore_emit_full(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 		sdb_store_writer_t *w, sdb_object_t *wd)
 {
 	sdb_avltree_t *trees[] = { NULL, NULL, NULL };
 	size_t i;
 
-	if (sdb_store_emit(obj, w, wd))
+	if (sdb_memstore_emit(obj, w, wd))
 		return -1;
 
 	if (obj->type == SDB_HOST) {
@@ -490,13 +490,13 @@ sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 
 		iter = sdb_avltree_get_iter(trees[i]);
 		while (sdb_avltree_iter_has_next(iter)) {
-			sdb_store_obj_t *child;
+			sdb_memstore_obj_t *child;
 			child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
 
-			if (filter && (! sdb_store_matcher_matches(filter, child, NULL)))
+			if (filter && (! sdb_memstore_matcher_matches(filter, child, NULL)))
 				continue;
 
-			if (sdb_store_emit_full(child, filter, w, wd)) {
+			if (sdb_memstore_emit_full(child, filter, w, wd)) {
 				sdb_avltree_iter_destroy(iter);
 				return -1;
 			}
@@ -504,7 +504,7 @@ sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
 		sdb_avltree_iter_destroy(iter);
 	}
 	return 0;
-} /* sdb_store_emit_full */
+} /* sdb_memstore_emit_full */
 
 int
 sdb_store_json_finish(sdb_store_json_formatter_t *f)

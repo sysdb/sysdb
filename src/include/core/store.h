@@ -95,20 +95,20 @@ enum {
 		: -1)
 
 /*
- * sdb_store_t represents an in-memory store. It inherits from sdb_object_t
+ * sdb_memstore_t represents an in-memory store. It inherits from sdb_object_t
  * and may safely be case to a generic object.
  */
-struct sdb_store;
-typedef struct sdb_store sdb_store_t;
-#define SDB_STORE(obj) ((sdb_store_t *)(obj))
+struct sdb_memstore;
+typedef struct sdb_memstore sdb_memstore_t;
+#define SDB_MEMSTORE(obj) ((sdb_memstore_t *)(obj))
 
 /*
- * sdb_store_obj_t represents the super-class of any stored object. It
+ * sdb_memstore_obj_t represents the super-class of any stored object. It
  * inherits from sdb_object_t and may safely be cast to a generic object to
  * access its name.
  */
-struct sdb_store_obj;
-typedef struct sdb_store_obj sdb_store_obj_t;
+struct sdb_memstore_obj;
+typedef struct sdb_memstore_obj sdb_memstore_obj_t;
 
 /*
  * sdb_store_host_t represents the meta-data of a stored host object.
@@ -187,15 +187,15 @@ typedef struct {
  * An expression object inherits from sdb_object_t and, thus, may safely be
  * cast to a generic object.
  */
-struct sdb_store_expr;
-typedef struct sdb_store_expr sdb_store_expr_t;
-#define SDB_STORE_EXPR(obj) ((sdb_store_expr_t *)(obj))
+struct sdb_memstore_expr;
+typedef struct sdb_memstore_expr sdb_memstore_expr_t;
+#define SDB_MEMSTORE_EXPR(obj) ((sdb_memstore_expr_t *)(obj))
 
 /*
  * An expression iterator iterates over the values of an iterable expression.
  */
-struct sdb_store_expr_iter;
-typedef struct sdb_store_expr_iter sdb_store_expr_iter_t;
+struct sdb_memstore_expr_iter;
+typedef struct sdb_memstore_expr_iter sdb_memstore_expr_iter_t;
 
 /*
  * Store matchers may be used to lookup hosts from the store based on their
@@ -206,9 +206,9 @@ typedef struct sdb_store_expr_iter sdb_store_expr_iter_t;
  * A store matcher object inherits from sdb_object_t and, thus, may safely be
  * cast to a generic object.
  */
-struct sdb_store_matcher;
-typedef struct sdb_store_matcher sdb_store_matcher_t;
-#define SDB_STORE_MATCHER(obj) ((sdb_store_matcher_t *)(obj))
+struct sdb_memstore_matcher;
+typedef struct sdb_memstore_matcher sdb_memstore_matcher_t;
+#define SDB_MEMSTORE_MATCHER(obj) ((sdb_memstore_matcher_t *)(obj))
 
 /*
  * A JSON formatter converts stored objects into the JSON format.
@@ -271,11 +271,11 @@ typedef struct {
 } sdb_store_writer_t;
 
 /*
- * sdb_store_writer:
+ * sdb_memstore_writer:
  * A store writer implementation that provides an in-memory object store. It
  * expects a store object as its user-data argument.
  */
-extern sdb_store_writer_t sdb_store_writer;
+extern sdb_store_writer_t sdb_memstore_writer;
 
 /*
  * A store reader describes the interface to query a store implementation.
@@ -301,57 +301,57 @@ typedef struct {
 } sdb_store_reader_t;
 
 /*
- * sdb_store_reader:
+ * sdb_memstore_reader:
  * A store reader implementation that uses an in-memory object store. It
  * expects a store object as its user-data argument.
  */
-extern sdb_store_reader_t sdb_store_reader;
+extern sdb_store_reader_t sdb_memstore_reader;
 
 /*
- * sdb_store_create:
+ * sdb_memstore_create:
  * Allocate a new in-memory store.
  */
-sdb_store_t *
-sdb_store_create(void);
+sdb_memstore_t *
+sdb_memstore_create(void);
 
 /*
- * sdb_store_host, sdb_store_service, sdb_store_metric, sdb_store_attribute,
- * sdb_store_metric_attr:
+ * sdb_memstore_host, sdb_memstore_service, sdb_memstore_metric,
+ * sdb_memstore_attribute, sdb_memstore_metric_attr:
  * Store an object in the specified store. The hostname is expected to be
  * canonical.
  */
 int
-sdb_store_host(sdb_store_t *store, const char *name, sdb_time_t last_update);
+sdb_memstore_host(sdb_memstore_t *store, const char *name, sdb_time_t last_update);
 int
-sdb_store_service(sdb_store_t *store, const char *hostname, const char *name,
+sdb_memstore_service(sdb_memstore_t *store, const char *hostname, const char *name,
 		sdb_time_t last_update);
 int
-sdb_store_metric(sdb_store_t *store, const char *hostname, const char *name,
+sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *name,
 		sdb_metric_store_t *metric_store, sdb_time_t last_update);
 int
-sdb_store_attribute(sdb_store_t *store, const char *hostname,
+sdb_memstore_attribute(sdb_memstore_t *store, const char *hostname,
 		const char *key, const sdb_data_t *value, sdb_time_t last_update);
 int
-sdb_store_service_attr(sdb_store_t *store, const char *hostname,
+sdb_memstore_service_attr(sdb_memstore_t *store, const char *hostname,
 		const char *service, const char *key, const sdb_data_t *value,
 		sdb_time_t last_update);
 int
-sdb_store_metric_attr(sdb_store_t *store, const char *hostname,
+sdb_memstore_metric_attr(sdb_memstore_t *store, const char *hostname,
 		const char *metric, const char *key, const sdb_data_t *value,
 		sdb_time_t last_update);
 
 /*
- * sdb_store_get_host:
+ * sdb_memstore_get_host:
  * Query the specified store for a host by its (canonicalized) name.
  *
  * The function increments the ref count of the host object. The caller needs
  * to deref it when no longer using it.
  */
-sdb_store_obj_t *
-sdb_store_get_host(sdb_store_t *store, const char *name);
+sdb_memstore_obj_t *
+sdb_memstore_get_host(sdb_memstore_t *store, const char *name);
 
 /*
- * sdb_store_get_child:
+ * sdb_memstore_get_child:
  * Retrieve a host's child object of the specified type and name. The
  * reference count of the child object will be incremented before returning
  * it. The caller is responsible for releasing the object once it's no longer
@@ -361,11 +361,11 @@ sdb_store_get_host(sdb_store_t *store, const char *name);
  *  - the child object on success
  *  - NULL else
  */
-sdb_store_obj_t *
-sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
+sdb_memstore_obj_t *
+sdb_memstore_get_child(sdb_memstore_obj_t *host, int type, const char *name);
 
 /*
- * sdb_store_get_field:
+ * sdb_memstore_get_field:
  * Get the value of a stored object's queryable field. The caller is
  * responsible for freeing any dynamically allocated memory possibly stored in
  * the returned value. If 'res' is NULL, the function will return whether the
@@ -376,10 +376,10 @@ sdb_store_get_child(sdb_store_obj_t *host, int type, const char *name);
  *  - a negative value else
  */
 int
-sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
+sdb_memstore_get_field(sdb_memstore_obj_t *obj, int field, sdb_data_t *res);
 
 /*
- * sdb_store_get_attr:
+ * sdb_memstore_get_attr:
  * Get the value of a stored object's attribute. The caller is responsible for
  * freeing any dynamically allocated memory possibly stored in the returned
  * value. If 'res' is NULL, the function will return whether the attribute
@@ -391,8 +391,8 @@ sdb_store_get_field(sdb_store_obj_t *obj, int field, sdb_data_t *res);
  *  - a negative value else
  */
 int
-sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
-		sdb_store_matcher_t *filter);
+sdb_memstore_get_attr(sdb_memstore_obj_t *obj, const char *name, sdb_data_t *res,
+		sdb_memstore_matcher_t *filter);
 
 /*
  * Querying a store:
@@ -408,25 +408,25 @@ sdb_store_get_attr(sdb_store_obj_t *obj, const char *name, sdb_data_t *res,
  */
 
 /*
- * sdb_store_query_t:
+ * sdb_memstore_query_t:
  * A parsed query readily prepared for execution.
  */
-struct sdb_store_query;
-typedef struct sdb_store_query sdb_store_query_t;
+struct sdb_memstore_query;
+typedef struct sdb_memstore_query sdb_memstore_query_t;
 
 /*
- * sdb_store_query_prepare:
+ * sdb_memstore_query_prepare:
  * Prepare the query described by 'ast' for execution in a store.
  *
  * Returns:
  *  - a store query on success
  *  - NULL else
  */
-sdb_store_query_t *
-sdb_store_query_prepare(sdb_ast_node_t *ast);
+sdb_memstore_query_t *
+sdb_memstore_query_prepare(sdb_ast_node_t *ast);
 
 /*
- * sdb_store_query_prepare_matcher:
+ * sdb_memstore_query_prepare_matcher:
  * Prepare the logical expression described by 'ast' for execution as a store
  * matcher.
  *
@@ -434,11 +434,11 @@ sdb_store_query_prepare(sdb_ast_node_t *ast);
  *  - a matcher on success
  *  - NULL else
  */
-sdb_store_matcher_t *
-sdb_store_query_prepare_matcher(sdb_ast_node_t *ast);
+sdb_memstore_matcher_t *
+sdb_memstore_query_prepare_matcher(sdb_ast_node_t *ast);
 
 /*
- * sdb_store_query_execute:
+ * sdb_memstore_query_execute:
  * Execute a previously prepared query in the specified store. The query
  * result will be written to 'buf' and any errors to 'errbuf'.
  *
@@ -447,11 +447,11 @@ sdb_store_query_prepare_matcher(sdb_ast_node_t *ast);
  *  - a negative value on error
  */
 int
-sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *m,
+sdb_memstore_query_execute(sdb_memstore_t *store, sdb_memstore_query_t *m,
 		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf);
 
 /*
- * sdb_store_expr_create:
+ * sdb_memstore_expr_create:
  * Creates an arithmetic expression implementing the specified operator on the
  * specified left and right operand.
  *
@@ -459,11 +459,12 @@ sdb_store_query_execute(sdb_store_t *store, sdb_store_query_t *m,
  *  - an expression object on success
  *  - NULL else
  */
-sdb_store_expr_t *
-sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_memstore_expr_t *
+sdb_memstore_expr_create(int op,
+		sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
 
 /*
- * sdb_store_expr_typed:
+ * sdb_memstore_expr_typed:
  * Creates an expression which evaluates in the context of an object's sibling
  * as specified by the given type.
  *
@@ -471,11 +472,11 @@ sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right);
  *  - an expression object on success
  *  - NULL else
  */
-sdb_store_expr_t *
-sdb_store_expr_typed(int typ, sdb_store_expr_t *expr);
+sdb_memstore_expr_t *
+sdb_memstore_expr_typed(int typ, sdb_memstore_expr_t *expr);
 
 /*
- * sdb_store_expr_fieldvalue:
+ * sdb_memstore_expr_fieldvalue:
  * Creates an expression which evaluates to the value of the specified
  * queryable field of a stored object.
  *
@@ -483,11 +484,11 @@ sdb_store_expr_typed(int typ, sdb_store_expr_t *expr);
  *  - an expression object on success
  *  - NULL else
  */
-sdb_store_expr_t *
-sdb_store_expr_fieldvalue(int field);
+sdb_memstore_expr_t *
+sdb_memstore_expr_fieldvalue(int field);
 
 /*
- * sdb_store_expr_attrvalue:
+ * sdb_memstore_expr_attrvalue:
  * Creates an expression which evaluates to the value of the specified
  * attribute of a stored object. Evaluates to a NULL value if the attribute
  * does not exist.
@@ -496,22 +497,22 @@ sdb_store_expr_fieldvalue(int field);
  *  - an expression object on success
  *  - NULL else
  */
-sdb_store_expr_t *
-sdb_store_expr_attrvalue(const char *name);
+sdb_memstore_expr_t *
+sdb_memstore_expr_attrvalue(const char *name);
 
 /*
- * sdb_store_expr_constvalue:
+ * sdb_memstore_expr_constvalue:
  * Creates an expression which evaluates to the specified constant value.
  *
  * Returns:
  *  - an expression object on success
  *  - NULL else
  */
-sdb_store_expr_t *
-sdb_store_expr_constvalue(const sdb_data_t *value);
+sdb_memstore_expr_t *
+sdb_memstore_expr_constvalue(const sdb_data_t *value);
 
 /*
- * sdb_store_expr_eval:
+ * sdb_memstore_expr_eval:
  * Evaluate an expression for the specified stored object and stores the
  * result in 'res'. The result's value will be allocated dynamically if
  * necessary and, thus, should be free'd by the caller (e.g. using
@@ -524,133 +525,133 @@ sdb_store_expr_constvalue(const sdb_data_t *value);
  *  - a negative value else
  */
 int
-sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_data_t *res, sdb_store_matcher_t *filter);
+sdb_memstore_expr_eval(sdb_memstore_expr_t *expr, sdb_memstore_obj_t *obj,
+		sdb_data_t *res, sdb_memstore_matcher_t *filter);
 
 /*
- * sdb_store_expr_iter:
- * Iterate over the elements of an iterable expression. sdb_store_expr_iter
+ * sdb_memstore_expr_iter:
+ * Iterate over the elements of an iterable expression. sdb_memstore_expr_iter
  * returns NULL if the expression is not iterable (for the specified object).
  *
- * sdb_store_expr_iter_get_next returns NULL if there is no next element.
+ * sdb_memstore_expr_iter_get_next returns NULL if there is no next element.
  */
-sdb_store_expr_iter_t *
-sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter);
+sdb_memstore_expr_iter_t *
+sdb_memstore_expr_iter(sdb_memstore_expr_t *expr, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter);
 void
-sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter);
+sdb_memstore_expr_iter_destroy(sdb_memstore_expr_iter_t *iter);
 
 bool
-sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter);
+sdb_memstore_expr_iter_has_next(sdb_memstore_expr_iter_t *iter);
 sdb_data_t
-sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter);
+sdb_memstore_expr_iter_get_next(sdb_memstore_expr_iter_t *iter);
 
 /*
- * sdb_store_dis_matcher:
+ * sdb_memstore_dis_matcher:
  * Creates a matcher matching the disjunction (logical OR) of two matchers.
  */
-sdb_store_matcher_t *
-sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_dis_matcher(sdb_memstore_matcher_t *left, sdb_memstore_matcher_t *right);
 
 /*
- * sdb_store_con_matcher:
+ * sdb_memstore_con_matcher:
  * Creates a matcher matching the conjunction (logical AND) of two matchers.
  */
-sdb_store_matcher_t *
-sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_con_matcher(sdb_memstore_matcher_t *left, sdb_memstore_matcher_t *right);
 
 /*
- * sdb_store_inv_matcher::
+ * sdb_memstore_inv_matcher:
  * Creates a matcher matching the inverse (logical NOT) of a matcher.
  */
-sdb_store_matcher_t *
-sdb_store_inv_matcher(sdb_store_matcher_t *m);
+sdb_memstore_matcher_t *
+sdb_memstore_inv_matcher(sdb_memstore_matcher_t *m);
 
 /*
- * sdb_store_any_matcher:
+ * sdb_memstore_any_matcher:
  * Creates a matcher iterating over values of the first expression (which has
  * to be iterable). It matches if *any* of those elements match 'm'. 'm' has
  * to be an ary operation with the left operand unset.
  */
-sdb_store_matcher_t *
-sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m);
+sdb_memstore_matcher_t *
+sdb_memstore_any_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m);
 
 /*
- * sdb_store_all_matcher:
+ * sdb_memstore_all_matcher:
  * Creates a matcher iterating over values of the first expression (which has
  * to be iterable). It matches if *all* of those elements match 'm'. 'm' has
  * to be an ary operation with the left operand unset.
  */
-sdb_store_matcher_t *
-sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m);
+sdb_memstore_matcher_t *
+sdb_memstore_all_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m);
 
 /*
- * sdb_store_in_matcher:
+ * sdb_memstore_in_matcher:
  * Creates a matcher which matches if the right value evaluates to an array
  * value and the left value is included in that array. See sdb_data_inarray
  * for more details.
  */
-sdb_store_matcher_t *
-sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_in_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
 
 /*
- * sdb_store_lt_matcher, sdb_store_le_matcher, sdb_store_eq_matcher,
- * sdb_store_ge_matcher, sdb_store_gt_matcher:
+ * sdb_memstore_lt_matcher, sdb_memstore_le_matcher, sdb_memstore_eq_matcher,
+ * sdb_memstore_ge_matcher, sdb_memstore_gt_matcher:
  * Create conditional matchers comparing the values of two expressions. The
  * matcher matches if the left expression compres less than, less or equal
  * than, equal to, not equal to, greater or equal than, or greater than the
  * right expression.
  */
-sdb_store_matcher_t *
-sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-sdb_store_matcher_t *
-sdb_store_le_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-sdb_store_matcher_t *
-sdb_store_eq_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-sdb_store_matcher_t *
-sdb_store_ne_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-sdb_store_matcher_t *
-sdb_store_ge_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
-sdb_store_matcher_t *
-sdb_store_gt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_lt_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_le_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_eq_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_ne_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_ge_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_gt_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
 
 /*
- * sdb_store_regex_matcher:
+ * sdb_memstore_regex_matcher:
  * Creates a matcher which matches the string value the left expression
  * evaluates to against the regular expression the right expression evaluates
  * to. The right expression may either be a constant value regular expression
  * or string or a dynamic value evaluating to a string. In the latter case,
  * the string is compiled to a regex every time the matcher is executed.
  */
-sdb_store_matcher_t *
-sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_regex_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
 
 /*
- * sdb_store_nregex_matcher:
- * Creates a regex matcher just like sdb_store_regex_matcher except that it
+ * sdb_memstore_nregex_matcher:
+ * Creates a regex matcher just like sdb_memstore_regex_matcher except that it
  * matches in case the regular expression does not match.
  */
-sdb_store_matcher_t *
-sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right);
+sdb_memstore_matcher_t *
+sdb_memstore_nregex_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right);
 
 /*
- * sdb_store_isnull_matcher:
+ * sdb_memstore_isnull_matcher:
  * Creates a matcher matching NULL values.
  */
-sdb_store_matcher_t *
-sdb_store_isnull_matcher(sdb_store_expr_t *expr);
+sdb_memstore_matcher_t *
+sdb_memstore_isnull_matcher(sdb_memstore_expr_t *expr);
 
 /*
- * sdb_store_istrue_matcher, sdb_store_isfalse_matcher:
+ * sdb_memstore_istrue_matcher, sdb_memstore_isfalse_matcher:
  * Creates a matcher matching boolean values.
  */
-sdb_store_matcher_t *
-sdb_store_istrue_matcher(sdb_store_expr_t *expr);
-sdb_store_matcher_t *
-sdb_store_isfalse_matcher(sdb_store_expr_t *expr);
+sdb_memstore_matcher_t *
+sdb_memstore_istrue_matcher(sdb_memstore_expr_t *expr);
+sdb_memstore_matcher_t *
+sdb_memstore_isfalse_matcher(sdb_memstore_expr_t *expr);
 
 /*
- * sdb_store_matcher_matches:
+ * sdb_memstore_matcher_matches:
  * Check whether the specified matcher matches the specified store object. If
  * specified, the filter will be used to preselect objects for further
  * evaluation. It is applied to any object that's used during the evaluation
@@ -665,41 +666,41 @@ sdb_store_isfalse_matcher(sdb_store_expr_t *expr);
  *  - 0 else
  */
 int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter);
+sdb_memstore_matcher_matches(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter);
 
 /*
- * sdb_store_matcher_op_cb:
+ * sdb_memstore_matcher_op_cb:
  * Callback constructing a matcher operator.
  */
-typedef sdb_store_matcher_t *(*sdb_store_matcher_op_cb)
-	(sdb_store_expr_t *, sdb_store_expr_t *);
+typedef sdb_memstore_matcher_t *(*sdb_memstore_matcher_op_cb)
+	(sdb_memstore_expr_t *, sdb_memstore_expr_t *);
 
 /*
- * sdb_store_lookup_cb:
+ * sdb_memstore_lookup_cb:
  * Lookup callback. It is called for each matching object when looking up data
  * in the store passing on the lookup filter and the specified user-data. The
  * lookup aborts early if the callback returns non-zero.
  */
-typedef int (*sdb_store_lookup_cb)(sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter, void *user_data);
+typedef int (*sdb_memstore_lookup_cb)(sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter, void *user_data);
 
 /*
- * sdb_store_scan:
+ * sdb_memstore_scan:
  * Look up objects of the specified type in the specified store. The specified
  * callback function is called for each object in the store matching 'm'. The
  * function performs a full scan of all stored objects. If specified, the
  * filter will be used to preselect objects for further evaluation. See the
- * description of 'sdb_store_matcher_matches' for details.
+ * description of 'sdb_memstore_matcher_matches' for details.
  *
  * Returns:
  *  - 0 on success
  *  - a negative value else
  */
 int
-sdb_store_scan(sdb_store_t *store, int type,
-		sdb_store_matcher_t *m, sdb_store_matcher_t *filter,
-		sdb_store_lookup_cb cb, void *user_data);
+sdb_memstore_scan(sdb_memstore_t *store, int type,
+		sdb_memstore_matcher_t *m, sdb_memstore_matcher_t *filter,
+		sdb_memstore_lookup_cb cb, void *user_data);
 
 /*
  * Flags for JSON formatting.
@@ -717,12 +718,12 @@ sdb_store_json_formatter_t *
 sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags);
 
 /*
- * sdb_store_emit:
+ * sdb_memstore_emit:
  * Serialize a single object to JSON adding it to the string buffer associated
  * with the formatter object. The serialized object will not include
  * attributes or any child objects. Instead, call the function again for each
  * of those objects. All attributes have to be emitted before any other
- * children types. Use sdb_store_emit_full() to emit a full (filtered) object.
+ * children types. Use sdb_memstore_emit_full() to emit a full (filtered) object.
  *
  * Note that the output might not be valid JSON before calling
  * sdb_store_json_finish().
@@ -732,10 +733,10 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags);
  *  - a negative value else
  */
 int
-sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd);
+sdb_memstore_emit(sdb_memstore_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd);
 
 /*
- * sdb_store_emit_full:
+ * sdb_memstore_emit_full:
  * Serialize a single object including it's attributes and all children to
  * JSON, adding it to the string buffer associated with the formatter object.
  * The filter, if specified, is applied to each attribute and child object.
@@ -749,7 +750,7 @@ sdb_store_emit(sdb_store_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd);
  *  - a negative value else
  */
 int
-sdb_store_emit_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+sdb_memstore_emit_full(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 		sdb_store_writer_t *w, sdb_object_t *wd);
 
 /*

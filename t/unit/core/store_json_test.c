@@ -39,54 +39,54 @@
 #undef SDB_INTERVAL_SECOND
 #define SDB_INTERVAL_SECOND 1000000000L
 
-static sdb_store_t *store;
+static sdb_memstore_t *store;
 
 static void
 populate(void)
 {
 	sdb_data_t datum;
 
-	store = sdb_store_create();
+	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 
-	sdb_store_host(store, "h1", 1 * SDB_INTERVAL_SECOND);
-	sdb_store_host(store, "h2", 3 * SDB_INTERVAL_SECOND);
+	sdb_memstore_host(store, "h1", 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_host(store, "h2", 3 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_store_attribute(store, "h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v2";
-	sdb_store_attribute(store, "h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.string = "v3";
-	sdb_store_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_store_attribute(store, "h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
-	sdb_store_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
 
-	sdb_store_metric(store, "h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
-	sdb_store_metric(store, "h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
-	sdb_store_metric(store, "h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
 
-	sdb_store_service(store, "h2", "s1", 1 * SDB_INTERVAL_SECOND);
-	sdb_store_service(store, "h2", "s2", 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_service(store, "h2", "s1", 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_service(store, "h2", "s2", 2 * SDB_INTERVAL_SECOND);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_store_metric_attr(store, "h1", "m1", "k3",
+	sdb_memstore_metric_attr(store, "h1", "m1", "k3",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 
 	datum.data.integer = 123;
-	sdb_store_service_attr(store, "h2", "s2", "k1",
+	sdb_memstore_service_attr(store, "h2", "s2", "k1",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 	datum.data.integer = 4711;
-	sdb_store_service_attr(store, "h2", "s2", "k2",
+	sdb_memstore_service_attr(store, "h2", "s2", "k2",
 			&datum, 1 * SDB_INTERVAL_SECOND);
 
 	/* don't overwrite k1 */
 	datum.data.integer = 666;
-	sdb_store_service_attr(store, "h2", "s2", "k1",
+	sdb_memstore_service_attr(store, "h2", "s2", "k1",
 			&datum, 2 * SDB_INTERVAL_SECOND);
 } /* populate */
 
@@ -98,18 +98,18 @@ turndown(void)
 } /* turndown */
 
 static int
-scan_tojson(sdb_store_obj_t *obj,
-		sdb_store_matcher_t __attribute__((unused)) *filter,
+scan_tojson(sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t __attribute__((unused)) *filter,
 		void *user_data)
 {
-	return sdb_store_emit(obj, &sdb_store_json_writer, user_data);
+	return sdb_memstore_emit(obj, &sdb_store_json_writer, user_data);
 } /* scan_tojson */
 
 static int
-scan_tojson_full(sdb_store_obj_t *obj, sdb_store_matcher_t *filter,
+scan_tojson_full(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 		void *user_data)
 {
-	return sdb_store_emit_full(obj, filter, &sdb_store_json_writer, user_data);
+	return sdb_memstore_emit_full(obj, filter, &sdb_store_json_writer, user_data);
 } /* scan_tojson_full */
 
 static void
@@ -140,12 +140,12 @@ verify_json_output(sdb_strbuf_t *buf, const char *expected)
 
 struct {
 	struct {
-		sdb_store_matcher_t *(*m)(sdb_store_expr_t *, sdb_store_expr_t *);
+		sdb_memstore_matcher_t *(*m)(sdb_memstore_expr_t *, sdb_memstore_expr_t *);
 		int field;
 		sdb_data_t value;
 	} filter;
 	int type;
-	int (*f)(sdb_store_obj_t *, sdb_store_matcher_t *, void *);
+	int (*f)(sdb_memstore_obj_t *, sdb_memstore_matcher_t *, void *);
 	const char *expected;
 } store_tojson_data[] = {
 	{ { NULL, 0, SDB_DATA_INIT },
@@ -212,14 +212,14 @@ struct {
 			"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_eq_matcher, SDB_FIELD_NAME,
+	{ { sdb_memstore_eq_matcher, SDB_FIELD_NAME,
 			{ SDB_TYPE_STRING, { .string = "h1" } } },
 		SDB_HOST, scan_tojson_full,
 		"["
 			"{\"name\": \"h1\", \"last_update\": \"1970-01-01 00:00:01 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_gt_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 * SDB_INTERVAL_SECOND } } },
 		SDB_HOST, scan_tojson_full,
 		"["
@@ -236,7 +236,7 @@ struct {
 						"]}"
 				"]}"
 		"]" },
-	{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_le_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 * SDB_INTERVAL_SECOND } } },
 		SDB_HOST, scan_tojson_full,
 		"["
@@ -254,14 +254,14 @@ struct {
 						"\"update_interval\": \"0s\", \"backends\": []}"
 				"]}"
 		"]" },
-	{ { sdb_store_ge_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_ge_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 3 * SDB_INTERVAL_SECOND } } },
 		SDB_HOST, scan_tojson_full,
 		"["
 			"{\"name\": \"h2\", \"last_update\": \"1970-01-01 00:00:03 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_lt_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
 		SDB_HOST, scan_tojson_full,
 		"[]" },
@@ -294,7 +294,7 @@ struct {
 				"\"last_update\": \"1970-01-01 00:00:02 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_gt_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_gt_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 * SDB_INTERVAL_SECOND } } },
 		SDB_SERVICE, scan_tojson_full,
 		"["
@@ -307,7 +307,7 @@ struct {
 						"\"update_interval\": \"0s\", \"backends\": []}"
 				"]}"
 		"]" },
-	{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_lt_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
 		SDB_SERVICE, scan_tojson_full,
 		"[]" },
@@ -348,7 +348,7 @@ struct {
 				"\"last_update\": \"1970-01-01 00:00:01 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_le_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_le_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 1 * SDB_INTERVAL_SECOND } } },
 		SDB_METRIC, scan_tojson_full,
 		"["
@@ -357,7 +357,7 @@ struct {
 				"\"last_update\": \"1970-01-01 00:00:01 +0000\", "
 				"\"update_interval\": \"0s\", \"backends\": []}"
 		"]" },
-	{ { sdb_store_lt_matcher, SDB_FIELD_LAST_UPDATE,
+	{ { sdb_memstore_lt_matcher, SDB_FIELD_LAST_UPDATE,
 			{ SDB_TYPE_DATETIME, { .datetime = 0 } } },
 		SDB_METRIC, scan_tojson_full,
 		"[]" },
@@ -366,24 +366,24 @@ struct {
 START_TEST(test_store_tojson)
 {
 	sdb_strbuf_t *buf = sdb_strbuf_create(0);
-	sdb_store_matcher_t *filter = NULL;
+	sdb_memstore_matcher_t *filter = NULL;
 	sdb_store_json_formatter_t *f;
 	int status;
 
 	if (store_tojson_data[_i].filter.m) {
-		sdb_store_expr_t *field;
-		sdb_store_expr_t *value;
+		sdb_memstore_expr_t *field;
+		sdb_memstore_expr_t *value;
 
-		field = sdb_store_expr_fieldvalue(store_tojson_data[_i].filter.field);
+		field = sdb_memstore_expr_fieldvalue(store_tojson_data[_i].filter.field);
 		fail_unless(field != NULL,
-				"INTERNAL ERROR: sdb_store_expr_fieldvalue() = NULL");
-		value = sdb_store_expr_constvalue(&store_tojson_data[_i].filter.value);
+				"INTERNAL ERROR: sdb_memstore_expr_fieldvalue() = NULL");
+		value = sdb_memstore_expr_constvalue(&store_tojson_data[_i].filter.value);
 		fail_unless(value != NULL,
-				"INTERNAL ERROR: sdb_store_expr_constvalue() = NULL");
+				"INTERNAL ERROR: sdb_memstore_expr_constvalue() = NULL");
 
 		filter = store_tojson_data[_i].filter.m(field, value);
 		fail_unless(filter != NULL,
-				"INTERNAL ERROR: sdb_store_*_matcher() = NULL");
+				"INTERNAL ERROR: sdb_memstore_*_matcher() = NULL");
 
 		sdb_object_deref(SDB_OBJ(field));
 		sdb_object_deref(SDB_OBJ(value));
@@ -393,10 +393,10 @@ START_TEST(test_store_tojson)
 	f = sdb_store_json_formatter(buf, store_tojson_data[_i].type, SDB_WANT_ARRAY);
 	ck_assert(f != NULL);
 
-	status = sdb_store_scan(store, store_tojson_data[_i].type,
+	status = sdb_memstore_scan(store, store_tojson_data[_i].type,
 			/* m = */ NULL, filter, store_tojson_data[_i].f, f);
 	fail_unless(status == 0,
-			"sdb_store_scan(HOST, ..., tojson) = %d; expected: 0",
+			"sdb_memstore_scan(HOST, ..., tojson) = %d; expected: 0",
 			status);
 	sdb_store_json_finish(f);
 

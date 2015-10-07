@@ -26,7 +26,7 @@
  */
 
 /*
- * private data structures used by the store module
+ * private data structures used by the memstore module
  */
 
 #ifndef SDB_CORE_STORE_PRIVATE_H
@@ -46,7 +46,7 @@ extern "C" {
  * core types
  */
 
-struct sdb_store_obj {
+struct sdb_memstore_obj {
 	sdb_object_t super;
 #define _name super.name
 
@@ -58,13 +58,13 @@ struct sdb_store_obj {
 	sdb_time_t interval; /* moving average */
 	char **backends;
 	size_t backends_num;
-	sdb_store_obj_t *parent;
+	sdb_memstore_obj_t *parent;
 };
-#define STORE_OBJ(obj) ((sdb_store_obj_t *)(obj))
-#define STORE_CONST_OBJ(obj) ((const sdb_store_obj_t *)(obj))
+#define STORE_OBJ(obj) ((sdb_memstore_obj_t *)(obj))
+#define STORE_CONST_OBJ(obj) ((const sdb_memstore_obj_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	sdb_memstore_obj_t super;
 
 	sdb_data_t value;
 } attr_t;
@@ -72,7 +72,7 @@ typedef struct {
 #define CONST_ATTR(obj) ((const attr_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	sdb_memstore_obj_t super;
 
 	sdb_avltree_t *attributes;
 } service_t;
@@ -80,18 +80,18 @@ typedef struct {
 #define CONST_SVC(obj) ((const service_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	sdb_memstore_obj_t super;
 
 	sdb_avltree_t *attributes;
 	struct {
 		char *type;
 		char *id;
 	} store;
-} sdb_metric_t;
-#define METRIC(obj) ((sdb_metric_t *)(obj))
+} metric_t;
+#define METRIC(obj) ((metric_t *)(obj))
 
 typedef struct {
-	sdb_store_obj_t super;
+	sdb_memstore_obj_t super;
 
 	sdb_avltree_t *services;
 	sdb_avltree_t *metrics;
@@ -108,13 +108,13 @@ typedef struct {
  * querying
  */
 
-struct sdb_store_query {
+struct sdb_memstore_query {
 	sdb_object_t super;
 	sdb_ast_node_t *ast;
-	sdb_store_matcher_t *matcher;
-	sdb_store_matcher_t *filter;
+	sdb_memstore_matcher_t *matcher;
+	sdb_memstore_matcher_t *filter;
 };
-#define QUERY(m) ((sdb_store_query_t *)(m))
+#define QUERY(m) ((sdb_memstore_query_t *)(m))
 
 /*
  * expressions
@@ -128,14 +128,14 @@ enum {
 	/* >0: operator id */
 };
 
-struct sdb_store_expr {
+struct sdb_memstore_expr {
 	sdb_object_t super;
 
 	int type; /* see above */
 	int data_type;
 
-	sdb_store_expr_t *left;
-	sdb_store_expr_t *right;
+	sdb_memstore_expr_t *left;
+	sdb_memstore_expr_t *right;
 
 	sdb_data_t data;
 };
@@ -203,53 +203,53 @@ enum {
 		: "UNKNOWN")
 
 /* matcher base type */
-struct sdb_store_matcher {
+struct sdb_memstore_matcher {
 	sdb_object_t super;
 	/* type of the matcher */
 	int type;
 };
-#define M(m) ((sdb_store_matcher_t *)(m))
+#define M(m) ((sdb_memstore_matcher_t *)(m))
 
 /* infix operator matcher */
 typedef struct {
-	sdb_store_matcher_t super;
+	sdb_memstore_matcher_t super;
 
 	/* left and right hand operands */
-	sdb_store_matcher_t *left;
-	sdb_store_matcher_t *right;
+	sdb_memstore_matcher_t *left;
+	sdb_memstore_matcher_t *right;
 } op_matcher_t;
 #define OP_M(m) ((op_matcher_t *)(m))
 
 /* unary operator matcher */
 typedef struct {
-	sdb_store_matcher_t super;
+	sdb_memstore_matcher_t super;
 
 	/* operand */
-	sdb_store_matcher_t *op;
+	sdb_memstore_matcher_t *op;
 } uop_matcher_t;
 #define UOP_M(m) ((uop_matcher_t *)(m))
 
 /* iter matcher */
 typedef struct {
-	sdb_store_matcher_t super;
-	sdb_store_expr_t *iter;
-	sdb_store_matcher_t *m;
+	sdb_memstore_matcher_t super;
+	sdb_memstore_expr_t *iter;
+	sdb_memstore_matcher_t *m;
 } iter_matcher_t;
 #define ITER_M(m) ((iter_matcher_t *)(m))
 
 /* compare operator matcher */
 typedef struct {
-	sdb_store_matcher_t super;
+	sdb_memstore_matcher_t super;
 
 	/* left and right hand expressions */
-	sdb_store_expr_t *left;
-	sdb_store_expr_t *right;
+	sdb_memstore_expr_t *left;
+	sdb_memstore_expr_t *right;
 } cmp_matcher_t;
 #define CMP_M(m) ((cmp_matcher_t *)(m))
 
 typedef struct {
-	sdb_store_matcher_t super;
-	sdb_store_expr_t *expr;
+	sdb_memstore_matcher_t super;
+	sdb_memstore_expr_t *expr;
 } unary_matcher_t;
 #define UNARY_M(m) ((unary_matcher_t *)(m))
 

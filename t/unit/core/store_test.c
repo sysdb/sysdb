@@ -38,12 +38,12 @@
 #include <string.h>
 #include <strings.h>
 
-static sdb_store_t *store;
+static sdb_memstore_t *store;
 
 static void
 init(void)
 {
-	store = sdb_store_create();
+	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 }
 
@@ -52,41 +52,41 @@ populate(void)
 {
 	sdb_data_t datum;
 
-	sdb_store_host(store, "h1", 1);
-	sdb_store_host(store, "h2", 3);
+	sdb_memstore_host(store, "h1", 1);
+	sdb_memstore_host(store, "h2", 3);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_store_attribute(store, "h1", "k1", &datum, 1);
+	sdb_memstore_attribute(store, "h1", "k1", &datum, 1);
 	datum.data.string = "v2";
-	sdb_store_attribute(store, "h1", "k2", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 2);
 	datum.data.string = "v3";
-	sdb_store_attribute(store, "h1", "k3", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2);
 
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_store_attribute(store, "h1", "k2", &datum, 1);
-	sdb_store_attribute(store, "h1", "k3", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 1);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2);
 
-	sdb_store_metric(store, "h1", "m1", /* store */ NULL, 2);
-	sdb_store_metric(store, "h1", "m2", /* store */ NULL, 1);
-	sdb_store_metric(store, "h2", "m1", /* store */ NULL, 1);
+	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2);
+	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1);
+	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1);
 
-	sdb_store_service(store, "h2", "s1", 1);
-	sdb_store_service(store, "h2", "s2", 2);
+	sdb_memstore_service(store, "h2", "s1", 1);
+	sdb_memstore_service(store, "h2", "s2", 2);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_store_metric_attr(store, "h1", "m1", "k3", &datum, 2);
+	sdb_memstore_metric_attr(store, "h1", "m1", "k3", &datum, 2);
 
 	datum.data.integer = 123;
-	sdb_store_service_attr(store, "h2", "s2", "k1", &datum, 2);
+	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2);
 	datum.data.integer = 4711;
-	sdb_store_service_attr(store, "h2", "s2", "k2", &datum, 1);
+	sdb_memstore_service_attr(store, "h2", "s2", "k2", &datum, 1);
 
 	/* don't overwrite k1 */
 	datum.data.integer = 666;
-	sdb_store_service_attr(store, "h2", "s2", "k1", &datum, 2);
+	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2);
 } /* populate */
 
 static void
@@ -127,20 +127,20 @@ START_TEST(test_store_host)
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_store_host(store, golden_data[i].name,
+		status = sdb_memstore_host(store, golden_data[i].name,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_host(%s, %d) = %d; expected: %d",
+				"sdb_memstore_host(%s, %d) = %d; expected: %d",
 				golden_data[i].name, (int)golden_data[i].last_update,
 				status, golden_data[i].expected);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		sdb_store_obj_t *have;
+		sdb_memstore_obj_t *have;
 
-		have = sdb_store_get_host(store, golden_hosts[i].name);
+		have = sdb_memstore_get_host(store, golden_hosts[i].name);
 		fail_unless((have != NULL) == golden_hosts[i].have,
-				"sdb_store_get_host(%s) = %p; expected: %s",
+				"sdb_memstore_get_host(%s) = %p; expected: %s",
 				golden_hosts[i].name, have,
 				golden_hosts[i].have ? "<host>" : "NULL");
 		sdb_object_deref(SDB_OBJ(have));
@@ -155,36 +155,36 @@ START_TEST(test_store_get_host)
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		int status = sdb_store_host(store, golden_hosts[i], 1);
+		int status = sdb_memstore_host(store, golden_hosts[i], 1);
 		fail_unless(status >= 0,
-				"sdb_store_host(%s) = %d; expected: >=0",
+				"sdb_memstore_host(%s) = %d; expected: >=0",
 				golden_hosts[i], status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		sdb_store_obj_t *sobj1, *sobj2;
+		sdb_memstore_obj_t *sobj1, *sobj2;
 		int ref_cnt;
 
-		sobj1 = sdb_store_get_host(store, golden_hosts[i]);
+		sobj1 = sdb_memstore_get_host(store, golden_hosts[i]);
 		fail_unless(sobj1 != NULL,
-				"sdb_store_get_host(%s) = NULL; expected: <host>",
+				"sdb_memstore_get_host(%s) = NULL; expected: <host>",
 				golden_hosts[i]);
 		ref_cnt = SDB_OBJ(sobj1)->ref_cnt;
 
 		fail_unless(ref_cnt > 1,
-				"sdb_store_get_host(%s) did not increment ref count: "
+				"sdb_memstore_get_host(%s) did not increment ref count: "
 				"got: %d; expected: >1", golden_hosts[i], ref_cnt);
 
-		sobj2 = sdb_store_get_host(store, golden_hosts[i]);
+		sobj2 = sdb_memstore_get_host(store, golden_hosts[i]);
 		fail_unless(sobj2 != NULL,
-				"sdb_store_get_host(%s) = NULL; expected: <host>",
+				"sdb_memstore_get_host(%s) = NULL; expected: <host>",
 				golden_hosts[i]);
 
 		fail_unless(sobj1 == sobj2,
-				"sdb_store_get_host(%s) returned different objects "
+				"sdb_memstore_get_host(%s) returned different objects "
 				"in successive calls", golden_hosts[i]);
 		fail_unless(SDB_OBJ(sobj2)->ref_cnt == ref_cnt + 1,
-				"sdb_store_get_hosts(%s) did not increment ref count "
+				"sdb_memstore_get_hosts(%s) did not increment ref count "
 				"(first call: %d; second call: %d)",
 				golden_hosts[i], ref_cnt, SDB_OBJ(sobj2)->ref_cnt);
 
@@ -192,10 +192,10 @@ START_TEST(test_store_get_host)
 		sdb_object_deref(SDB_OBJ(sobj2));
 	}
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(unknown_hosts); ++i) {
-		sdb_store_obj_t *sobj;
+		sdb_memstore_obj_t *sobj;
 
-		sobj = sdb_store_get_host(store, unknown_hosts[i]);
-		fail_unless(!sobj, "sdb_store_get_host(%s) = <host:%s>; expected: NULL",
+		sobj = sdb_memstore_get_host(store, unknown_hosts[i]);
+		fail_unless(!sobj, "sdb_memstore_get_host(%s) = <host:%s>; expected: NULL",
 				unknown_hosts[i], sobj ? SDB_OBJ(sobj)->name : "NULL");
 	}
 }
@@ -222,8 +222,8 @@ START_TEST(test_store_attr)
 
 	size_t i;
 
-	sdb_store_host(store, "l", 1);
-	sdb_store_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1);
+	sdb_memstore_host(store, "m", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_data_t datum;
 		int status;
@@ -232,11 +232,11 @@ START_TEST(test_store_attr)
 		datum.type = SDB_TYPE_STRING;
 		datum.data.string = golden_data[i].value;
 
-		status = sdb_store_attribute(store, golden_data[i].host,
+		status = sdb_memstore_attribute(store, golden_data[i].host,
 				golden_data[i].key, &datum,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_attribute(%s, %s, %s, %d) = %d; expected: %d",
+				"sdb_memstore_attribute(%s, %s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].key, golden_data[i].value,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -275,16 +275,16 @@ START_TEST(test_store_metric)
 
 	size_t i;
 
-	sdb_store_host(store, "m", 1);
-	sdb_store_host(store, "l", 1);
+	sdb_memstore_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_store_metric(store, golden_data[i].host,
+		status = sdb_memstore_metric(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].store,
 				golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_metric(%s, %s, %p, %d) = %d; expected: %d",
+				"sdb_memstore_metric(%s, %s, %p, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].metric,
 				golden_data[i].store, golden_data[i].last_update,
 				status, golden_data[i].expected);
@@ -319,20 +319,20 @@ START_TEST(test_store_metric_attr)
 
 	size_t i;
 
-	sdb_store_host(store, "m", 1);
-	sdb_store_host(store, "l", 1);
-	sdb_store_metric(store, "m", "m1", NULL, 1);
-	sdb_store_metric(store, "l", "m1", NULL, 1);
-	sdb_store_metric(store, "l", "m2", NULL, 1);
+	sdb_memstore_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1);
+	sdb_memstore_metric(store, "m", "m1", NULL, 1);
+	sdb_memstore_metric(store, "l", "m1", NULL, 1);
+	sdb_memstore_metric(store, "l", "m2", NULL, 1);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_store_metric_attr(store, golden_data[i].host,
+		status = sdb_memstore_metric_attr(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].attr,
 				&golden_data[i].value, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_metric_attr(%s, %s, %s, %d, %d) = %d; "
+				"sdb_memstore_metric_attr(%s, %s, %s, %d, %d) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].metric,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -360,15 +360,15 @@ START_TEST(test_store_service)
 
 	size_t i;
 
-	sdb_store_host(store, "m", 1);
-	sdb_store_host(store, "l", 1);
+	sdb_memstore_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_store_service(store, golden_data[i].host,
+		status = sdb_memstore_service(store, golden_data[i].host,
 				golden_data[i].svc, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_service(%s, %s, %d) = %d; expected: %d",
+				"sdb_memstore_service(%s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].svc,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -402,20 +402,20 @@ START_TEST(test_store_service_attr)
 
 	size_t i;
 
-	sdb_store_host(store, "m", 1);
-	sdb_store_host(store, "l", 1);
-	sdb_store_service(store, "m", "s1", 1);
-	sdb_store_service(store, "l", "s1", 1);
-	sdb_store_service(store, "l", "s2", 1);
+	sdb_memstore_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1);
+	sdb_memstore_service(store, "m", "s1", 1);
+	sdb_memstore_service(store, "l", "s1", 1);
+	sdb_memstore_service(store, "l", "s2", 1);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
-		status = sdb_store_service_attr(store, golden_data[i].host,
+		status = sdb_memstore_service_attr(store, golden_data[i].host,
 				golden_data[i].svc, golden_data[i].attr,
 				&golden_data[i].value, golden_data[i].last_update);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_store_service_attr(%s, %s, %s, %d, %d) = %d; "
+				"sdb_memstore_service_attr(%s, %s, %s, %d, %d) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].svc,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -471,37 +471,37 @@ static struct {
 	(obj) ? SDB_OBJ(obj)->name : ""
 START_TEST(test_get_field)
 {
-	sdb_store_obj_t *obj = NULL;
+	sdb_memstore_obj_t *obj = NULL;
 	sdb_data_t value = SDB_DATA_INIT;
 	char value_str[128], expected_value_str[128];
 	sdb_time_t now = sdb_gettime();
 	int check;
 
-	sdb_store_host(store, "host", 10);
-	sdb_store_host(store, "host", 20);
-	sdb_store_attribute(store, "host", "attr", &get_field_data[_i].value, 10);
-	sdb_store_attribute(store, "host", "attr", &get_field_data[_i].value, 20);
+	sdb_memstore_host(store, "host", 10);
+	sdb_memstore_host(store, "host", 20);
+	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 10);
+	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 20);
 
 	if (get_field_data[_i].hostname) {
-		obj = sdb_store_get_host(store, get_field_data[_i].hostname);
+		obj = sdb_memstore_get_host(store, get_field_data[_i].hostname);
 		ck_assert(obj != NULL);
 
 		if (get_field_data[_i].attr) {
-			sdb_store_obj_t *tmp = sdb_store_get_child(obj,
+			sdb_memstore_obj_t *tmp = sdb_memstore_get_child(obj,
 					SDB_ATTRIBUTE, get_field_data[_i].attr);
 			sdb_object_deref(SDB_OBJ(obj));
 			obj = tmp;
 		}
 	}
 
-	check = sdb_store_get_field(obj, get_field_data[_i].field, NULL);
+	check = sdb_memstore_get_field(obj, get_field_data[_i].field, NULL);
 	fail_unless(check == get_field_data[_i].expected,
-			"sdb_store_get_field(%s %s, %s, NULL) = %d; expected: %d",
+			"sdb_memstore_get_field(%s %s, %s, NULL) = %d; expected: %d",
 			OBJ_NAME(obj), SDB_FIELD_TO_NAME(get_field_data[_i].field),
 			check, get_field_data[_i].expected);
-	check = sdb_store_get_field(obj, get_field_data[_i].field, &value);
+	check = sdb_memstore_get_field(obj, get_field_data[_i].field, &value);
 	fail_unless(check == get_field_data[_i].expected,
-			"sdb_store_get_field(%s %s, %s, <value>) = %d; expected: %d",
+			"sdb_memstore_get_field(%s %s, %s, <value>) = %d; expected: %d",
 			OBJ_NAME(obj), SDB_FIELD_TO_NAME(get_field_data[_i].field),
 			check, get_field_data[_i].expected);
 
@@ -522,14 +522,14 @@ START_TEST(test_get_field)
 	if (get_field_data[_i].field == SDB_FIELD_AGE) {
 		fail_unless((value.type == SDB_TYPE_DATETIME)
 				&& (value.data.datetime >= now),
-				"sdb_store_get_field(%s %s, %s, <value>) "
+				"sdb_memstore_get_field(%s %s, %s, <value>) "
 				"returned value %s; expected >=%s", OBJ_NAME(obj),
 				SDB_FIELD_TO_NAME(get_field_data[_i].field),
 				value_str, expected_value_str);
 	}
 	else {
 		fail_unless(! sdb_data_cmp(&value, &get_field_data[_i].value),
-				"sdb_store_get_field(%s %s, %s, <value>) "
+				"sdb_memstore_get_field(%s %s, %s, <value>) "
 				"returned value %s; expected %s", OBJ_NAME(obj),
 				SDB_FIELD_TO_NAME(get_field_data[_i].field),
 				value_str, expected_value_str);
@@ -573,35 +573,35 @@ START_TEST(test_get_child)
 	populate();
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_obj_t *obj;
+		sdb_memstore_obj_t *obj;
 		const char *expected_name = golden_data[i].host;
 
-		obj = sdb_store_get_host(store, golden_data[i].host);
+		obj = sdb_memstore_get_host(store, golden_data[i].host);
 		if (golden_data[i].expected && (golden_data[i].type == SDB_HOST))
 			fail_unless(obj == NULL,
-					"sdb_store_get_host(%s) = %p; expected: NULL",
+					"sdb_memstore_get_host(%s) = %p; expected: NULL",
 					golden_data[i].host, obj);
 		else
 			fail_unless(obj != NULL,
-					"sdb_store_get_host(%s) = NULL; expected: <host>",
+					"sdb_memstore_get_host(%s) = NULL; expected: <host>",
 					golden_data[i].host);
 
 		if (golden_data[i].type != SDB_HOST) {
-			sdb_store_obj_t *tmp;
+			sdb_memstore_obj_t *tmp;
 
 			expected_name = golden_data[i].name;
 
-			tmp = sdb_store_get_child(obj,
+			tmp = sdb_memstore_get_child(obj,
 					golden_data[i].type, golden_data[i].name);
 			if (golden_data[i].expected)
 				fail_unless(tmp == NULL,
-						"sdb_store_get_child(<%s>, %s, %s) = %p; "
+						"sdb_memstore_get_child(<%s>, %s, %s) = %p; "
 						"expected: NULL", golden_data[i].host,
 						SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
 						golden_data[i].name, tmp);
 			else
 				fail_unless(tmp != NULL,
-						"sdb_store_get_child(<%s>, %s, %s) = NULL; "
+						"sdb_memstore_get_child(<%s>, %s, %s) = NULL; "
 						"expected: <obj>", golden_data[i].host,
 						SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
 						golden_data[i].name);
@@ -614,12 +614,12 @@ START_TEST(test_get_child)
 			continue;
 
 		fail_unless(obj->type == golden_data[i].type,
-				"sdb_store_get_<%s>(%s, %s) returned object of type %d; "
+				"sdb_memstore_get_<%s>(%s, %s) returned object of type %d; "
 				"expected: %d", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
 				golden_data[i].host, golden_data[i].name, obj->type,
 				golden_data[i].type);
 		fail_unless(! strcasecmp(SDB_OBJ(obj)->name, expected_name),
-				"sdb_store_get_<%s>(%s, %s) returned object named '%s'; "
+				"sdb_memstore_get_<%s>(%s, %s) returned object named '%s'; "
 				"expected: '%s'", SDB_STORE_TYPE_TO_NAME(golden_data[i].type),
 				golden_data[i].host, golden_data[i].name, SDB_OBJ(obj)->name,
 				expected_name);
@@ -631,54 +631,54 @@ END_TEST
 
 START_TEST(test_interval)
 {
-	sdb_store_obj_t *host;
+	sdb_memstore_obj_t *host;
 
 	/* 10 us interval */
-	sdb_store_host(store, "host", 10);
-	sdb_store_host(store, "host", 20);
-	sdb_store_host(store, "host", 30);
-	sdb_store_host(store, "host", 40);
+	sdb_memstore_host(store, "host", 10);
+	sdb_memstore_host(store, "host", 20);
+	sdb_memstore_host(store, "host", 30);
+	sdb_memstore_host(store, "host", 40);
 
-	host = sdb_store_get_host(store, "host");
+	host = sdb_memstore_get_host(store, "host");
 	fail_unless(host != NULL,
 			"INTERNAL ERROR: store doesn't have host after adding it");
 
 	fail_unless(host->interval == 10,
-			"sdb_store_host() did not calculate interval correctly: "
+			"sdb_memstore_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates for the same timestamp don't modify the interval */
-	sdb_store_host(store, "host", 40);
-	sdb_store_host(store, "host", 40);
-	sdb_store_host(store, "host", 40);
-	sdb_store_host(store, "host", 40);
+	sdb_memstore_host(store, "host", 40);
+	sdb_memstore_host(store, "host", 40);
+	sdb_memstore_host(store, "host", 40);
+	sdb_memstore_host(store, "host", 40);
 
 	fail_unless(host->interval == 10,
-			"sdb_store_host() changed interval when doing multiple updates "
+			"sdb_memstore_host() changed interval when doing multiple updates "
 			"using the same timestamp; got: %"PRIsdbTIME"; "
 			"expected: %"PRIsdbTIME, host->interval, 10);
 
 	/* multiple updates using an timestamp don't modify the interval */
-	sdb_store_host(store, "host", 20);
-	sdb_store_host(store, "host", 20);
-	sdb_store_host(store, "host", 20);
-	sdb_store_host(store, "host", 20);
+	sdb_memstore_host(store, "host", 20);
+	sdb_memstore_host(store, "host", 20);
+	sdb_memstore_host(store, "host", 20);
+	sdb_memstore_host(store, "host", 20);
 
 	fail_unless(host->interval == 10,
-			"sdb_store_host() changed interval when doing multiple updates "
+			"sdb_memstore_host() changed interval when doing multiple updates "
 			"using an old timestamp; got: %"PRIsdbTIME"; expected: %"PRIsdbTIME,
 			host->interval, 10);
 
 	/* new interval: 20 us */
-	sdb_store_host(store, "host", 60);
+	sdb_memstore_host(store, "host", 60);
 	fail_unless(host->interval == 11,
-			"sdb_store_host() did not calculate interval correctly: "
+			"sdb_memstore_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	/* new interval: 40 us */
-	sdb_store_host(store, "host", 100);
+	sdb_memstore_host(store, "host", 100);
 	fail_unless(host->interval == 13,
-			"sdb_store_host() did not calculate interval correctly: "
+			"sdb_memstore_host() did not calculate interval correctly: "
 			"got: %"PRIsdbTIME"; expected: %"PRIsdbTIME, host->interval, 11);
 
 	sdb_object_deref(SDB_OBJ(host));
@@ -686,18 +686,18 @@ START_TEST(test_interval)
 END_TEST
 
 static int
-scan_count(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
+scan_count(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter, void *user_data)
 {
 	intptr_t *i = user_data;
 
-	if (! sdb_store_matcher_matches(filter, obj, NULL))
+	if (! sdb_memstore_matcher_matches(filter, obj, NULL))
 		return 0;
 
 	fail_unless(obj != NULL,
-			"sdb_store_scan callback received NULL obj; expected: "
+			"sdb_memstore_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_scan callback received NULL user_data; "
+			"sdb_memstore_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
@@ -705,18 +705,18 @@ scan_count(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
 } /* scan_count */
 
 static int
-scan_error(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
+scan_error(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter, void *user_data)
 {
 	intptr_t *i = user_data;
 
-	if (! sdb_store_matcher_matches(filter, obj, NULL))
+	if (! sdb_memstore_matcher_matches(filter, obj, NULL))
 		return 0;
 
 	fail_unless(obj != NULL,
-			"sdb_store_scan callback received NULL obj; expected: "
+			"sdb_memstore_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_scan callback received NULL user_data; "
+			"sdb_memstore_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
@@ -729,49 +729,49 @@ START_TEST(test_scan)
 	int check;
 
 	/* empty store */
-	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_memstore_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
-			"sdb_store_scan(HOST), empty store = %d; expected: 0", check);
+			"sdb_memstore_scan(HOST), empty store = %d; expected: 0", check);
 	fail_unless(i == 0,
-			"sdb_store_scan(HOST) called callback %d times; "
+			"sdb_memstore_scan(HOST) called callback %d times; "
 			"expected: 0", (int)i);
 
 	populate();
 
-	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_memstore_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
-			"sdb_store_scan(HOST) = %d; expected: 0", check);
+			"sdb_memstore_scan(HOST) = %d; expected: 0", check);
 	fail_unless(i == 2,
-			"sdb_store_scan(HOST) called callback %d times; "
+			"sdb_memstore_scan(HOST) called callback %d times; "
 			"expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
+	check = sdb_memstore_scan(store, SDB_HOST, /* m, filter = */ NULL, NULL,
 			scan_error, &i);
 	fail_unless(check == -1,
-			"sdb_store_scan(HOST), error callback = %d; expected: -1", check);
+			"sdb_memstore_scan(HOST), error callback = %d; expected: -1", check);
 	fail_unless(i == 1,
-			"sdb_store_scan(HOST) called callback %d times "
+			"sdb_memstore_scan(HOST) called callback %d times "
 			"(callback returned error); expected: 1", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(store, SDB_SERVICE, /* m, filter = */ NULL, NULL,
+	check = sdb_memstore_scan(store, SDB_SERVICE, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
-			"sdb_store_scan(SERVICE) = %d; expected: 0", check);
+			"sdb_memstore_scan(SERVICE) = %d; expected: 0", check);
 	fail_unless(i == 2,
-			"sdb_store_scan(SERVICE) called callback %d times; "
+			"sdb_memstore_scan(SERVICE) called callback %d times; "
 			"expected: 2", (int)i);
 
 	i = 0;
-	check = sdb_store_scan(store, SDB_METRIC, /* m, filter = */ NULL, NULL,
+	check = sdb_memstore_scan(store, SDB_METRIC, /* m, filter = */ NULL, NULL,
 			scan_count, &i);
 	fail_unless(check == 0,
-			"sdb_store_scan(METRIC) = %d; expected: 0", check);
+			"sdb_memstore_scan(METRIC) = %d; expected: 0", check);
 	fail_unless(i == 3,
-			"sdb_store_scan(METRIC) called callback %d times; "
+			"sdb_memstore_scan(METRIC) called callback %d times; "
 			"expected: 3", (int)i);
 }
 END_TEST
