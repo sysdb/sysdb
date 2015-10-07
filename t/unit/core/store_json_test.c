@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif
 
+#include "core/memstore.h"
 #include "core/store.h"
 #include "testutils.h"
 

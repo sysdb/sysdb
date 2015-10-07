@@ -72,16 +72,16 @@ libsysdb_fe_parser_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
 		-DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\""
 libsysdb_la_SOURCES = \
 		sysdb.c include/sysdb.h \
+		core/data.c include/core/data.h \
+		core/memstore.c include/core/memstore.h \
+		core/memstore-private.h \
+		core/memstore_exec.c \
+		core/memstore_expr.c \
+		core/memstore_lookup.c \
+		core/memstore_query.c \
 		core/object.c include/core/object.h \
 		core/plugin.c include/core/plugin.h \
-		core/store.c include/core/store.h \
-		core/store-private.h \
-		core/store_exec.c \
-		core/store_expr.c \
-		core/store_json.c \
-		core/store_lookup.c \
-		core/store_query.c \
-		core/data.c include/core/data.h \
+		core/store_json.c include/core/store.h \
 		core/time.c include/core/time.h \
 		core/timeseries.c include/core/timeseries.h \
 		frontend/connection.c include/frontend/connection.h \

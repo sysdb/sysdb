@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store-private.h
+ * SysDB - src/core/memstore-private.h
  * Copyright (C) 2012-2013 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -29,9 +29,10 @@
  * private data structures used by the memstore module
  */
 
-#ifndef SDB_CORE_STORE_PRIVATE_H
-#define SDB_CORE_STORE_PRIVATE_H 1
+#ifndef SDB_CORE_MEMSTORE_PRIVATE_H
+#define SDB_CORE_MEMSTORE_PRIVATE_H 1
 
+#include "core/memstore.h"
 #include "core/store.h"
 #include "utils/avltree.h"
 
@@ -153,7 +154,7 @@ struct sdb_memstore_expr {
  */
 
 /* when adding to this, also update 'MATCHER_SYM' below and 'matchers' in
- * store_lookup.c */
+ * memstore_lookup.c */
 enum {
 	MATCHER_OR,
 	MATCHER_AND,
@@ -257,7 +258,7 @@ typedef struct {
 } /* extern "C" */
 #endif
 
-#endif /* ! SDB_CORE_STORE_H */
+#endif /* ! SDB_CORE_MEMSTORE_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

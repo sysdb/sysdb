@@ -31,6 +31,7 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
+#include "core/memstore.h"
 #include "core/store.h"
 #include "utils/error.h"
 

@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_exec.c
+ * SysDB - src/core/memstore_exec.c
  * Copyright (C) 2014-2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -27,7 +27,7 @@
 
 #include "core/object.h"
 #include "core/plugin.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "frontend/connection.h"
 #include "parser/ast.h"
 #include "utils/error.h"
@@ -136,7 +136,7 @@ exec_fetch(sdb_memstore_t *store,
 	if (type != SDB_HOST)
 		status = sdb_memstore_emit(obj->parent, w, wd);
 	if (status || sdb_memstore_emit_full(obj, filter, w, wd)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+		sdb_log(SDB_LOG_ERR, "memstore: Failed to serialize "
 				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
 				hostname, name);
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
@@ -156,7 +156,7 @@ exec_list(sdb_memstore_t *store,
 	iter_t iter = { NULL, w, wd };
 
 	if (sdb_memstore_scan(store, type, /* m = */ NULL, filter, list_tojson, &iter)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to serialize "
+		sdb_log(SDB_LOG_ERR, "memstore: Failed to serialize "
 				"store to JSON");
 		sdb_strbuf_sprintf(errbuf, "Out of memory");
 		return -1;
@@ -173,7 +173,7 @@ exec_lookup(sdb_memstore_t *store,
 	iter_t iter = { NULL, w, wd };
 
 	if (sdb_memstore_scan(store, type, m, filter, lookup_tojson, &iter)) {
-		sdb_log(SDB_LOG_ERR, "frontend: Failed to lookup %ss",
+		sdb_log(SDB_LOG_ERR, "memstore: Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
 		sdb_strbuf_sprintf(errbuf, "Failed to lookup %ss",
 				SDB_STORE_TYPE_TO_NAME(type));
@@ -196,7 +196,7 @@ sdb_memstore_query_execute(sdb_memstore_t *store, sdb_memstore_query_t *q,
 	if (! q)
 		return -1;
 	if (! q->ast) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid empty query");
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid empty query");
 		return -1;
 	}
 
@@ -216,7 +216,7 @@ sdb_memstore_query_execute(sdb_memstore_t *store, sdb_memstore_query_t *q,
 				q->matcher, q->filter);
 
 	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid query of type %s",
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid query of type %s",
 				SDB_AST_TYPE_TO_STRING(ast));
 		return -1;
 	}

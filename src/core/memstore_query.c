@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_query.c
+ * SysDB - src/core/memstore_query.c
  * Copyright (C) 2014-2015 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -26,7 +26,7 @@
  */
 
 #include "core/object.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "parser/ast.h"
 #include "utils/error.h"
 
@@ -43,14 +43,14 @@ node_to_expr(sdb_ast_node_t *n)
 	int op;
 
 	if (! n) {
-		sdb_log(SDB_LOG_ERR, "store: Encountered empty AST expression node");
+		sdb_log(SDB_LOG_ERR, "memstore: Encountered empty AST expression node");
 		return NULL;
 	}
 
 	switch (n->type) {
 	case SDB_AST_TYPE_OPERATOR:
 		if (! SDB_AST_IS_ARITHMETIC(n)) {
-			sdb_log(SDB_LOG_ERR, "store: Invalid arithmetic operator of "
+			sdb_log(SDB_LOG_ERR, "memstore: Invalid arithmetic operator of "
 					"type %s (%#x)", SDB_AST_TYPE_TO_STRING(n), n->type);
 			return NULL;
 		}
@@ -83,7 +83,7 @@ node_to_expr(sdb_ast_node_t *n)
 		break;
 
 	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid matcher node of type %s (%#x)",
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid matcher node of type %s (%#x)",
 				SDB_AST_TYPE_TO_STRING(n), n->type);
 		e = NULL;
 	}
@@ -188,7 +188,7 @@ cmp_to_matcher(sdb_ast_node_t *n)
 		break;
 
 	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid matcher node of type %s (%#x)",
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid matcher node of type %s (%#x)",
 				SDB_AST_TYPE_TO_STRING(n), n->type);
 		m = NULL;
 	}
@@ -226,7 +226,7 @@ iter_to_matcher(sdb_ast_node_t *n)
 		break;
 
 	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid iterator node of type %s (%#x)",
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid iterator node of type %s (%#x)",
 				SDB_AST_OP_TO_STRING(SDB_AST_ITER(n)->kind), SDB_AST_ITER(n)->kind);
 		m = NULL;
 	}
@@ -243,14 +243,14 @@ node_to_matcher(sdb_ast_node_t *n)
 	int kind;
 
 	if (! n) {
-		sdb_log(SDB_LOG_ERR, "store: Encountered empty AST matcher node");
+		sdb_log(SDB_LOG_ERR, "memstore: Encountered empty AST matcher node");
 		return NULL;
 	}
 
 	switch (n->type) {
 	case SDB_AST_TYPE_OPERATOR:
 		if (! SDB_AST_IS_LOGICAL(n)) {
-			sdb_log(SDB_LOG_ERR, "store: Invalid logical operator of "
+			sdb_log(SDB_LOG_ERR, "memstore: Invalid logical operator of "
 					"type %s (%#x)", SDB_AST_TYPE_TO_STRING(n), n->type);
 			return NULL;
 		}
@@ -265,7 +265,7 @@ node_to_matcher(sdb_ast_node_t *n)
 		return iter_to_matcher(n);
 	}
 
-	sdb_log(SDB_LOG_ERR, "store: Invalid matcher node of type %s (%#x)",
+	sdb_log(SDB_LOG_ERR, "memstore: Invalid matcher node of type %s (%#x)",
 			SDB_AST_TYPE_TO_STRING(n), n->type);
 	return NULL;
 } /* node_to_matcher */
@@ -300,7 +300,7 @@ query_init(sdb_object_t *obj, va_list ap)
 		break;
 
 	default:
-		sdb_log(SDB_LOG_ERR, "store: Invalid top-level AST node "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid top-level AST node "
 				"of type %#x", ast->type);
 		return -1;
 	}

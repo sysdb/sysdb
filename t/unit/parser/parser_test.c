@@ -31,7 +31,7 @@
 
 #include "parser/parser.h"
 #include "core/object.h"
-#include "core/store.h"
+#include "core/memstore.h"
 #include "testutils.h"
 
 #include <check.h>
@@ -743,7 +743,7 @@ START_TEST(test_parse)
 	/* TODO: this should move into front-end specific tests */
 	q = sdb_memstore_query_prepare(node);
 	fail_unless(q != NULL,
-			"sdb_store_query_prepare(AST<%s>) = NULL; expected: <query>",
+			"sdb_memstore_query_prepare(AST<%s>) = NULL; expected: <query>",
 			parse_data[_i].query);
 
 	sdb_object_deref(SDB_OBJ(node));

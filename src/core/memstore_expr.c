@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_expr.c
+ * SysDB - src/core/memstore_expr.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -26,7 +26,8 @@
  */
 
 /*
- * This module implements expressions which may be executed in the store.
+ * This module implements arithmetic and logical expressions for in-memory
+ * stores.
  */
 
 #if HAVE_CONFIG_H
@@ -34,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "core/data.h"
 #include "core/object.h"
 
@@ -133,7 +134,7 @@ sdb_memstore_expr_create(int op, sdb_memstore_expr_t *left, sdb_memstore_expr_t 
 		return NULL;
 
 	if (left->type || right->type) {
-		e = SDB_MEMSTORE_EXPR(sdb_object_create("store-expr", expr_type,
+		e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-expr", expr_type,
 					op, left, right, NULL));
 		e->data_type = sdb_data_expr_type(op, left->type, right->type);
 		return e;
@@ -142,7 +143,7 @@ sdb_memstore_expr_create(int op, sdb_memstore_expr_t *left, sdb_memstore_expr_t 
 
 	if (sdb_data_expr_eval(op, &left->data, &right->data, &value))
 		return NULL;
-	e = SDB_MEMSTORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-constvalue", expr_type,
 				0, NULL, NULL, &value));
 	e->data_type = value.type;
 	return e;
@@ -157,7 +158,7 @@ sdb_memstore_expr_typed(int typ, sdb_memstore_expr_t *expr)
 	if ((typ < SDB_HOST) || (SDB_ATTRIBUTE < typ))
 		return NULL;
 
-	e = SDB_MEMSTORE_EXPR(sdb_object_create("store-typedexpr", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-typedexpr", expr_type,
 				TYPED_EXPR, expr, NULL, &value));
 	e->data_type = expr->data_type;
 	return e;
@@ -171,7 +172,7 @@ sdb_memstore_expr_fieldvalue(int field)
 
 	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_TIMESERIES < field))
 		return NULL;
-	e = SDB_MEMSTORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));
 	e->data_type = SDB_FIELD_TYPE(field);
 	return e;
@@ -187,7 +188,7 @@ sdb_memstore_expr_attrvalue(const char *name)
 	if (! value.data.string)
 		return NULL;
 
-	expr = SDB_MEMSTORE_EXPR(sdb_object_create("store-attrvalue", expr_type,
+	expr = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-attrvalue", expr_type,
 				ATTR_VALUE, NULL, NULL, &value));
 	if (! expr)
 		free(value.data.string);
@@ -203,7 +204,7 @@ sdb_memstore_expr_constvalue(const sdb_data_t *value)
 
 	if (sdb_data_copy(&data, value))
 		return NULL;
-	e = SDB_MEMSTORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-constvalue", expr_type,
 				0, NULL, NULL, &data));
 	e->data_type = data.type;
 	return e;

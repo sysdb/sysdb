@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_lookup.c
+ * SysDB - src/core/memstore_lookup.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -36,7 +36,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "core/object.h"
 #include "utils/error.h"
 
@@ -197,7 +197,7 @@ match_iter(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
 
 	iter = sdb_memstore_expr_iter(ITER_M(m)->iter, obj, filter);
 	if (! iter) {
-		sdb_log(SDB_LOG_WARNING, "store: Invalid iterator");
+		sdb_log(SDB_LOG_WARNING, "memstore: Invalid iterator");
 		return 0;
 	}
 
@@ -333,7 +333,7 @@ typedef int (*matcher_cb)(sdb_memstore_matcher_t *, sdb_memstore_obj_t *,
 		sdb_memstore_matcher_t *);
 
 /* this array needs to be indexable by the matcher types;
- * -> update the enum in store-private.h when updating this */
+ * -> update the enum in memstore-private.h when updating this */
 static matcher_cb
 matchers[] = {
 	match_logical,
@@ -516,12 +516,12 @@ sdb_memstore_matcher_t *
 sdb_memstore_any_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m)
 {
 	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ANY -> %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ANY -> %s matcher "
 				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
 	}
 	if (CMP_M(m)->left) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ANY %s %s %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ANY %s %s %s matcher "
 				"(invalid left operand)",
 				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
 				MATCHER_SYM(m->type),
@@ -536,12 +536,12 @@ sdb_memstore_matcher_t *
 sdb_memstore_all_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m)
 {
 	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ALL -> %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ALL -> %s matcher "
 				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
 	}
 	if (CMP_M(m)->left) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ALL %s %s %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ALL %s %s %s matcher "
 				"(invalid left operand)",
 				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
 				MATCHER_SYM(m->type),

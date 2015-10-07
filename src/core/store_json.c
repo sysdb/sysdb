@@ -34,7 +34,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/store-private.h"
+#include "core/store.h"
 #include "utils/error.h"
 
 #include <assert.h>
@@ -378,133 +378,6 @@ sdb_store_json_formatter(sdb_strbuf_t *buf, int type, int flags)
 	return F(sdb_object_create("json-formatter", formatter_type,
 				buf, type, flags));
 } /* sdb_store_json_formatter */
-
-/* TODO: Move sdb_store_emit* somewhere else. */
-
-int
-sdb_memstore_emit(sdb_memstore_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *wd)
-{
-	if ((! obj) || (! w))
-		return -1;
-
-	switch (obj->type) {
-	case SDB_HOST:
-		{
-			sdb_store_host_t host = {
-				obj->_name,
-				obj->last_update,
-				obj->interval,
-				(const char * const *)obj->backends,
-				obj->backends_num,
-			};
-			if (! w->store_host)
-				return -1;
-			return w->store_host(&host, wd);
-		}
-	case SDB_SERVICE:
-		{
-			sdb_store_service_t service = {
-				obj->parent ? obj->parent->_name : NULL,
-				obj->_name,
-				obj->last_update,
-				obj->interval,
-				(const char * const *)obj->backends,
-				obj->backends_num,
-			};
-			if (! w->store_service)
-				return -1;
-			return w->store_service(&service, wd);
-		}
-	case SDB_METRIC:
-		{
-			sdb_store_metric_t metric = {
-				obj->parent ? obj->parent->_name : NULL,
-				obj->_name,
-				{
-					METRIC(obj)->store.type,
-					METRIC(obj)->store.id,
-				},
-				obj->last_update,
-				obj->interval,
-				(const char * const *)obj->backends,
-				obj->backends_num,
-			};
-			if (! w->store_metric)
-				return -1;
-			return w->store_metric(&metric, wd);
-		}
-	case SDB_ATTRIBUTE:
-		{
-			sdb_store_attribute_t attr = {
-				NULL,
-				obj->parent ? obj->parent->type : 0,
-				obj->parent ? obj->parent->_name : NULL,
-				obj->_name,
-				ATTR(obj)->value,
-				obj->last_update,
-				obj->interval,
-				(const char * const *)obj->backends,
-				obj->backends_num,
-			};
-			if (obj->parent && (obj->parent->type != SDB_HOST)
-					&& obj->parent->parent)
-				attr.hostname = obj->parent->parent->_name;
-			if (! w->store_attribute)
-				return -1;
-			return w->store_attribute(&attr, wd);
-		}
-	}
-
-	return -1;
-} /* sdb_memstore_emit */
-
-int
-sdb_memstore_emit_full(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
-		sdb_store_writer_t *w, sdb_object_t *wd)
-{
-	sdb_avltree_t *trees[] = { NULL, NULL, NULL };
-	size_t i;
-
-	if (sdb_memstore_emit(obj, w, wd))
-		return -1;
-
-	if (obj->type == SDB_HOST) {
-		trees[0] = HOST(obj)->attributes;
-		trees[1] = HOST(obj)->metrics;
-		trees[2] = HOST(obj)->services;
-	}
-	else if (obj->type == SDB_SERVICE)
-		trees[0] = SVC(obj)->attributes;
-	else if (obj->type == SDB_METRIC)
-		trees[0] = METRIC(obj)->attributes;
-	else if (obj->type == SDB_ATTRIBUTE)
-		return 0;
-	else
-		return -1;
-
-	for (i = 0; i < SDB_STATIC_ARRAY_LEN(trees); ++i) {
-		sdb_avltree_iter_t *iter;
-
-		if (! trees[i])
-			continue;
-
-		iter = sdb_avltree_get_iter(trees[i]);
-		while (sdb_avltree_iter_has_next(iter)) {
-			sdb_memstore_obj_t *child;
-			child = STORE_OBJ(sdb_avltree_iter_get_next(iter));
-
-			if (filter && (! sdb_memstore_matcher_matches(filter, child, NULL)))
-				continue;
-
-			if (sdb_memstore_emit_full(child, filter, w, wd)) {
-				sdb_avltree_iter_destroy(iter);
-				return -1;
-			}
-		}
-		sdb_avltree_iter_destroy(iter);
-	}
-	return 0;
-} /* sdb_memstore_emit_full */
 
 int
 sdb_store_json_finish(sdb_store_json_formatter_t *f)

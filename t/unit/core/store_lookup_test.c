@@ -31,7 +31,7 @@
 
 #include "core/plugin.h"
 #include "core/store.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "parser/parser.h"
 #include "testutils.h"
 

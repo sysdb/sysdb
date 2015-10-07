@@ -29,6 +29,7 @@
 #	include "config.h"
 #endif
 
+#include "core/memstore.h"
 #include "core/plugin.h"
 #include "frontend/connection.h"
 #include "frontend/connection-private.h"
