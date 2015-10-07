@@ -351,21 +351,6 @@ sdb_store_obj_t *
 sdb_store_get_host(sdb_store_t *store, const char *name);
 
 /*
- * sdb_store_fetch_timeseries:
- * Fetch the time-series described by the specified host's metric and
- * serialize it as JSON into the provided string buffer. The host data is
- * retrieved from the specified store.
- *
- * Returns:
- *  - 0 on success
- *  - a negative value else
- */
-int
-sdb_store_fetch_timeseries(sdb_store_t *store,
-		const char *hostname, const char *metric,
-		sdb_timeseries_opts_t *opts, sdb_strbuf_t *buf);
-
-/*
  * sdb_store_get_child:
  * Retrieve a host's child object of the specified type and name. The
  * reference count of the child object will be incremented before returning
