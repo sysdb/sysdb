@@ -258,11 +258,14 @@ typedef struct {
 	int obj_type;
 	char *hostname; /* optional */
 	char *name;
+	/* whether to include the full object, that is,
+	 * including all attributes and all children */
+	bool full;
 	sdb_ast_node_t *filter; /* optional */
 } sdb_ast_fetch_t;
 #define SDB_AST_FETCH(obj) ((sdb_ast_fetch_t *)(obj))
 #define SDB_AST_FETCH_INIT \
-	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_FETCH, -1 }, -1, NULL, NULL, NULL }
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_FETCH, -1 }, -1, NULL, NULL, 0, NULL }
 
 /*
  * sdb_ast_list_t represents a LIST command.
@@ -384,7 +387,7 @@ sdb_ast_value_create(int type, char *name);
  * takes ownership of the strings and the filter node.
  */
 sdb_ast_node_t *
-sdb_ast_fetch_create(int obj_type, char *hostname, char *name,
+sdb_ast_fetch_create(int obj_type, char *hostname, char *name, bool full,
 		sdb_ast_node_t *filter);
 
 /*

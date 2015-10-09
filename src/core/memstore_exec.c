@@ -86,7 +86,7 @@ lookup_tojson(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 static int
 exec_fetch(sdb_memstore_t *store,
 		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf,
-		int type, const char *hostname, const char *name,
+		int type, const char *hostname, const char *name, bool full,
 		sdb_memstore_matcher_t *filter)
 {
 	sdb_memstore_obj_t *host;
@@ -135,7 +135,13 @@ exec_fetch(sdb_memstore_t *store,
 
 	if (type != SDB_HOST)
 		status = sdb_memstore_emit(obj->parent, w, wd);
-	if (status || sdb_memstore_emit_full(obj, filter, w, wd)) {
+	if (! status) {
+		if (full)
+			status = sdb_memstore_emit_full(obj, filter, w, wd);
+		else
+			status = sdb_memstore_emit(obj, w, wd);
+	}
+	if (status) {
 		sdb_log(SDB_LOG_ERR, "memstore: Failed to serialize "
 				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
 				hostname, name);
@@ -205,7 +211,7 @@ sdb_memstore_query_execute(sdb_memstore_t *store, sdb_memstore_query_t *q,
 	case SDB_AST_TYPE_FETCH:
 		return exec_fetch(store, w, wd, errbuf, SDB_AST_FETCH(ast)->obj_type,
 				SDB_AST_FETCH(ast)->hostname, SDB_AST_FETCH(ast)->name,
-				q->filter);
+				SDB_AST_FETCH(ast)->full, q->filter);
 
 	case SDB_AST_TYPE_LIST:
 		return exec_list(store, w, wd, errbuf, SDB_AST_LIST(ast)->obj_type,

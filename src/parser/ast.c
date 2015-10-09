@@ -289,7 +289,7 @@ sdb_ast_value_create(int type, char *name)
 } /* sdb_ast_value_create */
 
 sdb_ast_node_t *
-sdb_ast_fetch_create(int obj_type, char *hostname, char *name,
+sdb_ast_fetch_create(int obj_type, char *hostname, char *name, bool full,
 		sdb_ast_node_t *filter)
 {
 	sdb_ast_fetch_t *fetch;
@@ -302,6 +302,7 @@ sdb_ast_fetch_create(int obj_type, char *hostname, char *name,
 	fetch->obj_type = obj_type;
 	fetch->hostname = hostname;
 	fetch->name = name;
+	fetch->full = full;
 	fetch->filter = filter;
 	return SDB_AST_NODE(fetch);
 } /* sdb_ast_fetch_create */
