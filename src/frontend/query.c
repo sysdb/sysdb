@@ -394,6 +394,7 @@ sdb_conn_fetch(sdb_conn_t *conn)
 
 	ast = sdb_ast_fetch_create((int)type,
 			hostname[0] ? strdup(hostname) : NULL,
+			-1, NULL,
 			name[0] ? strdup(name) : NULL,
 			/* full */ 1, /* filter = */ NULL);
 	status = exec_cmd(conn, ast);

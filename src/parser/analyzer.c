@@ -86,6 +86,79 @@ iter_error(sdb_strbuf_t *errbuf, sdb_ast_iter_t *iter, const char *reason, ...)
 } /* iter_error */
 
 /*
+ * generic checks
+ */
+
+typedef struct {
+	int obj_type;
+	const char *hostname;
+	int parent_type;
+	const char *parent;
+	const char *name;
+} parent_child_t;
+
+static int
+analyze_parent_child(const char *cmd, parent_child_t *pc, sdb_strbuf_t *errbuf)
+{
+	if ((pc->obj_type != SDB_ATTRIBUTE)
+			&& (! VALID_OBJ_TYPE(pc->obj_type))) {
+		sdb_strbuf_sprintf(errbuf, "Invalid object type %#x "
+				"in %s command", pc->obj_type, cmd);
+		return -1;
+	}
+	if (! pc->name) {
+		sdb_strbuf_sprintf(errbuf, "Missing object name in "
+				"%s %s command", cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+		return -1;
+	}
+
+	if ((pc->obj_type == SDB_HOST) && pc->hostname) {
+		sdb_strbuf_sprintf(errbuf, "Unexpected parent hostname '%s' "
+				"in %s HOST command", pc->hostname, cmd);
+		return -1;
+	}
+	else if ((pc->obj_type != SDB_HOST) && (! pc->hostname)) {
+		sdb_strbuf_sprintf(errbuf, "Missing parent hostname for '%s' "
+				"in %s %s command", pc->name,
+				cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+		return -1;
+	}
+
+	if (pc->obj_type == SDB_ATTRIBUTE) {
+		if ((pc->parent_type <= 0) && pc->parent) {
+			sdb_strbuf_sprintf(errbuf, "Unexpected parent hostname '%s' "
+					"in %s %s command", pc->parent,
+					cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+			return -1;
+		}
+		else if (pc->parent_type > 0) {
+			if (! VALID_OBJ_TYPE(pc->parent_type)) {
+				sdb_strbuf_sprintf(errbuf, "Invalid parent type %#x "
+						"in %s %s command", pc->parent_type,
+						cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+				return -1;
+			}
+			if (! pc->parent) {
+				sdb_strbuf_sprintf(errbuf, "Missing %s parent name "
+						"in %s %s command",
+						SDB_STORE_TYPE_TO_NAME(pc->parent_type),
+						cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+				return -1;
+			}
+		}
+	}
+	else if ((pc->parent_type > 0) || pc->parent) {
+		sdb_strbuf_sprintf(errbuf, "Unexpected %s parent name '%s' "
+				"in %s %s command",
+				SDB_STORE_TYPE_TO_NAME(pc->parent_type),
+				pc->parent ? pc->parent : "<unknown>",
+				cmd, SDB_STORE_TYPE_TO_NAME(pc->obj_type));
+		return -1;
+	}
+	return 0;
+} /* analyze_parent_child */
+
+/*
  * expression nodes
  */
 
@@ -426,28 +499,13 @@ analyze_node(context_t ctx, sdb_ast_node_t *node, sdb_strbuf_t *errbuf)
 static int
 analyze_fetch(sdb_ast_fetch_t *fetch, sdb_strbuf_t *errbuf)
 {
-	if (! VALID_OBJ_TYPE(fetch->obj_type)) {
-		sdb_strbuf_sprintf(errbuf, "Invalid object type %#x "
-				"in FETCH command", fetch->obj_type);
-		return -1;
-	}
-	if (! fetch->name) {
-		sdb_strbuf_sprintf(errbuf, "Missing object name in "
-				"FETCH %s command", SDB_STORE_TYPE_TO_NAME(fetch->obj_type));
-		return -1;
-	}
+	parent_child_t pc = {
+		fetch->obj_type, fetch->hostname,
+		fetch->parent_type, fetch->parent, fetch->name,
+	};
 
-	if ((fetch->obj_type == SDB_HOST) && fetch->hostname) {
-		sdb_strbuf_sprintf(errbuf, "Unexpected parent hostname '%s' "
-				"in FETCH HOST command", fetch->hostname);
+	if (analyze_parent_child("FETCH", &pc, errbuf))
 		return -1;
-	}
-	else if ((fetch->obj_type != SDB_HOST) && (! fetch->hostname)) {
-		sdb_strbuf_sprintf(errbuf, "Missing parent hostname for '%s' "
-				"in FETCH %s command", fetch->name,
-				SDB_STORE_TYPE_TO_NAME(fetch->obj_type));
-		return -1;
-	}
 
 	if (fetch->filter)
 		return analyze_node(FILTER_CTX, fetch->filter, errbuf);
@@ -488,61 +546,13 @@ analyze_lookup(sdb_ast_lookup_t *lookup, sdb_strbuf_t *errbuf)
 static int
 analyze_store(sdb_ast_store_t *st, sdb_strbuf_t *errbuf)
 {
-	if ((st->obj_type != SDB_ATTRIBUTE)
-			&& (! VALID_OBJ_TYPE(st->obj_type))) {
-		sdb_strbuf_sprintf(errbuf, "Invalid object type %#x "
-				"in STORE command", st->obj_type);
-		return -1;
-	}
-	if (! st->name) {
-		sdb_strbuf_sprintf(errbuf, "Missing object name in "
-				"STORE %s command", SDB_STORE_TYPE_TO_NAME(st->obj_type));
-		return -1;
-	}
+	parent_child_t pc = {
+		st->obj_type, st->hostname,
+		st->parent_type, st->parent, st->name,
+	};
 
-	if ((st->obj_type == SDB_HOST) && st->hostname) {
-		sdb_strbuf_sprintf(errbuf, "Unexpected parent hostname '%s' "
-				"in STORE HOST command", st->hostname);
+	if (analyze_parent_child("STORE", &pc, errbuf))
 		return -1;
-	}
-	else if ((st->obj_type != SDB_HOST) && (! st->hostname)) {
-		sdb_strbuf_sprintf(errbuf, "Missing parent hostname for '%s' "
-				"in STORE %s command", st->name,
-				SDB_STORE_TYPE_TO_NAME(st->obj_type));
-		return -1;
-	}
-
-	if (st->obj_type == SDB_ATTRIBUTE) {
-		if ((st->parent_type <= 0) && st->parent) {
-			sdb_strbuf_sprintf(errbuf, "Unexpected parent hostname '%s' "
-					"in STORE %s command", st->parent,
-					SDB_STORE_TYPE_TO_NAME(st->obj_type));
-			return -1;
-		}
-		else if (st->parent_type > 0) {
-			if (! VALID_OBJ_TYPE(st->parent_type)) {
-				sdb_strbuf_sprintf(errbuf, "Invalid parent type %#x "
-						"in STORE %s command", st->parent_type,
-						SDB_STORE_TYPE_TO_NAME(st->obj_type));
-				return -1;
-			}
-			if (! st->parent) {
-				sdb_strbuf_sprintf(errbuf, "Missing %s parent name "
-						"in STORE %s command",
-						SDB_STORE_TYPE_TO_NAME(st->parent_type),
-						SDB_STORE_TYPE_TO_NAME(st->obj_type));
-				return -1;
-			}
-		}
-	}
-	else if ((st->parent_type > 0) || st->parent) {
-		sdb_strbuf_sprintf(errbuf, "Unexpected %s parent name '%s' "
-				"in STORE %s command",
-				SDB_STORE_TYPE_TO_NAME(st->parent_type),
-				st->parent ? st->parent : "<unknown>",
-				SDB_STORE_TYPE_TO_NAME(st->obj_type));
-		return -1;
-	}
 
 	if (st->obj_type == SDB_METRIC) {
 		if ((! st->store_type) != (! st->store_id)) {

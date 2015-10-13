@@ -86,22 +86,12 @@ lookup_tojson(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 static int
 exec_fetch(sdb_memstore_t *store,
 		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf,
-		int type, const char *hostname, const char *name, bool full,
-		sdb_memstore_matcher_t *filter)
+		int type, const char *hostname, int parent_type, const char *parent,
+		const char *name, bool full, sdb_memstore_matcher_t *filter)
 {
-	sdb_memstore_obj_t *host;
-	sdb_memstore_obj_t *obj;
-
+	sdb_memstore_obj_t *host, *p = NULL, *obj;
 	int status = 0;
 
-	if ((! name) || ((type == SDB_HOST) && hostname)
-			|| ((type != SDB_HOST) && (! hostname))) {
-		/* This is a programming error, not something the client did wrong */
-		sdb_strbuf_sprintf(errbuf, "INTERNAL ERROR: invalid "
-				"arguments to FETCH(%s, %s, %s)",
-				SDB_STORE_TYPE_TO_NAME(type), hostname, name);
-		return -1;
-	}
 	if (type == SDB_HOST)
 		hostname = name;
 
@@ -114,43 +104,59 @@ exec_fetch(sdb_memstore_t *store,
 		sdb_object_deref(SDB_OBJ(host));
 		return -1;
 	}
-	if (type == SDB_HOST) {
-		obj = host;
-	}
-	else {
-		obj = sdb_memstore_get_child(host, type, name);
-		if ((! obj)
-				|| (filter && (! sdb_memstore_matcher_matches(filter, obj, NULL)))) {
-			sdb_strbuf_sprintf(errbuf, "Failed to fetch %s %s.%s: "
-					"%s not found", SDB_STORE_TYPE_TO_NAME(type),
-					hostname, name, name);
-			if (obj)
-				sdb_object_deref(SDB_OBJ(obj));
-			sdb_object_deref(SDB_OBJ(host));
-			return -1;
+	obj = host;
+	if (type != SDB_HOST) {
+		if (parent) {
+			p = sdb_memstore_get_child(obj, parent_type, parent);
+			if ((! p) || (filter
+						&& (! sdb_memstore_matcher_matches(filter, p, NULL)))) {
+				sdb_strbuf_sprintf(errbuf, "Failed to fetch %s %s.%s.%s: "
+						"%s not found", SDB_STORE_TYPE_TO_NAME(type),
+						hostname, parent, name, parent);
+				status = -1;
+			}
+			obj = p;
 		}
-		sdb_object_deref(SDB_OBJ(host));
+		if (! status) {
+			obj = sdb_memstore_get_child(obj, type, name);
+			if ((! obj) || (filter
+						&& (! sdb_memstore_matcher_matches(filter, obj, NULL)))) {
+				sdb_strbuf_sprintf(errbuf, "Failed to fetch %s %s.%s: "
+						"%s not found", SDB_STORE_TYPE_TO_NAME(type),
+						hostname, name, name);
+				status = -1;
+			}
+		}
 	}
-	host = NULL;
 
-	if (type != SDB_HOST)
-		status = sdb_memstore_emit(obj->parent, w, wd);
 	if (! status) {
-		if (full)
-			status = sdb_memstore_emit_full(obj, filter, w, wd);
-		else
-			status = sdb_memstore_emit(obj, w, wd);
-	}
-	if (status) {
-		sdb_log(SDB_LOG_ERR, "memstore: Failed to serialize "
-				"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
-				hostname, name);
-		sdb_strbuf_sprintf(errbuf, "Out of memory");
-		sdb_object_deref(SDB_OBJ(obj));
-		return -1;
+		if (type != SDB_HOST)
+			status = sdb_memstore_emit(host, w, wd);
+		if ((! status) && parent)
+			status = sdb_memstore_emit(p, w, wd);
+		if (! status) {
+			if (full)
+				status = sdb_memstore_emit_full(obj, filter, w, wd);
+			else
+				status = sdb_memstore_emit(obj, w, wd);
+		}
+		if (status) {
+			sdb_log(SDB_LOG_ERR, "memstore: Failed to serialize "
+					"%s %s.%s to JSON", SDB_STORE_TYPE_TO_NAME(type),
+					hostname, name);
+			sdb_strbuf_sprintf(errbuf, "Out of memory");
+			status = -1;
+		}
 	}
 
+	if (host != obj)
+		sdb_object_deref(SDB_OBJ(host));
+	if (p != obj)
+		sdb_object_deref(SDB_OBJ(p));
 	sdb_object_deref(SDB_OBJ(obj));
+
+	if (status)
+		return status;
 	return SDB_CONNECTION_DATA;
 } /* exec_fetch */
 
@@ -209,9 +215,10 @@ sdb_memstore_query_execute(sdb_memstore_t *store, sdb_memstore_query_t *q,
 	ast = q->ast;
 	switch (ast->type) {
 	case SDB_AST_TYPE_FETCH:
-		return exec_fetch(store, w, wd, errbuf, SDB_AST_FETCH(ast)->obj_type,
-				SDB_AST_FETCH(ast)->hostname, SDB_AST_FETCH(ast)->name,
-				SDB_AST_FETCH(ast)->full, q->filter);
+		return exec_fetch(store, w, wd, errbuf,
+				SDB_AST_FETCH(ast)->obj_type, SDB_AST_FETCH(ast)->hostname,
+				SDB_AST_FETCH(ast)->parent_type, SDB_AST_FETCH(ast)->parent,
+				SDB_AST_FETCH(ast)->name, SDB_AST_FETCH(ast)->full, q->filter);
 
 	case SDB_AST_TYPE_LIST:
 		return exec_list(store, w, wd, errbuf, SDB_AST_LIST(ast)->obj_type,
