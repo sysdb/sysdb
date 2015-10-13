@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_lookup.c
+ * SysDB - src/core/memstore_lookup.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -36,7 +36,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "core/object.h"
 #include "utils/error.h"
 
@@ -51,18 +51,18 @@
 #include <limits.h>
 
 static int
-expr_eval2(sdb_store_expr_t *e1, sdb_data_t *v1,
-		sdb_store_expr_t *e2, sdb_data_t *v2,
-		sdb_store_obj_t *obj, sdb_store_matcher_t *filter)
+expr_eval2(sdb_memstore_expr_t *e1, sdb_data_t *v1,
+		sdb_memstore_expr_t *e2, sdb_data_t *v2,
+		sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter)
 {
 	if (e1->type) {
-		if (sdb_store_expr_eval(e1, obj, v1, filter))
+		if (sdb_memstore_expr_eval(e1, obj, v1, filter))
 			return -1;
 	}
 	else
 		*v1 = e1->data;
 	if (e2->type) {
-		if (sdb_store_expr_eval(e2, obj, v2, filter)) {
+		if (sdb_memstore_expr_eval(e2, obj, v2, filter)) {
 			if (e1->type)
 				sdb_data_free_datum(v1);
 			return -1;
@@ -74,8 +74,8 @@ expr_eval2(sdb_store_expr_t *e1, sdb_data_t *v1,
 } /* expr_eval2 */
 
 static void
-expr_free_datum2(sdb_store_expr_t *e1, sdb_data_t *v1,
-		sdb_store_expr_t *e2, sdb_data_t *v2)
+expr_free_datum2(sdb_memstore_expr_t *e1, sdb_data_t *v1,
+		sdb_memstore_expr_t *e2, sdb_data_t *v2)
 {
 	if (e1->type)
 		sdb_data_free_datum(v1);
@@ -154,15 +154,15 @@ match_regex_value(int op, sdb_data_t *v, sdb_data_t *re)
 } /* match_regex_value */
 
 static int
-match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_logical(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
 	int status;
 
 	assert((m->type == MATCHER_AND) || (m->type == MATCHER_OR));
 	assert(OP_M(m)->left && OP_M(m)->right);
 
-	status = sdb_store_matcher_matches(OP_M(m)->left, obj, filter);
+	status = sdb_memstore_matcher_matches(OP_M(m)->left, obj, filter);
 
 	/* lazy evaluation */
 	if ((! status) && (m->type == MATCHER_AND))
@@ -170,45 +170,45 @@ match_logical(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	else if (status && (m->type == MATCHER_OR))
 		return status;
 
-	return sdb_store_matcher_matches(OP_M(m)->right, obj, filter);
+	return sdb_memstore_matcher_matches(OP_M(m)->right, obj, filter);
 } /* match_logical */
 
 static int
-match_uop(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_uop(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
 	assert(m->type == MATCHER_NOT);
 	assert(UOP_M(m)->op);
 
-	return !sdb_store_matcher_matches(UOP_M(m)->op, obj, filter);
+	return !sdb_memstore_matcher_matches(UOP_M(m)->op, obj, filter);
 } /* match_uop */
 
 /* iterate: ANY/ALL <iter> <cmp> <value> */
 static int
-match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_iter(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
-	sdb_store_expr_iter_t *iter = NULL;
+	sdb_memstore_expr_iter_t *iter = NULL;
 	int status;
 	int all = (int)(m->type == MATCHER_ALL);
 
 	assert((m->type == MATCHER_ANY) || (m->type == MATCHER_ALL));
 	assert((! CMP_M(ITER_M(m)->m)->left) && CMP_M(ITER_M(m)->m)->right);
 
-	iter = sdb_store_expr_iter(ITER_M(m)->iter, obj, filter);
+	iter = sdb_memstore_expr_iter(ITER_M(m)->iter, obj, filter);
 	if (! iter) {
-		sdb_log(SDB_LOG_WARNING, "store: Invalid iterator");
+		sdb_log(SDB_LOG_WARNING, "memstore: Invalid iterator");
 		return 0;
 	}
 
 	status = all;
-	while (sdb_store_expr_iter_has_next(iter)) {
-		sdb_data_t v = sdb_store_expr_iter_get_next(iter);
-		sdb_store_expr_t expr = CONST_EXPR(v);
+	while (sdb_memstore_expr_iter_has_next(iter)) {
+		sdb_data_t v = sdb_memstore_expr_iter_get_next(iter);
+		sdb_memstore_expr_t expr = CONST_EXPR(v);
 		bool matches;
 
 		CMP_M(ITER_M(m)->m)->left = &expr;
-		matches = sdb_store_matcher_matches(ITER_M(m)->m, obj, filter);
+		matches = sdb_memstore_matcher_matches(ITER_M(m)->m, obj, filter);
 		CMP_M(ITER_M(m)->m)->left = NULL;
 		sdb_data_free_datum(&v);
 
@@ -222,16 +222,16 @@ match_iter(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 			break;
 		}
 	}
-	sdb_store_expr_iter_destroy(iter);
+	sdb_memstore_expr_iter_destroy(iter);
 	return status;
 } /* match_iter */
 
 static int
-match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_cmp(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
-	sdb_store_expr_t *e1 = CMP_M(m)->left;
-	sdb_store_expr_t *e2 = CMP_M(m)->right;
+	sdb_memstore_expr_t *e1 = CMP_M(m)->left;
+	sdb_memstore_expr_t *e2 = CMP_M(m)->right;
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
 	int status;
 
@@ -254,8 +254,8 @@ match_cmp(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_cmp */
 
 static int
-match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_in(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
 	sdb_data_t value = SDB_DATA_INIT, array = SDB_DATA_INIT;
 	int status = 1;
@@ -275,8 +275,8 @@ match_in(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_in */
 
 static int
-match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_regex(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
 	sdb_data_t regex = SDB_DATA_INIT, v = SDB_DATA_INIT;
 	int status = 0;
@@ -295,8 +295,8 @@ match_regex(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 } /* match_regex */
 
 static int
-match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+match_unary(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
 	sdb_data_t v = SDB_DATA_INIT;
 	int status;
@@ -308,7 +308,7 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (UNARY_M(m)->expr->type) {
 		/* TODO: this might hide real errors;
 		 * improve error reporting and propagation */
-		if (sdb_store_expr_eval(UNARY_M(m)->expr, obj, &v, filter))
+		if (sdb_memstore_expr_eval(UNARY_M(m)->expr, obj, &v, filter))
 			return 1;
 	}
 	else
@@ -329,11 +329,11 @@ match_unary(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	return status;
 } /* match_unary */
 
-typedef int (*matcher_cb)(sdb_store_matcher_t *, sdb_store_obj_t *,
-		sdb_store_matcher_t *);
+typedef int (*matcher_cb)(sdb_memstore_matcher_t *, sdb_memstore_obj_t *,
+		sdb_memstore_matcher_t *);
 
 /* this array needs to be indexable by the matcher types;
- * -> update the enum in store-private.h when updating this */
+ * -> update the enum in memstore-private.h when updating this */
 static matcher_cb
 matchers[] = {
 	match_logical,
@@ -372,9 +372,9 @@ op_matcher_init(sdb_object_t *obj, va_list ap)
 	if ((M(obj)->type != MATCHER_OR) && (M(obj)->type != MATCHER_AND))
 		return -1;
 
-	OP_M(obj)->left = va_arg(ap, sdb_store_matcher_t *);
+	OP_M(obj)->left = va_arg(ap, sdb_memstore_matcher_t *);
 	sdb_object_ref(SDB_OBJ(OP_M(obj)->left));
-	OP_M(obj)->right = va_arg(ap, sdb_store_matcher_t *);
+	OP_M(obj)->right = va_arg(ap, sdb_memstore_matcher_t *);
 	sdb_object_ref(SDB_OBJ(OP_M(obj)->right));
 
 	if ((! OP_M(obj)->left) || (! OP_M(obj)->right))
@@ -395,8 +395,8 @@ static int
 iter_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
-	ITER_M(obj)->iter = va_arg(ap, sdb_store_expr_t *);
-	ITER_M(obj)->m = va_arg(ap, sdb_store_matcher_t *);
+	ITER_M(obj)->iter = va_arg(ap, sdb_memstore_expr_t *);
+	ITER_M(obj)->m = va_arg(ap, sdb_memstore_matcher_t *);
 
 	sdb_object_ref(SDB_OBJ(ITER_M(obj)->iter));
 	sdb_object_ref(SDB_OBJ(ITER_M(obj)->m));
@@ -418,9 +418,9 @@ cmp_matcher_init(sdb_object_t *obj, va_list ap)
 {
 	M(obj)->type = va_arg(ap, int);
 
-	CMP_M(obj)->left = va_arg(ap, sdb_store_expr_t *);
+	CMP_M(obj)->left = va_arg(ap, sdb_memstore_expr_t *);
 	sdb_object_ref(SDB_OBJ(CMP_M(obj)->left));
-	CMP_M(obj)->right = va_arg(ap, sdb_store_expr_t *);
+	CMP_M(obj)->right = va_arg(ap, sdb_memstore_expr_t *);
 	sdb_object_ref(SDB_OBJ(CMP_M(obj)->right));
 
 	if (! CMP_M(obj)->right)
@@ -442,7 +442,7 @@ uop_matcher_init(sdb_object_t *obj, va_list ap)
 	if (M(obj)->type != MATCHER_NOT)
 		return -1;
 
-	UOP_M(obj)->op = va_arg(ap, sdb_store_matcher_t *);
+	UOP_M(obj)->op = va_arg(ap, sdb_memstore_matcher_t *);
 	sdb_object_ref(SDB_OBJ(UOP_M(obj)->op));
 
 	if (! UOP_M(obj)->op)
@@ -466,7 +466,7 @@ unary_matcher_init(sdb_object_t *obj, va_list ap)
 			&& (M(obj)->type != MATCHER_ISFALSE))
 		return -1;
 
-	UNARY_M(obj)->expr = va_arg(ap, sdb_store_expr_t *);
+	UNARY_M(obj)->expr = va_arg(ap, sdb_memstore_expr_t *);
 	sdb_object_ref(SDB_OBJ(UNARY_M(obj)->expr));
 	return 0;
 } /* unary_matcher_init */
@@ -512,16 +512,16 @@ static sdb_type_t unary_type = {
  * public API
  */
 
-sdb_store_matcher_t *
-sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
+sdb_memstore_matcher_t *
+sdb_memstore_any_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m)
 {
 	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ANY -> %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ANY -> %s matcher "
 				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
 	}
 	if (CMP_M(m)->left) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ANY %s %s %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ANY %s %s %s matcher "
 				"(invalid left operand)",
 				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
 				MATCHER_SYM(m->type),
@@ -530,18 +530,18 @@ sdb_store_any_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 	}
 	return M(sdb_object_create("any-matcher", iter_type,
 				MATCHER_ANY, iter, m));
-} /* sdb_store_any_matcher */
+} /* sdb_memstore_any_matcher */
 
-sdb_store_matcher_t *
-sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
+sdb_memstore_matcher_t *
+sdb_memstore_all_matcher(sdb_memstore_expr_t *iter, sdb_memstore_matcher_t *m)
 {
 	if ((m->type < MATCHER_LT) || (MATCHER_NREGEX < m->type)) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ALL -> %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ALL -> %s matcher "
 				"(invalid operator)", MATCHER_SYM(m->type));
 		return NULL;
 	}
 	if (CMP_M(m)->left) {
-		sdb_log(SDB_LOG_ERR, "store: Invalid ALL %s %s %s matcher "
+		sdb_log(SDB_LOG_ERR, "memstore: Invalid ALL %s %s %s matcher "
 				"(invalid left operand)",
 				SDB_TYPE_TO_STRING(CMP_M(m)->left->data_type),
 				MATCHER_SYM(m->type),
@@ -550,59 +550,59 @@ sdb_store_all_matcher(sdb_store_expr_t *iter, sdb_store_matcher_t *m)
 	}
 	return M(sdb_object_create("all-matcher", iter_type,
 				MATCHER_ALL, iter, m));
-} /* sdb_store_all_matcher */
+} /* sdb_memstore_all_matcher */
 
-sdb_store_matcher_t *
-sdb_store_lt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_lt_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("lt-matcher", cmp_type,
 				MATCHER_LT, left, right));
-} /* sdb_store_lt_matcher */
+} /* sdb_memstore_lt_matcher */
 
-sdb_store_matcher_t *
-sdb_store_le_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_le_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("le-matcher", cmp_type,
 				MATCHER_LE, left, right));
-} /* sdb_store_le_matcher */
+} /* sdb_memstore_le_matcher */
 
-sdb_store_matcher_t *
-sdb_store_eq_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_eq_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("eq-matcher", cmp_type,
 				MATCHER_EQ, left, right));
-} /* sdb_store_eq_matcher */
+} /* sdb_memstore_eq_matcher */
 
-sdb_store_matcher_t *
-sdb_store_ne_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_ne_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("ne-matcher", cmp_type,
 				MATCHER_NE, left, right));
-} /* sdb_store_ne_matcher */
+} /* sdb_memstore_ne_matcher */
 
-sdb_store_matcher_t *
-sdb_store_ge_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_ge_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("ge-matcher", cmp_type,
 				MATCHER_GE, left, right));
-} /* sdb_store_ge_matcher */
+} /* sdb_memstore_ge_matcher */
 
-sdb_store_matcher_t *
-sdb_store_gt_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_gt_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("gt-matcher", cmp_type,
 				MATCHER_GT, left, right));
-} /* sdb_store_gt_matcher */
+} /* sdb_memstore_gt_matcher */
 
-sdb_store_matcher_t *
-sdb_store_in_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_in_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	return M(sdb_object_create("in-matcher", cmp_type,
 				MATCHER_IN, left, right));
-} /* sdb_store_in_matcher */
+} /* sdb_memstore_in_matcher */
 
-sdb_store_matcher_t *
-sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_regex_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	if (! right->type) {
 		if ((right->data.type != SDB_TYPE_STRING)
@@ -618,64 +618,64 @@ sdb_store_regex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
 	}
 	return M(sdb_object_create("regex-matcher", cmp_type,
 				MATCHER_REGEX, left, right));
-} /* sdb_store_regex_matcher */
+} /* sdb_memstore_regex_matcher */
 
-sdb_store_matcher_t *
-sdb_store_nregex_matcher(sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_nregex_matcher(sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
-	sdb_store_matcher_t *m = sdb_store_regex_matcher(left, right);
+	sdb_memstore_matcher_t *m = sdb_memstore_regex_matcher(left, right);
 	if (! m)
 		return NULL;
 	m->type = MATCHER_NREGEX;
 	return m;
-} /* sdb_store_nregex_matcher */
+} /* sdb_memstore_nregex_matcher */
 
-sdb_store_matcher_t *
-sdb_store_isnull_matcher(sdb_store_expr_t *expr)
+sdb_memstore_matcher_t *
+sdb_memstore_isnull_matcher(sdb_memstore_expr_t *expr)
 {
 	return M(sdb_object_create("isnull-matcher", unary_type,
 				MATCHER_ISNULL, expr));
-} /* sdb_store_isnull_matcher */
+} /* sdb_memstore_isnull_matcher */
 
-sdb_store_matcher_t *
-sdb_store_istrue_matcher(sdb_store_expr_t *expr)
+sdb_memstore_matcher_t *
+sdb_memstore_istrue_matcher(sdb_memstore_expr_t *expr)
 {
 	return M(sdb_object_create("istrue-matcher", unary_type,
 				MATCHER_ISTRUE, expr));
-} /* sdb_store_istrue_matcher */
+} /* sdb_memstore_istrue_matcher */
 
-sdb_store_matcher_t *
-sdb_store_isfalse_matcher(sdb_store_expr_t *expr)
+sdb_memstore_matcher_t *
+sdb_memstore_isfalse_matcher(sdb_memstore_expr_t *expr)
 {
 	return M(sdb_object_create("isfalse-matcher", unary_type,
 				MATCHER_ISFALSE, expr));
-} /* sdb_store_isfalse_matcher */
+} /* sdb_memstore_isfalse_matcher */
 
-sdb_store_matcher_t *
-sdb_store_dis_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_dis_matcher(sdb_memstore_matcher_t *left, sdb_memstore_matcher_t *right)
 {
 	return M(sdb_object_create("dis-matcher", op_type, MATCHER_OR,
 				left, right));
-} /* sdb_store_dis_matcher */
+} /* sdb_memstore_dis_matcher */
 
-sdb_store_matcher_t *
-sdb_store_con_matcher(sdb_store_matcher_t *left, sdb_store_matcher_t *right)
+sdb_memstore_matcher_t *
+sdb_memstore_con_matcher(sdb_memstore_matcher_t *left, sdb_memstore_matcher_t *right)
 {
 	return M(sdb_object_create("con-matcher", op_type, MATCHER_AND,
 				left, right));
-} /* sdb_store_con_matcher */
+} /* sdb_memstore_con_matcher */
 
-sdb_store_matcher_t *
-sdb_store_inv_matcher(sdb_store_matcher_t *m)
+sdb_memstore_matcher_t *
+sdb_memstore_inv_matcher(sdb_memstore_matcher_t *m)
 {
 	return M(sdb_object_create("inv-matcher", uop_type, MATCHER_NOT, m));
-} /* sdb_store_inv_matcher */
+} /* sdb_memstore_inv_matcher */
 
 int
-sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+sdb_memstore_matcher_matches(sdb_memstore_matcher_t *m, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
-	if (filter && (! sdb_store_matcher_matches(filter, obj, NULL)))
+	if (filter && (! sdb_memstore_matcher_matches(filter, obj, NULL)))
 		return 0;
 
 	/* "NULL" always matches */
@@ -688,7 +688,7 @@ sdb_store_matcher_matches(sdb_store_matcher_t *m, sdb_store_obj_t *obj,
 	if (! matchers[m->type])
 		return 0;
 	return matchers[m->type](m, obj, filter);
-} /* sdb_store_matcher_matches */
+} /* sdb_memstore_matcher_matches */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

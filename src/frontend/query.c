@@ -46,8 +46,6 @@
 /*
  * metric fetcher:
  * Implements the callbacks necessary to read a metric object.
- * TODO: FETCH should allow to ignore child elements (attributes); then, we'd
- * only need store_host/store_metric.
  */
 
 typedef struct {
@@ -77,15 +75,8 @@ metric_fetcher_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 	return 0;
 } /* metric_fetcher_metric */
 
-static int
-metric_fetcher_attr(sdb_store_attribute_t __attribute__((unused)) *attr,
-		sdb_object_t __attribute__((unused)) *user_data)
-{
-	return 0;
-} /* metric_fetcher_attr */
-
 static sdb_store_writer_t metric_fetcher = {
-	metric_fetcher_host, NULL, metric_fetcher_metric, metric_fetcher_attr,
+	metric_fetcher_host, NULL, metric_fetcher_metric, NULL,
 };
 
 /*
@@ -403,8 +394,9 @@ sdb_conn_fetch(sdb_conn_t *conn)
 
 	ast = sdb_ast_fetch_create((int)type,
 			hostname[0] ? strdup(hostname) : NULL,
+			-1, NULL,
 			name[0] ? strdup(name) : NULL,
-			/* filter = */ NULL);
+			/* full */ 1, /* filter = */ NULL);
 	status = exec_cmd(conn, ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	return status;

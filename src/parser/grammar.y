@@ -281,13 +281,13 @@ statement:
 fetch_statement:
 	FETCH object_type STRING filter_clause
 		{
-			$$ = sdb_ast_fetch_create($2, NULL, $3, $4);
+			$$ = sdb_ast_fetch_create($2, NULL, -1, NULL, $3, 1, $4);
 			CK_OOM($$);
 		}
 	|
 	FETCH object_type STRING '.' STRING filter_clause
 		{
-			$$ = sdb_ast_fetch_create($2, $3, $5, $6);
+			$$ = sdb_ast_fetch_create($2, $3, -1, NULL, $5, 1, $6);
 			CK_OOM($$);
 		}
 	;

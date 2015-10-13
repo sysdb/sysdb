@@ -85,6 +85,8 @@ fetch_destroy(sdb_object_t *obj)
 	sdb_ast_fetch_t *fetch = SDB_AST_FETCH(obj);
 	if (fetch->hostname)
 		free(fetch->hostname);
+	if (fetch->parent)
+		free(fetch->parent);
 	if (fetch->name)
 		free(fetch->name);
 	fetch->hostname = fetch->name = NULL;
@@ -289,8 +291,9 @@ sdb_ast_value_create(int type, char *name)
 } /* sdb_ast_value_create */
 
 sdb_ast_node_t *
-sdb_ast_fetch_create(int obj_type, char *hostname, char *name,
-		sdb_ast_node_t *filter)
+sdb_ast_fetch_create(int obj_type, char *hostname,
+		int parent_type, char *parent, char *name,
+		bool full, sdb_ast_node_t *filter)
 {
 	sdb_ast_fetch_t *fetch;
 	fetch = SDB_AST_FETCH(sdb_object_create("FETCH", fetch_type));
@@ -301,7 +304,10 @@ sdb_ast_fetch_create(int obj_type, char *hostname, char *name,
 
 	fetch->obj_type = obj_type;
 	fetch->hostname = hostname;
+	fetch->parent_type = parent_type;
+	fetch->parent = parent;
 	fetch->name = name;
+	fetch->full = full;
 	fetch->filter = filter;
 	return SDB_AST_NODE(fetch);
 } /* sdb_ast_fetch_create */

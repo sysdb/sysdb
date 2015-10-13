@@ -1,5 +1,5 @@
 /*
- * SysDB - src/core/store_expr.c
+ * SysDB - src/core/memstore_expr.c
  * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
@@ -26,7 +26,8 @@
  */
 
 /*
- * This module implements expressions which may be executed in the store.
+ * This module implements arithmetic and logical expressions for in-memory
+ * stores.
  */
 
 #if HAVE_CONFIG_H
@@ -34,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "sysdb.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "core/data.h"
 #include "core/object.h"
 
@@ -48,9 +49,9 @@
  */
 
 /* iterate through either a list of child nodes or arrays */
-struct sdb_store_expr_iter {
-	sdb_store_obj_t *obj;
-	sdb_store_expr_t *expr;
+struct sdb_memstore_expr_iter {
+	sdb_memstore_obj_t *obj;
+	sdb_memstore_expr_t *expr;
 
 	sdb_avltree_iter_t *tree;
 
@@ -58,7 +59,7 @@ struct sdb_store_expr_iter {
 	size_t array_idx;
 	bool free_array;
 
-	sdb_store_matcher_t *filter;
+	sdb_memstore_matcher_t *filter;
 };
 
 /*
@@ -69,11 +70,11 @@ static int
 expr_init(sdb_object_t *obj, va_list ap)
 {
 	int type = va_arg(ap, int);
-	sdb_store_expr_t *left  = va_arg(ap, sdb_store_expr_t *);
-	sdb_store_expr_t *right = va_arg(ap, sdb_store_expr_t *);
+	sdb_memstore_expr_t *left  = va_arg(ap, sdb_memstore_expr_t *);
+	sdb_memstore_expr_t *right = va_arg(ap, sdb_memstore_expr_t *);
 	const sdb_data_t *value = va_arg(ap, const sdb_data_t *);
 
-	sdb_store_expr_t *expr = SDB_STORE_EXPR(obj);
+	sdb_memstore_expr_t *expr = SDB_MEMSTORE_EXPR(obj);
 
 	if (type <= 0) {
 		if (! value)
@@ -105,7 +106,7 @@ expr_init(sdb_object_t *obj, va_list ap)
 static void
 expr_destroy(sdb_object_t *obj)
 {
-	sdb_store_expr_t *expr = SDB_STORE_EXPR(obj);
+	sdb_memstore_expr_t *expr = SDB_MEMSTORE_EXPR(obj);
 	sdb_object_deref(SDB_OBJ(expr->left));
 	sdb_object_deref(SDB_OBJ(expr->right));
 
@@ -114,7 +115,7 @@ expr_destroy(sdb_object_t *obj)
 } /* expr_destroy */
 
 static sdb_type_t expr_type = {
-	/* size = */ sizeof(sdb_store_expr_t),
+	/* size = */ sizeof(sdb_memstore_expr_t),
 	/* init = */ expr_init,
 	/* destroy = */ expr_destroy,
 };
@@ -123,17 +124,17 @@ static sdb_type_t expr_type = {
  * public API
  */
 
-sdb_store_expr_t *
-sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
+sdb_memstore_expr_t *
+sdb_memstore_expr_create(int op, sdb_memstore_expr_t *left, sdb_memstore_expr_t *right)
 {
 	sdb_data_t value = SDB_DATA_INIT;
-	sdb_store_expr_t *e;
+	sdb_memstore_expr_t *e;
 
 	if ((op < 0) || (SDB_DATA_CONCAT < op) || (! left) || (! right))
 		return NULL;
 
 	if (left->type || right->type) {
-		e = SDB_STORE_EXPR(sdb_object_create("store-expr", expr_type,
+		e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-expr", expr_type,
 					op, left, right, NULL));
 		e->data_type = sdb_data_expr_type(op, left->type, right->type);
 		return e;
@@ -142,76 +143,76 @@ sdb_store_expr_create(int op, sdb_store_expr_t *left, sdb_store_expr_t *right)
 
 	if (sdb_data_expr_eval(op, &left->data, &right->data, &value))
 		return NULL;
-	e = SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-constvalue", expr_type,
 				0, NULL, NULL, &value));
 	e->data_type = value.type;
 	return e;
-} /* sdb_store_expr_create */
+} /* sdb_memstore_expr_create */
 
-sdb_store_expr_t *
-sdb_store_expr_typed(int typ, sdb_store_expr_t *expr)
+sdb_memstore_expr_t *
+sdb_memstore_expr_typed(int typ, sdb_memstore_expr_t *expr)
 {
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = typ } };
-	sdb_store_expr_t *e;
+	sdb_memstore_expr_t *e;
 
 	if ((typ < SDB_HOST) || (SDB_ATTRIBUTE < typ))
 		return NULL;
 
-	e = SDB_STORE_EXPR(sdb_object_create("store-typedexpr", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-typedexpr", expr_type,
 				TYPED_EXPR, expr, NULL, &value));
 	e->data_type = expr->data_type;
 	return e;
-} /* sdb_store_expr_typed */
+} /* sdb_memstore_expr_typed */
 
-sdb_store_expr_t *
-sdb_store_expr_fieldvalue(int field)
+sdb_memstore_expr_t *
+sdb_memstore_expr_fieldvalue(int field)
 {
 	sdb_data_t value = { SDB_TYPE_INTEGER, { .integer = field } };
-	sdb_store_expr_t *e;
+	sdb_memstore_expr_t *e;
 
 	if ((field < SDB_FIELD_NAME) || (SDB_FIELD_TIMESERIES < field))
 		return NULL;
-	e = SDB_STORE_EXPR(sdb_object_create("store-fieldvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-fieldvalue", expr_type,
 				FIELD_VALUE, NULL, NULL, &value));
 	e->data_type = SDB_FIELD_TYPE(field);
 	return e;
-} /* sdb_store_expr_fieldvalue */
+} /* sdb_memstore_expr_fieldvalue */
 
-sdb_store_expr_t *
-sdb_store_expr_attrvalue(const char *name)
+sdb_memstore_expr_t *
+sdb_memstore_expr_attrvalue(const char *name)
 {
 	sdb_data_t value = { SDB_TYPE_STRING, { .string = NULL} };
-	sdb_store_expr_t *expr;
+	sdb_memstore_expr_t *expr;
 
 	value.data.string = strdup(name);
 	if (! value.data.string)
 		return NULL;
 
-	expr = SDB_STORE_EXPR(sdb_object_create("store-attrvalue", expr_type,
+	expr = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-attrvalue", expr_type,
 				ATTR_VALUE, NULL, NULL, &value));
 	if (! expr)
 		free(value.data.string);
 	expr->data_type = -1;
 	return expr;
-} /* sdb_store_expr_attrvalue */
+} /* sdb_memstore_expr_attrvalue */
 
-sdb_store_expr_t *
-sdb_store_expr_constvalue(const sdb_data_t *value)
+sdb_memstore_expr_t *
+sdb_memstore_expr_constvalue(const sdb_data_t *value)
 {
 	sdb_data_t data = SDB_DATA_INIT;
-	sdb_store_expr_t *e;
+	sdb_memstore_expr_t *e;
 
 	if (sdb_data_copy(&data, value))
 		return NULL;
-	e = SDB_STORE_EXPR(sdb_object_create("store-constvalue", expr_type,
+	e = SDB_MEMSTORE_EXPR(sdb_object_create("memstore-constvalue", expr_type,
 				0, NULL, NULL, &data));
 	e->data_type = data.type;
 	return e;
-} /* sdb_store_expr_constvalue */
+} /* sdb_memstore_expr_constvalue */
 
 int
-sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_data_t *res, sdb_store_matcher_t *filter)
+sdb_memstore_expr_eval(sdb_memstore_expr_t *expr, sdb_memstore_obj_t *obj,
+		sdb_data_t *res, sdb_memstore_matcher_t *filter)
 {
 	sdb_data_t v1 = SDB_DATA_INIT, v2 = SDB_DATA_INIT;
 	int status = 0;
@@ -219,15 +220,15 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	if ((! expr) || (! res))
 		return -1;
 
-	if (filter && obj && (! sdb_store_matcher_matches(filter, obj, NULL)))
+	if (filter && obj && (! sdb_memstore_matcher_matches(filter, obj, NULL)))
 		obj = NULL; /* this object does not exist */
 
 	if (! expr->type)
 		return sdb_data_copy(res, &expr->data);
 	else if (expr->type == FIELD_VALUE)
-		return sdb_store_get_field(obj, (int)expr->data.data.integer, res);
+		return sdb_memstore_get_field(obj, (int)expr->data.data.integer, res);
 	else if (expr->type == ATTR_VALUE) {
-		status = sdb_store_get_attr(obj, expr->data.data.string, res, filter);
+		status = sdb_memstore_get_attr(obj, expr->data.data.string, res, filter);
 		if ((status < 0) && obj) {
 			/* attribute does not exist => NULL */
 			status = 0;
@@ -246,12 +247,12 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 				return -1;
 			obj = obj->parent;
 		}
-		return sdb_store_expr_eval(expr->left, obj, res, filter);
+		return sdb_memstore_expr_eval(expr->left, obj, res, filter);
 	}
 
-	if (sdb_store_expr_eval(expr->left, obj, &v1, filter))
+	if (sdb_memstore_expr_eval(expr->left, obj, &v1, filter))
 		return -1;
-	if (sdb_store_expr_eval(expr->right, obj, &v2, filter)) {
+	if (sdb_memstore_expr_eval(expr->right, obj, &v2, filter)) {
 		sdb_data_free_datum(&v1);
 		return -1;
 	}
@@ -261,13 +262,13 @@ sdb_store_expr_eval(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	sdb_data_free_datum(&v1);
 	sdb_data_free_datum(&v2);
 	return status;
-} /* sdb_store_expr_eval */
+} /* sdb_memstore_expr_eval */
 
-sdb_store_expr_iter_t *
-sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
-		sdb_store_matcher_t *filter)
+sdb_memstore_expr_iter_t *
+sdb_memstore_expr_iter(sdb_memstore_expr_t *expr, sdb_memstore_obj_t *obj,
+		sdb_memstore_matcher_t *filter)
 {
-	sdb_store_expr_iter_t *iter;
+	sdb_memstore_expr_iter_t *iter;
 	sdb_avltree_iter_t *tree = NULL;
 	sdb_data_t array = SDB_DATA_INIT;
 	bool free_array = 0;
@@ -329,7 +330,7 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	}
 	else {
 		sdb_data_t value = SDB_DATA_INIT;
-		if (sdb_store_expr_eval(expr, obj, &value, filter))
+		if (sdb_memstore_expr_eval(expr, obj, &value, filter))
 			return NULL;
 		if (! (value.type & SDB_TYPE_ARRAY)) {
 			sdb_data_free_datum(&value);
@@ -360,10 +361,10 @@ sdb_store_expr_iter(sdb_store_expr_t *expr, sdb_store_obj_t *obj,
 	iter->free_array = free_array;
 	iter->filter = filter;
 	return iter;
-} /* sdb_store_expr_iter */
+} /* sdb_memstore_expr_iter */
 
 void
-sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter)
+sdb_memstore_expr_iter_destroy(sdb_memstore_expr_iter_t *iter)
 {
 	sdb_data_t null = SDB_DATA_INIT;
 
@@ -383,10 +384,10 @@ sdb_store_expr_iter_destroy(sdb_store_expr_iter_t *iter)
 	sdb_object_deref(SDB_OBJ(iter->expr));
 	sdb_object_deref(SDB_OBJ(iter->filter));
 	free(iter);
-} /* sdb_store_expr_iter_destroy */
+} /* sdb_memstore_expr_iter_destroy */
 
 bool
-sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter)
+sdb_memstore_expr_iter_has_next(sdb_memstore_expr_iter_t *iter)
 {
 	if (! iter)
 		return 0;
@@ -395,9 +396,9 @@ sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter)
 		/* this function may be called before get_next,
 		 * so we'll have to apply filters here as well */
 		if (iter->filter) {
-			sdb_store_obj_t *child;
+			sdb_memstore_obj_t *child;
 			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree)))) {
-				if (sdb_store_matcher_matches(iter->filter, child, NULL))
+				if (sdb_memstore_matcher_matches(iter->filter, child, NULL))
 					break;
 				(void)sdb_avltree_iter_get_next(iter->tree);
 			}
@@ -407,10 +408,10 @@ sdb_store_expr_iter_has_next(sdb_store_expr_iter_t *iter)
 	}
 
 	return iter->array_idx < iter->array.data.array.length;
-} /* sdb_store_expr_iter_has_next */
+} /* sdb_memstore_expr_iter_has_next */
 
 sdb_data_t
-sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
+sdb_memstore_expr_iter_get_next(sdb_memstore_expr_iter_t *iter)
 {
 	sdb_data_t null = SDB_DATA_INIT;
 	sdb_data_t ret = SDB_DATA_INIT;
@@ -420,17 +421,17 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 		return null;
 
 	if (iter->tree) {
-		sdb_store_obj_t *child;
+		sdb_memstore_obj_t *child;
 
 		while (42) {
 			child = STORE_OBJ(sdb_avltree_iter_get_next(iter->tree));
 			if (! child)
 				break;
 			if (iter->filter
-					&& (! sdb_store_matcher_matches(iter->filter, child, NULL)))
+					&& (! sdb_memstore_matcher_matches(iter->filter, child, NULL)))
 				continue;
 
-			if (sdb_store_expr_eval(iter->expr, child, &ret, iter->filter))
+			if (sdb_memstore_expr_eval(iter->expr, child, &ret, iter->filter))
 				return null;
 			break;
 		}
@@ -438,7 +439,7 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 		/* Skip over any filtered objects */
 		if (iter->filter) {
 			while ((child = STORE_OBJ(sdb_avltree_iter_peek_next(iter->tree)))) {
-				if (sdb_store_matcher_matches(iter->filter, child, NULL))
+				if (sdb_memstore_matcher_matches(iter->filter, child, NULL))
 					break;
 				(void)sdb_avltree_iter_get_next(iter->tree);
 			}
@@ -457,7 +458,7 @@ sdb_store_expr_iter_get_next(sdb_store_expr_iter_t *iter)
 		return null;
 	ret = tmp;
 	return ret;
-} /* sdb_store_expr_iter_get_next */
+} /* sdb_memstore_expr_iter_get_next */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

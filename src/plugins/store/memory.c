@@ -31,6 +31,7 @@
 
 #include "sysdb.h"
 #include "core/plugin.h"
+#include "core/memstore.h"
 #include "core/store.h"
 #include "utils/error.h"
 
@@ -43,19 +44,19 @@ SDB_PLUGIN_MAGIC;
 static int
 mem_init(sdb_object_t *user_data)
 {
-	sdb_store_t *store = SDB_STORE(user_data);
+	sdb_memstore_t *store = SDB_MEMSTORE(user_data);
 
 	if (! store) {
 		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
 		return -1;
 	}
 	if (sdb_plugin_register_writer("memstore",
-				&sdb_store_writer, SDB_OBJ(store))) {
+				&sdb_memstore_writer, SDB_OBJ(store))) {
 		sdb_object_deref(SDB_OBJ(store));
 		return -1;
 	}
 	if (sdb_plugin_register_reader("memstore",
-				&sdb_store_reader, SDB_OBJ(store))) {
+				&sdb_memstore_reader, SDB_OBJ(store))) {
 		sdb_object_deref(SDB_OBJ(store));
 		return -1;
 	}
@@ -73,7 +74,7 @@ int
 sdb_module_init(sdb_plugin_info_t *info)
 {
 	/* store singleton */
-	static sdb_store_t *store;
+	static sdb_memstore_t *store;
 
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_DESC, "in-memory object store");
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_COPYRIGHT,
@@ -83,7 +84,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
 	if (! store) {
-		if (! (store = sdb_store_create())) {
+		if (! (store = sdb_memstore_create())) {
 			sdb_log(SDB_LOG_ERR, "store::memory plugin: "
 					"Failed to create store object");
 			return -1;

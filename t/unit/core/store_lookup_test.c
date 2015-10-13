@@ -31,14 +31,14 @@
 
 #include "core/plugin.h"
 #include "core/store.h"
-#include "core/store-private.h"
+#include "core/memstore-private.h"
 #include "parser/parser.h"
 #include "testutils.h"
 
 #include <check.h>
 #include <string.h>
 
-static sdb_store_t *store;
+static sdb_memstore_t *store;
 
 static void
 populate(void)
@@ -76,37 +76,37 @@ populate(void)
 
 	size_t i;
 
-	store = sdb_store_create();
+	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_store_host(store, hosts[i], 1);
+		int status = sdb_memstore_host(store, hosts[i], 1, 0);
 		fail_unless(status == 0,
-				"sdb_store_host(%s, 1) = %d; expected: 0",
+				"sdb_memstore_host(%s, 1, 0) = %d; expected: 0",
 				hosts[i], status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
-		int status = sdb_store_metric(store, metrics[i].host,
-				metrics[i].metric, /* store */ NULL, 1);
+		int status = sdb_memstore_metric(store, metrics[i].host,
+				metrics[i].metric, /* store */ NULL, 1, 0);
 		fail_unless(status == 0,
-				"sdb_store_metric(%s, %s, NULL, 1) = %d; expected: 0",
+				"sdb_memstore_metric(%s, %s, NULL, 1, 0) = %d; expected: 0",
 				metrics[i].host, metrics[i].metric, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
-		int status = sdb_store_service(store, services[i].host,
-				services[i].service, 1);
+		int status = sdb_memstore_service(store, services[i].host,
+				services[i].service, 1, 0);
 		fail_unless(status == 0,
-				"sdb_store_service(%s, %s, 1) = %d; expected: 0",
+				"sdb_memstore_service(%s, %s, 1, 0) = %d; expected: 0",
 				services[i].host, services[i].service, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
-		int status = sdb_store_attribute(store, attrs[i].host,
-				attrs[i].name, &attrs[i].value, 1);
+		int status = sdb_memstore_attribute(store, attrs[i].host,
+				attrs[i].name, &attrs[i].value, 1, 0);
 		fail_unless(status == 0,
-				"sdb_store_attribute(%s, %s, <val>, 1) = %d; expected: 0",
+				"sdb_memstore_attribute(%s, %s, <val>, 1, 0) = %d; expected: 0",
 				attrs[i].host, attrs[i].name, status);
 	}
 } /* populate */
@@ -161,41 +161,41 @@ struct {
 
 START_TEST(test_cmp_name)
 {
-	sdb_store_obj_t *host;
+	sdb_memstore_obj_t *host;
 	sdb_data_t datum;
-	sdb_store_expr_t *obj = NULL, *value;
-	sdb_store_matcher_t *m, *n;
+	sdb_memstore_expr_t *obj = NULL, *value;
+	sdb_memstore_matcher_t *m, *n;
 	int status;
 
-	host = sdb_store_get_host(store, "a");
+	host = sdb_memstore_get_host(store, "a");
 	fail_unless(host != NULL,
-			"sdb_store_get_host(a) = NULL; expected: <host>");
+			"sdb_memstore_get_host(a) = NULL; expected: <host>");
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = cmp_name_data[_i].name;
 
 	if (cmp_name_data[_i].type == SDB_HOST) {
-		obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
+		obj = sdb_memstore_expr_fieldvalue(SDB_FIELD_NAME);
 		fail_unless(obj != NULL,
-				"sdb_store_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
+				"sdb_memstore_expr_fieldvalue(SDB_STORE_NAME) = NULL; "
 				"expected: <expr>");
 	}
-	value = sdb_store_expr_constvalue(&datum);
+	value = sdb_memstore_expr_constvalue(&datum);
 	fail_unless(value != NULL,
-			"sdb_store_expr_constvalue(%s) = NULL; "
+			"sdb_memstore_expr_constvalue(%s) = NULL; "
 			"expected: <expr>", cmp_name_data[_i].name);
 
 	if (cmp_name_data[_i].re)
-		m = sdb_store_regex_matcher(obj, value);
+		m = sdb_memstore_regex_matcher(obj, value);
 	else
-		m = sdb_store_eq_matcher(obj, value);
+		m = sdb_memstore_eq_matcher(obj, value);
 
 	if (cmp_name_data[_i].type != SDB_HOST) {
-		sdb_store_expr_t *iter;
-		sdb_store_matcher_t *tmp;
-		obj = sdb_store_expr_fieldvalue(SDB_FIELD_NAME);
-		iter = sdb_store_expr_typed(cmp_name_data[_i].type, obj);
-		tmp = sdb_store_any_matcher(iter, m);
+		sdb_memstore_expr_t *iter;
+		sdb_memstore_matcher_t *tmp;
+		obj = sdb_memstore_expr_fieldvalue(SDB_FIELD_NAME);
+		iter = sdb_memstore_expr_typed(cmp_name_data[_i].type, obj);
+		tmp = sdb_memstore_any_matcher(iter, m);
 		ck_assert(iter && m);
 		sdb_object_deref(SDB_OBJ(iter));
 		sdb_object_deref(SDB_OBJ(m));
@@ -204,27 +204,27 @@ START_TEST(test_cmp_name)
 	sdb_object_deref(SDB_OBJ(obj));
 	sdb_object_deref(SDB_OBJ(value));
 	fail_unless(m != NULL,
-			"sdb_store_%s_matcher(%s, %s) = NULL; "
+			"sdb_memstore_%s_matcher(%s, %s) = NULL; "
 			"expected: <matcher>",
 			cmp_name_data[_i].re ? "regex" : "eq",
 			SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
 			cmp_name_data[_i].name);
 
-	status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+	status = sdb_memstore_matcher_matches(m, host, /* filter */ NULL);
 	fail_unless(status == cmp_name_data[_i].expected,
-			"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
+			"sdb_memstore_matcher_matches(%s->%s, <host a>, NULL) = %d; "
 			"expected: %d", SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
 			cmp_name_data[_i].name, status, cmp_name_data[_i].expected);
 
-	n = sdb_store_inv_matcher(m);
+	n = sdb_memstore_inv_matcher(m);
 	fail_unless(n != NULL,
-			"sdb_store_inv_matcher() = NULL; expected: <matcher>");
+			"sdb_memstore_inv_matcher() = NULL; expected: <matcher>");
 	sdb_object_deref(SDB_OBJ(m));
 
 	/* now match the inverted set of objects */
-	status = sdb_store_matcher_matches(n, host, /* filter */ NULL);
+	status = sdb_memstore_matcher_matches(n, host, /* filter */ NULL);
 	fail_unless(status == !cmp_name_data[_i].expected,
-			"sdb_store_matcher_matches(%s->%s, <host a>, NULL) = %d; "
+			"sdb_memstore_matcher_matches(%s->%s, <host a>, NULL) = %d; "
 			"expected: %d", SDB_STORE_TYPE_TO_NAME(cmp_name_data[_i].type),
 			cmp_name_data[_i].name, status, !cmp_name_data[_i].expected);
 
@@ -256,55 +256,55 @@ struct {
 
 START_TEST(test_cmp_attr)
 {
-	sdb_store_obj_t *host;
-	sdb_store_expr_t *attr;
-	sdb_store_expr_t *value;
+	sdb_memstore_obj_t *host;
+	sdb_memstore_expr_t *attr;
+	sdb_memstore_expr_t *value;
 	char value_str[1024];
 	int status;
 	size_t j;
 
 	struct {
-		sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
-				sdb_store_expr_t *);
+		sdb_memstore_matcher_t *(*matcher)(sdb_memstore_expr_t *,
+				sdb_memstore_expr_t *);
 		int expected;
 	} tests[] = {
-		{ sdb_store_lt_matcher, cmp_attr_data[_i].expected_lt },
-		{ sdb_store_le_matcher, cmp_attr_data[_i].expected_le },
-		{ sdb_store_eq_matcher, cmp_attr_data[_i].expected_eq },
-		{ sdb_store_ge_matcher, cmp_attr_data[_i].expected_ge },
-		{ sdb_store_gt_matcher, cmp_attr_data[_i].expected_gt },
+		{ sdb_memstore_lt_matcher, cmp_attr_data[_i].expected_lt },
+		{ sdb_memstore_le_matcher, cmp_attr_data[_i].expected_le },
+		{ sdb_memstore_eq_matcher, cmp_attr_data[_i].expected_eq },
+		{ sdb_memstore_ge_matcher, cmp_attr_data[_i].expected_ge },
+		{ sdb_memstore_gt_matcher, cmp_attr_data[_i].expected_gt },
 	};
 
 	const char *op_str[] = { "<", "<=", "=", ">=", ">" };
 	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
-	host = sdb_store_get_host(store, "a");
+	host = sdb_memstore_get_host(store, "a");
 	fail_unless(host != NULL,
-			"sdb_store_get_host(a) = NULL; expected: <host>");
+			"sdb_memstore_get_host(a) = NULL; expected: <host>");
 
 	sdb_data_format(&cmp_attr_data[_i].value,
 			value_str, sizeof(value_str), SDB_UNQUOTED);
 
-	attr = sdb_store_expr_attrvalue(cmp_attr_data[_i].attr);
+	attr = sdb_memstore_expr_attrvalue(cmp_attr_data[_i].attr);
 	fail_unless(attr != NULL,
-			"sdb_store_expr_attrvalue(%s) = NULL; expected: <expr>",
+			"sdb_memstore_expr_attrvalue(%s) = NULL; expected: <expr>",
 			cmp_attr_data[_i].attr);
 
-	value = sdb_store_expr_constvalue(&cmp_attr_data[_i].value);
+	value = sdb_memstore_expr_constvalue(&cmp_attr_data[_i].value);
 	fail_unless(value != NULL,
-			"sdb_store_expr_constvalue(%s) = NULL; expected: <expr>",
+			"sdb_memstore_expr_constvalue(%s) = NULL; expected: <expr>",
 			value_str);
 
 	for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
-		sdb_store_matcher_t *m;
+		sdb_memstore_matcher_t *m;
 
 		m = tests[j].matcher(attr, value);
 		fail_unless(m != NULL,
-				"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
+				"sdb_memstore_<cond>_matcher() = NULL; expected: <matcher>");
 
-		status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+		status = sdb_memstore_matcher_matches(m, host, /* filter */ NULL);
 		fail_unless(status == tests[j].expected,
-				"sdb_store_matcher_matches(<attr[%s] %s %s>, "
+				"sdb_memstore_matcher_matches(<attr[%s] %s %s>, "
 				"<host>, NULL) = %d; expected: %d",
 				cmp_attr_data[_i].attr, op_str[j], value_str,
 				status, tests[j].expected);
@@ -364,49 +364,49 @@ struct {
 
 START_TEST(test_cmp_obj)
 {
-	sdb_store_obj_t *host;
-	sdb_store_expr_t *field;
-	sdb_store_expr_t *value;
+	sdb_memstore_obj_t *host;
+	sdb_memstore_expr_t *field;
+	sdb_memstore_expr_t *value;
 	char value_str[1024];
 	int status;
 	size_t j;
 
 	struct {
-		sdb_store_matcher_t *(*matcher)(sdb_store_expr_t *,
-				sdb_store_expr_t *);
+		sdb_memstore_matcher_t *(*matcher)(sdb_memstore_expr_t *,
+				sdb_memstore_expr_t *);
 		int expected;
 	} tests[] = {
-		{ sdb_store_lt_matcher, cmp_obj_data[_i].expected_lt },
-		{ sdb_store_le_matcher, cmp_obj_data[_i].expected_le },
-		{ sdb_store_eq_matcher, cmp_obj_data[_i].expected_eq },
-		{ sdb_store_ge_matcher, cmp_obj_data[_i].expected_ge },
-		{ sdb_store_gt_matcher, cmp_obj_data[_i].expected_gt },
+		{ sdb_memstore_lt_matcher, cmp_obj_data[_i].expected_lt },
+		{ sdb_memstore_le_matcher, cmp_obj_data[_i].expected_le },
+		{ sdb_memstore_eq_matcher, cmp_obj_data[_i].expected_eq },
+		{ sdb_memstore_ge_matcher, cmp_obj_data[_i].expected_ge },
+		{ sdb_memstore_gt_matcher, cmp_obj_data[_i].expected_gt },
 	};
 	char *op_str[] = { "<", "<=", "=", ">=", ">" };
 
 	ck_assert(SDB_STATIC_ARRAY_LEN(tests) == SDB_STATIC_ARRAY_LEN(op_str));
 
-	host = sdb_store_get_host(store, cmp_obj_data[_i].host);
+	host = sdb_memstore_get_host(store, cmp_obj_data[_i].host);
 	fail_unless(host != NULL,
-			"sdb_store_get_host(%s) = NULL; expected: <host>",
+			"sdb_memstore_get_host(%s) = NULL; expected: <host>",
 			cmp_obj_data[_i].host);
 
 	sdb_data_format(&cmp_obj_data[_i].value,
 			value_str, sizeof(value_str), SDB_UNQUOTED);
 
-	field = sdb_store_expr_fieldvalue(cmp_obj_data[_i].field);
+	field = sdb_memstore_expr_fieldvalue(cmp_obj_data[_i].field);
 	fail_unless(field != NULL,
-			"sdb_store_expr_fieldvalue(%d) = NULL; "
+			"sdb_memstore_expr_fieldvalue(%d) = NULL; "
 			"expected: <expr>", cmp_obj_data[_i].field);
 
-	value = sdb_store_expr_constvalue(&cmp_obj_data[_i].value);
+	value = sdb_memstore_expr_constvalue(&cmp_obj_data[_i].value);
 	fail_unless(value != NULL,
-			"sdb_store_expr_constvalue(%s) = NULL; "
+			"sdb_memstore_expr_constvalue(%s) = NULL; "
 			"expected: <expr>", value_str);
 
 	for (j = 0; j < SDB_STATIC_ARRAY_LEN(tests); ++j) {
 		char m_str[1024];
-		sdb_store_matcher_t *m;
+		sdb_memstore_matcher_t *m;
 
 		snprintf(m_str, sizeof(m_str), "%s %s %s",
 				SDB_FIELD_TO_NAME(cmp_obj_data[_i].field),
@@ -414,11 +414,11 @@ START_TEST(test_cmp_obj)
 
 		m = tests[j].matcher(field, value);
 		fail_unless(m != NULL,
-				"sdb_store_<cond>_matcher() = NULL; expected: <matcher>");
+				"sdb_memstore_<cond>_matcher() = NULL; expected: <matcher>");
 
-		status = sdb_store_matcher_matches(m, host, /* filter */ NULL);
+		status = sdb_memstore_matcher_matches(m, host, /* filter */ NULL);
 		fail_unless(status == tests[j].expected,
-				"sdb_store_matcher_matches(<%s>, <host '%s'>, NULL) = %d; "
+				"sdb_memstore_matcher_matches(<%s>, <host '%s'>, NULL) = %d; "
 				"expected: %d", m_str, cmp_obj_data[_i].host, status,
 				tests[j].expected);
 
@@ -433,18 +433,18 @@ END_TEST
 
 START_TEST(test_store_match_op)
 {
-	sdb_store_obj_t *obj;
+	sdb_memstore_obj_t *obj;
 
 	sdb_data_t d = { SDB_TYPE_STRING, { .string = "a" } };
-	sdb_store_expr_t *e = sdb_store_expr_constvalue(&d);
+	sdb_memstore_expr_t *e = sdb_memstore_expr_constvalue(&d);
 
-	sdb_store_matcher_t *never = sdb_store_isnull_matcher(e);
-	sdb_store_matcher_t *always = sdb_store_inv_matcher(never);
+	sdb_memstore_matcher_t *never = sdb_memstore_isnull_matcher(e);
+	sdb_memstore_matcher_t *always = sdb_memstore_inv_matcher(never);
 
 	struct {
 		const char *op;
-		sdb_store_matcher_t *left;
-		sdb_store_matcher_t *right;
+		sdb_memstore_matcher_t *left;
+		sdb_memstore_matcher_t *right;
 		int expected;
 	} golden_data[] = {
 		{ "OR",  always, always, 1 },
@@ -460,23 +460,23 @@ START_TEST(test_store_match_op)
 	int status;
 	size_t i;
 
-	obj = sdb_store_get_host(store, "a");
+	obj = sdb_memstore_get_host(store, "a");
 
-	status = sdb_store_matcher_matches(always, obj, /* filter */ NULL);
+	status = sdb_memstore_matcher_matches(always, obj, /* filter */ NULL);
 	fail_unless(status == 1,
 			"INTERNAL ERROR: 'always' did not match host");
-	status = sdb_store_matcher_matches(never, obj, /* filter */ NULL);
+	status = sdb_memstore_matcher_matches(never, obj, /* filter */ NULL);
 	fail_unless(status == 0,
 			"INTERNAL ERROR: 'never' matches host");
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
-		sdb_store_matcher_t *m;
+		sdb_memstore_matcher_t *m;
 
 		if (! strcmp(golden_data[i].op, "OR"))
-			m = sdb_store_dis_matcher(golden_data[i].left,
+			m = sdb_memstore_dis_matcher(golden_data[i].left,
 					golden_data[i].right);
 		else if (! strcmp(golden_data[i].op, "AND"))
-			m = sdb_store_con_matcher(golden_data[i].left,
+			m = sdb_memstore_con_matcher(golden_data[i].left,
 					golden_data[i].right);
 		else {
 			fail("INTERNAL ERROR: unexpected operator %s", golden_data[i].op);
@@ -486,7 +486,7 @@ START_TEST(test_store_match_op)
 #define TO_NAME(v) (((v) == always) ? "always" \
 		: ((v) == never) ? "never" : "<unknown>")
 
-		status = sdb_store_matcher_matches(m, obj, /* filter */ NULL);
+		status = sdb_memstore_matcher_matches(m, obj, /* filter */ NULL);
 		fail_unless(status == golden_data[i].expected,
 				"%s(%s, %s, NULL) = %d; expected: %d", golden_data[i].op,
 				TO_NAME(golden_data[i].left), TO_NAME(golden_data[i].right),
@@ -506,18 +506,18 @@ START_TEST(test_store_match_op)
 END_TEST
 
 static int
-scan_cb(sdb_store_obj_t *obj, sdb_store_matcher_t *filter, void *user_data)
+scan_cb(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter, void *user_data)
 {
 	int *i = user_data;
 
-	if (! sdb_store_matcher_matches(filter, obj, NULL))
+	if (! sdb_memstore_matcher_matches(filter, obj, NULL))
 		return 0;
 
 	fail_unless(obj != NULL,
-			"sdb_store_scan callback received NULL obj; expected: "
+			"sdb_memstore_scan callback received NULL obj; expected: "
 			"<store base obj>");
 	fail_unless(i != NULL,
-			"sdb_store_scan callback received NULL user_data; "
+			"sdb_memstore_scan callback received NULL user_data; "
 			"expected: <pointer to data>");
 
 	++(*i);
@@ -628,21 +628,21 @@ struct {
 START_TEST(test_scan)
 {
 	sdb_strbuf_t *errbuf = sdb_strbuf_create(64);
-	sdb_store_matcher_t *m, *filter = NULL;
+	sdb_memstore_matcher_t *m, *filter = NULL;
 	sdb_ast_node_t *ast;
 	int check, n;
 
 	n = 0;
-	check = sdb_store_scan(store, SDB_HOST,
+	check = sdb_memstore_scan(store, SDB_HOST,
 			/* matcher */ NULL, /* filter */ NULL,
 			scan_cb, &n);
 	fail_unless(check == 0,
-			"sdb_store_scan() = %d; expected: 0", check);
+			"sdb_memstore_scan() = %d; expected: 0", check);
 	fail_unless(n == 3,
-			"sdb_store_scan called callback %d times; expected: 3", (int)n);
+			"sdb_memstore_scan called callback %d times; expected: 3", (int)n);
 
 	ast = sdb_parser_parse_conditional(SDB_HOST, scan_data[_i].query, -1, errbuf);
-	m = sdb_store_query_prepare_matcher(ast);
+	m = sdb_memstore_query_prepare_matcher(ast);
 	sdb_object_deref(SDB_OBJ(ast));
 	fail_unless(m != NULL,
 			"sdb_parser_parse_conditional(HOST, %s, -1) = NULL; expected: <ast> "
@@ -651,7 +651,7 @@ START_TEST(test_scan)
 
 	if (scan_data[_i].filter) {
 		ast = sdb_parser_parse_conditional(SDB_HOST, scan_data[_i].filter, -1, errbuf);
-		filter = sdb_store_query_prepare_matcher(ast);
+		filter = sdb_memstore_query_prepare_matcher(ast);
 		sdb_object_deref(SDB_OBJ(ast));
 		fail_unless(filter != NULL,
 				"sdb_parser_parse_conditional(HOST, %s, -1) = NULL; "
@@ -660,9 +660,9 @@ START_TEST(test_scan)
 	}
 
 	n = 0;
-	sdb_store_scan(store, SDB_HOST, m, filter, scan_cb, &n);
+	sdb_memstore_scan(store, SDB_HOST, m, filter, scan_cb, &n);
 	fail_unless(n == scan_data[_i].expected,
-			"sdb_store_scan(HOST, matcher{%s}, filter{%s}) "
+			"sdb_memstore_scan(HOST, matcher{%s}, filter{%s}) "
 			"found %d hosts; expected: %d", scan_data[_i].query,
 			scan_data[_i].filter, n, scan_data[_i].expected);
 
