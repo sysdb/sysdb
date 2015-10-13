@@ -544,28 +544,34 @@ START_TEST(test_get_child)
 {
 	struct {
 		const char *host;
+		int parent_type;
+		const char *parent;
 		const char *name;
 		int type;
 		int expected;
 	} golden_data[] = {
-		{ "h1", NULL, SDB_HOST,       0 },
-		{ "h1", NULL, SDB_SERVICE,   -1 },
-		{ "h1", NULL, SDB_METRIC,    -1 },
-		{ "h1", NULL, SDB_ATTRIBUTE, -1 },
-		{ "h2", NULL, SDB_HOST,       0 },
-		{ "h2", NULL, SDB_SERVICE,   -1 },
-		{ "h2", NULL, SDB_METRIC,    -1 },
-		{ "h2", NULL, SDB_ATTRIBUTE, -1 },
-		{ "h3", NULL, SDB_HOST,      -1 },
-		{ "h1", "k1", SDB_ATTRIBUTE,  0 },
-		{ "h1", "x1", SDB_ATTRIBUTE, -1 },
-		{ "h2", "k1", SDB_ATTRIBUTE, -1 },
-		{ "h1", "k1", SDB_SERVICE,   -1 },
-		{ "h1", "k1", SDB_METRIC,    -1 },
-		{ "h1", "s1", SDB_SERVICE,   -1 },
-		{ "h2", "s1", SDB_SERVICE,    0 },
-		{ "h1", "m2", SDB_METRIC,     0 },
-		{ "h2", "m2", SDB_METRIC,    -1 },
+		{ "h1",          -1, NULL, NULL, SDB_HOST,       0 },
+		{ "h1",          -1, NULL, NULL, SDB_SERVICE,   -1 },
+		{ "h1",          -1, NULL, NULL, SDB_METRIC,    -1 },
+		{ "h1",          -1, NULL, NULL, SDB_ATTRIBUTE, -1 },
+		{ "h2",          -1, NULL, NULL, SDB_HOST,       0 },
+		{ "h2",          -1, NULL, NULL, SDB_SERVICE,   -1 },
+		{ "h2",          -1, NULL, NULL, SDB_METRIC,    -1 },
+		{ "h2",          -1, NULL, NULL, SDB_ATTRIBUTE, -1 },
+		{ "h3",          -1, NULL, NULL, SDB_HOST,      -1 },
+		{ "h1",          -1, NULL, "k1", SDB_ATTRIBUTE,  0 },
+		{ "h1",          -1, NULL, "x1", SDB_ATTRIBUTE, -1 },
+		{ "h2",          -1, NULL, "k1", SDB_ATTRIBUTE, -1 },
+		{ "h1",          -1, NULL, "k1", SDB_SERVICE,   -1 },
+		{ "h1",          -1, NULL, "k1", SDB_METRIC,    -1 },
+		{ "h1",          -1, NULL, "s1", SDB_SERVICE,   -1 },
+		{ "h2",          -1, NULL, "s1", SDB_SERVICE,    0 },
+		{ "h1",          -1, NULL, "m2", SDB_METRIC,     0 },
+		{ "h2",          -1, NULL, "m2", SDB_METRIC,    -1 },
+		{ "h1",  SDB_METRIC, "m1", "k3", SDB_ATTRIBUTE,  0 },
+		{ "h1",  SDB_METRIC, "m1", "x1", SDB_ATTRIBUTE, -1 },
+		{ "h2", SDB_SERVICE, "s2", "k1", SDB_ATTRIBUTE,  0 },
+		{ "h2", SDB_SERVICE, "s2", "x1", SDB_ATTRIBUTE, -1 },
 	};
 
 	size_t i;
@@ -577,6 +583,13 @@ START_TEST(test_get_child)
 		const char *expected_name = golden_data[i].host;
 
 		obj = sdb_memstore_get_host(store, golden_data[i].host);
+		if (golden_data[i].parent) {
+			sdb_memstore_obj_t *o;
+			o = sdb_memstore_get_child(obj,
+					golden_data[i].parent_type, golden_data[i].parent);
+			sdb_object_deref(SDB_OBJ(obj));
+			obj = o;
+		}
 		if (golden_data[i].expected && (golden_data[i].type == SDB_HOST))
 			fail_unless(obj == NULL,
 					"sdb_memstore_get_host(%s) = %p; expected: NULL",

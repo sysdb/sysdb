@@ -483,6 +483,18 @@ get_host_children(host_t *host, int type)
 		return host->services;
 } /* get_host_children */
 
+static sdb_avltree_t *
+get_obj_attrs(sdb_memstore_obj_t *obj)
+{
+	if (obj->type == SDB_HOST)
+		return HOST(obj)->attributes;
+	else if (obj->type == SDB_SERVICE)
+		return SVC(obj)->attributes;
+	else if (obj->type == SDB_METRIC)
+		return METRIC(obj)->attributes;
+	return NULL;
+} /* get_obj_attrs */
+
 /*
  * store writer API
  */
@@ -522,10 +534,8 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 		obj.parent_tree = get_host_children(host, SDB_ATTRIBUTE);
 		break;
 	case SDB_SERVICE:
-		children = get_host_children(host, SDB_SERVICE);
-		break;
 	case SDB_METRIC:
-		children = get_host_children(host, SDB_METRIC);
+		children = get_host_children(host, attr->parent_type);
 		break;
 	default:
 		status = -1;
@@ -804,14 +814,17 @@ sdb_memstore_get_host(sdb_memstore_t *store, const char *name)
 } /* sdb_memstore_get_host */
 
 sdb_memstore_obj_t *
-sdb_memstore_get_child(sdb_memstore_obj_t *host, int type, const char *name)
+sdb_memstore_get_child(sdb_memstore_obj_t *obj, int type, const char *name)
 {
-	sdb_avltree_t *children;
+	sdb_avltree_t *children = NULL;
 
-	if ((! host) || (host->type != SDB_HOST) || (! name))
+	if ((! obj) || (! name))
 		return NULL;
 
-	children = get_host_children(HOST(host), type);
+	if (type & SDB_ATTRIBUTE)
+		children = get_obj_attrs(obj);
+	else if (obj->type == SDB_HOST)
+		children = get_host_children(HOST(obj), type);
 	if (! children)
 		return NULL;
 	return STORE_OBJ(sdb_avltree_lookup(children, name));
@@ -876,23 +889,12 @@ int
 sdb_memstore_get_attr(sdb_memstore_obj_t *obj, const char *name, sdb_data_t *res,
 		sdb_memstore_matcher_t *filter)
 {
-	sdb_avltree_t *tree = NULL;
 	sdb_memstore_obj_t *attr;
 
 	if ((! obj) || (! name))
 		return -1;
 
-	if (obj->type == SDB_HOST)
-		tree = HOST(obj)->attributes;
-	else if (obj->type == SDB_SERVICE)
-		tree = SVC(obj)->attributes;
-	else if (obj->type == SDB_METRIC)
-		tree = METRIC(obj)->attributes;
-
-	if (! tree)
-		return -1;
-
-	attr = STORE_OBJ(sdb_avltree_lookup(tree, name));
+	attr = STORE_OBJ(sdb_avltree_lookup(get_obj_attrs(obj), name));
 	if (! attr)
 		return -1;
 	if (filter && (! sdb_memstore_matcher_matches(filter, attr, NULL))) {

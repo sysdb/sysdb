@@ -148,7 +148,7 @@ sdb_memstore_get_host(sdb_memstore_t *store, const char *name);
 
 /*
  * sdb_memstore_get_child:
- * Retrieve a host's child object of the specified type and name. The
+ * Retrieve an object's child object of the specified type and name. The
  * reference count of the child object will be incremented before returning
  * it. The caller is responsible for releasing the object once it's no longer
  * used.
@@ -158,7 +158,7 @@ sdb_memstore_get_host(sdb_memstore_t *store, const char *name);
  *  - NULL else
  */
 sdb_memstore_obj_t *
-sdb_memstore_get_child(sdb_memstore_obj_t *host, int type, const char *name);
+sdb_memstore_get_child(sdb_memstore_obj_t *obj, int type, const char *name);
 
 /*
  * sdb_memstore_get_field:
