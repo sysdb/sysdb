@@ -661,6 +661,111 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	return 0;
 } /* plugin_add_callback */
 
+/*
+ * object meta-data
+ */
+
+typedef struct {
+	int obj_type;
+	sdb_time_t last_update;
+	sdb_time_t interval;
+} interval_fetcher_t;
+
+static int
+interval_fetcher_host(sdb_store_host_t *host, sdb_object_t *user_data)
+{
+	interval_fetcher_t *lu = SDB_OBJ_WRAPPER(user_data)->data;
+	lu->obj_type = SDB_HOST;
+	lu->last_update = host->last_update;
+	return 0;
+} /* interval_fetcher_host */
+
+static int
+interval_fetcher_service(sdb_store_service_t *svc, sdb_object_t *user_data)
+{
+	interval_fetcher_t *lu = SDB_OBJ_WRAPPER(user_data)->data;
+	lu->obj_type = SDB_SERVICE;
+	lu->last_update = svc->last_update;
+	return 0;
+} /* interval_fetcher_service */
+
+static int
+interval_fetcher_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
+{
+	interval_fetcher_t *lu = SDB_OBJ_WRAPPER(user_data)->data;
+	lu->obj_type = SDB_METRIC;
+	lu->last_update = metric->last_update;
+	return 0;
+} /* interval_fetcher_metric */
+
+static int
+interval_fetcher_attr(sdb_store_attribute_t *attr, sdb_object_t *user_data)
+{
+	interval_fetcher_t *lu = SDB_OBJ_WRAPPER(user_data)->data;
+	lu->obj_type = SDB_ATTRIBUTE;
+	lu->last_update = attr->last_update;
+	return 0;
+} /* interval_fetcher_attr */
+
+static sdb_store_writer_t interval_fetcher = {
+	interval_fetcher_host, interval_fetcher_service,
+	interval_fetcher_metric, interval_fetcher_attr,
+};
+
+static int
+get_interval(int obj_type, const char *hostname,
+		int parent_type, const char *parent, const char *name,
+		sdb_time_t last_update, sdb_time_t *interval_out)
+{
+	sdb_ast_fetch_t fetch = SDB_AST_FETCH_INIT;
+	char hn[hostname ? strlen(hostname) + 1 : 1];
+	char pn[parent ? strlen(parent) + 1 : 1];
+	char n[strlen(name) + 1];
+	int status;
+
+	interval_fetcher_t lu = { 0, 0, 0 };
+	sdb_object_wrapper_t obj = SDB_OBJECT_WRAPPER_STATIC(&lu);
+	sdb_time_t interval;
+
+	assert(name);
+
+	if (hostname)
+		strncpy(hn, hostname, sizeof(hn));
+	if (parent)
+		strncpy(pn, parent, sizeof(pn));
+	strncpy(n, name, sizeof(n));
+
+	fetch.obj_type = obj_type;
+	fetch.hostname = hostname ? hn : NULL;
+	fetch.parent_type = parent_type;
+	fetch.parent = parent ? pn : NULL;
+	fetch.name = n;
+
+	status = sdb_plugin_query(SDB_AST_NODE(&fetch),
+			&interval_fetcher, SDB_OBJ(&obj), NULL);
+	if ((status < 0) || (lu.obj_type != obj_type) || (lu.last_update == 0)) {
+		*interval_out = 0;
+		return 0;
+	}
+
+	if (lu.last_update >= last_update) {
+		if (lu.last_update > last_update)
+			sdb_log(SDB_LOG_DEBUG, "memstore: Cannot update %s '%s' - "
+					"value too old (%"PRIsdbTIME" < %"PRIsdbTIME")",
+					SDB_STORE_TYPE_TO_NAME(obj_type), name,
+					lu.last_update, last_update);
+		*interval_out = lu.interval;
+		return 1;
+	}
+
+	interval = last_update - lu.last_update;
+	if (lu.interval && interval)
+		interval = (sdb_time_t)((0.9 * (double)lu.interval)
+				+ (0.1 * (double)interval));
+	*interval_out = interval;
+	return 0;
+} /* get_interval */
+
 static void
 get_backend(char **backends, size_t *backends_num)
 {
@@ -1508,7 +1613,12 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 	}
 
 	host.name = cname;
-	host.last_update = last_update;
+	host.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_HOST, NULL, -1, NULL, cname,
+				host.last_update, &host.interval)) {
+		free(cname);
+		return 1;
+	}
 	host.backends = (const char * const *)backends;
 	get_backend(backends, &host.backends_num);
 
@@ -1556,7 +1666,12 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 
 	service.hostname = cname;
 	service.name = name;
-	service.last_update = last_update;
+	service.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_SERVICE, cname, -1, NULL, name,
+				service.last_update, &service.interval)) {
+		free(cname);
+		return 1;
+	}
 	service.backends = (const char * const *)backends;
 	get_backend(backends, &service.backends_num);
 
@@ -1576,7 +1691,7 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		d.type = SDB_TYPE_STRING;
 		d.data.string = cname;
 		if (sdb_plugin_store_service_attribute(cname, name,
-					"hostname", &d, last_update))
+					"hostname", &d, service.last_update))
 			status = -1;
 	}
 
@@ -1621,7 +1736,12 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		metric.store.type = store->type;
 		metric.store.id = store->id;
 	}
-	metric.last_update = last_update;
+	metric.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_METRIC, cname, -1, NULL, name,
+				metric.last_update, &metric.interval)) {
+		free(cname);
+		return 1;
+	}
 	metric.backends = (const char * const *)backends;
 	get_backend(backends, &metric.backends_num);
 
@@ -1641,7 +1761,7 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		d.type = SDB_TYPE_STRING;
 		d.data.string = cname;
 		if (sdb_plugin_store_metric_attribute(cname, name,
-					"hostname", &d, last_update))
+					"hostname", &d, metric.last_update))
 			status = -1;
 	}
 
@@ -1679,7 +1799,12 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 	attr.parent = cname;
 	attr.key = key;
 	attr.value = *value;
-	attr.last_update = last_update;
+	attr.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_ATTRIBUTE, cname, -1, NULL, key,
+				attr.last_update, &attr.interval)) {
+		free(cname);
+		return 1;
+	}
 	attr.backends = (const char * const *)backends;
 	get_backend(backends, &attr.backends_num);
 
@@ -1728,7 +1853,12 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 	attr.parent = service;
 	attr.key = key;
 	attr.value = *value;
-	attr.last_update = last_update;
+	attr.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_ATTRIBUTE, cname, SDB_SERVICE, service, key,
+				attr.last_update, &attr.interval)) {
+		free(cname);
+		return 1;
+	}
 	attr.backends = (const char * const *)backends;
 	get_backend(backends, &attr.backends_num);
 
@@ -1777,7 +1907,12 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 	attr.parent = metric;
 	attr.key = key;
 	attr.value = *value;
-	attr.last_update = last_update;
+	attr.last_update = last_update ? last_update : sdb_gettime();
+	if (get_interval(SDB_ATTRIBUTE, cname, SDB_METRIC, metric, key,
+				attr.last_update, &attr.interval)) {
+		free(cname);
+		return 1;
+	}
 	attr.backends = (const char * const *)backends;
 	get_backend(backends, &attr.backends_num);
 

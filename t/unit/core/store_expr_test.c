@@ -98,39 +98,39 @@ populate(void)
 	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_memstore_host(store, hosts[i], 1);
+		int status = sdb_memstore_host(store, hosts[i], 1, 0);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
 		int status = sdb_memstore_metric(store, metrics[i].host,
-				metrics[i].metric, /* store */ NULL, 1);
+				metrics[i].metric, /* store */ NULL, 1, 0);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
 		int status = sdb_memstore_service(store, services[i].host,
-				services[i].service, 1);
+				services[i].service, 1, 0);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
 		int status = sdb_memstore_attribute(store, attrs[i].host,
-				attrs[i].name, &attrs[i].value, 1);
+				attrs[i].name, &attrs[i].value, 1, 0);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(svc_attrs); ++i) {
 		int status = sdb_memstore_service_attr(store, svc_attrs[i].host,
 				svc_attrs[i].service, svc_attrs[i].name,
-				&svc_attrs[i].value, 1);
+				&svc_attrs[i].value, 1, 0);
 		ck_assert(status == 0);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metric_attrs); ++i) {
 		int status = sdb_memstore_metric_attr(store, metric_attrs[i].host,
 				metric_attrs[i].metric, metric_attrs[i].name,
-				&metric_attrs[i].value, 1);
+				&metric_attrs[i].value, 1, 0);
 		ck_assert(status == 0);
 	}
 } /* populate */

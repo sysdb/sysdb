@@ -65,10 +65,11 @@ typedef struct {
 	int type;
 	const char *name;
 	sdb_time_t last_update;
+	sdb_time_t interval;
 	const char * const *backends;
 	size_t backends_num;
 } store_obj_t;
-#define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0, NULL, 0 }
+#define STORE_OBJ_INIT { NULL, NULL, 0, NULL, 0, 0, NULL, 0 }
 
 static sdb_type_t host_type;
 static sdb_type_t service_type;
@@ -109,14 +110,7 @@ static int
 store_obj_init(sdb_object_t *obj, va_list ap)
 {
 	sdb_memstore_obj_t *sobj = STORE_OBJ(obj);
-
 	sobj->type = va_arg(ap, int);
-
-	sobj->last_update = va_arg(ap, sdb_time_t);
-	sobj->interval = 0;
-	sobj->backends = NULL;
-	sobj->backends_num = 0;
-	sobj->parent = NULL;
 	return 0;
 } /* store_obj_init */
 
@@ -248,8 +242,7 @@ attr_init(sdb_object_t *obj, va_list ap)
 	const sdb_data_t *value;
 	int ret;
 
-	/* this will consume the first two arguments
-	 * (type and last_update) of ap */
+	/* this will consume the first argument (type) of ap */
 	ret = store_obj_init(obj, ap);
 	if (ret)
 		return ret;
@@ -347,37 +340,8 @@ store_obj(store_obj_t *obj, sdb_memstore_obj_t **updated_obj)
 
 	assert(obj->parent_tree);
 
-	if (obj->last_update <= 0)
-		obj->last_update = sdb_gettime();
-
 	old = STORE_OBJ(sdb_avltree_lookup(obj->parent_tree, obj->name));
 	if (old) {
-		if (old->last_update > obj->last_update) {
-			sdb_log(SDB_LOG_DEBUG, "memstore: Cannot update %s '%s' - "
-					"value too old (%"PRIsdbTIME" < %"PRIsdbTIME")",
-					SDB_STORE_TYPE_TO_NAME(obj->type), obj->name,
-					obj->last_update, old->last_update);
-			/* don't report an error; the object may be updated by multiple
-			 * backends */
-			status = 1;
-		}
-		else if (old->last_update == obj->last_update) {
-			/* don't report an error and also don't even log this to avoid
-			 * excessive noise on high sampling frequencies */
-			status = 1;
-		}
-		else {
-			sdb_time_t interval = obj->last_update - old->last_update;
-			old->last_update = obj->last_update;
-			if (interval) {
-				if (old->interval)
-					old->interval = (sdb_time_t)((0.9 * (double)old->interval)
-							+ (0.1 * (double)interval));
-				else
-					old->interval = interval;
-			}
-		}
-
 		new = old;
 		sdb_object_deref(SDB_OBJ(old));
 	}
@@ -385,7 +349,7 @@ store_obj(store_obj_t *obj, sdb_memstore_obj_t **updated_obj)
 		if (obj->type == SDB_ATTRIBUTE) {
 			/* the value will be updated by the caller */
 			new = STORE_OBJ(sdb_object_create(obj->name, attribute_type,
-						obj->type, obj->last_update, NULL));
+						obj->type, NULL));
 		}
 		else {
 			sdb_type_t t;
@@ -394,8 +358,7 @@ store_obj(store_obj_t *obj, sdb_memstore_obj_t **updated_obj)
 				: obj->type == SDB_SERVICE
 					? service_type
 					: metric_type;
-			new = STORE_OBJ(sdb_object_create(obj->name, t,
-						obj->type, obj->last_update));
+			new = STORE_OBJ(sdb_object_create(obj->name, t, obj->type));
 		}
 
 		if (new) {
@@ -416,6 +379,9 @@ store_obj(store_obj_t *obj, sdb_memstore_obj_t **updated_obj)
 	if (status < 0)
 		return status;
 	assert(new);
+
+	new->last_update = obj->last_update;
+	new->interval = obj->interval;
 
 	if (new->parent != obj->parent) {
 		// Avoid circular self-references which are not handled
@@ -560,6 +526,7 @@ store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 	obj.type = SDB_ATTRIBUTE;
 	obj.name = attr->key;
 	obj.last_update = attr->last_update;
+	obj.interval = attr->interval;
 	obj.backends = attr->backends;
 	obj.backends_num = attr->backends_num;
 	if (! status)
@@ -585,7 +552,7 @@ static int
 store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 {
 	sdb_memstore_t *st = SDB_MEMSTORE(user_data);
-	store_obj_t obj = { NULL, st->hosts, SDB_HOST, NULL, 0, NULL, 0 };
+	store_obj_t obj = { NULL, st->hosts, SDB_HOST, NULL, 0, 0, NULL, 0 };
 	int status = 0;
 
 	if ((! host) || (! host->name))
@@ -593,6 +560,7 @@ store_host(sdb_store_host_t *host, sdb_object_t *user_data)
 
 	obj.name = host->name;
 	obj.last_update = host->last_update;
+	obj.interval = host->interval;
 	obj.backends = host->backends;
 	obj.backends_num = host->backends_num;
 	pthread_rwlock_wrlock(&st->host_lock);
@@ -627,6 +595,7 @@ store_service(sdb_store_service_t *service, sdb_object_t *user_data)
 
 	obj.name = service->name;
 	obj.last_update = service->last_update;
+	obj.interval = service->interval;
 	obj.backends = service->backends;
 	obj.backends_num = service->backends_num;
 	if (! status)
@@ -666,6 +635,7 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 
 	obj.name = metric->name;
 	obj.last_update = metric->last_update;
+	obj.interval = metric->interval;
 	obj.backends = metric->backends;
 	obj.backends_num = metric->backends_num;
 	if (! status)
@@ -725,30 +695,32 @@ sdb_memstore_create(void)
 } /* sdb_memstore_create */
 
 int
-sdb_memstore_host(sdb_memstore_t *store, const char *name, sdb_time_t last_update)
+sdb_memstore_host(sdb_memstore_t *store, const char *name,
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_host_t host = {
-		name, last_update, 0, NULL, 0,
+		name, last_update, interval, NULL, 0,
 	};
 	return store_host(&host, SDB_OBJ(store));
 } /* sdb_memstore_host */
 
 int
 sdb_memstore_service(sdb_memstore_t *store, const char *hostname, const char *name,
-		sdb_time_t last_update)
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_service_t service = {
-		hostname, name, last_update, 0, NULL, 0,
+		hostname, name, last_update, interval, NULL, 0,
 	};
 	return store_service(&service, SDB_OBJ(store));
 } /* sdb_memstore_service */
 
 int
 sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *name,
-		sdb_metric_store_t *metric_store, sdb_time_t last_update)
+		sdb_metric_store_t *metric_store,
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_metric_t metric = {
-		hostname, name, { NULL, NULL }, last_update, 0, NULL, 0,
+		hostname, name, { NULL, NULL }, last_update, interval, NULL, 0,
 	};
 	if (metric_store) {
 		metric.store.type = metric_store->type;
@@ -759,10 +731,12 @@ sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *nam
 
 int
 sdb_memstore_attribute(sdb_memstore_t *store, const char *hostname,
-		const char *key, const sdb_data_t *value, sdb_time_t last_update)
+		const char *key, const sdb_data_t *value,
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_attribute_t attr = {
-		NULL, SDB_HOST, hostname, key, SDB_DATA_INIT, last_update, 0, NULL, 0,
+		NULL, SDB_HOST, hostname, key, SDB_DATA_INIT,
+		last_update, interval, NULL, 0,
 	};
 	if (value) {
 		attr.value = *value;
@@ -773,10 +747,11 @@ sdb_memstore_attribute(sdb_memstore_t *store, const char *hostname,
 int
 sdb_memstore_service_attr(sdb_memstore_t *store, const char *hostname,
 		const char *service, const char *key, const sdb_data_t *value,
-		sdb_time_t last_update)
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_attribute_t attr = {
-		hostname, SDB_SERVICE, service, key, SDB_DATA_INIT, last_update, 0, NULL, 0,
+		hostname, SDB_SERVICE, service, key, SDB_DATA_INIT,
+		last_update, interval, NULL, 0,
 	};
 	if (value) {
 		attr.value = *value;
@@ -787,10 +762,11 @@ sdb_memstore_service_attr(sdb_memstore_t *store, const char *hostname,
 int
 sdb_memstore_metric_attr(sdb_memstore_t *store, const char *hostname,
 		const char *metric, const char *key, const sdb_data_t *value,
-		sdb_time_t last_update)
+		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_attribute_t attr = {
-		hostname, SDB_METRIC, metric, key, SDB_DATA_INIT, last_update, 0, NULL, 0,
+		hostname, SDB_METRIC, metric, key, SDB_DATA_INIT,
+		last_update, interval, NULL, 0,
 	};
 	if (value) {
 		attr.value = *value;

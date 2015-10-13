@@ -50,45 +50,43 @@ populate(void)
 	store = sdb_memstore_create();
 	ck_assert(store != NULL);
 
-	sdb_memstore_host(store, "h1", 1 * SDB_INTERVAL_SECOND);
-	sdb_memstore_host(store, "h2", 3 * SDB_INTERVAL_SECOND);
+	sdb_memstore_host(store, "h1", 1 * SDB_INTERVAL_SECOND, 0);
+	sdb_memstore_host(store, "h2", 3 * SDB_INTERVAL_SECOND, 0);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_memstore_attribute(store, "h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k1", &datum, 1 * SDB_INTERVAL_SECOND, 0);
 	datum.data.string = "v2";
-	sdb_memstore_attribute(store, "h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 2 * SDB_INTERVAL_SECOND, 0);
 	datum.data.string = "v3";
-	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND, 0);
 
+/* TODO: move these tests into generic store tests */
+#if 0
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_memstore_attribute(store, "h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND);
-	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 1 * SDB_INTERVAL_SECOND, 0);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2 * SDB_INTERVAL_SECOND, 0);
+#endif
 
-	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND);
-	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
-	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND);
+	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2 * SDB_INTERVAL_SECOND, 0);
+	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1 * SDB_INTERVAL_SECOND, 0);
+	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1 * SDB_INTERVAL_SECOND, 0);
 
-	sdb_memstore_service(store, "h2", "s1", 1 * SDB_INTERVAL_SECOND);
-	sdb_memstore_service(store, "h2", "s2", 2 * SDB_INTERVAL_SECOND);
+	sdb_memstore_service(store, "h2", "s1", 1 * SDB_INTERVAL_SECOND, 0);
+	sdb_memstore_service(store, "h2", "s2", 2 * SDB_INTERVAL_SECOND, 0);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
 	sdb_memstore_metric_attr(store, "h1", "m1", "k3",
-			&datum, 2 * SDB_INTERVAL_SECOND);
+			&datum, 2 * SDB_INTERVAL_SECOND, 0);
 
 	datum.data.integer = 123;
 	sdb_memstore_service_attr(store, "h2", "s2", "k1",
-			&datum, 2 * SDB_INTERVAL_SECOND);
+			&datum, 2 * SDB_INTERVAL_SECOND, 0);
 	datum.data.integer = 4711;
 	sdb_memstore_service_attr(store, "h2", "s2", "k2",
-			&datum, 1 * SDB_INTERVAL_SECOND);
-
-	/* don't overwrite k1 */
-	datum.data.integer = 666;
-	sdb_memstore_service_attr(store, "h2", "s2", "k1",
-			&datum, 2 * SDB_INTERVAL_SECOND);
+			&datum, 1 * SDB_INTERVAL_SECOND, 0);
 } /* populate */
 
 static void

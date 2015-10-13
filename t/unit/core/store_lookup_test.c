@@ -80,33 +80,33 @@ populate(void)
 	ck_assert(store != NULL);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(hosts); ++i) {
-		int status = sdb_memstore_host(store, hosts[i], 1);
+		int status = sdb_memstore_host(store, hosts[i], 1, 0);
 		fail_unless(status == 0,
-				"sdb_memstore_host(%s, 1) = %d; expected: 0",
+				"sdb_memstore_host(%s, 1, 0) = %d; expected: 0",
 				hosts[i], status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(metrics); ++i) {
 		int status = sdb_memstore_metric(store, metrics[i].host,
-				metrics[i].metric, /* store */ NULL, 1);
+				metrics[i].metric, /* store */ NULL, 1, 0);
 		fail_unless(status == 0,
-				"sdb_memstore_metric(%s, %s, NULL, 1) = %d; expected: 0",
+				"sdb_memstore_metric(%s, %s, NULL, 1, 0) = %d; expected: 0",
 				metrics[i].host, metrics[i].metric, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(services); ++i) {
 		int status = sdb_memstore_service(store, services[i].host,
-				services[i].service, 1);
+				services[i].service, 1, 0);
 		fail_unless(status == 0,
-				"sdb_memstore_service(%s, %s, 1) = %d; expected: 0",
+				"sdb_memstore_service(%s, %s, 1, 0) = %d; expected: 0",
 				services[i].host, services[i].service, status);
 	}
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(attrs); ++i) {
 		int status = sdb_memstore_attribute(store, attrs[i].host,
-				attrs[i].name, &attrs[i].value, 1);
+				attrs[i].name, &attrs[i].value, 1, 0);
 		fail_unless(status == 0,
-				"sdb_memstore_attribute(%s, %s, <val>, 1) = %d; expected: 0",
+				"sdb_memstore_attribute(%s, %s, <val>, 1, 0) = %d; expected: 0",
 				attrs[i].host, attrs[i].name, status);
 	}
 } /* populate */

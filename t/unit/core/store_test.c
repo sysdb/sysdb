@@ -52,41 +52,41 @@ populate(void)
 {
 	sdb_data_t datum;
 
-	sdb_memstore_host(store, "h1", 1);
-	sdb_memstore_host(store, "h2", 3);
+	sdb_memstore_host(store, "h1", 1, 0);
+	sdb_memstore_host(store, "h2", 3, 0);
 
 	datum.type = SDB_TYPE_STRING;
 	datum.data.string = "v1";
-	sdb_memstore_attribute(store, "h1", "k1", &datum, 1);
+	sdb_memstore_attribute(store, "h1", "k1", &datum, 1, 0);
 	datum.data.string = "v2";
-	sdb_memstore_attribute(store, "h1", "k2", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 2, 0);
 	datum.data.string = "v3";
-	sdb_memstore_attribute(store, "h1", "k3", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2, 0);
 
 	/* make sure that older updates don't overwrite existing values */
 	datum.data.string = "fail";
-	sdb_memstore_attribute(store, "h1", "k2", &datum, 1);
-	sdb_memstore_attribute(store, "h1", "k3", &datum, 2);
+	sdb_memstore_attribute(store, "h1", "k2", &datum, 1, 0);
+	sdb_memstore_attribute(store, "h1", "k3", &datum, 2, 0);
 
-	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2);
-	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1);
-	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1);
+	sdb_memstore_metric(store, "h1", "m1", /* store */ NULL, 2, 0);
+	sdb_memstore_metric(store, "h1", "m2", /* store */ NULL, 1, 0);
+	sdb_memstore_metric(store, "h2", "m1", /* store */ NULL, 1, 0);
 
-	sdb_memstore_service(store, "h2", "s1", 1);
-	sdb_memstore_service(store, "h2", "s2", 2);
+	sdb_memstore_service(store, "h2", "s1", 1, 0);
+	sdb_memstore_service(store, "h2", "s2", 2, 0);
 
 	datum.type = SDB_TYPE_INTEGER;
 	datum.data.integer = 42;
-	sdb_memstore_metric_attr(store, "h1", "m1", "k3", &datum, 2);
+	sdb_memstore_metric_attr(store, "h1", "m1", "k3", &datum, 2, 0);
 
 	datum.data.integer = 123;
-	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2);
+	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2, 0);
 	datum.data.integer = 4711;
-	sdb_memstore_service_attr(store, "h2", "s2", "k2", &datum, 1);
+	sdb_memstore_service_attr(store, "h2", "s2", "k2", &datum, 1, 0);
 
 	/* don't overwrite k1 */
 	datum.data.integer = 666;
-	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2);
+	sdb_memstore_service_attr(store, "h2", "s2", "k1", &datum, 2, 0);
 } /* populate */
 
 static void
@@ -105,21 +105,17 @@ START_TEST(test_store_host)
 	} golden_data[] = {
 		{ "a", 1, 0 },
 		{ "a", 2, 0 },
-		{ "a", 1, 1 },
 		{ "b", 1, 0 },
-		{ "b", 1, 1 },
-		{ "A", 1, 1 }, /* case-insensitive */
-		{ "A", 3, 0 },
 	};
 
 	struct {
 		const char *name;
 		bool        have;
 	} golden_hosts[] = {
-		{ "a", 1 == 1 },
-		{ "b", 1 == 1 },
-		{ "c", 0 == 1 },
-		{ "A", 1 == 1 },
+		{ "a", 1 },
+		{ "b", 1 },
+		{ "c", 0 },
+		{ "A", 1 },
 	};
 
 	size_t i;
@@ -128,9 +124,9 @@ START_TEST(test_store_host)
 		int status;
 
 		status = sdb_memstore_host(store, golden_data[i].name,
-				golden_data[i].last_update);
+				golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_memstore_host(%s, %d) = %d; expected: %d",
+				"sdb_memstore_host(%s, %d, 0) = %d; expected: %d",
 				golden_data[i].name, (int)golden_data[i].last_update,
 				status, golden_data[i].expected);
 	}
@@ -155,7 +151,7 @@ START_TEST(test_store_get_host)
 	size_t i;
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_hosts); ++i) {
-		int status = sdb_memstore_host(store, golden_hosts[i], 1);
+		int status = sdb_memstore_host(store, golden_hosts[i], 1, 0);
 		fail_unless(status >= 0,
 				"sdb_memstore_host(%s) = %d; expected: >=0",
 				golden_hosts[i], status);
@@ -214,16 +210,14 @@ START_TEST(test_store_attr)
 		{ "k", "k",  "v",  1, -1 }, /* retry to ensure the host is not created */
 		{ "l", "k1", "v1", 1,  0 },
 		{ "l", "k1", "v2", 2,  0 },
-		{ "l", "k1", "v3", 2,  1 },
 		{ "l", "k2", "v1", 1,  0 },
 		{ "m", "k",  "v1", 1,  0 },
-		{ "m", "k",  "v2", 1,  1 },
 	};
 
 	size_t i;
 
-	sdb_memstore_host(store, "l", 1);
-	sdb_memstore_host(store, "m", 1);
+	sdb_memstore_host(store, "l", 1, 0);
+	sdb_memstore_host(store, "m", 1, 0);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		sdb_data_t datum;
 		int status;
@@ -234,11 +228,11 @@ START_TEST(test_store_attr)
 
 		status = sdb_memstore_attribute(store, golden_data[i].host,
 				golden_data[i].key, &datum,
-				golden_data[i].last_update);
+				golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
 				"sdb_memstore_attribute(%s, %s, %s, %d) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].key, golden_data[i].value,
-				golden_data[i].last_update, status, golden_data[i].expected);
+				golden_data[i].last_update, status, golden_data[i].expected, 0);
 	}
 }
 END_TEST
@@ -261,13 +255,11 @@ START_TEST(test_store_metric)
 		{ "l", "m1", NULL,    1,  0 },
 		{ "l", "m1", &store1, 2,  0 },
 		{ "l", "m1", &store1, 3,  0 },
-		{ "l", "m1", NULL,    3,  1 },
 		{ "l", "m2", &store1, 1,  0 },
 		{ "l", "m2", &store2, 2,  0 },
 		{ "l", "m2", NULL,    3,  0 },
 		{ "m", "m",  &store1, 1,  0 },
 		{ "m", "m",  NULL,    2,  0 },
-		{ "m", "m",  NULL,    2,  1 },
 		{ "m", "m",  &store1, 3,  0 },
 		{ "m", "m",  &store2, 4,  0 },
 		{ "m", "m",  NULL,    5,  0 },
@@ -275,16 +267,16 @@ START_TEST(test_store_metric)
 
 	size_t i;
 
-	sdb_memstore_host(store, "m", 1);
-	sdb_memstore_host(store, "l", 1);
+	sdb_memstore_host(store, "m", 1, 0);
+	sdb_memstore_host(store, "l", 1, 0);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
 		status = sdb_memstore_metric(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].store,
-				golden_data[i].last_update);
+				golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_memstore_metric(%s, %s, %p, %d) = %d; expected: %d",
+				"sdb_memstore_metric(%s, %s, %p, %d, 0) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].metric,
 				golden_data[i].store, golden_data[i].last_update,
 				status, golden_data[i].expected);
@@ -309,30 +301,28 @@ START_TEST(test_store_metric_attr)
 		/* retry, it should still fail */
 		{ "l", "mX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
 		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
-		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
 		{ "l", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 2,  0 },
 		{ "l", "m1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
-		{ "l", "m1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
 		{ "l", "m2", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
 		{ "m", "m1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
 	};
 
 	size_t i;
 
-	sdb_memstore_host(store, "m", 1);
-	sdb_memstore_host(store, "l", 1);
-	sdb_memstore_metric(store, "m", "m1", NULL, 1);
-	sdb_memstore_metric(store, "l", "m1", NULL, 1);
-	sdb_memstore_metric(store, "l", "m2", NULL, 1);
+	sdb_memstore_host(store, "m", 1, 0);
+	sdb_memstore_host(store, "l", 1, 0);
+	sdb_memstore_metric(store, "m", "m1", NULL, 1, 0);
+	sdb_memstore_metric(store, "l", "m1", NULL, 1, 0);
+	sdb_memstore_metric(store, "l", "m2", NULL, 1, 0);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
 		status = sdb_memstore_metric_attr(store, golden_data[i].host,
 				golden_data[i].metric, golden_data[i].attr,
-				&golden_data[i].value, golden_data[i].last_update);
+				&golden_data[i].value, golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_memstore_metric_attr(%s, %s, %s, %d, %d) = %d; "
+				"sdb_memstore_metric_attr(%s, %s, %s, %d, %d, 0) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].metric,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -352,23 +342,21 @@ START_TEST(test_store_service)
 		{ "k", "s",  1, -1 }, /* retry to ensure the host is not created */
 		{ "l", "s1", 1,  0 },
 		{ "l", "s1", 2,  0 },
-		{ "l", "s1", 2,  1 },
 		{ "l", "s2", 1,  0 },
 		{ "m", "s",  1,  0 },
-		{ "m", "s",  1,  1 },
 	};
 
 	size_t i;
 
-	sdb_memstore_host(store, "m", 1);
-	sdb_memstore_host(store, "l", 1);
+	sdb_memstore_host(store, "m", 1, 0);
+	sdb_memstore_host(store, "l", 1, 0);
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
 		status = sdb_memstore_service(store, golden_data[i].host,
-				golden_data[i].svc, golden_data[i].last_update);
+				golden_data[i].svc, golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_memstore_service(%s, %s, %d) = %d; expected: %d",
+				"sdb_memstore_service(%s, %s, %d, 0) = %d; expected: %d",
 				golden_data[i].host, golden_data[i].svc,
 				golden_data[i].last_update, status, golden_data[i].expected);
 	}
@@ -392,30 +380,28 @@ START_TEST(test_store_service_attr)
 		/* retry, it should still fail */
 		{ "l", "sX", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1, -1 },
 		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
-		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
 		{ "l", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 2,  0 },
 		{ "l", "s1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
-		{ "l", "s1", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  1 },
 		{ "l", "s2", "a2", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
 		{ "m", "s1", "a1", { SDB_TYPE_INTEGER, { .integer = 123 } }, 1,  0 },
 	};
 
 	size_t i;
 
-	sdb_memstore_host(store, "m", 1);
-	sdb_memstore_host(store, "l", 1);
-	sdb_memstore_service(store, "m", "s1", 1);
-	sdb_memstore_service(store, "l", "s1", 1);
-	sdb_memstore_service(store, "l", "s2", 1);
+	sdb_memstore_host(store, "m", 1, 0);
+	sdb_memstore_host(store, "l", 1, 0);
+	sdb_memstore_service(store, "m", "s1", 1, 0);
+	sdb_memstore_service(store, "l", "s1", 1, 0);
+	sdb_memstore_service(store, "l", "s2", 1, 0);
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(golden_data); ++i) {
 		int status;
 
 		status = sdb_memstore_service_attr(store, golden_data[i].host,
 				golden_data[i].svc, golden_data[i].attr,
-				&golden_data[i].value, golden_data[i].last_update);
+				&golden_data[i].value, golden_data[i].last_update, 0);
 		fail_unless(status == golden_data[i].expected,
-				"sdb_memstore_service_attr(%s, %s, %s, %d, %d) = %d; "
+				"sdb_memstore_service_attr(%s, %s, %s, %d, %d, 0) = %d; "
 				"expected: %d", golden_data[i].host, golden_data[i].svc,
 				golden_data[i].attr, golden_data[i].value.data.integer,
 				golden_data[i].last_update, status, golden_data[i].expected);
@@ -477,10 +463,8 @@ START_TEST(test_get_field)
 	sdb_time_t now = sdb_gettime();
 	int check;
 
-	sdb_memstore_host(store, "host", 10);
-	sdb_memstore_host(store, "host", 20);
-	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 10);
-	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 20);
+	sdb_memstore_host(store, "host", 20, 10);
+	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 20, 10);
 
 	if (get_field_data[_i].hostname) {
 		obj = sdb_memstore_get_host(store, get_field_data[_i].hostname);
@@ -642,6 +626,8 @@ START_TEST(test_get_child)
 }
 END_TEST
 
+/* TODO: move these tests into generic store tests */
+#if 0
 START_TEST(test_interval)
 {
 	sdb_memstore_obj_t *host;
@@ -697,6 +683,7 @@ START_TEST(test_interval)
 	sdb_object_deref(SDB_OBJ(host));
 }
 END_TEST
+#endif
 
 static int
 scan_count(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter, void *user_data)
@@ -802,7 +789,6 @@ TEST_MAIN("core::store")
 	tcase_add_test(tc, test_store_service_attr);
 	TC_ADD_LOOP_TEST(tc, get_field);
 	tcase_add_test(tc, test_get_child);
-	tcase_add_test(tc, test_interval);
 	tcase_add_test(tc, test_scan);
 	ADD_TCASE(tc);
 }
