@@ -44,6 +44,7 @@ AC_CONFIG_HEADERS([src/config.h])
 AC_PREFIX_DEFAULT([/opt/sysdb])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_LANG(C)
 

@@ -242,8 +242,8 @@ sysdbd_DEPENDENCIES += plugins/store/network.la
 endif
 
 include/client/sysdb.h: include/client/sysdb.h.in $(abs_top_builddir)/version
-	mkdir -p include/client
-	source $(abs_top_builddir)/version; sed \
+	@mkdir -p include/client
+	$(AM_V_GEN)source $(abs_top_builddir)/version; sed \
 	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
 	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
 	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
@@ -253,8 +253,8 @@ include/client/sysdb.h: include/client/sysdb.h.in $(abs_top_builddir)/version
 	    > include/client/sysdb.h
 
 include/sysdb.h: include/sysdb.h.in $(abs_top_builddir)/version
-	mkdir -p include
-	source $(abs_top_builddir)/version; sed \
+	@mkdir -p include
+	$(AM_V_GEN)source $(abs_top_builddir)/version; sed \
 	    -e "s/@SDB_VERSION_MAJOR@/$$VERSION_MAJOR/g" \
 	    -e "s/@SDB_VERSION_MINOR@/$$VERSION_MINOR/g" \
 	    -e "s/@SDB_VERSION_PATCH@/$$VERSION_PATCH/g" \
@@ -264,4 +264,4 @@ include/sysdb.h: include/sysdb.h.in $(abs_top_builddir)/version
 	    > include/sysdb.h
 
 $(abs_top_builddir)/version:
-	cd .. && make version
+	$(AM_V_GEN)cd .. && make version

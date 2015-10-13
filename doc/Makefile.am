@@ -82,6 +82,14 @@ CLEANFILES = \
 		sysdb.7.xml \
 		sysdbql.7.xml
 
+V_ASCIIDOC = $(v_asciidoc_@AM_V@)
+v_asciidoc_ = $(v_asciidoc_@AM_DEFAULT_V@)
+v_asciidoc_0 = @echo "  ADOC    " $@;
+
+V_XMLTO = $(v_xmlto_@AM_V@)
+v_xmlto_ = $(v_xmlto_@AM_DEFAULT_V@)
+v_xmlto_0 = @echo "  XMLTO   " $@;
+
 man_MANS = \
 		sysdb.1 \
 		sysdbd.1 \
@@ -171,23 +179,23 @@ html-local: $(html_DATA)
 install-html-local: install-htmlDATA
 
 .1.txt.1.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 .5.txt.5.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 .7.txt.7.xml:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b docbook -d manpage -o $@ $<
 
 .1.xml.1:
-	@XMLTO@ -o . man $<
+	$(V_XMLTO)@XMLTO@ -o . man $<
 .5.xml.5:
-	@XMLTO@ -o . man $<
+	$(V_XMLTO)@XMLTO@ -o . man $<
 .7.xml.7:
-	@XMLTO@ -o . man $<
+	$(V_XMLTO)@XMLTO@ -o . man $<
 
 .1.txt.1.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 .5.txt.5.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 .7.txt.7.html:
-	@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
+	$(V_ASCIIDOC)@ASCIIDOC@ $(ADOC_FLAGS) -b html5 -d manpage -o $@ $<
 
