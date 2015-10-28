@@ -83,16 +83,16 @@ test_cc_flags() {
 	AC_LANG_CONFTEST([int main(void){}])
 	$CC -c conftest.c $CFLAGS $STRICT_CFLAGS $@ > /dev/null 2> /dev/null
 	ret=$?
-	rm -f conftest.o
+	rm -f conftest.o conftest.c
 	return $ret
 }
 
 test_cxx_flags() {
 	AC_LANG_PUSH(C++)
 	AC_LANG_CONFTEST([int main(void){}])
-	$CXX -c conftest.c $CXXFLAGS $STRICT_CXXFLAGS $@ > /dev/null 2> /dev/null
+	$CXX -c conftest.cpp $CXXFLAGS $STRICT_CXXFLAGS $@ > /dev/null 2> /dev/null
 	ret=$?
-	rm -f conftest.o
+	rm -f conftest.o conftest.cpp
 	AC_LANG_POP(C++)
 	return $ret
 }
