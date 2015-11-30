@@ -477,7 +477,7 @@ sdb_conn_lookup(sdb_conn_t *conn)
 int
 sdb_conn_store(sdb_conn_t *conn)
 {
-	sdb_ast_node_t *ast;
+	sdb_ast_node_t *ast = NULL;
 	const char *buf = sdb_strbuf_string(conn->buf);
 	size_t len = conn->cmd_len;
 	uint32_t type;
