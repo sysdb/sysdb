@@ -61,7 +61,6 @@
 %option yylineno
 %option nodefault
 %option noyywrap
-%option verbose
 %option warn
 
 %x CSC

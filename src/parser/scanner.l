@@ -107,7 +107,6 @@ sdb_parser_yyerror(YYLTYPE *lval, sdb_parser_yyscan_t scanner, const char *msg);
 %option noinput
 %option nounput
 %option noyywrap
-%option verbose
 %option warn
 %option prefix="sdb_parser_yy" outfile="lex.yy.c"
 

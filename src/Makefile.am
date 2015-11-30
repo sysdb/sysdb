@@ -9,6 +9,11 @@ AM_CPPFLAGS += -DSYSCONFDIR='"${sysconfdir}"'
 AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
 AM_CPPFLAGS += -DPKGLIBDIR='"${pkglibdir}"'
 
+V_LFLAGS = $(v_lflags_@AM_V@)
+v_lflags_ = $(v_lflags_@AM_DEFAULT_V@)
+v_lflags_1 = -v
+
+AM_LFLAGS = $(V_LFLAGS)
 AM_YFLAGS = -d
 
 BUILT_SOURCES = include/client/sysdb.h include/sysdb.h \
