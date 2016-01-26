@@ -249,6 +249,8 @@ exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbu
 	if (status >= 0) {
 		series = sdb_plugin_fetch_timeseries(st.type, st.id, &opts);
 		if (series) {
+			uint32_t res_type = htonl(SDB_CONNECTION_TIMESERIES);
+			sdb_strbuf_memcpy(buf, &res_type, sizeof(res_type));
 			sdb_timeseries_tojson(series, buf);
 			sdb_timeseries_destroy(series);
 		}
