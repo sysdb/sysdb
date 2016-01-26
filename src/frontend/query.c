@@ -248,17 +248,16 @@ exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbu
 	}
 	if (status >= 0) {
 		series = sdb_plugin_fetch_timeseries(st.type, st.id, &opts);
-		if (! series) {
+		if (series) {
+			sdb_timeseries_tojson(series, buf);
+			sdb_timeseries_destroy(series);
+		}
+		else {
 			sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series '%s/%s' "
 					"- %s fetcher callback returned no data for '%s'",
 					ts->hostname, ts->metric, st.type, st.id);
 			status = -1;
 		}
-	}
-
-	if (status >= 0) {
-		sdb_timeseries_tojson(series, buf);
-		sdb_timeseries_destroy(series);
 	}
 
 	free(fetch.hostname);
