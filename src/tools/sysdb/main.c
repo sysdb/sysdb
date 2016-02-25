@@ -41,6 +41,7 @@
 #include "utils/ssl.h"
 
 #include <errno.h>
+#include <time.h>
 
 #if HAVE_LIBGEN_H
 #	include <libgen.h>

@@ -47,6 +47,7 @@
 #endif /* ! HAVE_LIBGEN_H */
 
 #include <errno.h>
+#include <time.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>

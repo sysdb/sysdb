@@ -113,8 +113,8 @@ AC_ARG_ENABLE([standards],
 if test "x$enable_standards" = "xyes"; then
 	AC_DEFINE([_ISOC99_SOURCE], 1,
 			[Define to enforce ISO/IEC 9899:1999 (C99) compliance.])
-	AC_DEFINE([_POSIX_C_SOURCE], 200112L,
-			[Define to enforce IEEE 1003.1-2001 (POSIX:2001) compliance.])
+	AC_DEFINE([_POSIX_C_SOURCE], 200809L,
+			[Define to enforce IEEE 1003.1-2008 (POSIX:2008) compliance.])
 	AC_DEFINE([_XOPEN_SOURCE], 700,
 			[Define to enforce X/Open 7 (XSI) compliance.])
 	AC_DEFINE([_REENTRANT], 1,

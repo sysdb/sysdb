@@ -35,8 +35,11 @@
 #include <errno.h>
 
 #include <sys/types.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include <dirent.h>
 
@@ -48,6 +51,7 @@
 #include <libgen.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <time.h>
 
 /*
  * public API
