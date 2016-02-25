@@ -8,7 +8,6 @@
 
  Compatibility Note:
  ~~~~~~~~~~~~~~~~~~~
-
   All pre 1.0 development snapshots are not considered stable yet. That is,
   all interfaces, including the plugin API, the network protocol, or the query
   language, may change in an incompatible way at any time. All changes are
@@ -26,6 +25,98 @@
   a consistent view of your infrastructure.
 
   <https://sysdb.io/>
+
+Version 0.8.0, Release Date: 2016-02-25
+---------------------------------------
+
+  This release focuses on a generic and much more powerful store (query)
+  interface and modular store implementations via plugins. The in-memory store
+  has been moved into a plugin on top of that. Various fixes and improvements,
+  mostly related to iterators, have been applied to the parser and query
+  language.
+
+   * build system:
+     - Fix VPATH (out of tree) builds.
+     - Fixed a build issue (configure failure) when using RRDtool 1.5.
+     - Enable silent build rules by default (if supported).
+     - Fix build issues with GCC 5.
+   * parser:
+     - Add a new, standalone parser module based on a generic (public) AST
+       (abstract syntax tree). This replaces the (internal) parser of the
+       frontend module.
+     - Improved error reporting for syntactic and semantic errors by
+       propagating error messages in the parser and analyzer.
+   * core / store:
+     - Fully support array access and comparison (all element types).
+     - Service/metric parent host names are now available via the "hostname"
+       attribute (populated automatically).
+     - Rebase the store query interface on top of the new parser: store
+       implementations prepare actual queries from an AST, thus, allowing
+       multiple implementations of store readers.
+     - Querying the store (through the new interface) will emit data to an
+       arbitrary writer implementation allowing for more flexible post-
+       processing.
+     - Fixed a memory leak in the TIMESERIES implementation.
+     - data: Added support for boolean values; this is a backward incompatible
+       change which breaks the network encoding.
+     - Include nano-second fraction of datatime values (if any) in the string
+       format (including JSON query results).
+     - Add new callback type for store-readers (query plugins) based on the
+       new generic query interface.
+     - memstore: Refactor the in-memory store implementation into a separate
+       data-type. It implements the writer and query/reader APIs.
+     - The main, in-memory store is no longer enabled by default (see
+       store::memory plugin). Instead, all updates go through the plugin API
+       and are distributed to all registered writers.
+     - Handle hostname canonicalization in the generic plugin module instead
+       of requiring each writer plugin to do so.
+     - Do not canonicalize hostnames when fetching time-series.
+     - Determine an object's backends and update interval in the generic
+       plugin module and pass it on to writer plugins which are expected to
+       merge it with existing entries.
+     - Let the JSON formatter implement the writer API to make it more
+       flexible and uncouple it from the memstore module; let it support
+       arbitrary top-level objects (besides hosts).
+     - FETCH (in the core) now supports all object types and child objects as
+       well as fetching the base object without children / siblings.
+   * frontend:
+     - Added the SERVER_VERSION command; this allows clients to check for
+       supported servers.
+     - Fixed a memory leak in failed FETCH commands.
+     - Switch to the new, pluggable query interface: use registered plugins to
+       write to or query the SysDB store.
+     - Move protocol-specific (query) logic out of the core and into the
+       frontend (based on the new query API).
+     - A generic TIMESERIES implementation based on the query API replaces the
+       in-core implementation.
+   * query language:
+     - Check types of comparison operands and arithmetic expression and treat
+       mismatches as errors; previously those comparisons would fail silently.
+     - Added the 'NOT IN' operator.
+     - Support iterators (ANY/ALL) of arbitrary array expressions.
+     - Change child-object iterator syntax to 'ANY/ALL <type>.name', that is,
+       require the field name and add support for accessing arbitrary fields.
+     - Added new field "value" for attribute values.
+     - Added new field "timeseries" (boolean) for metrics indicating whether
+       a time-series store is known to SysDB.
+     - Support attribute and backend iterators in FILTER expressions.
+     - Enforce that TIMESERIES end times are greater than start times.
+     - Added unary 'IS TRUE' / 'IS FALSE' operators.
+     - Iterator expressions may now reference a chain of sibling objects as
+       long as only one such reference is an iterator. For example,
+       `LOOKUP services MATCHING ANY host.backend =~ 'foo'`.
+   * testing:
+     - Use check "loop" tests; this will run all test-cases even if there are
+       failures.
+     - Create separate binaries for each test; this allows to run more in
+       parallel.
+     - Make it possible to run unit and integration tests separately; see
+       README.
+
+  Stores:
+   * store::memory: Added a store-writer/store-reader plugin providing an
+     in-memory store replacing the previous, always-enabled store. It is based
+     on the 'memstore' module.
 
 Version 0.7.0, Release Date: 2015-02-21
 ---------------------------------------
@@ -101,6 +192,8 @@ Version 0.7.0, Release Date: 2015-02-21
   Backends:
    * facter: Added a plugin collecting local facter fact values using
      libcfacter (C++).
+
+  Stores:
    * store::network: Added a store-writer plugin sending all data to another
      SysDB instance using the client library and low-level STORE commands.
 
