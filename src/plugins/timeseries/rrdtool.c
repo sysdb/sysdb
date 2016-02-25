@@ -37,6 +37,8 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #include <rrd.h>
 #ifdef HAVE_RRD_CLIENT_H
 #	include <rrd_client.h>
