@@ -399,6 +399,7 @@ sdb_ssl_server_create(const sdb_ssl_options_t *opts)
 				server->opts.ca_file, NULL)) {
 		ssl_log(SDB_LOG_ERR, "Failed to load CA file %s",
 				server->opts.ca_file);
+		sdb_ssl_server_destroy(server);
 		return NULL;
 	}
 	SSL_CTX_set_client_CA_list(server->ctx,
@@ -408,16 +409,19 @@ sdb_ssl_server_create(const sdb_ssl_options_t *opts)
 				server->opts.cert_file, SSL_FILETYPE_PEM)) {
 		ssl_log(SDB_LOG_ERR, "Failed to load SSL cert file %s",
 				server->opts.cert_file);
+		sdb_ssl_server_destroy(server);
 		return NULL;
 	}
 	if (! SSL_CTX_use_PrivateKey_file(server->ctx,
 				server->opts.key_file, SSL_FILETYPE_PEM)) {
 		ssl_log(SDB_LOG_ERR, "Failed to load SSL key file %s",
 				server->opts.key_file);
+		sdb_ssl_server_destroy(server);
 		return NULL;
 	}
 	if (! SSL_CTX_check_private_key(server->ctx)) {
 		ssl_log(SDB_LOG_ERR, "Failed to verify SSL private key");
+		sdb_ssl_server_destroy(server);
 		return NULL;
 	}
 
