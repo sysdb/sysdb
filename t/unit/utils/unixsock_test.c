@@ -104,7 +104,7 @@ mock_write(void *cookie, const char *buf, size_t size)
 
 	if (last_write)
 		free(last_write);
-	last_write = strdup(buf);
+	last_write = strndup(buf, size);
 	++c->pos;
 	return (ssize_t)size;
 } /* mock_write */
