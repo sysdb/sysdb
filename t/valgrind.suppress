@@ -5,7 +5,7 @@
    fun:gcov_exit*
    fun:__run_exit_handlers
    fun:exit
-   fun:srunner_run
+   fun:srunner_run*
    fun:main
 }
 {
