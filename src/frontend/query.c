@@ -51,6 +51,7 @@
 typedef struct {
 	char *type;
 	char *id;
+	sdb_time_t last_update;
 } metric_store_t;
 
 static int
@@ -70,6 +71,7 @@ metric_fetcher_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 
 	st->type = strdup(metric->store.type);
 	st->id = strdup(metric->store.id);
+	st->last_update = metric->store.last_update;
 	if ((! st->type) || (! st->id))
 		return -1;
 	return 0;
@@ -156,6 +158,7 @@ exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
 		metric_store.type = st->store_type;
 		metric_store.id = st->store_id;
+		metric_store.last_update = st->last_update;
 		status = sdb_plugin_store_metric(st->hostname, st->name,
 				&metric_store, st->last_update);
 		break;
@@ -222,7 +225,7 @@ exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 static int
 exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 {
-	metric_store_t st = { NULL, NULL };
+	metric_store_t st = { NULL, NULL, 0 };
 	sdb_object_wrapper_t obj = SDB_OBJECT_WRAPPER_STATIC(&st);
 	sdb_ast_fetch_t fetch = SDB_AST_FETCH_INIT;
 	sdb_timeseries_opts_t opts = { 0, 0 };

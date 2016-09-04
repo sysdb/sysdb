@@ -406,6 +406,11 @@ store_metric_store(metric_t *metric, sdb_store_metric_t *m)
 	char *type = metric->store.type;
 	char *id = metric->store.id;
 
+	if (! m->store.last_update)
+		m->store.last_update = metric->store.last_update;
+	else if (m->store.last_update < metric->store.last_update)
+		return 0;
+
 	if ((! metric->store.type) || strcasecmp(metric->store.type, m->store.type)) {
 		if (! (type = strdup(m->store.type)))
 			return -1;
@@ -428,6 +433,7 @@ store_metric_store(metric_t *metric, sdb_store_metric_t *m)
 			free(metric->store.id);
 		metric->store.id = id;
 	}
+	metric->store.last_update = m->store.last_update;
 	return 0;
 } /* store_metric_store */
 
@@ -721,11 +727,14 @@ sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *nam
 		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_metric_t metric = {
-		hostname, name, { NULL, NULL }, last_update, interval, NULL, 0,
+		hostname, name,
+		{ NULL, NULL, 0 },
+		last_update, interval, NULL, 0,
 	};
 	if (metric_store) {
 		metric.store.type = metric_store->type;
 		metric.store.id = metric_store->id;
+		metric.store.last_update = metric_store->last_update;
 	}
 	return store_metric(&metric, SDB_OBJ(store));
 } /* sdb_memstore_metric */
@@ -999,6 +1008,7 @@ sdb_memstore_emit(sdb_memstore_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *
 				{
 					METRIC(obj)->store.type,
 					METRIC(obj)->store.id,
+					METRIC(obj)->store.last_update,
 				},
 				obj->last_update,
 				obj->interval,

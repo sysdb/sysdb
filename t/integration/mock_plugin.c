@@ -57,21 +57,21 @@ static struct {
 	sdb_metric_store_t store;
 } metrics[] = {
 	{ "some.host.name", "foo/bar/qux",
-		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd", 0 } },
 	{ "some.host.name", "foo/bar/baz",
-		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd", 0 } },
 	{ "some.host.name", "foo2/bar/qux",
-		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd", 0 } },
 	{ "some.host.name", "foo2/bar/baz",
-		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd", 0 } },
 	{ "other.host.name", "foo/bar/qux",
-		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/qux.rrd", 0 } },
 	{ "other.host.name", "foo/bar/baz",
-		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo/bar/baz.rrd", 0 } },
 	{ "other.host.name", "foo2/bar/qux",
-		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/qux.rrd", 0 } },
 	{ "other.host.name", "foo2/bar/baz",
-		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd" } },
+		{ "mock", "/var/lib/collectd/rrd/foo2/bar/baz.rrd", 0 } },
 };
 
 static struct {

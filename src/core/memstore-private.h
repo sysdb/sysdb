@@ -87,6 +87,7 @@ typedef struct {
 	struct {
 		char *type;
 		char *id;
+		sdb_time_t last_update;
 	} store;
 } metric_t;
 #define METRIC(obj) ((metric_t *)(obj))

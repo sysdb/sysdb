@@ -125,6 +125,7 @@ typedef struct {
 typedef struct {
 	const char *type;
 	const char *id;
+	sdb_time_t last_update;
 } sdb_metric_store_t;
 
 /*
@@ -140,7 +141,7 @@ typedef struct {
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_metric_t;
-#define SDB_STORE_METRIC_INIT { NULL, NULL, { NULL, NULL }, 0, 0, NULL, 0 }
+#define SDB_STORE_METRIC_INIT { NULL, NULL, { NULL, NULL, 0 }, 0, 0, NULL, 0 }
 
 /*
  * sdb_store_attribute_t represents a stored attribute.
