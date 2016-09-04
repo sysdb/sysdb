@@ -133,10 +133,7 @@ typedef struct {
 typedef struct {
 	const char *hostname;
 	const char *name;
-	struct {
-		const char *type;
-		const char *id;
-	} store;
+	sdb_metric_store_t store;
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
