@@ -376,28 +376,36 @@ START_TEST(test_marshal_metric)
 		char *expected;
 	} golden_data[] = {
 		{
-			{ 4711, "hostA", "metricX", NULL, NULL },
+			{ 4711, "hostA", "metricX", NULL, NULL, 0 },
 			26, METRIC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0metricX\0"
 		},
 		{
-			{ 0, "hostA", "metricX", NULL, NULL },
+			{ 0, "hostA", "metricX", NULL, NULL, 0 },
 			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
 		},
 		{
-			{ 0, "hostA", "metricX", "type", NULL },
+			{ 0, "hostA", "metricX", "type", NULL, 0 },
 			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
 		},
 		{
-			{ 0, "hostA", "metricX", NULL, "id" },
+			{ 0, "hostA", "metricX", NULL, "id", 0 },
 			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
 		},
 		{
-			{ 4711, "hostA", "metricX", "type", "id" },
+			{ 0, "hostA", "metricX", NULL, NULL, 4711 },
+			26, METRIC_TYPE "\0\0\0\0\0\0\0\0" "hostA\0metricX\0"
+		},
+		{
+			{ 4711, "hostA", "metricX", "type", "id", 0 },
 			34, METRIC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0metricX\0type\0id\0"
 		},
-		{ { 4711, "hostA", NULL, NULL, NULL }, -1, NULL },
-		{ { 4711, NULL, "metricX", NULL, NULL }, -1, NULL },
-		{ { 4711, NULL, NULL, NULL, NULL }, -1, NULL },
+		{
+			{ 4711, "hostA", "metricX", "type", "id", 4711 },
+			42, METRIC_TYPE "\0\0\0\0\0\0\x12\x67" "hostA\0metricX\0type\0id\0" "\0\0\0\0\0\0\x12\x67"
+		},
+		{ { 4711, "hostA", NULL, NULL, NULL, 0 }, -1, NULL },
+		{ { 4711, NULL, "metricX", NULL, NULL, 0 }, -1, NULL },
+		{ { 4711, NULL, NULL, NULL, NULL, 0 }, -1, NULL },
 	};
 
 	size_t i;
@@ -434,9 +442,10 @@ START_TEST(test_marshal_metric)
 
 		if ((! golden_data[i].metric.store_type)
 				|| (! golden_data[i].metric.store_id)) {
-			/* if any of these is NULL, we expect both to be NULL */
+			/* if any of these is NULL, we expect all to be NULL */
 			golden_data[i].metric.store_type = NULL;
 			golden_data[i].metric.store_id = NULL;
+			golden_data[i].metric.store_last_update = 0;
 		}
 
 		check = sdb_proto_unmarshal_metric(buf, len, &metric);
@@ -447,15 +456,18 @@ START_TEST(test_marshal_metric)
 				&& streq(metric.hostname, golden_data[i].metric.hostname)
 				&& streq(metric.name, golden_data[i].metric.name)
 				&& streq(metric.store_type, golden_data[i].metric.store_type)
-				&& streq(metric.store_id, golden_data[i].metric.store_id),
+				&& streq(metric.store_id, golden_data[i].metric.store_id)
+				&& metric.store_last_update == golden_data[i].metric.store_last_update,
 				"<%zu> sdb_proto_unmarshal_metric(buf<%s>) = "
-				"{ %"PRIsdbTIME", %s, %s, %s, %s }; expected: "
-				"{ %"PRIsdbTIME", %s, %s, %s, %s }", i, golden_data[i].metric.name,
+				"{ %"PRIsdbTIME", %s, %s, %s, %s, %"PRIsdbTIME" }; expected: "
+				"{ %"PRIsdbTIME", %s, %s, %s, %s, %"PRIsdbTIME" }",
+				i, golden_data[i].metric.name,
 				metric.last_update, metric.hostname, metric.name,
-				metric.store_type, metric.store_id,
+				metric.store_type, metric.store_id, metric.store_last_update,
 				golden_data[i].metric.last_update,
 				golden_data[i].metric.hostname, golden_data[i].metric.name,
-				golden_data[i].metric.store_type, golden_data[i].metric.store_id);
+				golden_data[i].metric.store_type, golden_data[i].metric.store_id,
+				golden_data[i].metric.store_last_update);
 	}
 }
 END_TEST

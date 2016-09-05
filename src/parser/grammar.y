@@ -104,7 +104,7 @@ sdb_parser_yyerrorf(YYLTYPE *lval, sdb_parser_yyscan_t scanner, const char *fmt,
 	sdb_llist_t    *list;
 	sdb_ast_node_t *node;
 
-	struct { char *type; char *id; } metric_store;
+	struct { char *type; char *id; sdb_time_t last_update; } metric_store;
 }
 
 %start statements
@@ -339,42 +339,42 @@ store_statement:
 	STORE HOST_T STRING last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_HOST, NULL, 0, NULL,
-					$3, $4, NULL, NULL, SDB_DATA_NULL);
+					$3, $4, NULL, NULL, 0, SDB_DATA_NULL);
 			CK_OOM($$);
 		}
 	|
 	STORE SERVICE_T STRING '.' STRING last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_SERVICE, $3, 0, NULL,
-					$5, $6, NULL, NULL, SDB_DATA_NULL);
+					$5, $6, NULL, NULL, 0, SDB_DATA_NULL);
 			CK_OOM($$);
 		}
 	|
 	STORE METRIC_T STRING '.' STRING metric_store_clause last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_METRIC, $3, 0, NULL,
-					$5, $7, $6.type, $6.id, SDB_DATA_NULL);
+					$5, $7, $6.type, $6.id, $6.last_update, SDB_DATA_NULL);
 			CK_OOM($$);
 		}
 	|
 	STORE HOST_T ATTRIBUTE_T STRING '.' STRING data last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_ATTRIBUTE, $4, 0, NULL,
-					$6, $8, NULL, NULL, $7);
+					$6, $8, NULL, NULL, 0, $7);
 			CK_OOM($$);
 		}
 	|
 	STORE SERVICE_T ATTRIBUTE_T STRING '.' STRING '.' STRING data last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_ATTRIBUTE, $4, SDB_SERVICE, $6,
-					$8, $10, NULL, NULL, $9);
+					$8, $10, NULL, NULL, 0, $9);
 			CK_OOM($$);
 		}
 	|
 	STORE METRIC_T ATTRIBUTE_T STRING '.' STRING '.' STRING data last_update_clause
 		{
 			$$ = sdb_ast_store_create(SDB_ATTRIBUTE, $4, SDB_METRIC, $6,
-					$8, $10, NULL, NULL, $9);
+					$8, $10, NULL, NULL, 0, $9);
 			CK_OOM($$);
 		}
 	;
@@ -385,9 +385,11 @@ last_update_clause:
 	/* empty */ { $$ = sdb_gettime(); }
 
 metric_store_clause:
-	STORE STRING STRING { $$.type = $2; $$.id = $3; }
+	STORE STRING STRING datetime { $$.type = $2; $$.id = $3; $$.last_update = $4; }
 	|
-	/* empty */ { $$.type = $$.id = NULL; }
+	STORE STRING STRING { $$.type = $2; $$.id = $3; $$.last_update = 0; }
+	|
+	/* empty */ { $$.type = $$.id = NULL; $$.last_update = 0; }
 
 /*
  * TIMESERIES <host>.<metric> [START <datetime>] [END <datetime>];

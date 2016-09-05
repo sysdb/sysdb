@@ -347,7 +347,8 @@ sdb_ast_lookup_create(int obj_type, sdb_ast_node_t *matcher,
 sdb_ast_node_t *
 sdb_ast_store_create(int obj_type, char *hostname,
 		int parent_type, char *parent, char *name, sdb_time_t last_update,
-		char *store_type, char *store_id, sdb_data_t value)
+		char *store_type, char *store_id, sdb_time_t store_last_update,
+		sdb_data_t value)
 {
 	sdb_ast_store_t *store;
 	store = SDB_AST_STORE(sdb_object_create("STORE", st_type));
@@ -364,6 +365,7 @@ sdb_ast_store_create(int obj_type, char *hostname,
 	store->last_update = last_update;
 	store->store_type = store_type;
 	store->store_id = store_id;
+	store->store_last_update = store_last_update;
 	store->value = value;
 	return SDB_AST_NODE(store);
 } /* sdb_ast_store_create */

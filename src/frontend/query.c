@@ -158,7 +158,7 @@ exec_store(sdb_ast_store_t *st, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 		snprintf(name, sizeof(name), "%s.%s", st->hostname, st->name);
 		metric_store.type = st->store_type;
 		metric_store.id = st->store_id;
-		metric_store.last_update = st->last_update;
+		metric_store.last_update = st->store_last_update;
 		status = sdb_plugin_store_metric(st->hostname, st->name,
 				&metric_store, st->last_update);
 		break;
@@ -510,7 +510,7 @@ sdb_conn_store(sdb_conn_t *conn)
 			}
 			ast = sdb_ast_store_create(SDB_HOST, /* host */ NULL,
 					/* parent */ 0, NULL, sstrdup(host.name), host.last_update,
-					/* metric store */ NULL, NULL, SDB_DATA_NULL);
+					/* metric store */ NULL, NULL, 0, SDB_DATA_NULL);
 		}
 		break;
 
@@ -524,7 +524,7 @@ sdb_conn_store(sdb_conn_t *conn)
 			}
 			ast = sdb_ast_store_create(SDB_SERVICE, sstrdup(svc.hostname),
 					/* parent */ 0, NULL, sstrdup(svc.name), svc.last_update,
-					/* metric store */ NULL, NULL, SDB_DATA_NULL);
+					/* metric store */ NULL, NULL, 0, SDB_DATA_NULL);
 		}
 		break;
 
@@ -539,7 +539,7 @@ sdb_conn_store(sdb_conn_t *conn)
 			ast = sdb_ast_store_create(SDB_METRIC, sstrdup(metric.hostname),
 					/* parent */ 0, NULL, sstrdup(metric.name), metric.last_update,
 					sstrdup(metric.store_type), sstrdup(metric.store_id),
-					SDB_DATA_NULL);
+					metric.store_last_update, SDB_DATA_NULL);
 		}
 		break;
 	}
@@ -565,7 +565,7 @@ sdb_conn_store(sdb_conn_t *conn)
 		}
 		ast = sdb_ast_store_create(SDB_ATTRIBUTE, sstrdup(hostname),
 				parent_type, sstrdup(parent), sstrdup(attr.key),
-				attr.last_update, /* metric store */ NULL, NULL,
+				attr.last_update, /* metric store */ NULL, NULL, 0,
 				attr.value);
 	}
 

@@ -280,16 +280,6 @@ START_TEST(test_store_metric)
 				golden_data[i].host, golden_data[i].metric,
 				golden_data[i].store, golden_data[i].last_update,
 				status, golden_data[i].expected);
-
-		if (status < 0)
-			continue;
-
-		if (golden_data[i].store != NULL)
-			fail_unless(golden_data[i].store->last_update > 0,
-					"sdb_memstore_metric(%s, %s, %p, %d, 0) did not update "
-					"store->last_update",
-					golden_data[i].host, golden_data[i].metric,
-					golden_data[i].store, golden_data[i].last_update);
 	}
 }
 END_TEST

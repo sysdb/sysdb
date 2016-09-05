@@ -149,7 +149,7 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 {
 	sdb_proto_metric_t m = {
 		metric->last_update, metric->hostname, metric->name,
-		metric->store.type, metric->store.id,
+		metric->store.type, metric->store.id, metric->store.last_update,
 	};
 	size_t len = sdb_proto_marshal_metric(NULL, 0, &m);
 	char buf[len];

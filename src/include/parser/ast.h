@@ -309,6 +309,7 @@ typedef struct {
 	/* metric specific */
 	char *store_type;
 	char *store_id;
+	sdb_time_t store_last_update;
 
 	/* attribute specific */
 	sdb_data_t value;
@@ -316,7 +317,7 @@ typedef struct {
 #define SDB_AST_STORE(obj) ((sdb_ast_store_t *)(obj))
 #define SDB_AST_STORE_INIT \
 	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_STORE, -1 }, \
-		-1, NULL, -1, NULL, NULL, 0, NULL, NULL, SDB_DATA_INIT }
+		-1, NULL, -1, NULL, NULL, 0, NULL, NULL, 0, SDB_DATA_INIT }
 
 /*
  * sdb_ast_timeseries_t represents a TIMESERIES command.
@@ -418,7 +419,8 @@ sdb_ast_lookup_create(int obj_type, sdb_ast_node_t *matcher,
 sdb_ast_node_t *
 sdb_ast_store_create(int obj_type, char *hostname,
 		int parent_type, char *parent, char *name, sdb_time_t last_update,
-		char *store_type, char *store_id, sdb_data_t value);
+		char *store_type, char *store_id, sdb_time_t store_last_update,
+		sdb_data_t value);
 
 /*
  * sdb_ast_timeseries_create:

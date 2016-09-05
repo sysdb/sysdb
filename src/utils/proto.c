@@ -466,8 +466,11 @@ sdb_proto_marshal_metric(char *buf, size_t buf_len,
 		return -1;
 
 	len = OBJ_HEADER_LEN + strlen(metric->hostname) + strlen(metric->name) + 2;
-	if (metric->store_type && metric->store_id)
+	if (metric->store_type && metric->store_id) {
 		len += strlen(metric->store_type) + strlen(metric->store_id) + 2;
+		if (metric->store_last_update > 0)
+			len += sizeof(sdb_time_t);
+	}
 	if (buf_len < len)
 		return len;
 
@@ -480,7 +483,12 @@ sdb_proto_marshal_metric(char *buf, size_t buf_len,
 	if (metric->store_type && metric->store_id) {
 		n = marshal_string(buf, buf_len, metric->store_type);
 		buf += n; buf_len -= n;
-		marshal_string(buf, buf_len, metric->store_id);
+		n = marshal_string(buf, buf_len, metric->store_id);
+		buf += n; buf_len -= n;
+		if (metric->store_last_update > 0) {
+			n = marshal_datetime(buf, buf_len, metric->store_last_update);
+			buf += n; buf_len -= n;
+		}
 	}
 	return len;
 } /* sdb_proto_marshal_metric */
@@ -771,6 +779,8 @@ sdb_proto_unmarshal_metric(const char *buf, size_t len,
 	buf += n; len -= n; l += n;
 	if ((n = unmarshal_string(buf, len, metric ? &metric->name : NULL)) < 0)
 		return n;
+
+	metric->store_last_update = 0;
 	if (len > (size_t)n) {
 		buf += n; len -= n; l += n;
 		if ((n = unmarshal_string(buf, len,
@@ -780,6 +790,12 @@ sdb_proto_unmarshal_metric(const char *buf, size_t len,
 		if ((n = unmarshal_string(buf, len,
 						metric ? &metric->store_id : NULL)) < 0)
 			return n;
+		if (len >= sizeof(sdb_time_t)) {
+			buf += n; len -= n; l += n;
+			if ((n = unmarshal_datetime(buf, len,
+							metric ? &metric->store_last_update : NULL)) < 0)
+				return n;
+		}
 	}
 	else if (metric) {
 		metric->store_type = NULL;

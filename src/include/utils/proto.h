@@ -61,8 +61,9 @@ typedef struct {
 	const char *name;
 	const char *store_type; /* optional */
 	const char *store_id;   /* optional */
+	sdb_time_t store_last_update; /* optional */
 } sdb_proto_metric_t;
-#define SDB_PROTO_METRIC_INIT { 0, NULL, NULL, NULL, NULL }
+#define SDB_PROTO_METRIC_INIT { 0, NULL, NULL, NULL, NULL, 0 }
 
 typedef struct {
 	sdb_time_t last_update;

@@ -220,6 +220,11 @@ struct {
 	  "STORE 'typ' 'id' "
 	  "LAST UPDATE "
 	  "2015-02-01",          -1,  1, SDB_AST_TYPE_STORE, SDB_METRIC },
+	{ "STORE metric "
+	  "'host'.'metric' "
+	  "STORE 'typ' 'id' 2015-02-01 13:37 "
+	  "LAST UPDATE "
+	  "2015-02-01",          -1,  1, SDB_AST_TYPE_STORE, SDB_METRIC },
 	{ "STORE metric attribute "
 	  "'host'.'metric'.'key' "
 	  "123",                 -1,  1, SDB_AST_TYPE_STORE, SDB_ATTRIBUTE },
