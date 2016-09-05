@@ -134,14 +134,17 @@ typedef struct {
 typedef struct {
 	const char *hostname;
 	const char *name;
-	sdb_metric_store_t store;
+
+	/* All data stores providing this metric. */
+	const sdb_metric_store_t *stores;
+	size_t stores_num;
 
 	sdb_time_t last_update;
 	sdb_time_t interval;
 	const char * const *backends;
 	size_t backends_num;
 } sdb_store_metric_t;
-#define SDB_STORE_METRIC_INIT { NULL, NULL, { NULL, NULL, 0 }, 0, 0, NULL, 0 }
+#define SDB_STORE_METRIC_INIT { NULL, NULL, NULL, 0, 0, 0, NULL, 0 }
 
 /*
  * sdb_store_attribute_t represents a stored attribute.

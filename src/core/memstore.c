@@ -216,7 +216,8 @@ metric_init(sdb_object_t *obj, va_list ap)
 	if (! sobj->attributes)
 		return -1;
 
-	sobj->store.type = sobj->store.id = NULL;
+	sobj->stores = NULL;
+	sobj->stores_num = 0;
 	return 0;
 } /* metric_init */
 
@@ -224,17 +225,24 @@ static void
 metric_destroy(sdb_object_t *obj)
 {
 	metric_t *sobj = METRIC(obj);
-	assert(obj);
+	size_t i;
 
+	assert(obj);
 	store_obj_destroy(obj);
 
 	if (sobj->attributes)
 		sdb_avltree_destroy(sobj->attributes);
 
-	if (sobj->store.type)
-		free(sobj->store.type);
-	if (sobj->store.id)
-		free(sobj->store.id);
+	for (i = 0; i < sobj->stores_num; ++i) {
+		if (sobj->stores[i].type)
+			free(sobj->stores[i].type);
+		if (sobj->stores[i].id)
+			free(sobj->stores[i].id);
+	}
+	if (sobj->stores)
+		free(sobj->stores);
+	sobj->stores = NULL;
+	sobj->stores_num = 0;
 } /* metric_destroy */
 
 static int
@@ -401,41 +409,82 @@ store_obj(store_obj_t *obj, sdb_memstore_obj_t **updated_obj)
 } /* store_obj */
 
 static int
-store_metric_store(metric_t *metric, sdb_store_metric_t *m)
+store_metric_update_store(metric_store_t *store,
+		const sdb_metric_store_t __attribute__((unused)) *s,
+		sdb_time_t last_update)
 {
-	char *type = metric->store.type;
-	char *id = metric->store.id;
+	if (last_update <= store->last_update)
+		return 0;
+	store->last_update = last_update;
+	return 0;
+} /* store_metric_update_store */
 
-	if (! m->store.last_update)
-		m->store.last_update = metric->store.last_update;
-	else if (m->store.last_update < metric->store.last_update)
+static int
+store_metric_add_store(metric_t *metric, const sdb_metric_store_t *s,
+		sdb_time_t last_update)
+{
+	char *type = strdup(s->type);
+	char *id = strdup(s->id);
+
+	metric_store_t *new;
+
+	if ((! type) || (! id)) {
+		if (type)
+			free(type);
+		if (id)
+			free(id);
+		return -1;
+	}
+
+	new = realloc(metric->stores,
+			(metric->stores_num + 1) * sizeof(*metric->stores));
+	if (! new) {
+		free(type);
+		free(id);
+		return -1;
+	}
+
+	metric->stores = new;
+	new = metric->stores + metric->stores_num;
+	metric->stores_num++;
+
+	new->type = type;
+	new->id = id;
+	new->last_update = last_update;
+	return 0;
+} /* store_metric_add_store */
+
+static int
+store_metric_stores(metric_t *metric, sdb_store_metric_t *m)
+{
+	size_t i;
+
+	if (! m->stores_num)
 		return 0;
 
-	if ((! metric->store.type) || strcasecmp(metric->store.type, m->store.type)) {
-		if (! (type = strdup(m->store.type)))
-			return -1;
-	}
-	if ((! metric->store.id) || strcasecmp(metric->store.id, m->store.id)) {
-		if (! (id = strdup(m->store.id))) {
-			if (type != metric->store.type)
-				free(type);
-			return -1;
-		}
-	}
+	for (i = 0; i < m->stores_num; ++i) {
+		sdb_time_t last_update = m->stores[i].last_update;
+		size_t j;
 
-	if (type != metric->store.type) {
-		if (metric->store.type)
-			free(metric->store.type);
-		metric->store.type = type;
+		if (last_update < m->last_update)
+			last_update = m->last_update;
+
+		for (j = 0; j < metric->stores_num; ++j) {
+			if ((! strcasecmp(metric->stores[j].type, m->stores[i].type))
+					&& (! strcasecmp(metric->stores[j].id, m->stores[i].id))) {
+				if (store_metric_update_store(metric->stores + j,
+							m->stores + i, last_update) < 0)
+					return -1;
+				break;
+			}
+		}
+
+		if (j >= metric->stores_num)
+			if (store_metric_add_store(metric, m->stores + i, last_update) < 0)
+				return -1;
 	}
-	if (id != metric->store.id) {
-		if (metric->store.id)
-			free(metric->store.id);
-		metric->store.id = id;
-	}
-	metric->store.last_update = m->store.last_update;
 	return 0;
-} /* store_metric_store */
+} /* store_metric_stores */
 
 /* The store's host_lock has to be acquired before calling this function. */
 static sdb_avltree_t *
@@ -622,12 +671,14 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 	host_t *host;
 
 	int status = 0;
+	size_t i;
 
 	if ((! metric) || (! metric->hostname) || (! metric->name))
 		return -1;
 
-	if ((metric->store.type != NULL) != (metric->store.id != NULL))
-		return -1;
+	for (i = 0; i < metric->stores_num; ++i)
+		if ((metric->stores[i].type == NULL) || (metric->stores[i].id == NULL))
+			return -1;
 
 	pthread_rwlock_wrlock(&st->host_lock);
 	host = HOST(sdb_avltree_lookup(st->hosts, metric->hostname));
@@ -655,9 +706,8 @@ store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 	}
 
 	assert(new);
-	if (metric->store.type && metric->store.id)
-		if (store_metric_store(METRIC(new), metric))
-			status = -1;
+	if (store_metric_stores(METRIC(new), metric))
+		status = -1;
 	pthread_rwlock_unlock(&st->host_lock);
 	return status;
 } /* store_metric */
@@ -727,14 +777,16 @@ sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *nam
 		sdb_time_t last_update, sdb_time_t interval)
 {
 	sdb_store_metric_t metric = {
-		hostname, name,
-		{ NULL, NULL, 0 },
+		hostname, name, /* stores */ NULL, 0,
 		last_update, interval, NULL, 0,
 	};
 	if (metric_store) {
-		metric.store.type = metric_store->type;
-		metric.store.id = metric_store->id;
-		metric.store.last_update = metric_store->last_update;
+		metric.stores = &(const sdb_metric_store_t){
+			metric_store->type,
+			metric_store->id,
+			metric_store->last_update,
+		};
+		metric.stores_num = 1;
 	}
 	return store_metric(&metric, SDB_OBJ(store));
 } /* sdb_memstore_metric */
@@ -860,7 +912,7 @@ sdb_memstore_get_field(sdb_memstore_obj_t *obj, int field, sdb_data_t *res)
 			if (obj->type != SDB_METRIC)
 				return -1;
 			tmp.type = SDB_TYPE_BOOLEAN;
-			tmp.data.boolean = METRIC(obj)->store.type != NULL;
+			tmp.data.boolean = METRIC(obj)->stores_num > 0;
 		default:
 			return -1;
 	}
@@ -1002,19 +1054,25 @@ sdb_memstore_emit(sdb_memstore_obj_t *obj, sdb_store_writer_t *w, sdb_object_t *
 		}
 	case SDB_METRIC:
 		{
+			sdb_metric_store_t metric_stores[METRIC(obj)->stores_num];
 			sdb_store_metric_t metric = {
 				obj->parent ? obj->parent->_name : NULL,
 				obj->_name,
-				{
-					METRIC(obj)->store.type,
-					METRIC(obj)->store.id,
-					METRIC(obj)->store.last_update,
-				},
+				metric_stores,
+				METRIC(obj)->stores_num,
 				obj->last_update,
 				obj->interval,
 				(const char * const *)obj->backends,
 				obj->backends_num,
 			};
+			size_t i;
+
+			for (i = 0; i < METRIC(obj)->stores_num; ++i) {
+				metric_stores[i].type = METRIC(obj)->stores[i].type;
+				metric_stores[i].id = METRIC(obj)->stores[i].id;
+				metric_stores[i].last_update = METRIC(obj)->stores[i].last_update;
+			}
+
 			if (! w->store_metric)
 				return -1;
 			return w->store_metric(&metric, wd);

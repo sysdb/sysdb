@@ -326,7 +326,7 @@ emit_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 			metric->name,
 
 			/* value */ NULL,
-			/* timeseries */ metric->store.type != NULL,
+			/* timeseries */ metric->stores_num > 0,
 
 			metric->last_update,
 			metric->interval,

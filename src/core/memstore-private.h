@@ -81,14 +81,17 @@ typedef struct {
 #define CONST_SVC(obj) ((const service_t *)(obj))
 
 typedef struct {
+	char *type;
+	char *id;
+	sdb_time_t last_update;
+} metric_store_t;
+typedef struct {
 	sdb_memstore_obj_t super;
 
 	sdb_avltree_t *attributes;
-	struct {
-		char *type;
-		char *id;
-		sdb_time_t last_update;
-	} store;
+
+	metric_store_t *stores;
+	size_t stores_num;
 } metric_t;
 #define METRIC(obj) ((metric_t *)(obj))
 

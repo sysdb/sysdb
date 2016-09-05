@@ -65,15 +65,23 @@ static int
 metric_fetcher_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 {
 	metric_store_t *st = SDB_OBJ_WRAPPER(user_data)->data;
+	sdb_time_t last_update = 0;
+	size_t idx = 0, i;
 
-	if ((! metric->store.type) || (! metric->store.id))
-		return 0;
-
-	st->type = strdup(metric->store.type);
-	st->id = strdup(metric->store.id);
-	st->last_update = metric->store.last_update;
-	if ((! st->type) || (! st->id))
+	if (! metric->stores_num)
 		return -1;
+
+	/* Find the most up to date data store.
+	 * TODO: Consider merging multiple results? */
+	for (i = 0; i < metric->stores_num; ++i) {
+		if (metric->stores[i].last_update > last_update) {
+			last_update = metric->stores[i].last_update;
+			idx = i;
+		}
+	}
+	st->type = strdup(metric->stores[idx].type);
+	st->id = strdup(metric->stores[idx].id);
+	st->last_update = metric->stores[idx].last_update;
 	return 0;
 } /* metric_fetcher_metric */
 

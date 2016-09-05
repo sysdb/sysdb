@@ -1735,9 +1735,8 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 	if (store) {
 		if (store->last_update < last_update)
 			store->last_update = last_update;
-		metric.store.type = store->type;
-		metric.store.id = store->id;
-		metric.store.last_update = store->last_update;
+		metric.stores = store;
+		metric.stores_num = 1;
 	}
 	metric.last_update = last_update ? last_update : sdb_gettime();
 	if (get_interval(SDB_METRIC, cname, -1, NULL, name,
