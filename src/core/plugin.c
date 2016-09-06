@@ -345,24 +345,39 @@ ctx_create(const char *name)
 	return ctx;
 } /* ctx_create */
 
-static int
-plugin_cb_init(sdb_object_t *obj, va_list ap)
+/*
+ * plugin_init_ok:
+ * Checks whether the registration of a new plugin identified by 'obj' is
+ * okay. It consumes the first two arguments of 'ap'.
+ */
+static bool
+plugin_init_ok(sdb_object_t *obj, va_list ap)
 {
 	sdb_llist_t **list = va_arg(ap, sdb_llist_t **);
-	const char   *type = va_arg(ap, const char *);
-	void     *callback = va_arg(ap, void *);
-	sdb_object_t   *ud = va_arg(ap, sdb_object_t *);
+	const char *type = va_arg(ap, const char *);
 
-	assert(list);
-	assert(type);
-	assert(obj);
+	assert(list); assert(type);
 
 	if (sdb_llist_search_by_name(*list, obj->name)) {
 		sdb_log(SDB_LOG_WARNING, "core: %s callback '%s' "
 				"has already been registered. Ignoring newly "
 				"registered version.", type, obj->name);
-		return -1;
+		return 0;
 	}
+	return 1;
+} /* plugin_init_ok */
+
+static int
+plugin_cb_init(sdb_object_t *obj, va_list ap)
+{
+	void *callback;
+	sdb_object_t *ud;
+
+	if (! plugin_init_ok(obj, ap))
+		return -1;
+
+	callback = va_arg(ap, void *);
+	ud = va_arg(ap, sdb_object_t *);
 
 	/* cb_ctx may be NULL if the plugin was not registered by a plugin */
 
@@ -400,9 +415,14 @@ static sdb_type_t collector_type = {
 static int
 plugin_writer_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_store_writer_t *impl = va_arg(ap, sdb_store_writer_t *);
-	sdb_object_t       *ud   = va_arg(ap, sdb_object_t *);
+	sdb_store_writer_t *impl;
+	sdb_object_t *ud;
 
+	if (! plugin_init_ok(obj, ap))
+		return -1;
+
+	impl = va_arg(ap, sdb_store_writer_t *);
+	ud = va_arg(ap, sdb_object_t *);
 	assert(impl);
 
 	if ((! impl->store_host) || (! impl->store_service)
@@ -410,12 +430,6 @@ plugin_writer_init(sdb_object_t *obj, va_list ap)
 		sdb_log(SDB_LOG_ERR, "core: store writer callback '%s' "
 				"does not fully implement the writer interface.",
 				obj->name);
-		return -1;
-	}
-	if (sdb_llist_search_by_name(writer_list, obj->name)) {
-		sdb_log(SDB_LOG_WARNING, "core: store writer callback '%s' "
-				"has already been registered. Ignoring newly "
-				"registered version.", obj->name);
 		return -1;
 	}
 
@@ -448,21 +462,20 @@ static sdb_type_t writer_type = {
 static int
 plugin_reader_init(sdb_object_t *obj, va_list ap)
 {
-	sdb_store_reader_t *impl = va_arg(ap, sdb_store_reader_t *);
-	sdb_object_t       *ud   = va_arg(ap, sdb_object_t *);
+	sdb_store_reader_t *impl;
+	sdb_object_t *ud;
 
+	if (! plugin_init_ok(obj, ap))
+		return -1;
+
+	impl = va_arg(ap, sdb_store_reader_t *);
+	ud = va_arg(ap, sdb_object_t *);
 	assert(impl);
 
 	if ((! impl->prepare_query) || (! impl->execute_query)) {
 		sdb_log(SDB_LOG_ERR, "core: store reader callback '%s' "
 				"does not fully implement the reader interface.",
 				obj->name);
-		return -1;
-	}
-	if (sdb_llist_search_by_name(reader_list, obj->name)) {
-		sdb_log(SDB_LOG_WARNING, "core: store reader callback '%s' "
-				"has already been registered. Ignoring newly "
-				"registered version.", obj->name);
 		return -1;
 	}
 
@@ -628,12 +641,12 @@ plugin_get_name(const char *name, char *buf, size_t bufsize)
 } /* plugin_get_name */
 
 static int
-plugin_add_callback(sdb_llist_t **list, const char *type,
-		const char *name, void *callback, sdb_object_t *user_data)
+plugin_add_impl(sdb_llist_t **list, sdb_type_t T, const char *type,
+		const char *name, void *impl, sdb_object_t *user_data)
 {
 	sdb_object_t *obj;
 
-	if ((! name) || (! callback))
+	if ((! name) || (! impl))
 		return -1;
 
 	assert(list);
@@ -643,8 +656,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	if (! *list)
 		return -1;
 
-	obj = sdb_object_create(name, callback_type,
-			list, type, callback, user_data);
+	obj = sdb_object_create(name, T, list, type, impl, user_data);
 	if (! obj)
 		return -1;
 
@@ -659,7 +671,7 @@ plugin_add_callback(sdb_llist_t **list, const char *type,
 	sdb_log(SDB_LOG_INFO, "core: Registered %s callback '%s'.",
 			type, name);
 	return 0;
-} /* plugin_add_callback */
+} /* plugin_add_impl */
 
 /*
  * object meta-data
@@ -896,8 +908,8 @@ sdb_plugin_register_config(sdb_plugin_config_cb callback)
 				"config callback from outside a plugin");
 		return -1;
 	}
-	return plugin_add_callback(&config_list, "config", ctx->info.plugin_name,
-			(void *)callback, NULL);
+	return plugin_add_impl(&config_list, callback_type, "config",
+			ctx->info.plugin_name, (void *)callback, NULL);
 } /* sdb_plugin_register_config */
 
 int
@@ -905,7 +917,7 @@ sdb_plugin_register_init(const char *name, sdb_plugin_init_cb callback,
 		sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	return plugin_add_callback(&init_list, "init",
+	return plugin_add_impl(&init_list, callback_type, "init",
 			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			(void *)callback, user_data);
 } /* sdb_plugin_register_init */
@@ -915,7 +927,7 @@ sdb_plugin_register_shutdown(const char *name, sdb_plugin_shutdown_cb callback,
 		sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	return plugin_add_callback(&shutdown_list, "shutdown",
+	return plugin_add_impl(&shutdown_list, callback_type, "shutdown",
 			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			(void *)callback, user_data);
 } /* sdb_plugin_register_shutdown */
@@ -925,7 +937,7 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	return plugin_add_callback(&log_list, "log",
+	return plugin_add_impl(&log_list, callback_type, "log",
 			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			callback, user_data);
 } /* sdb_plugin_register_log */
@@ -935,7 +947,7 @@ sdb_plugin_register_cname(const char *name, sdb_plugin_cname_cb callback,
 		sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	return plugin_add_callback(&cname_list, "cname",
+	return plugin_add_impl(&cname_list, callback_type, "cname",
 			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			callback, user_data);
 } /* sdb_plugin_register_cname */
@@ -1004,7 +1016,7 @@ int
 sdb_plugin_register_ts_fetcher(const char *name,
 		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data)
 {
-	return plugin_add_callback(&ts_fetcher_list, "time-series fetcher",
+	return plugin_add_impl(&ts_fetcher_list, callback_type, "time-series fetcher",
 			name, callback, user_data);
 } /* sdb_plugin_register_ts_fetcher */
 
@@ -1013,34 +1025,9 @@ sdb_plugin_register_writer(const char *name,
 		sdb_store_writer_t *writer, sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	sdb_object_t *obj;
-
-	if ((! name) || (! writer))
-		return -1;
-
-	if (! writer_list)
-		writer_list = sdb_llist_create();
-	if (! writer_list)
-		return -1;
-
-	plugin_get_name(name, cb_name, sizeof(cb_name));
-
-	obj = sdb_object_create(cb_name, writer_type,
+	return plugin_add_impl(&writer_list, writer_type, "store writer",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			writer, user_data);
-	if (! obj)
-		return -1;
-
-	if (sdb_llist_append(writer_list, obj)) {
-		sdb_object_deref(obj);
-		return -1;
-	}
-
-	/* pass control to the list */
-	sdb_object_deref(obj);
-
-	sdb_log(SDB_LOG_INFO, "core: Registered store writer callback '%s'.",
-			cb_name);
-	return 0;
 } /* sdb_store_register_writer */
 
 int
@@ -1048,34 +1035,9 @@ sdb_plugin_register_reader(const char *name,
 		sdb_store_reader_t *reader, sdb_object_t *user_data)
 {
 	char cb_name[1024];
-	sdb_object_t *obj;
-
-	if ((! name) || (! reader))
-		return -1;
-
-	if (! reader_list)
-		reader_list = sdb_llist_create();
-	if (! reader_list)
-		return -1;
-
-	plugin_get_name(name, cb_name, sizeof(cb_name));
-
-	obj = sdb_object_create(cb_name, reader_type,
+	return plugin_add_impl(&reader_list, reader_type, "store reader",
+			plugin_get_name(name, cb_name, sizeof(cb_name)),
 			reader, user_data);
-	if (! obj)
-		return -1;
-
-	if (sdb_llist_append(reader_list, obj)) {
-		sdb_object_deref(obj);
-		return -1;
-	}
-
-	/* pass control to the list */
-	sdb_object_deref(obj);
-
-	sdb_log(SDB_LOG_INFO, "core: Registered store reader callback '%s'.",
-			cb_name);
-	return 0;
 } /* sdb_plugin_register_reader */
 
 void
