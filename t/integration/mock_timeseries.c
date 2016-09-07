@@ -45,12 +45,30 @@ SDB_PLUGIN_MAGIC;
  * plugin API
  */
 
+static const char *names[] = { "nameA", "nameB" };
+
+static sdb_timeseries_info_t *
+mock_describe_ts(const char *id, sdb_object_t *user_data)
+{
+	if (*id != '/') {
+		sdb_log(SDB_LOG_ERR, "mock::timeseries: Invalid time-series %s", id);
+		exit(1);
+	}
+
+	if (SDB_OBJ_WRAPPER(user_data)->data != MAGIC_DATA) {
+		sdb_log(SDB_LOG_ERR, "mock::timeseries: Invalid user data %p "
+				"passed to collect", SDB_OBJ_WRAPPER(user_data)->data);
+		exit(1);
+	}
+
+	return sdb_timeseries_info_create(SDB_STATIC_ARRAY_LEN(names), names);
+} /* mock_describe_ts */
+
 static sdb_timeseries_t *
 mock_fetch_ts(const char *id, sdb_timeseries_opts_t *opts,
 		sdb_object_t *user_data)
 {
 	sdb_timeseries_t *ts;
-	const char *names[] = { "nameA", "nameB" };
 	size_t i, j;
 
 	if (*id != '/') {
@@ -81,6 +99,10 @@ mock_fetch_ts(const char *id, sdb_timeseries_opts_t *opts,
 	return ts;
 } /* mock_fetch_ts */
 
+static sdb_timeseries_fetcher_t mock_fetcher = {
+	mock_describe_ts, mock_fetch_ts,
+};
+
 int
 sdb_module_init(sdb_plugin_info_t *info)
 {
@@ -98,7 +120,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 		sdb_log(SDB_LOG_ERR, "mock::plugin: Failed to allocate user data");
 		exit(1);
 	}
-	sdb_plugin_register_ts_fetcher("mock", mock_fetch_ts, user_data);
+	sdb_plugin_register_timeseries_fetcher("mock", &mock_fetcher, user_data);
 	sdb_object_deref(user_data);
 	return 0;
 } /* sdb_module_init */
