@@ -37,6 +37,17 @@
 #define TS "1970-01-01 00:00:00 +0000"
 #define V "0.000000"
 
+START_TEST(timeseries_info)
+{
+	const char * const data_names[] = {"abc", "xyz"};
+	sdb_timeseries_info_t *ts_info = sdb_timeseries_info_create(2, data_names);
+
+	fail_unless(ts_info != NULL,
+			"sdb_timeseries_info_create(2, {\"abc\", \"xyz\"}) = NULL; expected: <ts_info>");
+	sdb_timeseries_info_destroy(ts_info);
+}
+END_TEST
+
 START_TEST(timeseries)
 {
 	const char * const data_names[] = {"abc", "xyz"};
@@ -53,7 +64,7 @@ START_TEST(timeseries)
 		"}}";
 
 	fail_unless(ts != NULL,
-			"sdb_timeseries_create(2, {\"abc\", \"xyz\"}, 3) = NULL; expected: <ts>");
+			"sdb_timeseries_create(2, {\"abc\", \"xyz\"}, 2) = NULL; expected: <ts>");
 
 	test = sdb_timeseries_tojson(ts, buf);
 	fail_unless(test == 0,
@@ -69,6 +80,7 @@ END_TEST
 TEST_MAIN("core::timeseries")
 {
 	TCase *tc = tcase_create("core");
+	tcase_add_test(tc, timeseries_info);
 	tcase_add_test(tc, timeseries);
 	ADD_TCASE(tc);
 }

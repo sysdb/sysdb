@@ -1,6 +1,6 @@
 /*
  * SysDB - src/core/timeseries.c
- * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2014-2016 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,73 @@
 #include <string.h>
 #include <math.h>
 
+static int
+copy_strings(char ***out, size_t *out_len,
+		const char * const *in, size_t in_len)
+{
+	size_t i;
+
+	*out = calloc(in_len, sizeof(**out));
+	if (! *out)
+		return -1;
+
+	*out_len = in_len;
+	for (i = 0; i < in_len; ++i) {
+		(*out)[i] = strdup(in[i]);
+		if (! (*out)[i])
+			return -1;
+	}
+	return 0;
+} /* copy_strings */
+
+static void
+free_strings(char ***strings, size_t *strings_len)
+{
+	size_t i;
+
+	if (*strings) {
+		for (i = 0; i < *strings_len; ++i) {
+			if ((*strings)[i])
+				free((*strings)[i]);
+			(*strings)[i] = NULL;
+		}
+		free(*strings);
+	}
+
+	*strings = NULL;
+	*strings_len = 0;
+} /* free_strings */
+
 /*
  * public API
  */
+
+sdb_timeseries_info_t *
+sdb_timeseries_info_create(size_t data_names_len, const char * const *data_names)
+{
+	sdb_timeseries_info_t *ts_info;
+
+	ts_info = calloc(1, sizeof(*ts_info));
+	if (! ts_info)
+		return NULL;
+
+	if (copy_strings(&ts_info->data_names, &ts_info->data_names_len,
+				data_names, data_names_len)) {
+		sdb_timeseries_info_destroy(ts_info);
+		return NULL;
+	}
+	return ts_info;
+} /* sdb_timeseries_info_create */
+
+void
+sdb_timeseries_info_destroy(sdb_timeseries_info_t *ts_info)
+{
+	if (! ts_info)
+		return;
+
+	free_strings(&ts_info->data_names, &ts_info->data_names_len);
+	free(ts_info);
+} /* sdb_timeseries_info_destroy */
 
 sdb_timeseries_t *
 sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
@@ -51,12 +115,17 @@ sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
 	if (! ts)
 		return NULL;
 
+	if (copy_strings(&ts->data_names, &ts->data_names_len,
+				data_names, data_names_len)) {
+		sdb_timeseries_destroy(ts);
+		return NULL;
+	}
+
 	ts->data = calloc(data_names_len, sizeof(*ts->data));
 	if (! ts->data) {
 		sdb_timeseries_destroy(ts);
 		return NULL;
 	}
-	ts->data_names_len = data_names_len;
 	for (i = 0; i < data_names_len; ++i) {
 		ts->data[i] = calloc(data_len, sizeof(**ts->data));
 		if (! ts->data[i]) {
@@ -65,19 +134,6 @@ sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
 		}
 	}
 	ts->data_len = data_len;
-
-	ts->data_names = calloc(data_names_len, sizeof(*ts->data_names));
-	if (! ts->data_names) {
-		sdb_timeseries_destroy(ts);
-		return NULL;
-	}
-	for (i = 0; i < data_names_len; ++i) {
-		ts->data_names[i] = strdup(data_names[i]);
-		if (! ts->data_names[i]) {
-			sdb_timeseries_destroy(ts);
-			return NULL;
-		}
-	}
 	return ts;
 } /* sdb_timeseries_create */
 
@@ -100,16 +156,7 @@ sdb_timeseries_destroy(sdb_timeseries_t *ts)
 	ts->data = NULL;
 	ts->data_len = 0;
 
-	if (ts->data_names) {
-		for (i = 0; i < ts->data_names_len; ++i) {
-			if (ts->data_names[i])
-				free(ts->data_names[i]);
-			ts->data_names[i] = NULL;
-		}
-		free(ts->data_names);
-	}
-	ts->data_names = NULL;
-	ts->data_names_len = 0;
+	free_strings(&ts->data_names, &ts->data_names_len);
 	free(ts);
 } /* sdb_timeseries_destroy */
 
@@ -166,5 +213,6 @@ sdb_timeseries_tojson(sdb_timeseries_t *ts, sdb_strbuf_t *buf)
 	sdb_strbuf_append(buf, "}}");
 	return 0;
 } /* sdb_timeseries_tojson */
+
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

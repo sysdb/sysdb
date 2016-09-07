@@ -37,6 +37,33 @@ extern "C" {
 #endif
 
 /*
+ * sdb_timeseries_info_t:
+ * Information about a timeseries.
+ */
+typedef struct {
+	char **data_names;
+	size_t data_names_len;
+} sdb_timeseries_info_t;
+
+/*
+ * sdb_timeseries_info_create:
+ * Allocate a timeseries information object.
+ *
+ * Returns:
+ *  - a newly allocated timeseries info object on success
+ *  - NULL else
+ */
+sdb_timeseries_info_t *
+sdb_timeseries_info_create(size_t data_names_len, const char * const *data_names);
+
+/*
+ * sdb_timeseries_info_destroy:
+ * Destroy a timeseries info object, freeing all of its memory.
+ */
+void
+sdb_timeseries_info_destroy(sdb_timeseries_info_t *ts_info);
+
+/*
  * A data-point describes a datum at a certain point of time.
  */
 typedef struct {
