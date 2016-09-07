@@ -114,27 +114,8 @@ scan_tojson_full(sdb_memstore_obj_t *obj, sdb_memstore_matcher_t *filter,
 static void
 verify_json_output(sdb_strbuf_t *buf, const char *expected)
 {
-	const char *got = sdb_strbuf_string(buf);
-	size_t len1 = strlen(got);
-	size_t len2 = strlen(expected);
-
-	size_t i;
-	int pos = -1;
-
-	if (len1 != len2)
-		pos = (int)SDB_MIN(len1, len2);
-
-	for (i = 0; i < SDB_MIN(len1, len2); ++i) {
-		if (got[i] != expected[i]) {
-			pos = (int)i;
-			break;
-		}
-	}
-
-	fail_unless(pos == -1,
-			"Serializing hosts to JSON returned unexpected result\n"
-			"         got: %s\n              %*s\n    expected: %s",
-			got, pos + 1, "^", expected);
+	sdb_diff_strings("Serializing hosts to JSON returned unexpected result",
+			sdb_strbuf_string(buf), expected);
 } /* verify_json_output */
 
 struct {

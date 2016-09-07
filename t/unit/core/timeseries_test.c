@@ -1,6 +1,6 @@
 /*
- * SysDB - t/unit/libsysdb_testutils.c
- * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * SysDB - t/unit/core/timeseries_test.c
+ * Copyright (C) 2016 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,52 +27,52 @@
 
 #if HAVE_CONFIG_H
 #	include "config.h"
-#endif /* HAVE_CONFIG_H */
+#endif
 
+#include "core/timeseries.h"
 #include "testutils.h"
 
-#include <stdlib.h>
-#include <sys/types.h>
-#include <regex.h>
+#include <check.h>
 
-int
-sdb_regmatches(const char *regex, const char *string)
+#define TS "1970-01-01 00:00:00 +0000"
+#define V "0.000000"
+
+START_TEST(timeseries)
 {
-	regex_t reg;
-	int status;
+	const char * const data_names[] = {"abc", "xyz"};
+	sdb_timeseries_t *ts = sdb_timeseries_create(2, data_names, 2);
+	sdb_strbuf_t *buf = sdb_strbuf_create(0);
+	int test;
 
-	status = regcomp(&reg, regex, REG_EXTENDED | REG_NOSUB);
-	if (status)
-		return status;
+	const char *expected =
+		"{\"start\": \""TS"\", \"end\": \""TS"\", \"data\": {"
+			"\"abc\": [{\"timestamp\": \""TS"\", \"value\": \""V"\"},"
+				"{\"timestamp\": \""TS"\", \"value\": \""V"\"}],"
+			"\"xyz\": [{\"timestamp\": \""TS"\", \"value\": \""V"\"},"
+				"{\"timestamp\": \""TS"\", \"value\": \""V"\"}]"
+		"}}";
 
-	status = regexec(&reg, string, /* matches = */ 0, NULL, /* flags = */ 0);
-	regfree(&reg);
-	return status;
-} /* sdb_regmatches */
+	fail_unless(ts != NULL,
+			"sdb_timeseries_create(2, {\"abc\", \"xyz\"}, 3) = NULL; expected: <ts>");
 
-void
-sdb_diff_strings(const char *desc, const char *got, const char *expected)
+	test = sdb_timeseries_tojson(ts, buf);
+	fail_unless(test == 0,
+			"sdb_timeseries_tojson(<ts>, <buf>) = %d; expected: 0", test);
+	sdb_diff_strings("sdb_timeseries_tojson(<ts>, <buf>) returned unexpected JSON",
+			sdb_strbuf_string(buf), expected);
+
+	sdb_timeseries_destroy(ts);
+	sdb_strbuf_destroy(buf);
+}
+END_TEST
+
+TEST_MAIN("core::timeseries")
 {
-	size_t len1 = strlen(got);
-	size_t len2 = strlen(expected);
-
-	size_t i;
-	int pos = -1;
-
-	if (len1 != len2)
-		pos = (int)SDB_MIN(len1, len2);
-
-	for (i = 0; i < SDB_MIN(len1, len2); ++i) {
-		if (got[i] != expected[i]) {
-			pos = (int)i;
-			break;
-		}
-	}
-
-	fail_unless(pos == -1, "%s:\n"
-			"         got: %s\n              %*s\n    expected: %s",
-			desc, got, pos + 1, "^", expected);
-} /* sdb_diff_strings */
+	TCase *tc = tcase_create("core");
+	tcase_add_test(tc, timeseries);
+	ADD_TCASE(tc);
+}
+TEST_MAIN_END
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
 

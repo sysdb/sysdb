@@ -38,6 +38,7 @@ UNIT_TESTS = \
 		unit/core/store_lookup_test \
 		unit/core/store_test \
 		unit/core/time_test \
+		unit/core/timeseries_test \
 		unit/frontend/connection_test \
 		unit/frontend/query_test \
 		unit/frontend/sock_test \
@@ -90,6 +91,10 @@ unit_core_store_test_LDADD = $(UNIT_TEST_LDADD)
 unit_core_time_test_SOURCES = $(UNIT_TEST_SOURCES) unit/core/time_test.c
 unit_core_time_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_core_time_test_LDADD = $(UNIT_TEST_LDADD)
+
+unit_core_timeseries_test_SOURCES = $(UNIT_TEST_SOURCES) unit/core/timeseries_test.c
+unit_core_timeseries_test_CFLAGS = $(UNIT_TEST_CFLAGS)
+unit_core_timeseries_test_LDADD = $(UNIT_TEST_LDADD)
 
 unit_frontend_connection_test_SOURCES = $(UNIT_TEST_SOURCES) unit/frontend/connection_test.c
 unit_frontend_connection_test_CFLAGS = $(UNIT_TEST_CFLAGS)

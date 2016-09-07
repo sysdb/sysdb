@@ -74,6 +74,13 @@
 int
 sdb_regmatches(const char *regex, const char *string);
 
+/*
+ * sdb_diff_strings:
+ * Compare two strings and fail the test if there's a difference.
+ */
+void
+sdb_diff_strings(const char *desc, const char *got, const char *expected);
+
 #endif /* T_LIBSYSDB_UTILS_H */
 
 /* vim: set tw=78 sw=4 ts=4 noexpandtab : */
