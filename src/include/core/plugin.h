@@ -240,11 +240,12 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 		sdb_object_t *user_data);
 
 /*
- * sdb_plugin_register_ts_fetcher:
- * Register a "time-series fetcher" function to be called whenever retrieving
- * a time-series from a data-store. The callback will receive an identifier
- * describing where to retrieve the data from (e.g. a filename or some kind of
- * URL) and options which further describe the query.
+ * sdb_plugin_register_timeseries_fetcher:
+ * Register a "time-series fetcher" to be called whenever retrieving a
+ * time-series from a data-store or information about it. The fetch callback
+ * will receive an identifier describing where to retrieve the data from (e.g.
+ * a filename or some kind of URL) and options which further describe the
+ * query.
  *
  * The name is used literally (without prepending the plugin name) to look up
  * the appropriate fetcher callback.
@@ -258,6 +259,9 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
 int
 sdb_plugin_register_ts_fetcher(const char *name,
 		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data);
+int
+sdb_plugin_register_timeseries_fetcher(const char *name,
+		sdb_timeseries_fetcher_t *fetcher, sdb_object_t *user_data);
 
 /*
  * sdb_plugin_register_writer:

@@ -114,6 +114,14 @@ typedef struct {
 } reader_t;
 #define READER(obj) ((reader_t *)(obj))
 
+typedef struct {
+	callback_t super; /* cb_callback will always be NULL */
+#define ts_user_data super.cb_user_data
+#define ts_ctx super.cb_ctx
+	sdb_timeseries_fetcher_t impl;
+} ts_fetcher_t;
+#define TS_FETCHER(obj) ((ts_fetcher_t *)(obj))
+
 /*
  * private variables
  */
@@ -134,6 +142,7 @@ static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
 static sdb_llist_t      *ts_fetcher_list = NULL;
+static sdb_llist_t      *timeseries_fetcher_list = NULL;
 static sdb_llist_t      *writer_list = NULL;
 static sdb_llist_t      *reader_list = NULL;
 
@@ -148,6 +157,7 @@ static struct {
 	{ "shutdown",           &shutdown_list },
 	{ "log",                &log_list },
 	{ "timeseries fetcher", &ts_fetcher_list },
+	{ "timeseries fetcher", &timeseries_fetcher_list },
 	{ "store writer",       &writer_list },
 	{ "store reader",       &reader_list },
 };
@@ -503,6 +513,52 @@ static sdb_type_t reader_type = {
 
 	plugin_reader_init,
 	plugin_reader_destroy
+};
+
+static int
+plugin_ts_fetcher_init(sdb_object_t *obj, va_list ap)
+{
+	sdb_timeseries_fetcher_t *impl;
+	sdb_object_t *ud;
+
+	if (! plugin_init_ok(obj, ap))
+		return -1;
+
+	impl = va_arg(ap, sdb_timeseries_fetcher_t *);
+	ud = va_arg(ap, sdb_object_t *);
+	assert(impl);
+
+	if ((! impl->describe) || (! impl->fetch)) {
+		sdb_log(SDB_LOG_ERR, "core: timeseries fetcher callback '%s' "
+				"does not fully implement the interface.",
+				obj->name);
+		return -1;
+	}
+
+	/* ctx may be NULL if the callback was not registered by a plugin */
+
+	TS_FETCHER(obj)->impl = *impl;
+	TS_FETCHER(obj)->ts_ctx  = ctx_get();
+	sdb_object_ref(SDB_OBJ(TS_FETCHER(obj)->ts_ctx));
+
+	sdb_object_ref(ud);
+	TS_FETCHER(obj)->ts_user_data = ud;
+	return 0;
+} /* plugin_ts_fetcher_init */
+
+static void
+plugin_ts_fetcher_destroy(sdb_object_t *obj)
+{
+	assert(obj);
+	sdb_object_deref(TS_FETCHER(obj)->ts_user_data);
+	sdb_object_deref(SDB_OBJ(TS_FETCHER(obj)->ts_ctx));
+} /* plugin_ts_fetcher_destroy */
+
+static sdb_type_t ts_fetcher_type = {
+	sizeof(ts_fetcher_t),
+
+	plugin_ts_fetcher_init,
+	plugin_ts_fetcher_destroy
 };
 
 static int
@@ -1021,6 +1077,14 @@ sdb_plugin_register_ts_fetcher(const char *name,
 } /* sdb_plugin_register_ts_fetcher */
 
 int
+sdb_plugin_register_timeseries_fetcher(const char *name,
+		sdb_timeseries_fetcher_t *fetcher, sdb_object_t *user_data)
+{
+	return plugin_add_impl(&timeseries_fetcher_list, ts_fetcher_type, "time-series fetcher",
+			name, fetcher, user_data);
+} /* sdb_plugin_register_timeseries_fetcher */
+
+int
 sdb_plugin_register_writer(const char *name,
 		sdb_store_writer_t *writer, sdb_object_t *user_data)
 {
@@ -1481,6 +1545,8 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 {
 	callback_t *plugin;
 	sdb_plugin_fetch_ts_cb callback;
+
+	ts_fetcher_t *fetcher;
 	sdb_timeseries_t *ts;
 
 	ctx_t *old_ctx;
@@ -1488,6 +1554,15 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	if ((! type) || (! id) || (! opts))
 		return NULL;
 
+	fetcher = TS_FETCHER(sdb_llist_search_by_name(timeseries_fetcher_list, type));
+	if (fetcher) {
+		old_ctx = ctx_set(fetcher->ts_ctx);
+		ts = fetcher->impl.fetch(id, opts, fetcher->ts_user_data);
+		ctx_set(old_ctx);
+		return ts;
+	}
+
+	/* fallback code */
 	plugin = CB(sdb_llist_search_by_name(ts_fetcher_list, type));
 	if (! plugin) {
 		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "

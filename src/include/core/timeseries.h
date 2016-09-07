@@ -29,6 +29,7 @@
 #define SDB_CORE_TIMESERIES_H 1
 
 #include "sysdb.h"
+#include "core/object.h"
 #include "core/time.h"
 #include "utils/strbuf.h"
 
@@ -117,6 +118,27 @@ sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
  */
 void
 sdb_timeseries_destroy(sdb_timeseries_t *ts);
+
+/*
+ * A timeseries fetcher fetches data from a timeseries data-store.
+ */
+typedef struct {
+	/*
+	 * describe:
+	 * Retrieve information about the timeseries from the data-store. The
+	 * returned timeseries info object must be freeable using
+	 * sdb_timeseries_info_destroy.
+	 */
+	sdb_timeseries_info_t *(*describe)(const char *id, sdb_object_t *user_data);
+
+	/*
+	 * fetch:
+	 * Read timeseries data from the data-store. The returned timeseries
+	 * object must be freeable using sdb_timeseries_destroy.
+	 */
+	sdb_timeseries_t *(*fetch)(const char *id,
+			sdb_timeseries_opts_t *opts, sdb_object_t *user_data);
+} sdb_timeseries_fetcher_t;
 
 /*
  * sdb_timeseries_tojson:
