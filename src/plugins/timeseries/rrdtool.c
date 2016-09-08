@@ -1,6 +1,6 @@
 /*
  * SysDB - src/plugins/timeseries/rrdtool.c
- * Copyright (C) 2014 Sebastian 'tokkee' Harl <sh@tokkee.org>
+ * Copyright (C) 2014-2016 Sebastian 'tokkee' Harl <sh@tokkee.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,9 +51,117 @@ SDB_PLUGIN_MAGIC;
  * instances. */
 static bool rrdcached_in_use = 0;
 
+static bool
+rrdcached_connect(char *addr)
+{
+#ifdef HAVE_RRD_CLIENT_H
+	rrd_clear_error();
+	if (! rrdc_is_connected(addr)) {
+		if (rrdc_connect(addr)) {
+			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to "
+					"connectd to RRDCacheD at %s: %s",
+					addr, rrd_get_error());
+			return 0;
+		}
+	}
+#else
+	sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Callback called with "
+			"RRDCacheD address but your build of SysDB does not support "
+			"that");
+	return 0;
+#endif
+	return 1;
+} /* rrdcached_connect */
+
 /*
  * plugin API
  */
+
+static sdb_timeseries_info_t *
+sdb_rrd_describe(const char *id, sdb_object_t *user_data)
+{
+	rrd_info_t *info, *iter;
+	char filename[strlen(id) + 1];
+	sdb_timeseries_info_t *ts_info;
+
+	strncpy(filename, id, sizeof(filename));
+
+	if (user_data) {
+		/* -> use RRDCacheD */
+		char *addr = SDB_OBJ_WRAPPER(user_data)->data;
+
+		if (! rrdcached_connect(addr))
+			return NULL;
+
+#ifdef HAVE_RRD_CLIENT_H
+		/* TODO: detect and use rrdc_info if possible */
+		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: DESCRIBE not yet "
+				"supported via RRDCacheD");
+		return NULL;
+#endif
+	}
+	else {
+		rrd_clear_error();
+		info = rrd_info_r(filename);
+	}
+	if (! info) {
+		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to extract "
+				"header information from '%s': %s", filename,
+				rrd_get_error());
+		return NULL;
+	}
+
+	ts_info = calloc(1, sizeof(*ts_info));
+	if (! ts_info) {
+		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+		rrd_info_free(info);
+		return NULL;
+	}
+
+	for (iter = info; iter != NULL; iter = iter->next) {
+		size_t len, n, m;
+		char *ds_name;
+		char **tmp;
+
+		/* Parse the DS name. The raw value is not exposed via the rrd_info
+		 * interface. */
+		n = strlen("ds[");
+		if (strncmp(iter->key, "ds[", n))
+			continue;
+
+		len = strlen(iter->key);
+		m = strlen("].index");
+		if ((len < m) || strcmp(iter->key + len - m, "].index"))
+			continue;
+
+		ds_name = iter->key + n;
+		len -= n;
+		ds_name[len - m] = '\0';
+
+		/* Append the new datum. */
+		tmp = realloc(ts_info->data_names,
+				(ts_info->data_names_len + 1) * sizeof(*ts_info->data_names));
+		if (! tmp) {
+			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+			sdb_timeseries_info_destroy(ts_info);
+			rrd_info_free(info);
+			return NULL;
+		}
+
+		ts_info->data_names = tmp;
+		ts_info->data_names[ts_info->data_names_len] = strdup(ds_name);
+		if (! ts_info->data_names[ts_info->data_names_len]) {
+			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+			sdb_timeseries_info_destroy(ts_info);
+			rrd_info_free(info);
+			return NULL;
+		}
+		ts_info->data_names_len++;
+	}
+	rrd_info_free(info);
+
+	return ts_info;
+} /* sdb_rrd_describe */
 
 static sdb_timeseries_t *
 sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
@@ -72,30 +180,18 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 	rrd_value_t *data = NULL, *data_ptr;
 
 	if (user_data) {
-#ifdef HAVE_RRD_CLIENT_H
 		/* -> use RRDCacheD */
 		char *addr = SDB_OBJ_WRAPPER(user_data)->data;
 
-		rrd_clear_error();
-		if (! rrdc_is_connected(addr)) {
-			if (rrdc_connect(addr)) {
-				sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to "
-						"connectd to RRDCacheD at %s: %s",
-						addr, rrd_get_error());
-				return NULL;
-			}
-		}
+		if (! rrdcached_connect(addr))
+			return NULL;
 
+#ifdef HAVE_RRD_CLIENT_H
 		if (rrdc_flush(id)) {
 			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to flush "
 					"'%s' through RRDCacheD: %s", id, rrd_get_error());
 			return NULL;
 		}
-#else
-		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Callback called with "
-				"RRDCacheD address but your build of SysDB does not support "
-				"that");
-		return NULL;
 #endif
 	}
 
@@ -152,6 +248,10 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 	FREE_RRD_DATA();
 	return ts;
 } /* sdb_rrd_fetch */
+
+static sdb_timeseries_fetcher_t fetcher_impl = {
+	sdb_rrd_describe, sdb_rrd_fetch,
+};
 
 static int
 sdb_rrdcached_shutdown(sdb_object_t __attribute__((unused)) *user_data)
@@ -212,7 +312,7 @@ sdb_rrd_config_rrdcached(oconfig_item_t *ci)
 		return -1;
 	}
 
-	sdb_plugin_register_ts_fetcher("rrdcached", sdb_rrd_fetch, ud);
+	sdb_plugin_register_timeseries_fetcher("rrdcached", &fetcher_impl, ud);
 	sdb_plugin_register_shutdown("rrdcached", sdb_rrdcached_shutdown, NULL);
 	sdb_object_deref(ud);
 	rrdcached_in_use = 1;
@@ -253,7 +353,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_VERSION, SDB_VERSION);
 	sdb_plugin_set_info(info, SDB_PLUGIN_INFO_PLUGIN_VERSION, SDB_VERSION);
 
-	sdb_plugin_register_ts_fetcher("rrdtool", sdb_rrd_fetch, NULL);
+	sdb_plugin_register_timeseries_fetcher("rrdtool", &fetcher_impl, NULL);
 	sdb_plugin_register_config(sdb_rrd_config);
 	return 0;
 } /* sdb_module_init */
