@@ -141,7 +141,6 @@ static sdb_llist_t      *collector_list = NULL;
 static sdb_llist_t      *cname_list = NULL;
 static sdb_llist_t      *shutdown_list = NULL;
 static sdb_llist_t      *log_list = NULL;
-static sdb_llist_t      *ts_fetcher_list = NULL;
 static sdb_llist_t      *timeseries_fetcher_list = NULL;
 static sdb_llist_t      *writer_list = NULL;
 static sdb_llist_t      *reader_list = NULL;
@@ -156,7 +155,6 @@ static struct {
 	{ "cname",              &cname_list },
 	{ "shutdown",           &shutdown_list },
 	{ "log",                &log_list },
-	{ "timeseries fetcher", &ts_fetcher_list },
 	{ "timeseries fetcher", &timeseries_fetcher_list },
 	{ "store writer",       &writer_list },
 	{ "store reader",       &reader_list },
@@ -1069,14 +1067,6 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 } /* sdb_plugin_register_collector */
 
 int
-sdb_plugin_register_ts_fetcher(const char *name,
-		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data)
-{
-	return plugin_add_impl(&ts_fetcher_list, callback_type, "time-series fetcher",
-			name, callback, user_data);
-} /* sdb_plugin_register_ts_fetcher */
-
-int
 sdb_plugin_register_timeseries_fetcher(const char *name,
 		sdb_timeseries_fetcher_t *fetcher, sdb_object_t *user_data)
 {
@@ -1543,9 +1533,6 @@ sdb_timeseries_t *
 sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		sdb_timeseries_opts_t *opts)
 {
-	callback_t *plugin;
-	sdb_plugin_fetch_ts_cb callback;
-
 	ts_fetcher_t *fetcher;
 	sdb_timeseries_t *ts;
 
@@ -1555,25 +1542,15 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		return NULL;
 
 	fetcher = TS_FETCHER(sdb_llist_search_by_name(timeseries_fetcher_list, type));
-	if (fetcher) {
-		old_ctx = ctx_set(fetcher->ts_ctx);
-		ts = fetcher->impl.fetch(id, opts, fetcher->ts_user_data);
-		ctx_set(old_ctx);
-		return ts;
-	}
-
-	/* fallback code */
-	plugin = CB(sdb_llist_search_by_name(ts_fetcher_list, type));
-	if (! plugin) {
+	if (! fetcher) {
 		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "
 				"no such plugin loaded", type);
 		errno = ENOENT;
 		return NULL;
 	}
 
-	old_ctx = ctx_set(plugin->cb_ctx);
-	callback = (sdb_plugin_fetch_ts_cb)plugin->cb_callback;
-	ts = callback(id, opts, plugin->cb_user_data);
+	old_ctx = ctx_set(fetcher->ts_ctx);
+	ts = fetcher->impl.fetch(id, opts, fetcher->ts_user_data);
 	ctx_set(old_ctx);
 	return ts;
 } /* sdb_plugin_fetch_timeseries */

@@ -123,9 +123,6 @@ typedef int (*sdb_plugin_shutdown_cb)(sdb_object_t *user_data);
 typedef int (*sdb_plugin_log_cb)(int prio, const char *msg,
 		sdb_object_t *user_data);
 
-typedef sdb_timeseries_t *(*sdb_plugin_fetch_ts_cb)(const char *id,
-		sdb_timeseries_opts_t *opts, sdb_object_t *user_data);
-
 /*
  * sdb_plugin_register_config:
  * Register a "config" function. This will be used to pass on the
@@ -256,9 +253,6 @@ sdb_plugin_register_log(const char *name, sdb_plugin_log_cb callback,
  *    increment the reference count by one. In case the caller does not longer
  *    use the object for other purposes, it should thus deref it.
  */
-int
-sdb_plugin_register_ts_fetcher(const char *name,
-		sdb_plugin_fetch_ts_cb callback, sdb_object_t *user_data);
 int
 sdb_plugin_register_timeseries_fetcher(const char *name,
 		sdb_timeseries_fetcher_t *fetcher, sdb_object_t *user_data);
