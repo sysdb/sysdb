@@ -31,47 +31,11 @@
 
 #include "sysdb.h"
 #include "core/timeseries.h"
+#include "utils/strings.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-static int
-copy_strings(char ***out, size_t *out_len,
-		const char * const *in, size_t in_len)
-{
-	size_t i;
-
-	*out = calloc(in_len, sizeof(**out));
-	if (! *out)
-		return -1;
-
-	*out_len = in_len;
-	for (i = 0; i < in_len; ++i) {
-		(*out)[i] = strdup(in[i]);
-		if (! (*out)[i])
-			return -1;
-	}
-	return 0;
-} /* copy_strings */
-
-static void
-free_strings(char ***strings, size_t *strings_len)
-{
-	size_t i;
-
-	if (*strings) {
-		for (i = 0; i < *strings_len; ++i) {
-			if ((*strings)[i])
-				free((*strings)[i]);
-			(*strings)[i] = NULL;
-		}
-		free(*strings);
-	}
-
-	*strings = NULL;
-	*strings_len = 0;
-} /* free_strings */
 
 /*
  * public API
@@ -86,7 +50,7 @@ sdb_timeseries_info_create(size_t data_names_len, const char * const *data_names
 	if (! ts_info)
 		return NULL;
 
-	if (copy_strings(&ts_info->data_names, &ts_info->data_names_len,
+	if (stringv_copy(&ts_info->data_names, &ts_info->data_names_len,
 				data_names, data_names_len)) {
 		sdb_timeseries_info_destroy(ts_info);
 		return NULL;
@@ -100,7 +64,7 @@ sdb_timeseries_info_destroy(sdb_timeseries_info_t *ts_info)
 	if (! ts_info)
 		return;
 
-	free_strings(&ts_info->data_names, &ts_info->data_names_len);
+	stringv_free(&ts_info->data_names, &ts_info->data_names_len);
 	free(ts_info);
 } /* sdb_timeseries_info_destroy */
 
@@ -115,7 +79,7 @@ sdb_timeseries_create(size_t data_names_len, const char * const *data_names,
 	if (! ts)
 		return NULL;
 
-	if (copy_strings(&ts->data_names, &ts->data_names_len,
+	if (stringv_copy(&ts->data_names, &ts->data_names_len,
 				data_names, data_names_len)) {
 		sdb_timeseries_destroy(ts);
 		return NULL;
@@ -156,7 +120,7 @@ sdb_timeseries_destroy(sdb_timeseries_t *ts)
 	ts->data = NULL;
 	ts->data_len = 0;
 
-	free_strings(&ts->data_names, &ts->data_names_len);
+	stringv_free(&ts->data_names, &ts->data_names_len);
 	free(ts);
 } /* sdb_timeseries_destroy */
 

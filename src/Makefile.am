@@ -45,6 +45,7 @@ pkgutilsinclude_HEADERS = \
 		include/utils/proto.h \
 		include/utils/ssl.h \
 		include/utils/strbuf.h \
+		include/utils/strings.h \
 		include/utils/unixsock.h
 
 pkgclientincludedir = $(pkgincludedir)/client
@@ -62,7 +63,8 @@ libsysdbclient_la_SOURCES = \
 		utils/error.c include/utils/error.h \
 		utils/proto.c include/utils/proto.h \
 		utils/ssl.c include/utils/ssl.h \
-		utils/strbuf.c include/utils/strbuf.h
+		utils/strbuf.c include/utils/strbuf.h \
+		utils/strings.c include/utils/strings.h
 libsysdbclient_la_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@
 libsysdbclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
 libsysdbclient_la_LDFLAGS = $(AM_LDFLAGS) -version-info 0:0:0 \
@@ -105,6 +107,7 @@ libsysdb_la_SOURCES = \
 		utils/proto.c include/utils/proto.h \
 		utils/ssl.c include/utils/ssl.h \
 		utils/strbuf.c include/utils/strbuf.h \
+		utils/strings.c include/utils/strings.h \
 		utils/unixsock.c include/utils/unixsock.h
 libsysdb_la_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@
 libsysdb_la_CPPFLAGS = $(AM_CPPFLAGS) $(LTDLINCL)
