@@ -159,29 +159,42 @@ dbi_driver
 dbi_driver_list_r(dbi_driver curr, dbi_inst inst);
 #endif
 
+const dbi_inst INST = (void *)0x4711;
+
 int
-dbi_initialize_r(const char __attribute__((unused)) *driverdir,
-		dbi_inst __attribute__((unused)) *pInst)
+dbi_initialize_r(const char __attribute__((unused)) *driverdir, dbi_inst *pInst)
 {
+	*pInst = INST;
 	return 0;
 } /* dbi_initialize_r */
 
 void
-dbi_shutdown_r(dbi_inst __attribute__((unused)) inst)
+dbi_shutdown_r(dbi_inst inst)
 {
+	fail_unless(inst == INST,
+			"dbi_shutdown_r() called with unexpected inst=%p; expected %p",
+			inst, INST);
 } /* dbi_shutdown_r */
 
 dbi_driver
-dbi_driver_open_r(const char *name, dbi_inst __attribute__((unused)) inst)
+dbi_driver_open_r(const char *name, dbi_inst inst)
 {
+	fail_unless(inst == INST,
+			"dbi_driver_open_r() called with unexpected inst=%p; expected %p",
+			inst, INST);
+
 	if (strcmp(name, "mockdriver"))
 		return NULL;
 	return (dbi_driver)"mockdriver";
 } /* dbi_driver_open */
 
 dbi_driver
-dbi_driver_list_r(dbi_driver curr, dbi_inst __attribute__((unused)) inst)
+dbi_driver_list_r(dbi_driver curr, dbi_inst inst)
 {
+	fail_unless(inst == INST,
+			"dbi_driver_list_r() called with unexpected inst=%p; expected %p",
+			inst, INST);
+
 	if (!curr)
 		return "mockdriver";
 	return NULL;
@@ -593,13 +606,47 @@ query_callback(sdb_dbi_client_t *c,
 
 START_TEST(test_sdb_dbi_client_connect)
 {
-	int check = sdb_dbi_client_connect(client);
+	sdb_dbi_options_t *opts;
+	int check;
+
+	check = sdb_dbi_client_connect(client);
 	fail_unless(check == 0,
 			"sdb_dbi_client_connect() = %i; expected: 0", check);
-
 	fail_unless(dbi_conn_connect_called == 1,
 			"sdb_dbi_client_create() called dbi_conn_connect %i times; "
 			"expected: 1", dbi_conn_connect_called);
+
+	/* calling it again shall reconnect */
+	check = sdb_dbi_client_connect(client);
+	fail_unless(check == 0,
+			"repeated sdb_dbi_client_connect() = %i; expected: 0", check);
+	fail_unless(dbi_conn_connect_called == 2,
+			"repeated sdb_dbi_client_create() called dbi_conn_connect %i times; "
+			"expected: 2", dbi_conn_connect_called);
+
+	opts = sdb_dbi_options_create();
+	fail_unless(opts != NULL,
+			"sdb_dbi_options_create() returned NULL; expected <opts>");
+	check = sdb_dbi_options_add(opts, "a", "1");
+	fail_unless(check == 0,
+			"sdb_dbi_options_add('a', '1') = %d; expected: 0", check);
+	check = sdb_dbi_options_add(opts, "b", "2");
+	fail_unless(check == 0,
+			"sdb_dbi_options_add('b', '2') = %d; expected: 0", check);
+
+	check = sdb_dbi_client_set_options(client, opts);
+	fail_unless(check == 0,
+			"sdb_dbi_client_set_options() = %d; expected: 0", check);
+	/* reconnect with options */
+	check = sdb_dbi_client_connect(client);
+	fail_unless(check == 0,
+			"repeated, with options sdb_dbi_client_connect() = %i; expected: 0",
+			check);
+	fail_unless(dbi_conn_connect_called == 3,
+			"repeated, with options sdb_dbi_client_create() called "
+			"dbi_conn_connect %i times; expected: 3", dbi_conn_connect_called);
+
+	/* The client takes ownership of the options, so no need to destroy it. */
 }
 END_TEST
 
