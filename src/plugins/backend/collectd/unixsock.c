@@ -151,7 +151,7 @@ add_metrics(const char *hostname, char *plugin, char *type,
 
 	char metric_id[(ud->ts_base ? strlen(ud->ts_base) : 0)
 		+ strlen(hostname) + sizeof(name) + 7];
-	sdb_metric_store_t store = { ud->ts_type, metric_id, last_update };
+	sdb_metric_store_t store = { ud->ts_type, metric_id, NULL, last_update };
 
 	sdb_data_t data = { SDB_TYPE_STRING, { .string = NULL } };
 

@@ -36,6 +36,7 @@
 #include "sysdb.h"
 #include "core/store.h"
 #include "utils/error.h"
+#include "utils/strings.h"
 
 #include <assert.h>
 
@@ -103,6 +104,8 @@ typedef struct {
 	 *  0: false
 	 *  1: true */
 	int timeseries;
+	char **data_names;
+	size_t data_names_len;
 
 	/* generic meta-data */
 	sdb_time_t last_update;
@@ -235,6 +238,18 @@ json_emit(sdb_store_json_formatter_t *f, obj_t *obj)
 			sdb_strbuf_append(f->buf, "\"timeseries\": true, ");
 		else
 			sdb_strbuf_append(f->buf, "\"timeseries\": false, ");
+
+		if (obj->data_names_len > 0) {
+			sdb_strbuf_append(f->buf, "\"data_names\": [");
+			for (i = 0; i < obj->data_names_len; i++) {
+				char dn[2 * strlen(obj->data_names[i]) + 3];
+				escape_string(obj->data_names[i], dn);
+				sdb_strbuf_append(f->buf, "%s", dn);
+				if (i < obj->data_names_len - 1)
+					sdb_strbuf_append(f->buf, ", ");
+			}
+			sdb_strbuf_append(f->buf, "], ");
+		}
 	}
 
 	/* TODO: make time and interval formats configurable */
@@ -274,7 +289,7 @@ emit_host(sdb_store_host_t *host, sdb_object_t *user_data)
 			host->name,
 
 			/* value */ NULL,
-			/* timeseries */ -1,
+			/* timeseries */ -1, NULL, 0,
 
 			host->last_update,
 			host->interval,
@@ -300,7 +315,7 @@ emit_service(sdb_store_service_t *service, sdb_object_t *user_data)
 			service->name,
 
 			/* value */ NULL,
-			/* timeseries */ -1,
+			/* timeseries */ -1, NULL, 0,
 
 			service->last_update,
 			service->interval,
@@ -316,6 +331,8 @@ static int
 emit_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 {
 	sdb_store_json_formatter_t *f = F(user_data);
+	int status;
+	size_t i;
 
 	if ((! metric) || (! user_data))
 		return -1;
@@ -326,7 +343,7 @@ emit_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 			metric->name,
 
 			/* value */ NULL,
-			/* timeseries */ metric->stores_num > 0,
+			/* timeseries */ metric->stores_num > 0, NULL, 0,
 
 			metric->last_update,
 			metric->interval,
@@ -334,7 +351,28 @@ emit_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 			(const char * const *)metric->backends,
 		};
 
-		return json_emit(f, &o);
+		for (i = 0; i < metric->stores_num; i++) {
+			const sdb_metric_store_t *s = metric->stores + i;
+			size_t j;
+
+			if (! s->info)
+				continue;
+
+			if (! o.data_names) {
+				stringv_copy(&o.data_names, &o.data_names_len,
+						(const char * const *)s->info->data_names,
+						s->info->data_names_len);
+				continue;
+			}
+
+			for (j = 0; j < s->info->data_names_len; j++)
+				stringv_append_if_missing(&o.data_names, &o.data_names_len,
+						s->info->data_names[j]);
+		}
+
+		status = json_emit(f, &o);
+		stringv_free(&o.data_names, &o.data_names_len);
+		return status;
 	}
 } /* emit_metric */
 
@@ -352,7 +390,7 @@ emit_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
 			attr->key,
 
 			/* value */ &attr->value,
-			/* timeseries */ -1,
+			/* timeseries */ -1, NULL, 0,
 
 			attr->last_update,
 			attr->interval,

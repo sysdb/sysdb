@@ -784,6 +784,7 @@ sdb_memstore_metric(sdb_memstore_t *store, const char *hostname, const char *nam
 		metric.stores = &(const sdb_metric_store_t){
 			metric_store->type,
 			metric_store->id,
+			NULL,
 			metric_store->last_update,
 		};
 		metric.stores_num = 1;

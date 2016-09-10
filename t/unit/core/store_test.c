@@ -239,8 +239,8 @@ END_TEST
 
 START_TEST(test_store_metric)
 {
-	sdb_metric_store_t store1 = { "dummy-type1", "dummy-id1", 0 };
-	sdb_metric_store_t store2 = { "dummy-type2", "dummy-id2", 0 };
+	sdb_metric_store_t store1 = { "dummy-type1", "dummy-id1", NULL, 0 };
+	sdb_metric_store_t store2 = { "dummy-type2", "dummy-id2", NULL, 0 };
 
 	struct {
 		const char *host;

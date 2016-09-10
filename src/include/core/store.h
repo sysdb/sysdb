@@ -32,6 +32,7 @@
 #include "core/object.h"
 #include "core/data.h"
 #include "core/time.h"
+#include "core/timeseries.h"
 #include "parser/ast.h"
 #include "utils/strbuf.h"
 
@@ -125,6 +126,7 @@ typedef struct {
 typedef struct {
 	const char *type;
 	const char *id;
+	const sdb_timeseries_info_t *info;
 	sdb_time_t last_update;
 } sdb_metric_store_t;
 
