@@ -37,7 +37,8 @@ extern "C" {
 /*
  * stringv_copy:
  * Copy a string vector from 'src' to 'dst'. If non-NULL, 'dst' will be
- * reallocated to fit the required size.
+ * reallocated to fit the required size and old entries will be freed before
+ * overriding them.
  *
  * Returns:
  *  - 0 on success
@@ -46,6 +47,17 @@ extern "C" {
 int
 stringv_copy(char ***dst, size_t *dst_len,
 		const char * const *src, size_t src_len);
+
+/*
+ * stringv_append:
+ * Append a string to a string vector.
+ *
+ * Returns:
+ *  - 0 on success
+ *  - a negative value else
+ */
+int
+stringv_append(char ***s, size_t *s_len, const char *elem);
 
 /*
  * stringv_free:

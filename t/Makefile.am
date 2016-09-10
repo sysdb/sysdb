@@ -51,7 +51,8 @@ UNIT_TESTS = \
 		unit/utils/llist_test \
 		unit/utils/os_test \
 		unit/utils/proto_test \
-		unit/utils/strbuf_test
+		unit/utils/strbuf_test \
+		unit/utils/strings_test
 
 UNIT_TEST_SOURCES = unit/testutils.c unit/testutils.h
 UNIT_TEST_CFLAGS = $(AM_CFLAGS) @CHECK_CFLAGS@ -I$(top_srcdir)/t/unit
@@ -143,6 +144,10 @@ unit_utils_proto_test_LDADD = $(UNIT_TEST_LDADD)
 unit_utils_strbuf_test_SOURCES = $(UNIT_TEST_SOURCES) unit/utils/strbuf_test.c
 unit_utils_strbuf_test_CFLAGS = $(UNIT_TEST_CFLAGS)
 unit_utils_strbuf_test_LDADD = $(UNIT_TEST_LDADD)
+
+unit_utils_strings_test_SOURCES = $(UNIT_TEST_SOURCES) unit/utils/strings_test.c
+unit_utils_strings_test_CFLAGS = $(UNIT_TEST_CFLAGS)
+unit_utils_strings_test_LDADD = $(UNIT_TEST_LDADD)
 
 TESTS += $(UNIT_TESTS)
 check_PROGRAMS += $(UNIT_TESTS)
