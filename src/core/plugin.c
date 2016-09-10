@@ -268,6 +268,73 @@ plugin_unregister_by_name(const char *plugin_name)
 } /* plugin_unregister_by_name */
 
 /*
+ * store writer wrapper for performing database queries:
+ * It wraps another store writer, adding extra logic as needed.
+ */
+
+typedef struct {
+	sdb_object_t super;
+	sdb_store_writer_t *w;
+	sdb_object_t *ud;
+} query_writer_t;
+#define QUERY_WRITER_INIT(w, ud) { SDB_OBJECT_INIT, (w), (ud) }
+#define QUERY_WRITER(obj) ((query_writer_t *)(obj))
+
+static int
+query_store_host(sdb_store_host_t *host, sdb_object_t *user_data)
+{
+	query_writer_t *qw = QUERY_WRITER(user_data);
+	return qw->w->store_host(host, qw->ud);
+} /* query_store_host */
+
+static int
+query_store_service(sdb_store_service_t *service, sdb_object_t *user_data)
+{
+	query_writer_t *qw = QUERY_WRITER(user_data);
+	return qw->w->store_service(service, qw->ud);
+} /* query_store_service */
+
+static int
+query_store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
+{
+	query_writer_t *qw = QUERY_WRITER(user_data);
+	sdb_timeseries_info_t *infos[metric->stores_num];
+	sdb_metric_store_t stores[metric->stores_num];
+
+	const sdb_metric_store_t *orig_stores = metric->stores;
+	int status;
+	size_t i;
+
+	for (i = 0; i < metric->stores_num; i++) {
+		/* TODO: Make this optional using query options. */
+		sdb_metric_store_t *s = stores + i;
+		*s = metric->stores[i];
+		infos[i] = sdb_plugin_describe_timeseries(s->type, s->id);
+		s->info = infos[i];
+	}
+
+	metric->stores = stores;
+	status = qw->w->store_metric(metric, qw->ud);
+	metric->stores = orig_stores;
+
+	for (i = 0; i < metric->stores_num; i++)
+		sdb_timeseries_info_destroy(infos[i]);
+	return status;
+} /* query_store_metric */
+
+static int
+query_store_attribute(sdb_store_attribute_t *attr, sdb_object_t *user_data)
+{
+	query_writer_t *qw = QUERY_WRITER(user_data);
+	return qw->w->store_attribute(attr, qw->ud);
+} /* query_store_attribute */
+
+static sdb_store_writer_t query_writer = {
+	query_store_host, query_store_service,
+	query_store_metric, query_store_attribute,
+};
+
+/*
  * private types
  */
 
@@ -1584,9 +1651,11 @@ int
 sdb_plugin_query(sdb_ast_node_t *ast,
 		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf)
 {
-	size_t n = sdb_llist_len(reader_list);
+	query_writer_t qw = QUERY_WRITER_INIT(w, wd);
 	reader_t *reader;
 	sdb_object_t *q;
+
+	size_t n = sdb_llist_len(reader_list);
 	int status = 0;
 
 	if (! ast)
@@ -1616,7 +1685,7 @@ sdb_plugin_query(sdb_ast_node_t *ast,
 
 	q = reader->impl.prepare_query(ast, errbuf, reader->r_user_data);
 	if (q)
-		status = reader->impl.execute_query(q, w, SDB_OBJ(wd),
+		status = reader->impl.execute_query(q, &query_writer, SDB_OBJ(&qw),
 				errbuf, reader->r_user_data);
 	else
 		status = -1;

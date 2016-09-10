@@ -68,6 +68,11 @@ wait_for_sysdbd "${SOCKET_FILE}.sender"
 # wait for initial data
 sleep 3
 
+# Check data-source names.
+output="$( run_sysdb -H "$SOCKET_FILE" \
+	-c "FETCH metric 'some.host.name'.'foo/bar/qux'" )"
+echo "$output" | grep -F '"data_names": ["nameA", "nameB"]'
+
 # TIMESERIES commands.
 run_sysdb -H "$SOCKET_FILE" \
 		-c "TIMESERIES 'invalid.host'.'invalid-metric'" && exit 1
