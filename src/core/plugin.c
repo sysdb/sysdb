@@ -1555,6 +1555,31 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 	return ts;
 } /* sdb_plugin_fetch_timeseries */
 
+sdb_timeseries_info_t *
+sdb_plugin_describe_timeseries(const char *type, const char *id)
+{
+	ts_fetcher_t *fetcher;
+	sdb_timeseries_info_t *ts_info;
+
+	ctx_t *old_ctx;
+
+	if ((! type) || (! id))
+		return NULL;
+
+	fetcher = TS_FETCHER(sdb_llist_search_by_name(timeseries_fetcher_list, type));
+	if (! fetcher) {
+		sdb_log(SDB_LOG_ERR, "core: Cannot describe time-series of type %s: "
+				"no such plugin loaded", type);
+		errno = ENOENT;
+		return NULL;
+	}
+
+	old_ctx = ctx_set(fetcher->ts_ctx);
+	ts_info = fetcher->impl.describe(id, fetcher->ts_user_data);
+	ctx_set(old_ctx);
+	return ts_info;
+} /* sdb_plugin_describe_timeseries */
+
 int
 sdb_plugin_query(sdb_ast_node_t *ast,
 		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf)

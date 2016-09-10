@@ -435,6 +435,20 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 		sdb_timeseries_opts_t *opts);
 
 /*
+ * sdb_plugin_describe_timeseries:
+ * Fetch information about the time-series identified by 'id' from a backend
+ * data-store of the specified 'type'. The type has to match an existing
+ * time-series fetcher callback's name. The identifier is passed through to
+ * the callback which then needs to make sense of it.
+ *
+ * Returns:
+ *  - a time-series information object on success
+ *  - NULL else
+ */
+sdb_timeseries_info_t *
+sdb_plugin_describe_timeseries(const char *type, const char *id);
+
+/*
  * sdb_plugin_query:
  * Query the store using the query specified by 'ast'. The result will be
  * written to 'buf' and any errors will be written to 'errbuf'.
