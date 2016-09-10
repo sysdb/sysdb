@@ -44,7 +44,7 @@ START_TEST(test_stringv)
 	char **dst = NULL;
 	size_t dst_len = 0;
 
-	char *src[] = { "a", "b", "c" };
+	char *src[] = { "a", "b", "c", "d", "e" };
 	size_t src_len = SDB_STATIC_ARRAY_LEN(src);
 	size_t i;
 
@@ -74,12 +74,24 @@ START_TEST(test_stringv)
 		char buf1[256], buf2[256];
 		size_t j;
 
-		check = stringv_append(&dst, &dst_len, src[i]);
+		if (i < 3) {
+			check = stringv_append(&dst, &dst_len, src[i]);
+			fail_unless(check == 0,
+					"stringv_append(<s>, <len>, '%s') = %d; expected: 0",
+					src[i], check);
+			fail_unless((dst != NULL) && (dst_len == i + 1),
+					"stringv_append(<s>, <len>, '%s') produced s=%p, len=%zu; "
+					"expected: s=<v>, len=%zu", src[i], dst, dst_len, i + 1);
+		}
+
+		/* A no-op for the first three iterations but then it appends the
+		 * other elements. */
+		check = stringv_append_if_missing(&dst, &dst_len, src[i]);
 		fail_unless(check == 0,
-				"stringv_append(<s>, <len>, '%s') = %d; expected: 0",
+				"stringv_append_if_missing(<s>, <len>, '%s') = %d; expected: 0",
 				src[i], check);
 		fail_unless((dst != NULL) && (dst_len == i + 1),
-				"stringv_append(<s>, <len>, '%s') produced s=%p, len=%zu; "
+				"stringv_append_if_missing(<s>, <len>, '%s') produced s=%p, len=%zu; "
 				"expected: s=<v>, len=%zu", src[i], dst, dst_len, i + 1);
 
 		for (j = 0; j <= i; j++)

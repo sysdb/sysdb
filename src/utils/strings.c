@@ -114,6 +114,21 @@ stringv_append(char ***s, size_t *s_len, const char *elem)
 	return 0;
 } /* stringv_append */
 
+int
+stringv_append_if_missing(char ***s, size_t *s_len, const char *elem)
+{
+	size_t i;
+
+	if ((! s) || (! s_len))
+		return -1;
+
+	for (i = 0; i < *s_len; i++)
+		if (! strcmp((*s)[i], elem))
+			return 0;
+
+	return stringv_append(s, s_len, elem);
+} /* stringv_append_if_missing */
+
 void
 stringv_free(char ***s, size_t *s_len)
 {

@@ -58,6 +58,8 @@ stringv_copy(char ***dst, size_t *dst_len,
  */
 int
 stringv_append(char ***s, size_t *s_len, const char *elem);
+int
+stringv_append_if_missing(char ***s, size_t *s_len, const char *elem);
 
 /*
  * stringv_free:
