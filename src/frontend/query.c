@@ -136,7 +136,8 @@ exec_query(sdb_ast_node_t *ast, sdb_strbuf_t *buf, sdb_strbuf_t *errbuf)
 
 	f = sdb_store_json_formatter(buf, type, flags);
 	sdb_strbuf_memcpy(buf, &res_type, sizeof(res_type));
-	status = sdb_plugin_query(ast, &sdb_store_json_writer, SDB_OBJ(f), errbuf);
+	status = sdb_plugin_query(ast, &sdb_store_json_writer, SDB_OBJ(f),
+			&(sdb_query_opts_t){ true }, errbuf);
 	if (status < 0)
 		sdb_strbuf_clear(buf);
 	sdb_store_json_finish(f);
@@ -250,7 +251,8 @@ exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbu
 	opts.end = ts->end;
 
 	status = sdb_plugin_query(SDB_AST_NODE(&fetch),
-			&metric_fetcher, SDB_OBJ(&obj), errbuf);
+			&metric_fetcher, SDB_OBJ(&obj),
+			&(sdb_query_opts_t){ true }, errbuf);
 	if ((status < 0) || (! st.type) || (! st.id)) {
 		sdb_log(SDB_LOG_ERR, "frontend: Failed to fetch time-series '%s/%s' "
 				"- no data-store configured for the stored metric",

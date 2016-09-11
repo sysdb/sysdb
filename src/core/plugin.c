@@ -276,8 +276,13 @@ typedef struct {
 	sdb_object_t super;
 	sdb_store_writer_t *w;
 	sdb_object_t *ud;
+	sdb_query_opts_t opts;
 } query_writer_t;
-#define QUERY_WRITER_INIT(w, ud) { SDB_OBJECT_INIT, (w), (ud) }
+#define QUERY_WRITER_INIT(w, ud) { \
+	SDB_OBJECT_INIT, \
+	(w), (ud), \
+	SDB_DEFAULT_QUERY_OPTS \
+}
 #define QUERY_WRITER(obj) ((query_writer_t *)(obj))
 
 static int
@@ -305,8 +310,11 @@ query_store_metric(sdb_store_metric_t *metric, sdb_object_t *user_data)
 	int status;
 	size_t i;
 
+	if (! qw->opts.describe_timeseries)
+		/* nothing further to do */
+		return qw->w->store_metric(metric, qw->ud);
+
 	for (i = 0; i < metric->stores_num; i++) {
-		/* TODO: Make this optional using query options. */
 		sdb_metric_store_t *s = stores + i;
 		*s = metric->stores[i];
 		infos[i] = sdb_plugin_describe_timeseries(s->type, s->id);
@@ -875,7 +883,7 @@ get_interval(int obj_type, const char *hostname,
 	fetch.name = n;
 
 	status = sdb_plugin_query(SDB_AST_NODE(&fetch),
-			&interval_fetcher, SDB_OBJ(&obj), NULL);
+			&interval_fetcher, SDB_OBJ(&obj), NULL, NULL);
 	if ((status < 0) || (lu.obj_type != obj_type) || (lu.last_update == 0)) {
 		*interval_out = 0;
 		return 0;
@@ -1649,7 +1657,8 @@ sdb_plugin_describe_timeseries(const char *type, const char *id)
 
 int
 sdb_plugin_query(sdb_ast_node_t *ast,
-		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf)
+		sdb_store_writer_t *w, sdb_object_t *wd,
+		sdb_query_opts_t *opts, sdb_strbuf_t *errbuf)
 {
 	query_writer_t qw = QUERY_WRITER_INIT(w, wd);
 	reader_t *reader;
@@ -1660,6 +1669,9 @@ sdb_plugin_query(sdb_ast_node_t *ast,
 
 	if (! ast)
 		return 0;
+
+	if (opts)
+		qw.opts = *opts;
 
 	if ((ast->type != SDB_AST_TYPE_FETCH)
 			&& (ast->type != SDB_AST_TYPE_LIST)

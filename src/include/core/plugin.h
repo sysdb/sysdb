@@ -449,9 +449,20 @@ sdb_timeseries_info_t *
 sdb_plugin_describe_timeseries(const char *type, const char *id);
 
 /*
+ * sdb_query_opts_t:
+ * Options for tuning the behavior of a query.
+ */
+typedef struct {
+	/* If enabled, populate the time-series info field of each metric. */
+	bool describe_timeseries;
+} sdb_query_opts_t;
+#define SDB_DEFAULT_QUERY_OPTS { false }
+
+/*
  * sdb_plugin_query:
  * Query the store using the query specified by 'ast'. The result will be
- * written to 'buf' and any errors will be written to 'errbuf'.
+ * written to 'buf' and any errors will be written to 'errbuf'. The query
+ * options default to SDB_DEFAULT_QUERY_OPTS.
  *
  * Returns:
  *  - 0 on success
@@ -459,7 +470,8 @@ sdb_plugin_describe_timeseries(const char *type, const char *id);
  */
 int
 sdb_plugin_query(sdb_ast_node_t *ast,
-		sdb_store_writer_t *w, sdb_object_t *wd, sdb_strbuf_t *errbuf);
+		sdb_store_writer_t *w, sdb_object_t *wd,
+		sdb_query_opts_t *opts, sdb_strbuf_t *errbuf);
 
 /*
  * sdb_plugin_store_host, sdb_plugin_store_service, sdb_plugin_store_metric,
