@@ -473,6 +473,17 @@ if test "x$with_libdbi" = "xyes"; then
 fi
 AM_CONDITIONAL([BUILD_WITH_LIBDBI], test "x$with_libdbi" = "xyes")
 
+AC_ARG_WITH([libyajl],
+		[AS_HELP_STRING([--with-liyajl], [libyajl support (default: auto)])],
+		[with_libyajl="$withval"],
+		[with_libyajl="yes"])
+if test "x$with_libyajl" = "xyes" || test "x$with_libyajl" = "xauto"; then
+	PKG_CHECK_MODULES([YAJL], [yajl], [have_libyajl="yes"], [have_libyajl="no"])
+fi
+if test "x$with_libyajl" = "xyes"; then
+	AC_DEFINE([HAVE_LIBYAJL], 1, [Define to 1 if you have the 'yajl' library.])
+fi
+
 dnl Required for mocking FILE related functions.
 orig_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"
@@ -730,6 +741,10 @@ librrd_info="$have_librrd"
 if test "x$have_librrd" = "xyes"; then
 	librrd_info="yes (version `$PKG_CONFIG --modversion librrd`)"
 fi
+libyajl_info="$have_libyajl"
+if test "x$have_libyajl" = "xyes"; then
+	libyajl_info="yes (version `$PKG_CONFIG --modversion yajl`)"
+fi
 
 AC_MSG_RESULT()
 AC_MSG_RESULT([$PACKAGE_NAME has been configured successfully.])
@@ -760,6 +775,7 @@ AC_MSG_RESULT([    libedit:  . . . . . . . . . $libedit_info])
 AC_MSG_RESULT([    libopenssl: . . . . . . . . $openssl_info])
 AC_MSG_RESULT([    libreadline:  . . . . . . . $have_libreadline])
 AC_MSG_RESULT([    librrd: . . . . . . . . . . $librrd_info])
+AC_MSG_RESULT([    libyajl:  . . . . . . . . . $libyajl_info])
 AC_MSG_RESULT()
 AC_MSG_RESULT([  Backends:])
 AC_MSG_RESULT([    collectd::unixsock: . . . . $enable_collectd_unixsock])

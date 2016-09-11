@@ -33,6 +33,7 @@
 
 #include "tools/sysdb/command.h"
 #include "tools/sysdb/input.h"
+#include "tools/sysdb/json.h"
 
 #include "frontend/proto.h"
 #include "utils/error.h"
@@ -89,7 +90,9 @@ data_printer(sdb_strbuf_t *buf)
 	/* At the moment, we don't care about the result type. We simply print the
 	 * result without further parsing it. */
 	sdb_strbuf_skip(buf, 0, sizeof(uint32_t));
-	printf("%s\n", sdb_strbuf_string(buf));
+	if (sdb_json_print(buf))
+		sdb_log(SDB_LOG_ERR, "Failed to print result");
+	printf("\n");
 } /* data_printer */
 
 static struct {

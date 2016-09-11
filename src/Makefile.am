@@ -135,12 +135,14 @@ libsysdb_scanner_la_CFLAGS = @COVERAGE_CFLAGS@ @PROFILING_CFLAGS@ \
 sysdb_SOURCES = tools/sysdb/main.c include/client/sysdb.h \
 		tools/sysdb/command.c tools/sysdb/command.h \
 		tools/sysdb/input.c tools/sysdb/input.h \
+		tools/sysdb/json.c tools/sysdb/json.h \
 		core/object.c include/core/object.h \
 		utils/llist.c include/utils/llist.h \
 		utils/os.c include/utils/os.h
 sysdb_CFLAGS = -DBUILD_DATE="\"$$( date --utc '+%F %T' ) (UTC)\"" \
-		$(AM_CFLAGS) @READLINE_CFLAGS@
-sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la @READLINE_LIBS@ -lm
+		$(AM_CFLAGS) @READLINE_CFLAGS@ @YAJL_CFLAGS@
+sysdb_LDADD = libsysdb_scanner.la libsysdbclient.la \
+		@READLINE_LIBS@ @YAJL_LIBS@ -lm
 endif
 
 sysdbd_SOURCES = tools/sysdbd/main.c include/sysdb.h \
