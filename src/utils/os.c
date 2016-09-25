@@ -172,26 +172,25 @@ sdb_remove_all(const char *pathname)
 			return -1;
 
 		while (42) {
-			struct dirent de;
-			struct dirent *res = NULL;
+			struct dirent *de;
+			char filename[strlen(pathname) + sizeof(de->d_name) + 2];
 
-			char filename[strlen(pathname) + sizeof(de.d_name) + 2];
+			errno = 0;
+			de = readdir(d);
+			if (! de) {
+				if (errno == 0)
+					break;
 
-			memset(&de, 0, sizeof(de));
-			if (readdir_r(d, &de, &res)) {
 				closedir(d);
 				return -1;
 			}
 
-			if (! res)
-				break;
-
-			if ((de.d_name[0] == '.') && ((de.d_name[1] == '\0')
-						|| ((de.d_name[1] == '.')&& (de.d_name[2] == '\0'))))
+			if ((de->d_name[0] == '.') && ((de->d_name[1] == '\0')
+						|| ((de->d_name[1] == '.')&& (de->d_name[2] == '\0'))))
 				continue;
 
 			snprintf(filename, sizeof(filename),
-					"%s/%s", pathname, de.d_name);
+					"%s/%s", pathname, de->d_name);
 			if (sdb_remove_all(filename)) {
 				closedir(d);
 				return -1;
