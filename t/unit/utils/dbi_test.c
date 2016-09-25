@@ -164,7 +164,8 @@ const dbi_inst INST = (void *)0x4711;
 int
 dbi_initialize_r(const char __attribute__((unused)) *driverdir, dbi_inst *pInst)
 {
-	*pInst = INST;
+	if (pInst)
+		*pInst = INST;
 	return 0;
 } /* dbi_initialize_r */
 
@@ -214,19 +215,19 @@ dbi_shutdown(void);
 void
 dbi_shutdown(void)
 {
-	dbi_shutdown_r(NULL);
+	dbi_shutdown_r(INST);
 } /* dbi_shutdown */
 
 dbi_driver
 dbi_driver_open(const char *name)
 {
-	return dbi_driver_open_r(name, NULL);
+	return dbi_driver_open_r(name, INST);
 } /* dbi_driver_open */
 
 dbi_driver
 dbi_driver_list(dbi_driver curr)
 {
-	return dbi_driver_list_r(curr, NULL);
+	return dbi_driver_list_r(curr, INST);
 } /* dbi_driver_list */
 #endif
 
