@@ -164,7 +164,7 @@ exit_version(void)
 } /* exit_version */
 
 static int
-execute_commands(sdb_client_t *client, sdb_llist_t *commands)
+execute_commands(sdb_input_t *input, sdb_llist_t *commands)
 {
 	sdb_llist_iter_t *iter;
 	int status = 0;
@@ -178,7 +178,7 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 	while (sdb_llist_iter_has_next(iter)) {
 		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
 
-		if (sdb_client_send(client, SDB_CONNECTION_QUERY,
+		if (sdb_client_send(input->client, SDB_CONNECTION_QUERY,
 					(uint32_t)strlen(obj->name), obj->name) <= 0) {
 			sdb_log(SDB_LOG_ERR, "Failed to send command '%s' to server",
 					obj->name);
@@ -190,7 +190,7 @@ execute_commands(sdb_client_t *client, sdb_llist_t *commands)
 		 * but eventually see the reply to the query, which is either DATA or
 		 * ERROR. */
 		while (42) {
-			status = sdb_command_print_reply(client);
+			status = sdb_command_print_reply(input);
 			if (status < 0) {
 				sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
 				break;
@@ -307,6 +307,9 @@ main(int argc, char **argv)
 		sdb_input_reset(&input);
 		exit(1);
 	}
+	input.input = sdb_strbuf_create(2048);
+	sdb_input_init(&input);
+
 	canonicalize_ssl_options();
 	if (sdb_client_set_ssl_options(input.client, &ssl_options)) {
 		sdb_log(SDB_LOG_ERR, "Failed to apply SSL options");
@@ -322,7 +325,9 @@ main(int argc, char **argv)
 	}
 
 	if (commands) {
-		int status = execute_commands(input.client, commands);
+		int status;
+		input.interactive = 0;
+		status = execute_commands(&input, commands);
 		sdb_llist_destroy(commands);
 		sdb_input_reset(&input);
 		if ((status != SDB_CONNECTION_OK) && (status != SDB_CONNECTION_DATA))
@@ -353,14 +358,12 @@ main(int argc, char **argv)
 		}
 	}
 
-	input.input = sdb_strbuf_create(2048);
-	sdb_input_init(&input);
 	sdb_input_mainloop();
 
 	sdb_client_shutdown(input.client, SHUT_WR);
 	while (! sdb_client_eof(input.client)) {
 		/* wait for remaining data to arrive */
-		sdb_command_print_reply(input.client);
+		sdb_command_print_reply(&input);
 	}
 
 	if (hist_file[0] != '\0') {

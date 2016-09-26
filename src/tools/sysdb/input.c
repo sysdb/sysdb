@@ -203,7 +203,7 @@ input_readline(void)
 		/* some response / error message from the server pending */
 		/* XXX: clear current line */
 		printf("\n");
-		sdb_command_print_reply(sysdb_input->client);
+		sdb_command_print_reply(sysdb_input);
 
 		if (sdb_client_eof(sysdb_input->client)) {
 			rl_callback_handler_remove();

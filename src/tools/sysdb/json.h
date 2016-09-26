@@ -25,6 +25,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tools/sysdb/input.h"
+
 #include "utils/strbuf.h"
 
 #ifndef SYSDB_JSON_H
@@ -36,7 +38,7 @@
  * printed to the standard output channel.
  */
 int
-sdb_json_print(sdb_strbuf_t *buf);
+sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf);
 
 #endif /* SYSDB_JSON_H */
 
