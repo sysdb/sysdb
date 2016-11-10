@@ -68,7 +68,7 @@ sdb_dns_cname(const char *name,
 	err = getaddrinfo(name, /* service = */ NULL, &hints, &ret);
 	if (err) {
 		/* XXX: what to do about EAI_AGAIN? */
-		sdb_plugin_logf(SDB_LOG_ERR, "cname::dns: Failed to resolve '%s': %s",
+		sdb_log(SDB_LOG_ERR, "cname::dns: Failed to resolve '%s': %s",
 				name, gai_strerror(err));
 		return NULL;
 	}

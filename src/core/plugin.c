@@ -1196,7 +1196,7 @@ sdb_plugin_get_ctx(void)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_plugin_log(SDB_LOG_ERR, "core: Invalid read access to plugin "
+		sdb_log(SDB_LOG_ERR, "core: Invalid read access to plugin "
 				"context outside a plugin");
 		return plugin_default_ctx;
 	}
@@ -1210,7 +1210,7 @@ sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_plugin_log(SDB_LOG_ERR, "core: Invalid write access to plugin "
+		sdb_log(SDB_LOG_ERR, "core: Invalid write access to plugin "
 				"context outside a plugin");
 		return -1;
 	}
