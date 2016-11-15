@@ -58,16 +58,14 @@ rrdcached_connect(char *addr)
 	rrd_clear_error();
 	if (! rrdc_is_connected(addr)) {
 		if (rrdc_connect(addr)) {
-			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to "
-					"connectd to RRDCacheD at %s: %s",
+			sdb_log(SDB_LOG_ERR, "Failed to connectd to RRDCacheD at %s: %s",
 					addr, rrd_get_error());
 			return 0;
 		}
 	}
 #else
-	sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Callback called with "
-			"RRDCacheD address but your build of SysDB does not support "
-			"that");
+	sdb_log(SDB_LOG_ERR, "Callback called with RRDCacheD address "
+			"but your build of SysDB does not support that");
 	return 0;
 #endif
 	return 1;
@@ -95,8 +93,7 @@ sdb_rrd_describe(const char *id, sdb_object_t *user_data)
 
 #ifdef HAVE_RRD_CLIENT_H
 		/* TODO: detect and use rrdc_info if possible */
-		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: DESCRIBE not yet "
-				"supported via RRDCacheD");
+		sdb_log(SDB_LOG_ERR, "DESCRIBE not yet supported via RRDCacheD");
 		return NULL;
 #endif
 	}
@@ -105,15 +102,14 @@ sdb_rrd_describe(const char *id, sdb_object_t *user_data)
 		info = rrd_info_r(filename);
 	}
 	if (! info) {
-		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to extract "
-				"header information from '%s': %s", filename,
-				rrd_get_error());
+		sdb_log(SDB_LOG_ERR, "Failed to extract header information from '%s': %s",
+				filename, rrd_get_error());
 		return NULL;
 	}
 
 	ts_info = calloc(1, sizeof(*ts_info));
 	if (! ts_info) {
-		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+		sdb_log(SDB_LOG_ERR, "Failed to allocate memory");
 		rrd_info_free(info);
 		return NULL;
 	}
@@ -142,7 +138,7 @@ sdb_rrd_describe(const char *id, sdb_object_t *user_data)
 		tmp = realloc(ts_info->data_names,
 				(ts_info->data_names_len + 1) * sizeof(*ts_info->data_names));
 		if (! tmp) {
-			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+			sdb_log(SDB_LOG_ERR, "Failed to allocate memory");
 			sdb_timeseries_info_destroy(ts_info);
 			rrd_info_free(info);
 			return NULL;
@@ -151,7 +147,7 @@ sdb_rrd_describe(const char *id, sdb_object_t *user_data)
 		ts_info->data_names = tmp;
 		ts_info->data_names[ts_info->data_names_len] = strdup(ds_name);
 		if (! ts_info->data_names[ts_info->data_names_len]) {
-			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to allocate memory");
+			sdb_log(SDB_LOG_ERR, "Failed to allocate memory");
 			sdb_timeseries_info_destroy(ts_info);
 			rrd_info_free(info);
 			return NULL;
@@ -188,8 +184,8 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 
 #ifdef HAVE_RRD_CLIENT_H
 		if (rrdc_flush(id)) {
-			sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: Failed to flush "
-					"'%s' through RRDCacheD: %s", id, rrd_get_error());
+			sdb_log(SDB_LOG_ERR, "Failed to flush '%s' through RRDCacheD: %s",
+					id, rrd_get_error());
 			return NULL;
 		}
 #endif
@@ -212,8 +208,7 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 				&ds_cnt, &ds_namv, &data)) {
 		char errbuf[1024];
 		sdb_strerror(errno, errbuf, sizeof(errbuf));
-		sdb_log(SDB_LOG_ERR, "rrdtool plugin: Failed to fetch data "
-				"from %s: %s", id, errbuf);
+		sdb_log(SDB_LOG_ERR, "Failed to fetch data from %s: %s", id, errbuf);
 		return NULL;
 	}
 
@@ -223,8 +218,7 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 	if (! ts) {
 		char errbuf[1024];
 		sdb_strerror(errno, errbuf, sizeof(errbuf));
-		sdb_log(SDB_LOG_ERR, "rrdtool plugin: Failed to allocate "
-				"time-series object: %s", errbuf);
+		sdb_log(SDB_LOG_ERR, "Failed to allocate time-series object: %s", errbuf);
 		FREE_RRD_DATA();
 		return NULL;
 	}
@@ -269,44 +263,39 @@ sdb_rrd_config_rrdcached(oconfig_item_t *ci)
 	char *addr = NULL;
 
 	if (rrdcached_in_use) {
-		sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: RRDCacheD does "
-				"not support multiple connections");
+		sdb_log(SDB_LOG_ERR, "RRDCacheD does not support multiple connections");
 		return -1;
 	}
 
 #ifndef HAVE_RRD_CLIENT_H
-	sdb_log(SDB_LOG_ERR, "timeseries::rrdtool: RRDCacheD client "
-			"support not available in your SysDB build");
+	sdb_log(SDB_LOG_ERR, "RRDCacheD client support not available in your SysDB build");
 	return -1;
 #else
 	if (oconfig_get_string(ci, &addr)) {
-		sdb_log(SDB_LOG_ERR, "timeseries::unixsock: RRDCacheD requires "
-				"a single string argument\n\tUsage <RRDCacheD ADDR>");
+		sdb_log(SDB_LOG_ERR, "RRDCacheD requires a single string argument\n"
+				"\tUsage <RRDCacheD ADDR>");
 		return -1;
 	}
 	if ((*addr != '/') && strncmp(addr, "unix:", strlen("unix:"))) {
 		/* XXX: add (optional) support for rrdc_fetch if available */
-		sdb_log(SDB_LOG_ERR, "timeseries::unixsock: RRDCacheD only "
-				"supports local (UNIX socket) addresses");
+		sdb_log(SDB_LOG_ERR, "RRDCacheD only supports local (UNIX socket) addresses");
 		return -1;
 	}
 
 	addr = strdup(addr);
 	if (! addr) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "timeseries::unixsock: Failed to duplicate "
-				"string: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "Failed to duplicate string: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
 	if (ci->children_num)
-		sdb_log(SDB_LOG_WARNING, "timeseries::unixsock: RRDCacheD does "
-				"not support any child config options");
+		sdb_log(SDB_LOG_WARNING, "RRDCacheD does not support any child config options");
 
 	ud = sdb_object_create_wrapper("rrdcached-addr", addr, free);
 	if (! ud) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "timeseries::unixsock: Failed to create "
-				"user-data object: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to create user-data object: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		free(addr);
 		return -1;
@@ -336,8 +325,7 @@ sdb_rrd_config(oconfig_item_t *ci)
 		if (! strcasecmp(child->key, "RRDCacheD"))
 			sdb_rrd_config_rrdcached(child);
 		else
-			sdb_log(SDB_LOG_WARNING, "timeseries::rrdtool: Ignoring "
-					"unknown config option '%s'.", child->key);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* sdb_rrd_config */

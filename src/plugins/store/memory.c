@@ -47,7 +47,7 @@ mem_init(sdb_object_t *user_data)
 	sdb_memstore_t *store = SDB_MEMSTORE(user_data);
 
 	if (! store) {
-		sdb_log(SDB_LOG_ERR, "store: Failed to allocate store");
+		sdb_log(SDB_LOG_ERR, "Failed to allocate store");
 		return -1;
 	}
 	if (sdb_plugin_register_writer("memstore",
@@ -85,8 +85,7 @@ sdb_module_init(sdb_plugin_info_t *info)
 
 	if (! store) {
 		if (! (store = sdb_memstore_create())) {
-			sdb_log(SDB_LOG_ERR, "store::memory plugin: "
-					"Failed to create store object");
+			sdb_log(SDB_LOG_ERR, "Failed to create store object");
 			return -1;
 		}
 	}

@@ -168,8 +168,7 @@ ssl_log_err(int prio, SSL *ssl, int status, const char *prefix, ...)
 
 	if (errno) {
 		char errbuf[1024];
-		sdb_log(prio, "%s: %s", msg,
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(prio, "%s: %s", msg, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 	}
 } /* ssl_log_err */
 

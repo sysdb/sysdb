@@ -94,23 +94,21 @@ syslog_config(oconfig_item_t *ci)
 		if (! strcasecmp(child->key, "LogLevel")) {
 			char *level = NULL;
 			if (oconfig_get_string(child, &level)) {
-				sdb_log(SDB_LOG_ERR, "syslog plugin: LogLevel requires "
-						"a single string argument\n\tUsage: Loglevel LEVEL");
+				sdb_log(SDB_LOG_ERR, "LogLevel requires a single string argument\n"
+						"\tUsage: Loglevel LEVEL");
 				return -1;
 			}
 			loglevel = sdb_error_parse_priority(level);
 			if (loglevel < 0) {
 				loglevel = SDB_DEFAULT_LOGLEVEL;
-				sdb_log(SDB_LOG_ERR,
-						"syslog plugin: Invalid loglevel: '%s'", level);
+				sdb_log(SDB_LOG_ERR, "Invalid loglevel: '%s'", level);
 				return -1;
 			}
-			sdb_log(SDB_LOG_INFO, "syslog plugin: Log-level set to %s",
+			sdb_log(SDB_LOG_INFO, "Log-level set to %s",
 					SDB_LOG_PRIO_TO_STRING(loglevel));
 		}
 		else
-			sdb_log(SDB_LOG_WARNING, "syslog plugin: Ignoring unknown config "
-					"option '%s'.", child->key);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* syslog_config */

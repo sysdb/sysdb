@@ -96,20 +96,20 @@ store_rpc(user_data_t *ud, const char *msg, size_t msg_len)
 	if (sdb_client_eof(ud->client)) {
 		sdb_client_close(ud->client);
 		if (sdb_client_connect(ud->client, ud->username)) {
-			sdb_log(SDB_LOG_ERR, "store::network: Failed to reconnect "
-					"to SysDB at %s as user %s", ud->addr, ud->username);
+			sdb_log(SDB_LOG_ERR, "Failed to reconnect to SysDB "
+					"at %s as user %s", ud->addr, ud->username);
 			return -1;
 		}
-		sdb_log(SDB_LOG_INFO, "store::network: Successfully reconnected "
-				"to SysDB at %s as user %s", ud->addr, ud->username);
+		sdb_log(SDB_LOG_INFO, "Successfully reconnected to SysDB "
+				"at %s as user %s", ud->addr, ud->username);
 	}
 
 	status = sdb_client_rpc(ud->client, SDB_CONNECTION_STORE,
 			(uint32_t)msg_len, msg, &rstatus, buf);
 	if (status < 0)
-		sdb_log(SDB_LOG_ERR, "store::network: %s", sdb_strbuf_string(buf));
+		sdb_log(SDB_LOG_ERR, "%s", sdb_strbuf_string(buf));
 	else if (rstatus != SDB_CONNECTION_OK) {
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to send object: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to send object: %s",
 				sdb_strbuf_string(buf));
 		status = -1;
 	}
@@ -193,13 +193,13 @@ store_init(sdb_object_t *user_data)
 
 	ud = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_client_connect(ud->client, ud->username)) {
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to connect "
-				"to SysDB at %s as user %s", ud->addr, ud->username);
+		sdb_log(SDB_LOG_ERR, "Failed to connect to SysDB "
+				"at %s as user %s", ud->addr, ud->username);
 		return -1;
 	}
 
-	sdb_log(SDB_LOG_INFO, "store::network: Successfully connected "
-			"to SysDB at %s as user %s", ud->addr, ud->username);
+	sdb_log(SDB_LOG_INFO, "Successfully connected to SysDB "
+			"at %s as user %s", ud->addr, ud->username);
 	return 0;
 } /* store_init */
 
@@ -214,22 +214,20 @@ store_config_server(oconfig_item_t *ci)
 	ud = calloc(1, sizeof(*ud));
 	if (! ud) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to allocate "
-				"a user-data object: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to allocate a user-data object: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
 
 	if (oconfig_get_string(ci, &ud->addr)) {
-		sdb_log(SDB_LOG_ERR, "store::network: Server requires "
-				"a single string argument\n\tUsage: <Server ADDRESS>");
+		sdb_log(SDB_LOG_ERR, "Server requires a single string argument\n"
+				"\tUsage: <Server ADDRESS>");
 		user_data_destroy(ud);
 		return -1;
 	}
 	ud->addr = strdup(ud->addr);
 	if (! ud->addr) {
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to duplicate "
-				"a string");
+		sdb_log(SDB_LOG_ERR, "Failed to duplicate a string");
 		user_data_destroy(ud);
 		return -1;
 	}
@@ -237,9 +235,8 @@ store_config_server(oconfig_item_t *ci)
 	ud->client = sdb_client_create(ud->addr);
 	if (! ud->client) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to create client "
-				"connecting to '%s': %s", ud->addr,
-				sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "Failed to create client connecting to '%s': %s",
+				ud->addr, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		user_data_destroy(ud);
 		return -1;
 	}
@@ -277,9 +274,8 @@ store_config_server(oconfig_item_t *ci)
 			ud->ssl_opts.ca_file = strdup(tmp);
 		}
 		else
-			sdb_log(SDB_LOG_WARNING, "store::network: Ignoring "
-					"unknown config option '%s' inside <Server %s>.",
-					child->key, ud->addr);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s' "
+					"inside <Server %s>.", child->key, ud->addr);
 	}
 
 	if (ret) {
@@ -290,7 +286,7 @@ store_config_server(oconfig_item_t *ci)
 		ud->username = sdb_get_current_user();
 
 	if (sdb_client_set_ssl_options(ud->client, &ud->ssl_opts)) {
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to apply SSL options");
+		sdb_log(SDB_LOG_ERR, "Failed to apply SSL options");
 		user_data_destroy(ud);
 		return -1;
 	}
@@ -299,8 +295,7 @@ store_config_server(oconfig_item_t *ci)
 			user_data_destroy);
 	if (! user_data) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "store::network: Failed to allocate "
-				"a user-data wrapper object: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to allocate a user-data wrapper object: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		user_data_destroy(ud);
 		return -1;
@@ -326,8 +321,8 @@ store_config(oconfig_item_t *ci)
 		if (! strcasecmp(child->key, "Server"))
 			store_config_server(child);
 		else
-			sdb_log(SDB_LOG_WARNING, "store::network: Ignoring "
-					"unknown config option '%s'.", child->key);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s'.",
+					child->key);
 	}
 	return 0;
 } /* store_config */

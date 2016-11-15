@@ -85,8 +85,8 @@ extern "C" {
 
 		sdb_plugin_store_host(hostname, now);
 		facts.each(fact_iter);
-		sdb_log(SDB_LOG_DEBUG, "facter backend: Processed %zu facts "
-				"for host '%s'", facts.size(), hostname);
+		sdb_log(SDB_LOG_DEBUG, "Processed %zu facts for host '%s'",
+				facts.size(), hostname);
 		return 0;
 	} /* main */
 

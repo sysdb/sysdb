@@ -109,8 +109,7 @@ store_host(state_t *state, const char *hostname, sdb_time_t last_update)
 	/* else: first/new host */
 
 	if (state->current_host) {
-		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-				"%i metric%s (%i failed) for host '%s'.",
+		sdb_log(SDB_LOG_DEBUG, "Added/updated %i metric%s (%i failed) for host '%s'.",
 				state->metrics_updated, state->metrics_updated == 1 ? "" : "s",
 				state->metrics_failed, state->current_host);
 		state->metrics_updated = state->metrics_failed = 0;
@@ -120,8 +119,7 @@ store_host(state_t *state, const char *hostname, sdb_time_t last_update)
 	state->current_host = strdup(hostname);
 	if (! state->current_host) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"string buffer: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to allocate string buffer: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -129,15 +127,14 @@ store_host(state_t *state, const char *hostname, sdb_time_t last_update)
 	status = sdb_plugin_store_host(hostname, last_update);
 
 	if (status < 0) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update host '%s'.", hostname);
+		sdb_log(SDB_LOG_ERR, "Failed to store/update host '%s'.", hostname);
 		return -1;
 	}
 	else if (status > 0) /* value too old */
 		return 0;
 
-	sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-			"host '%s' (last update timestamp = %"PRIsdbTIME").",
+	sdb_log(SDB_LOG_DEBUG, "Added/updated host '%s' "
+			"(last update timestamp = %"PRIsdbTIME").",
 			hostname, last_update);
 	return 0;
 } /* store_host */
@@ -167,8 +164,7 @@ add_metrics(const char *hostname, char *plugin, char *type,
 	else
 		status = sdb_plugin_store_metric(hostname, name, NULL, last_update);
 	if (status < 0) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"store/update metric '%s/%s'.", hostname, name);
+		sdb_log(SDB_LOG_ERR, "Failed to store/update metric '%s/%s'.", hostname, name);
 		return -1;
 	}
 
@@ -226,8 +222,8 @@ get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 
 	hostname = strchr(hostname, ' ');
 	if (! hostname) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Expected to find "
-				"a space character in the LISTVAL response");
+		sdb_log(SDB_LOG_ERR, "Expected to find a space character "
+				"in the LISTVAL response");
 		return -1;
 	}
 	*hostname = '\0';
@@ -235,8 +231,8 @@ get_data(sdb_unixsock_client_t __attribute__((unused)) *client,
 
 	if (sdb_data_parse(data[0].data.string, SDB_TYPE_DATETIME, &last_update)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to parse "
-				"timestamp '%s' returned by LISTVAL: %s", data[0].data.string,
+		sdb_log(SDB_LOG_ERR, "Failed to parse timestamp '%s' "
+				"returned by LISTVAL: %s", data[0].data.string,
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -267,13 +263,11 @@ sdb_collectd_init(sdb_object_t *user_data)
 
 	ud = SDB_OBJ_WRAPPER(user_data)->data;
 	if (sdb_unixsock_client_connect(ud->client)) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: "
-				"Failed to connect to collectd.");
+		sdb_log(SDB_LOG_ERR, "Failed to connect to collectd.");
 		return -1;
 	}
 
-	sdb_log(SDB_LOG_INFO, "collectd::unixsock backend: Successfully "
-			"connected to collectd @ %s.",
+	sdb_log(SDB_LOG_INFO, "Successfully connected to collectd @ %s.",
 			sdb_unixsock_client_path(ud->client));
 	return 0;
 } /* sdb_collectd_init */
@@ -300,16 +294,14 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	state.ud = ud;
 
 	if (sdb_unixsock_client_send(ud->client, "LISTVAL") <= 0) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to send "
-				"LISTVAL command to collectd @ %s.",
+		sdb_log(SDB_LOG_ERR, "Failed to send LISTVAL command to collectd @ %s.",
 				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
 	line = sdb_unixsock_client_recv(ud->client, buffer, sizeof(buffer));
 	if (! line) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to read "
-				"status of LISTVAL command from collectd @ %s.",
+		sdb_log(SDB_LOG_ERR, "Failed to read status of LISTVAL command from collectd @ %s.",
 				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
@@ -323,15 +315,13 @@ sdb_collectd_collect(sdb_object_t *user_data)
 	errno = 0;
 	count = strtol(line, &endptr, /* base */ 0);
 	if (errno || (line == endptr)) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to parse "
-				"status of LISTVAL command from collectd @ %s.",
+		sdb_log(SDB_LOG_ERR, "Failed to parse status of LISTVAL command from collectd @ %s.",
 				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
 	if (count < 0) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to get "
-				"value list from collectd @ %s: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to get value list from collectd @ %s: %s",
 				sdb_unixsock_client_path(ud->client),
 				msg ? msg : line);
 		return -1;
@@ -341,15 +331,13 @@ sdb_collectd_collect(sdb_object_t *user_data)
 				SDB_OBJ(&state_obj), count, /* delim */ "/",
 				/* column count = */ 3,
 				SDB_TYPE_STRING, SDB_TYPE_STRING, SDB_TYPE_STRING)) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
-				"to read response from collectd @ %s.",
+		sdb_log(SDB_LOG_ERR, "Failed to read response from collectd @ %s.",
 				sdb_unixsock_client_path(ud->client));
 		return -1;
 	}
 
 	if (state.current_host) {
-		sdb_log(SDB_LOG_DEBUG, "collectd::unixsock backend: Added/updated "
-				"%i metric%s (%i failed) for host '%s'.",
+		sdb_log(SDB_LOG_DEBUG, "Added/updated %i metric%s (%i failed) for host '%s'.",
 				state.metrics_updated, state.metrics_updated == 1 ? "" : "s",
 				state.metrics_failed, state.current_host);
 		free(state.current_host);
@@ -369,16 +357,15 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	int i;
 
 	if (oconfig_get_string(ci, &name)) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance requires "
-				"a single string argument\n\tUsage: <Instance NAME>");
+		sdb_log(SDB_LOG_ERR, "Instance requires a single string argument\n"
+				"\tUsage: <Instance NAME>");
 		return -1;
 	}
 
 	ud = calloc(1, sizeof(*ud));
 	if (! ud) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to "
-				"allocate user-data object: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to allocate user-data object: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -393,15 +380,13 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 		else if (! strcasecmp(child->key, "TimeseriesBaseURL"))
 			oconfig_get_string(child, &ud->ts_base);
 		else
-			sdb_log(SDB_LOG_WARNING, "collectd::unixsock backend: Ignoring "
-					"unknown config option '%s' inside <Instance %s>.",
-					child->key, name);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s' "
+					"inside <Instance %s>.", child->key, name);
 	}
 
 	if ((ud->ts_type == NULL) != (ud->ts_base == NULL)) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Both options, "
-				"TimeseriesBackend and TimeseriesBaseURL, have to be "
-				"specified.");
+		sdb_log(SDB_LOG_ERR, "Both options, TimeseriesBackend and TimeseriesBaseURL, "
+				"have to be specified.");
 		ud->ts_type = ud->ts_base = NULL;
 		user_data_destroy(ud);
 		return -1;
@@ -412,8 +397,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 		 * -> will require different ID generation */
 		if (strcasecmp(ud->ts_type, "rrdtool")
 				&& strcasecmp(ud->ts_type, "rrdcached")) {
-			sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: "
-					"TimeseriesBackend '%s' is not supported - "
+			sdb_log(SDB_LOG_ERR, "TimeseriesBackend '%s' is not supported - "
 					"use 'rrdtool' instead.", ud->ts_type);
 			ud->ts_type = ud->ts_base = NULL;
 			user_data_destroy(ud);
@@ -423,16 +407,14 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 		ud->ts_type = strdup(ud->ts_type);
 		ud->ts_base = strdup(ud->ts_base);
 		if ((! ud->ts_type) || (! ud->ts_base)) {
-			sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed "
-					"to duplicate a string");
+			sdb_log(SDB_LOG_ERR, "Failed to duplicate a string");
 			user_data_destroy(ud);
 			return -1;
 		}
 	}
 
 	if (! socket_path) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Instance '%s' "
-				"missing the 'Socket' option.", name);
+		sdb_log(SDB_LOG_ERR, "Instance '%s' missing the 'Socket' option.", name);
 		user_data_destroy(ud);
 		return -1;
 	}
@@ -440,8 +422,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	ud->client = sdb_unixsock_client_create(socket_path);
 	if (! ud->client) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to create "
-				"unixsock client: %s",
+		sdb_log(SDB_LOG_ERR, "Failed to create unixsock client: %s",
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		user_data_destroy(ud);
 		return -1;
@@ -450,8 +431,7 @@ sdb_collectd_config_instance(oconfig_item_t *ci)
 	user_data = sdb_object_create_wrapper("collectd-userdata", ud,
 			user_data_destroy);
 	if (! user_data) {
-		sdb_log(SDB_LOG_ERR, "collectd::unixsock backend: Failed to allocate "
-				"user-data wrapper object");
+		sdb_log(SDB_LOG_ERR, "Failed to allocate user-data wrapper object");
 		user_data_destroy(ud);
 		return -1;
 	}
@@ -479,8 +459,7 @@ sdb_collectd_config(oconfig_item_t *ci)
 		if (! strcasecmp(child->key, "Instance"))
 			sdb_collectd_config_instance(child);
 		else
-			sdb_log(SDB_LOG_WARNING, "collectd::unixsock backend: Ignoring "
-					"unknown config option '%s'.", child->key);
+			sdb_log(SDB_LOG_WARNING, "Ignoring unknown config option '%s'.", child->key);
 	}
 	return 0;
 } /* sdb_collectd_config */

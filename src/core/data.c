@@ -1152,7 +1152,7 @@ sdb_data_parse(const char *str, int type, sdb_data_t *data)
 			return -1;
 		if (regcomp(&tmp.data.re.regex, tmp.data.re.raw,
 					REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to compile regular "
+			sdb_log(SDB_LOG_ERR, "Failed to compile regular "
 					"expression '%s'", tmp.data.re.raw);
 			free(tmp.data.re.raw);
 			return -1;
@@ -1176,13 +1176,13 @@ sdb_data_parse(const char *str, int type, sdb_data_t *data)
 			|| (type == SDB_TYPE_DATETIME)) {
 		if (errno || (str == endptr)) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "core: Failed to parse string "
+			sdb_log(SDB_LOG_ERR, "Failed to parse string "
 					"'%s' as numeric value (type %i): %s", str, type,
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			return -1;
 		}
 		else if (endptr && (*endptr != '\0'))
-			sdb_log(SDB_LOG_WARNING, "core: Ignoring garbage after "
+			sdb_log(SDB_LOG_WARNING, "Ignoring garbage after "
 					"number while parsing numeric value (type %i): %s.",
 					type, endptr);
 	}

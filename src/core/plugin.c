@@ -250,9 +250,8 @@ plugin_unregister_by_name(const char *plugin_name)
 
 			assert(cb->cb_ctx);
 
-			sdb_log(SDB_LOG_INFO, "core: Unregistering "
-					"%s callback '%s' (module %s)", type, cb->super.name,
-					cb->cb_ctx->info.plugin_name);
+			sdb_log(SDB_LOG_INFO, "Unregistering %s callback '%s' (module %s)",
+					type, cb->super.name, cb->cb_ctx->info.plugin_name);
 			sdb_object_deref(SDB_OBJ(cb));
 		}
 	}
@@ -368,13 +367,12 @@ ctx_destroy(sdb_object_t *obj)
 	if (ctx->handle) {
 		const char *err;
 
-		sdb_log(SDB_LOG_INFO, "core: Unloading module %s",
-				ctx->info.plugin_name);
+		sdb_log(SDB_LOG_INFO, "Unloading module %s", ctx->info.plugin_name);
 
 		lt_dlerror();
 		lt_dlclose(ctx->handle);
 		if ((err = lt_dlerror()))
-			sdb_log(SDB_LOG_WARNING, "core: Failed to unload module %s: %s",
+			sdb_log(SDB_LOG_WARNING, "Failed to unload module %s: %s",
 					ctx->info.plugin_name, err);
 	}
 
@@ -442,9 +440,9 @@ plugin_init_ok(sdb_object_t *obj, va_list ap)
 	assert(list); assert(type);
 
 	if (sdb_llist_search_by_name(*list, obj->name)) {
-		sdb_log(SDB_LOG_WARNING, "core: %s callback '%s' "
-				"has already been registered. Ignoring newly "
-				"registered version.", type, obj->name);
+		sdb_log(SDB_LOG_WARNING, "%s callback '%s' has already been "
+				"registered. Ignoring newly registered version.",
+				type, obj->name);
 		return 0;
 	}
 	return 1;
@@ -510,9 +508,8 @@ plugin_writer_init(sdb_object_t *obj, va_list ap)
 
 	if ((! impl->store_host) || (! impl->store_service)
 			|| (! impl->store_metric) || (! impl->store_attribute)) {
-		sdb_log(SDB_LOG_ERR, "core: store writer callback '%s' "
-				"does not fully implement the writer interface.",
-				obj->name);
+		sdb_log(SDB_LOG_ERR, "store writer callback '%s' does not fully "
+				"implement the writer interface.", obj->name);
 		return -1;
 	}
 
@@ -556,9 +553,8 @@ plugin_reader_init(sdb_object_t *obj, va_list ap)
 	assert(impl);
 
 	if ((! impl->prepare_query) || (! impl->execute_query)) {
-		sdb_log(SDB_LOG_ERR, "core: store reader callback '%s' "
-				"does not fully implement the reader interface.",
-				obj->name);
+		sdb_log(SDB_LOG_ERR, "store reader callback '%s' does not fully "
+				"implement the reader interface.", obj->name);
 		return -1;
 	}
 
@@ -602,9 +598,8 @@ plugin_ts_fetcher_init(sdb_object_t *obj, va_list ap)
 	assert(impl);
 
 	if ((! impl->describe) || (! impl->fetch)) {
-		sdb_log(SDB_LOG_ERR, "core: timeseries fetcher callback '%s' "
-				"does not fully implement the interface.",
-				obj->name);
+		sdb_log(SDB_LOG_ERR, "timeseries fetcher callback '%s' does not fully "
+				"implement the interface.", obj->name);
 		return -1;
 	}
 
@@ -642,15 +637,14 @@ module_init(const char *name, lt_dlhandle lh, sdb_plugin_info_t *info)
 
 	mod_init = (int (*)(sdb_plugin_info_t *))lt_dlsym(lh, "sdb_module_init");
 	if (! mod_init) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
+		sdb_log(SDB_LOG_ERR, "Failed to load plugin '%s': "
 				"could not find symbol 'sdb_module_init'", name);
 		return -1;
 	}
 
 	status = mod_init(info);
 	if (status) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to initialize "
-				"module '%s'", name);
+		sdb_log(SDB_LOG_ERR, "Failed to initialize module '%s'", name);
 		plugin_unregister_by_name(name);
 		return -1;
 	}
@@ -692,7 +686,7 @@ module_load(const char *basedir, const char *name,
 
 	if (access(filename, R_OK)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s' (%s): %s",
+		sdb_log(SDB_LOG_ERR, "Failed to load plugin '%s' (%s): %s",
 				name, filename, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		return -1;
 	}
@@ -702,18 +696,18 @@ module_load(const char *basedir, const char *name,
 
 	lh = lt_dlopen(filename);
 	if (! lh) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': %s"
+		sdb_log(SDB_LOG_ERR, "Failed to load plugin '%s': %s"
 				"The most common cause for this problem are missing "
 				"dependencies.\n", name, lt_dlerror());
 		return -1;
 	}
 
 	if (ctx_get())
-		sdb_log(SDB_LOG_WARNING, "core: Discarding old plugin context");
+		sdb_log(SDB_LOG_WARNING, "Discarding old plugin context");
 
 	ctx = ctx_create(name);
 	if (! ctx) {
-		sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin context");
+		sdb_log(SDB_LOG_ERR, "Failed to initialize plugin context");
 		return -1;
 	}
 
@@ -733,20 +727,19 @@ module_load(const char *basedir, const char *name,
 	/* compare minor version */
 	if ((ctx->info.version < 0)
 			|| ((int)(ctx->info.version / 100) != (int)(SDB_VERSION / 100)))
-		sdb_log(SDB_LOG_WARNING, "core: WARNING: version of "
-				"plugin '%s' (%i.%i.%i) does not match our version "
-				"(%i.%i.%i); this might cause problems",
-				name, SDB_VERSION_DECODE(ctx->info.version),
+		sdb_log(SDB_LOG_WARNING, "WARNING: plugin version (%i.%i.%i) "
+				"does not match core version (%i.%i.%i); "
+				"this might cause problems",
+				SDB_VERSION_DECODE(ctx->info.version),
 				SDB_VERSION_DECODE(SDB_VERSION));
 
 	sdb_llist_append(all_plugins, SDB_OBJ(ctx));
 
-	sdb_log(SDB_LOG_INFO, "core: Successfully loaded "
-			"plugin %s v%i (%s)", ctx->info.plugin_name,
-			ctx->info.plugin_version,
+	/* log messages will be prefixed by the plugin name */
+	sdb_log(SDB_LOG_INFO, "Successfully loaded "
+			"version %i (%s)", ctx->info.plugin_version,
 			INFO_GET(&ctx->info, description));
-	sdb_log(SDB_LOG_INFO, "core: Plugin %s: %s, License: %s",
-			ctx->info.plugin_name,
+	sdb_log(SDB_LOG_INFO, "%s, License: %s",
 			INFO_GET(&ctx->info, copyright),
 			INFO_GET(&ctx->info, license));
 
@@ -798,8 +791,7 @@ plugin_add_impl(sdb_llist_t **list, sdb_type_t T, const char *type,
 	/* pass control to the list */
 	sdb_object_deref(obj);
 
-	sdb_log(SDB_LOG_INFO, "core: Registered %s callback '%s'.",
-			type, name);
+	sdb_log(SDB_LOG_INFO, "Registered %s callback '%s'.", type, name);
 	return 0;
 } /* plugin_add_impl */
 
@@ -892,7 +884,7 @@ get_interval(int obj_type, const char *hostname,
 
 	if (lu.last_update >= last_update) {
 		if (lu.last_update > last_update)
-			sdb_log(SDB_LOG_DEBUG, "memstore: Cannot update %s '%s' - "
+			sdb_log(SDB_LOG_DEBUG, "Cannot update %s '%s' - "
 					"value too old (%"PRIsdbTIME" < %"PRIsdbTIME")",
 					SDB_STORE_TYPE_TO_NAME(obj_type), name,
 					lu.last_update, last_update);
@@ -940,7 +932,7 @@ sdb_plugin_load(const char *basedir, const char *name,
 
 	if (! all_plugins) {
 		if (! (all_plugins = sdb_llist_create())) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to load plugin '%s': "
+			sdb_log(SDB_LOG_ERR, "Failed to load plugin '%s': "
 					"internal error while creating linked list", name);
 			return -1;
 		}
@@ -958,7 +950,8 @@ sdb_plugin_load(const char *basedir, const char *name,
 			if (status)
 				return status;
 
-			sdb_log(SDB_LOG_INFO, "core: Successfully reloaded plugin "
+			ctx_set(old_ctx);
+			sdb_log(SDB_LOG_INFO, "Successfully reloaded plugin "
 					"'%s' (%s)", ctx->info.plugin_name,
 					INFO_GET(&ctx->info, description));
 		}
@@ -1034,7 +1027,7 @@ sdb_plugin_register_config(sdb_plugin_config_cb callback)
 	ctx_t *ctx = ctx_get();
 
 	if (! ctx) {
-		sdb_log(SDB_LOG_ERR, "core: Invalid attempt to register a "
+		sdb_log(SDB_LOG_ERR, "Invalid attempt to register a "
 				"config callback from outside a plugin");
 		return -1;
 	}
@@ -1110,9 +1103,8 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 		ctx_t *ctx = ctx_get();
 
 		if (! ctx) {
-			sdb_log(SDB_LOG_ERR, "core: Cannot determine interval "
-					"for collector %s; none specified and no plugin "
-					"context found", cb_name);
+			sdb_log(SDB_LOG_ERR, "Cannot determine interval for collector %s; "
+					"none specified and no plugin context found", cb_name);
 			return -1;
 		}
 
@@ -1121,8 +1113,8 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 
 	if (! (CCB(obj)->ccb_next_update = sdb_gettime())) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
-				"time: %s", sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		sdb_log(SDB_LOG_ERR, "Failed to determine current time: %s",
+				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		sdb_object_deref(obj);
 		return -1;
 	}
@@ -1136,7 +1128,7 @@ sdb_plugin_register_collector(const char *name, sdb_plugin_collector_cb callback
 	/* pass control to the list */
 	sdb_object_deref(obj);
 
-	sdb_log(SDB_LOG_INFO, "core: Registered collector callback '%s' "
+	sdb_log(SDB_LOG_INFO, "Registered collector callback '%s' "
 			"(interval = %.3fs).", cb_name,
 			SDB_TIME_TO_DOUBLE(CCB(obj)->ccb_interval));
 	return 0;
@@ -1185,7 +1177,7 @@ sdb_plugin_unregister_all(void)
 			continue;
 
 		sdb_llist_clear(list);
-		sdb_log(SDB_LOG_INFO, "core: Unregistered %zu %s callback%s",
+		sdb_log(SDB_LOG_INFO, "Unregistered %zu %s callback%s",
 				len, type, len == 1 ? "" : "s");
 	}
 } /* sdb_plugin_unregister_all */
@@ -1197,7 +1189,7 @@ sdb_plugin_get_ctx(void)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_log(SDB_LOG_ERR, "core: Invalid read access to plugin "
+		sdb_log(SDB_LOG_ERR, "Invalid read access to plugin "
 				"context outside a plugin");
 		return plugin_default_ctx;
 	}
@@ -1211,7 +1203,7 @@ sdb_plugin_set_ctx(sdb_plugin_ctx_t ctx, sdb_plugin_ctx_t *old)
 
 	c = ctx_get();
 	if (! c) {
-		sdb_log(SDB_LOG_ERR, "core: Invalid write access to plugin "
+		sdb_log(SDB_LOG_ERR, "Invalid write access to plugin "
 				"context outside a plugin");
 		return -1;
 	}
@@ -1249,11 +1241,11 @@ sdb_plugin_configure(const char *name, oconfig_item_t *ci)
 	if (! plugin) {
 		ctx_t *ctx = CTX(sdb_llist_search_by_name(all_plugins, name));
 		if (! ctx)
-			sdb_log(SDB_LOG_ERR, "core: Cannot configure unknown "
-					"plugin '%s'. Missing 'LoadPlugin \"%s\"'?",
+			sdb_log(SDB_LOG_ERR, "Cannot configure unknown plugin '%s'. "
+					"Missing 'LoadPlugin \"%s\"'?",
 					name, name);
 		else
-			sdb_log(SDB_LOG_ERR, "core: Plugin '%s' did not register "
+			sdb_log(SDB_LOG_ERR, "Plugin '%s' did not register "
 					"a config callback.", name);
 		errno = ENOENT;
 		return -1;
@@ -1316,7 +1308,7 @@ sdb_plugin_reconfigure_finish(void)
 		if (ctx->use_cnt)
 			continue;
 
-		sdb_log(SDB_LOG_INFO, "core: Module %s no longer in use",
+		sdb_log(SDB_LOG_INFO, "Module %s no longer in use",
 				ctx->info.plugin_name);
 		sdb_llist_iter_remove_current(iter);
 		plugin_unregister_by_name(ctx->info.plugin_name);
@@ -1346,8 +1338,8 @@ sdb_plugin_init_all(void)
 
 		old_ctx = ctx_set(cb->cb_ctx);
 		if (callback(cb->cb_user_data)) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to initialize plugin "
-					"'%s'. Unregistering all callbacks.", obj->name);
+			sdb_log(SDB_LOG_ERR, "Failed to initialize plugin '%s'. "
+					"Unregistering all callbacks.", obj->name);
 			ctx_set(old_ctx);
 			plugin_unregister_by_name(cb->cb_ctx->info.plugin_name);
 			++ret;
@@ -1379,7 +1371,7 @@ sdb_plugin_shutdown_all(void)
 
 		old_ctx = ctx_set(cb->cb_ctx);
 		if (callback(cb->cb_user_data)) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to shutdown plugin '%s'.",
+			sdb_log(SDB_LOG_ERR, "Failed to shutdown plugin '%s'.",
 					obj->name);
 			++ret;
 		}
@@ -1393,7 +1385,7 @@ int
 sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 {
 	if (! collector_list) {
-		sdb_log(SDB_LOG_WARNING, "core: No collectors registered. "
+		sdb_log(SDB_LOG_WARNING, "No collectors registered. "
 				"Quiting main loop.");
 		return -1;
 	}
@@ -1415,7 +1407,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
+			sdb_log(SDB_LOG_ERR, "Failed to determine current "
 					"time in collector main loop: %s",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			now = CCB(obj)->ccb_next_update;
@@ -1428,7 +1420,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 			while (loop->do_loop && sdb_sleep(interval, &interval)) {
 				if (errno != EINTR) {
 					char errbuf[1024];
-					sdb_log(SDB_LOG_ERR, "core: Failed to sleep "
+					sdb_log(SDB_LOG_ERR, "Failed to sleep "
 							"in collector main loop: %s",
 							sdb_strerror(errno, errbuf, sizeof(errbuf)));
 					sdb_llist_insert_sorted(collector_list, obj,
@@ -1458,7 +1450,7 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 		if (! interval)
 			interval = loop->default_interval;
 		if (! interval) {
-			sdb_log(SDB_LOG_WARNING, "core: No interval configured "
+			sdb_log(SDB_LOG_WARNING, "No interval configured "
 					"for plugin '%s'; skipping any further "
 					"iterations.", obj->name);
 			sdb_object_deref(obj);
@@ -1469,14 +1461,14 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (! (now = sdb_gettime())) {
 			char errbuf[1024];
-			sdb_log(SDB_LOG_ERR, "core: Failed to determine current "
+			sdb_log(SDB_LOG_ERR, "Failed to determine current "
 					"time in collector main loop: %s",
 					sdb_strerror(errno, errbuf, sizeof(errbuf)));
 			now = CCB(obj)->ccb_next_update;
 		}
 
 		if (now > CCB(obj)->ccb_next_update) {
-			sdb_log(SDB_LOG_WARNING, "core: Plugin '%s' took too "
+			sdb_log(SDB_LOG_WARNING, "Plugin '%s' took too "
 					"long; skipping iterations to keep up.",
 					obj->name);
 			CCB(obj)->ccb_next_update = now;
@@ -1484,9 +1476,8 @@ sdb_plugin_collector_loop(sdb_plugin_loop_t *loop)
 
 		if (sdb_llist_insert_sorted(collector_list, obj,
 					plugin_cmp_next_update)) {
-			sdb_log(SDB_LOG_ERR, "core: Failed to re-insert "
-					"plugin '%s' into collector list. Unable to further "
-					"use the plugin.",
+			sdb_log(SDB_LOG_ERR, "Failed to re-insert plugin '%s' into "
+					"collector list. Unable to further use the plugin.",
 					obj->name);
 			sdb_object_deref(obj);
 			return -1;
@@ -1532,35 +1523,50 @@ sdb_plugin_cname(char *hostname)
 int
 sdb_plugin_log(int prio, const char *msg)
 {
-	sdb_llist_iter_t *iter;
+	const sdb_plugin_info_t *info;
 	int ret = -1;
-
-	bool logged = 0;
 
 	if (! msg)
 		return 0;
 
-	iter = sdb_llist_get_iter(log_list);
-	while (sdb_llist_iter_has_next(iter)) {
-		sdb_plugin_log_cb callback;
-		int tmp;
+	info = sdb_plugin_current();
 
-		sdb_object_t *obj = sdb_llist_iter_get_next(iter);
-		assert(obj);
+	{
+		const char *plugin_name = info ? info->plugin_name : "";
+		char log_msg[strlen(msg) + strlen(plugin_name) + strlen(" plugin: ") + 1];
 
-		callback = (sdb_plugin_log_cb)CB(obj)->cb_callback;
-		tmp = callback(prio, msg, CB(obj)->cb_user_data);
-		if (tmp > ret)
-			ret = tmp;
+		sdb_llist_iter_t *iter;
+		bool logged = 0;
 
-		if (CB(obj)->cb_ctx)
-			logged = 1;
-		/* else: this is an internally registered callback */
+		if (*plugin_name)
+			snprintf(log_msg, sizeof(log_msg), "%s plugin: %s",
+					plugin_name, msg);
+		else
+			strncpy(log_msg, msg, sizeof(log_msg));
+
+		iter = sdb_llist_get_iter(log_list);
+		while (sdb_llist_iter_has_next(iter)) {
+			sdb_plugin_log_cb callback;
+			int tmp;
+
+			sdb_object_t *obj = sdb_llist_iter_get_next(iter);
+			assert(obj);
+
+			callback = (sdb_plugin_log_cb)CB(obj)->cb_callback;
+			tmp = callback(prio, msg, CB(obj)->cb_user_data);
+			if (tmp > ret)
+				ret = tmp;
+
+			if (CB(obj)->cb_ctx)
+				logged = 1;
+			/* else: this is an internally registered callback */
+		}
+		sdb_llist_iter_destroy(iter);
+
+		if (! logged)
+			return fprintf(stderr, "[%s] %s\n",
+					SDB_LOG_PRIO_TO_STRING(prio), log_msg);
 	}
-	sdb_llist_iter_destroy(iter);
-
-	if (! logged)
-		return fprintf(stderr, "[%s] %s\n", SDB_LOG_PRIO_TO_STRING(prio), msg);
 	return ret;
 } /* sdb_plugin_log */
 
@@ -1619,7 +1625,7 @@ sdb_plugin_fetch_timeseries(const char *type, const char *id,
 
 	fetcher = TS_FETCHER(sdb_llist_search_by_name(timeseries_fetcher_list, type));
 	if (! fetcher) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot fetch time-series of type %s: "
+		sdb_log(SDB_LOG_ERR, "Cannot fetch time-series of type %s: "
 				"no such plugin loaded", type);
 		errno = ENOENT;
 		return NULL;
@@ -1644,7 +1650,7 @@ sdb_plugin_describe_timeseries(const char *type, const char *id)
 
 	fetcher = TS_FETCHER(sdb_llist_search_by_name(timeseries_fetcher_list, type));
 	if (! fetcher) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot describe time-series of type %s: "
+		sdb_log(SDB_LOG_ERR, "Cannot describe time-series of type %s: "
 				"no such plugin loaded", type);
 		errno = ENOENT;
 		return NULL;
@@ -1677,7 +1683,7 @@ sdb_plugin_query(sdb_ast_node_t *ast,
 	if ((ast->type != SDB_AST_TYPE_FETCH)
 			&& (ast->type != SDB_AST_TYPE_LIST)
 			&& (ast->type != SDB_AST_TYPE_LOOKUP)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot execute query of type %s",
+		sdb_log(SDB_LOG_ERR, "Cannot execute query of type %s",
 				SDB_AST_TYPE_TO_STRING(ast));
 		sdb_strbuf_sprintf(errbuf, "Cannot execute query of type %s",
 				SDB_AST_TYPE_TO_STRING(ast));
@@ -1689,7 +1695,7 @@ sdb_plugin_query(sdb_ast_node_t *ast,
 			? "Cannot execute query: multiple readers not supported"
 			: "Cannot execute query: no readers registered";
 		sdb_strbuf_sprintf(errbuf, "%s", msg);
-		sdb_log(SDB_LOG_ERR, "core: %s", msg);
+		sdb_log(SDB_LOG_ERR, "%s", msg);
 		return -1;
 	}
 
@@ -1722,14 +1728,13 @@ sdb_plugin_store_host(const char *name, sdb_time_t last_update)
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store host: "
-				"no writers registered");
+		sdb_log(SDB_LOG_ERR, "Cannot store host: no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(name));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 
@@ -1774,14 +1779,14 @@ sdb_plugin_store_service(const char *hostname, const char *name,
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store service: "
+		sdb_log(SDB_LOG_ERR, "Cannot store service: "
 				"no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 
@@ -1837,14 +1842,13 @@ sdb_plugin_store_metric(const char *hostname, const char *name,
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store metric: "
-				"no writers registered");
+		sdb_log(SDB_LOG_ERR, "Cannot store metric: no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 
@@ -1907,14 +1911,13 @@ sdb_plugin_store_attribute(const char *hostname, const char *key,
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store attribute: "
-				"no writers registered");
+		sdb_log(SDB_LOG_ERR, "Cannot store attribute: no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 
@@ -1960,14 +1963,14 @@ sdb_plugin_store_service_attribute(const char *hostname, const char *service,
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store service attribute: "
+		sdb_log(SDB_LOG_ERR, "Cannot store service attribute: "
 				"no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 
@@ -2014,14 +2017,14 @@ sdb_plugin_store_metric_attribute(const char *hostname, const char *metric,
 		return -1;
 
 	if (! sdb_llist_len(writer_list)) {
-		sdb_log(SDB_LOG_ERR, "core: Cannot store metric attribute: "
+		sdb_log(SDB_LOG_ERR, "Cannot store metric attribute: "
 				"no writers registered");
 		return -1;
 	}
 
 	cname = sdb_plugin_cname(strdup(hostname));
 	if (! cname) {
-		sdb_log(SDB_LOG_ERR, "core: strdup failed");
+		sdb_log(SDB_LOG_ERR, "strdup failed");
 		return -1;
 	}
 

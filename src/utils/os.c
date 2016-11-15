@@ -78,7 +78,7 @@ sdb_get_homedir(void)
 
 	if (status || (! result)) {
 		char errbuf[1024];
-		sdb_log(SDB_LOG_WARNING, "os: Failed to determine home directory "
+		sdb_log(SDB_LOG_WARNING, "Failed to determine home directory "
 				"for user %s: %s", username,
 				sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		free(username);
