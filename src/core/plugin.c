@@ -726,6 +726,7 @@ module_load(const char *basedir, const char *name,
 
 	if ((status = module_init(name, lh, &ctx->info))) {
 		sdb_object_deref(SDB_OBJ(ctx));
+		ctx_set(NULL);
 		return status;
 	}
 
@@ -953,13 +954,13 @@ sdb_plugin_load(const char *basedir, const char *name,
 			ctx_t *old_ctx = ctx_set(ctx);
 
 			status = module_init(ctx->info.plugin_name, ctx->handle, NULL);
+			ctx_set(old_ctx);
 			if (status)
 				return status;
 
 			sdb_log(SDB_LOG_INFO, "core: Successfully reloaded plugin "
 					"'%s' (%s)", ctx->info.plugin_name,
 					INFO_GET(&ctx->info, description));
-			ctx_set(old_ctx);
 		}
 		++ctx->use_cnt;
 		return 0;
