@@ -35,8 +35,10 @@
 #include "utils/strbuf.h"
 #include "tools/sysdb/json.h"
 
-#include <yajl/yajl_parse.h>
-#include <yajl/yajl_gen.h>
+#ifdef HAVE_LIBYAJL
+#	include <yajl/yajl_parse.h>
+#	include <yajl/yajl_gen.h>
+#endif
 
 #include <unistd.h>
 #include <stdio.h>
