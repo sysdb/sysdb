@@ -158,6 +158,7 @@ sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf)
 	yajl_free(h);
 	return ret;
 #else /* HAVE_LIBYAJL */
+	(void)input;
 	printf("%s\n", sdb_strbuf_string(buf));
 	return 0;
 #endif /* HAVE_LIBYAJL */

@@ -480,7 +480,7 @@ AC_ARG_WITH([libyajl],
 if test "x$with_libyajl" = "xyes" || test "x$with_libyajl" = "xauto"; then
 	PKG_CHECK_MODULES([YAJL], [yajl], [have_libyajl="yes"], [have_libyajl="no"])
 fi
-if test "x$with_libyajl" = "xyes"; then
+if test "x$have_libyajl" = "xyes"; then
 	AC_DEFINE([HAVE_LIBYAJL], 1, [Define to 1 if you have the 'yajl' library.])
 fi
 
