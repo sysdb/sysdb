@@ -40,7 +40,7 @@
  *  - a positive value if the server returned an error
  */
 int
-sdb_command_print_reply(sdb_client_t *client);
+sdb_command_print_reply(sdb_input_t *input);
 
 /*
  * sdb_command_exec:

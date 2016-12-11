@@ -107,7 +107,7 @@ printer(void __attribute__((unused)) *ctx, const char *str, size_t len)
  */
 
 int
-sdb_json_print(sdb_strbuf_t *buf)
+sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf)
 {
 #ifdef HAVE_LIBYAJL
 	const unsigned char *json;
@@ -118,6 +118,12 @@ sdb_json_print(sdb_strbuf_t *buf)
 	yajl_status status;
 
 	int ret = 0;
+
+	if (!input->interactive) {
+		/* no formatting */
+		printf("%s\n", sdb_strbuf_string(buf));
+		return 0;
+	}
 
 	gen = yajl_gen_alloc(/* alloc_funcs */ NULL);
 	if (! gen)

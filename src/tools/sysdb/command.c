@@ -48,7 +48,7 @@
 #include <string.h>
 
 static void
-ok_printer(sdb_strbuf_t *buf)
+ok_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 {
 	const char *msg = sdb_strbuf_string(buf);
 	if (msg && *msg)
@@ -58,7 +58,7 @@ ok_printer(sdb_strbuf_t *buf)
 } /* ok_printer */
 
 static void
-log_printer(sdb_strbuf_t *buf)
+log_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 {
 	uint32_t prio = 0;
 
@@ -73,7 +73,7 @@ log_printer(sdb_strbuf_t *buf)
 } /* log_printer */
 
 static void
-data_printer(sdb_strbuf_t *buf)
+data_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 {
 	size_t len = sdb_strbuf_len(buf);
 
@@ -90,14 +90,14 @@ data_printer(sdb_strbuf_t *buf)
 	/* At the moment, we don't care about the result type. We simply print the
 	 * result without further parsing it. */
 	sdb_strbuf_skip(buf, 0, sizeof(uint32_t));
-	if (sdb_json_print(buf))
+	if (sdb_json_print(input, buf))
 		sdb_log(SDB_LOG_ERR, "Failed to print result");
 	printf("\n");
 } /* data_printer */
 
 static struct {
 	int status;
-	void (*printer)(sdb_strbuf_t *);
+	void (*printer)(sdb_input_t *, sdb_strbuf_t *);
 } response_printers[] = {
 	{ SDB_CONNECTION_OK,   ok_printer },
 	{ SDB_CONNECTION_LOG,  log_printer },
@@ -118,7 +118,7 @@ clear_query(sdb_input_t *input)
  */
 
 int
-sdb_command_print_reply(sdb_client_t *client)
+sdb_command_print_reply(sdb_input_t *input)
 {
 	sdb_strbuf_t *recv_buf;
 	const char *result;
@@ -131,10 +131,10 @@ sdb_command_print_reply(sdb_client_t *client)
 	if (! recv_buf)
 		return -1;
 
-	if (sdb_client_recv(client, &rcode, recv_buf) < 0)
+	if (sdb_client_recv(input->client, &rcode, recv_buf) < 0)
 		rcode = UINT32_MAX;
 
-	if (sdb_client_eof(client)) {
+	if (sdb_client_eof(input->client)) {
 		sdb_strbuf_destroy(recv_buf);
 		return -1;
 	}
@@ -144,7 +144,7 @@ sdb_command_print_reply(sdb_client_t *client)
 
 	for (i = 0; i < SDB_STATIC_ARRAY_LEN(response_printers); ++i) {
 		if (status == response_printers[i].status) {
-			response_printers[i].printer(recv_buf);
+			response_printers[i].printer(input, recv_buf);
 			sdb_strbuf_destroy(recv_buf);
 			return status;
 		}
@@ -203,7 +203,7 @@ sdb_command_exec(sdb_input_t *input)
 	/* The server may send back log messages but will eventually reply to the
 	 * query, which is either DATA or ERROR. */
 	while (42) {
-		int status = sdb_command_print_reply(input->client);
+		int status = sdb_command_print_reply(input);
 		if (status < 0) {
 			sdb_log(SDB_LOG_ERR, "Failed to read reply from server");
 			break;
