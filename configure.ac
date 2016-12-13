@@ -446,6 +446,9 @@ if test "x$have_struct_ucred" != "xyes"; then
 	AC_MSG_RESULT([$have_struct_ucred])
 fi
 
+dnl Only check this after potentially defining _GNU_SOURCE.
+AC_FUNC_STRERROR_R
+
 dnl Testing.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],
 		[unit_tests="yes"], [unit_tests="no"])

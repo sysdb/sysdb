@@ -298,10 +298,12 @@ sdb_error_parse_priority(char *prio)
 char *
 sdb_strerror(int errnum, char *strerrbuf, size_t buflen)
 {
+	*strerrbuf = '\0';
+
 #if STRERROR_R_CHAR_P
 	{
 		char *tmp = strerror_r(errnum, strerrbuf, buflen);
-		if (*strerrbuf = '\0') {
+		if (*strerrbuf == '\0') {
 			if (tmp && (tmp != strerrbuf) && (*tmp != '\0'))
 				strncpy(strerrbuf, tmp, buflen);
 			else
