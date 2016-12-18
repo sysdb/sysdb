@@ -392,14 +392,36 @@ metric_store_clause:
 	/* empty */ { $$.type = $$.id = NULL; $$.last_update = 0; }
 
 /*
- * TIMESERIES <host>.<metric> [START <datetime>] [END <datetime>];
+ * TIMESERIES <host>.<metric>[<data-source>...] [START <datetime>] [END <datetime>];
  *
  * Returns a time-series for the specified host's metric.
  */
 timeseries_statement:
 	TIMESERIES STRING '.' STRING start_clause end_clause
 		{
-			$$ = sdb_ast_timeseries_create($2, $4, $5, $6);
+			$$ = sdb_ast_timeseries_create($2, $4, NULL, 0, $5, $6);
+			CK_OOM($$);
+		}
+	|
+	TIMESERIES STRING '.' STRING array start_clause end_clause
+		{
+			char **ds;
+			size_t ds_num;
+
+			if ($5.type != (SDB_TYPE_ARRAY | SDB_TYPE_STRING)) {
+				sdb_parser_yyerrorf(&yylloc, scanner, YY_("syntax error, "
+						"unexpected array of type %s; expected STRING"),
+						SDB_TYPE_TO_STRING($5.type));
+				sdb_data_free_datum(&$5);
+				free($2);
+				free($4);
+				YYABORT;
+			}
+
+			ds = $5.data.array.values;
+			ds_num = $5.data.array.length;
+
+			$$ = sdb_ast_timeseries_create($2, $4, ds, ds_num, $6, $7);
 			CK_OOM($$);
 		}
 	;

@@ -141,6 +141,13 @@ timeseries_destroy(sdb_object_t *obj)
 		free(timeseries->hostname);
 	if (timeseries->metric)
 		free(timeseries->metric);
+	if (timeseries->data_names) {
+		size_t i;
+		for (i = 0; i < timeseries->data_names_len; i++)
+			free(timeseries->data_names[i]);
+		free(timeseries->data_names);
+		timeseries->data_names = NULL;
+	}
 	timeseries->hostname = timeseries->metric = NULL;
 } /* timeseries_destroy */
 
@@ -372,6 +379,7 @@ sdb_ast_store_create(int obj_type, char *hostname,
 
 sdb_ast_node_t *
 sdb_ast_timeseries_create(char *hostname, char *metric,
+		char **data_names, size_t data_names_len,
 		sdb_time_t start, sdb_time_t end)
 {
 	sdb_ast_timeseries_t *timeseries;
@@ -383,6 +391,8 @@ sdb_ast_timeseries_create(char *hostname, char *metric,
 
 	timeseries->hostname = hostname;
 	timeseries->metric = metric;
+	timeseries->data_names = data_names;
+	timeseries->data_names_len = data_names_len;
 	timeseries->start = start;
 	timeseries->end = end;
 	return SDB_AST_NODE(timeseries);

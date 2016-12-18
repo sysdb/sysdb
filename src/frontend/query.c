@@ -247,6 +247,8 @@ exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbu
 	fetch.obj_type = SDB_METRIC;
 	fetch.hostname = strdup(ts->hostname);
 	fetch.name = strdup(ts->metric);
+	opts.data_names = (const char * const *)ts->data_names;
+	opts.data_names_len = ts->data_names_len;
 	opts.start = ts->start;
 	opts.end = ts->end;
 

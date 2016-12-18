@@ -326,12 +326,14 @@ typedef struct {
 	sdb_ast_node_t super;
 	char *hostname;
 	char *metric;
+	char **data_names;
+	size_t data_names_len;
 	sdb_time_t start;
 	sdb_time_t end;
 } sdb_ast_timeseries_t;
 #define SDB_AST_TIMESERIES(obj) ((sdb_ast_timeseries_t *)(obj))
 #define SDB_AST_TIMESERIES_INIT \
-	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_TIMESERIES, -1 }, NULL, NULL, 0, 0 }
+	{ { SDB_OBJECT_INIT, SDB_AST_TYPE_TIMESERIES, -1 }, NULL, NULL, NULL, 0, 0, 0 }
 
 /*
  * AST constructors:
@@ -425,10 +427,11 @@ sdb_ast_store_create(int obj_type, char *hostname,
 /*
  * sdb_ast_timeseries_create:
  * Creates an AST node representing a TIMESERIES command. The newly created
- * node takes ownership of the strings.
+ * node takes ownership of the strings and string vectors.
  */
 sdb_ast_node_t *
 sdb_ast_timeseries_create(char *hostname, char *metric,
+		char **data_names, size_t data_names_len,
 		sdb_time_t start, sdb_time_t end);
 
 #ifdef __cplusplus
