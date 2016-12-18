@@ -34,11 +34,11 @@
 
 /*
  * sdb_json_print:
- * Format the JSON string stored in the specified buffer. The output is
- * printed to the standard output channel.
+ * Format the JSON object of the specified type. The raw JSON is read from the
+ * specified buffer. The output is printed to the standard output channel.
  */
 int
-sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf);
+sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf);
 
 #endif /* SYSDB_JSON_H */
 

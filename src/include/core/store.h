@@ -51,6 +51,7 @@ enum {
 	SDB_METRIC,
 
 	SDB_ATTRIBUTE = 1 << 4,
+	SDB_TIMESERIES = 1 << 6,
 
 	/*
 	 * Queryable fields of a stored object.
@@ -71,6 +72,7 @@ enum {
 		: ((t) == (SDB_ATTRIBUTE | SDB_HOST)) ? "host attribute" \
 		: ((t) == (SDB_ATTRIBUTE | SDB_SERVICE)) ? "service attribute" \
 		: ((t) == (SDB_ATTRIBUTE | SDB_METRIC)) ? "metric attribute" \
+		: ((t) == SDB_TIMESERIES) ? "timeseries" \
 		: "unknown")
 
 #define SDB_FIELD_TO_NAME(f) \

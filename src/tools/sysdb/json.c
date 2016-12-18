@@ -31,76 +31,219 @@
 
 #include "sysdb.h"
 
+#include "core/store.h"
+#include "frontend/proto.h"
 #include "utils/error.h"
 #include "utils/strbuf.h"
 #include "tools/sysdb/json.h"
 
 #ifdef HAVE_LIBYAJL
 #	include <yajl/yajl_parse.h>
-#	include <yajl/yajl_gen.h>
 #endif
 
-#include <unistd.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef HAVE_LIBYAJL
+
+/*
+ * formatter
+ */
+
+typedef struct {
+	/* The context describes the state of the formatter along with the
+	 * respective parent contexts. */
+	int context[8];
+	ssize_t array_indices[8];
+	size_t current;
+	int next_context;
+
+	bool have_output;
+} formatter_t;
+#define F(obj) ((formatter_t *)(obj))
+#define F_INIT { { 0 }, { -1, -1, -1, -1, -1, -1, -1, -1 }, 0, 0, false }
+
+static int
+push(formatter_t *f, int type)
+{
+	f->current++;
+	if (f->current >= SDB_STATIC_ARRAY_LEN(f->context)) {
+		sdb_log(SDB_LOG_ERR, "Nesting level too deep");
+		return false;
+	}
+	f->context[f->current] = type;
+	return true;
+} /* push */
+
+static void
+pop(formatter_t *f)
+{
+	if (f->current == 0)
+		return;
+
+	f->next_context = f->context[f->current];
+	f->current--;
+} /* pop */
+
+static void
+print(formatter_t *f, const char *s, ssize_t l)
+{
+	if (l >= 0) {
+		/* 's' may point into a larger buffer and not be null-terminated */
+		char buf[l + 1];
+		strncpy(buf, s, l);
+		buf[l] = '\0';
+		printf("%s", buf);
+	}
+	else
+		printf("%s", s);
+
+	f->have_output = true;
+} /* print */
+
+static void
+indent(formatter_t *f)
+{
+	size_t i;
+	for (i = 0; i < f->current - 1; i++)
+		print(f, "\t", -1);
+}
+
+static void
+format(formatter_t *f, const char *s, ssize_t l)
+{
+	if (f->array_indices[f->current] >= 0) {
+		if (f->array_indices[f->current] != 0)
+			print(f, ", ", -1);
+		f->array_indices[f->current]++;
+	}
+
+	print(f, s, l);
+	return;
+} /* format */
+
+static int
+format_key(formatter_t *f, const char *k, ssize_t l)
+{
+	int type = 0;
+
+	if (! strncasecmp("services", k, l))
+		type = SDB_SERVICE;
+	else if (! strncasecmp("metrics", k, l))
+		type = SDB_METRIC;
+	else if (! strncasecmp("attributes", k, l))
+		type = SDB_ATTRIBUTE;
+
+	if (f->have_output)
+		print(f, "\n", -1);
+	indent(f);
+	print(f, k, l);
+	print(f, ": ", -1);
+
+	f->next_context = type;
+	return true;
+} /* format_key */
 
 /*
  * YAJL callbacks
  */
 
-#define GEN(obj) ((yajl_gen)(obj))
-#define OK(cb) ((cb) == yajl_gen_status_ok)
-
 static int
-gen_null(void *ctx) { return OK(yajl_gen_null(GEN(ctx))); }
-
-static int
-gen_boolean(void *ctx, int v) { return OK(yajl_gen_bool(GEN(ctx), v)); }
-
-static int
-gen_number(void *ctx, const char *v, size_t l)
-{
-	return OK(yajl_gen_number(GEN(ctx), v, l));
+fmt_null(void *ctx) {
+	formatter_t *f = F(ctx);
+	format(f, "NULL", -1);
+	return true;
 }
 
 static int
-gen_string(void *ctx, const unsigned char *v, size_t l)
-{
-	return OK(yajl_gen_string(GEN(ctx), v, l));
+fmt_boolean(void *ctx, int v) {
+	formatter_t *f = F(ctx);
+	if (v)
+		format(f, "true", -1);
+	else
+		format(f, "false", -1);
+	return true;
 }
 
 static int
-gen_start_map(void *ctx) { return OK(yajl_gen_map_open(GEN(ctx))); }
+fmt_number(void *ctx, const char *v, size_t l)
+{
+	formatter_t *f = F(ctx);
+	format(f, v, l);
+	return true;
+}
 
 static int
-gen_end_map(void *ctx) { return OK(yajl_gen_map_close(GEN(ctx))); }
+fmt_string(void *ctx, const unsigned char *v, size_t l)
+{
+	formatter_t *f = F(ctx);
+	format(f, (const char *)v, l);
+	return true;
+}
 
 static int
-gen_start_array(void *ctx) { return OK(yajl_gen_array_open(GEN(ctx))); }
+fmt_start_map(void *ctx) {
+	formatter_t *f = F(ctx);
+	const char *name;
+
+	if (!push(f, f->next_context))
+		return false;
+
+	if (f->have_output)
+		print(f, "\n", -1);
+
+	name = SDB_STORE_TYPE_TO_NAME(f->context[f->current]);
+	if (strcmp(name, "unknown")) {
+		if (f->have_output)
+			print(f, "\n", -1);
+		indent(f);
+		format(f, name, -1);
+	}
+	return true;
+}
 
 static int
-gen_end_array(void *ctx) { return OK(yajl_gen_array_close(GEN(ctx))); }
+fmt_map_key(void *ctx, const unsigned char *v, size_t l)
+{
+	formatter_t *f = F(ctx);
+	return format_key(f, (const char *)v, l);
+}
 
-static yajl_callbacks reformatters = {
-	gen_null,
-	gen_boolean,
-	NULL, /* gen_integer; */
-	NULL, /* gen_doube; both default to gen_number */
-	gen_number,
-	gen_string,
-	gen_start_map,
-	gen_string,
-	gen_end_map,
-	gen_start_array,
-	gen_end_array,
+static int
+fmt_end_map(void *ctx) {
+	formatter_t *f = F(ctx);
+	pop(f);
+	return true;
+}
+
+static int
+fmt_start_array(void *ctx) {
+	formatter_t *f = F(ctx);
+	f->array_indices[f->current] = 0;
+	return true;
+}
+
+static int
+fmt_end_array(void *ctx) {
+	formatter_t *f = F(ctx);
+	f->array_indices[f->current] = -1;
+	return true;
+}
+
+static yajl_callbacks fmts = {
+	fmt_null,
+	fmt_boolean,
+	NULL, /* fmt_integer; */
+	NULL, /* fmt_double; both default to fmt_number */
+	fmt_number,
+	fmt_string,
+	fmt_start_map,
+	fmt_map_key,
+	fmt_end_map,
+	fmt_start_array,
+	fmt_end_array,
 };
-
-static void
-printer(void __attribute__((unused)) *ctx, const char *str, size_t len)
-{
-	write(1, str, len);
-} /* printer */
 
 #endif /* HAVE_LIBYAJL */
 
@@ -109,15 +252,15 @@ printer(void __attribute__((unused)) *ctx, const char *str, size_t len)
  */
 
 int
-sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf)
+sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf)
 {
 #ifdef HAVE_LIBYAJL
 	const unsigned char *json;
 	size_t json_len;
 
 	yajl_handle h;
-	yajl_gen gen;
 	yajl_status status;
+	formatter_t f = F_INIT;
 
 	int ret = 0;
 
@@ -127,19 +270,23 @@ sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf)
 		return 0;
 	}
 
-	gen = yajl_gen_alloc(/* alloc_funcs */ NULL);
-	if (! gen)
-		return -1;
-
-	yajl_gen_config(gen, yajl_gen_beautify, 1);
-	yajl_gen_config(gen, yajl_gen_validate_utf8, 1);
-	yajl_gen_config(gen, yajl_gen_print_callback, printer, NULL);
-
-	h = yajl_alloc(&reformatters, /* alloc_funcs */ NULL, (void *)gen);
-	if (! h) {
-		yajl_gen_free(gen);
-		return -1;
+	/* Store lookups always return hosts at the top-level. */
+	f.context[0] = SDB_HOST;
+	switch (type) {
+	case SDB_CONNECTION_LIST:
+	case SDB_CONNECTION_LOOKUP:
+		/* Array types */
+		f.array_indices[0] = 0;
+		break;
+	case SDB_CONNECTION_TIMESERIES:
+		f.context[0] = SDB_TIMESERIES;
+		break;
 	}
+	f.next_context = f.context[0];
+
+	h = yajl_alloc(&fmts, /* alloc_funcs */ NULL, &f);
+	if (! h)
+		return -1;
 
 	json = (const unsigned char *)sdb_strbuf_string(buf);
 	json_len = sdb_strbuf_len(buf);
@@ -154,11 +301,11 @@ sdb_json_print(sdb_input_t *input, sdb_strbuf_t *buf)
 		ret = -1;
 	}
 
-	yajl_gen_free(gen);
 	yajl_free(h);
 	return ret;
 #else /* HAVE_LIBYAJL */
 	(void)input;
+	(void)type;
 	printf("%s\n", sdb_strbuf_string(buf));
 	return 0;
 #endif /* HAVE_LIBYAJL */

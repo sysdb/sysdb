@@ -76,6 +76,7 @@ static void
 data_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 {
 	size_t len = sdb_strbuf_len(buf);
+	uint32_t type = 0;
 
 	if ((! len) || (len == sizeof(uint32_t))) {
 		/* empty command or empty reply */
@@ -87,10 +88,9 @@ data_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 		return;
 	}
 
-	/* At the moment, we don't care about the result type. We simply print the
-	 * result without further parsing it. */
+	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &type);
 	sdb_strbuf_skip(buf, 0, sizeof(uint32_t));
-	if (sdb_json_print(input, buf))
+	if (sdb_json_print(input, (int)type, buf))
 		sdb_log(SDB_LOG_ERR, "Failed to print result");
 	printf("\n");
 } /* data_printer */
