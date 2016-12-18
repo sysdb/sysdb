@@ -52,6 +52,8 @@
  */
 
 typedef struct {
+	FILE *out;
+
 	/* The context describes the state of the formatter along with the
 	 * respective parent contexts. */
 	int context[8];
@@ -62,7 +64,7 @@ typedef struct {
 	bool have_output;
 } formatter_t;
 #define F(obj) ((formatter_t *)(obj))
-#define F_INIT { { 0 }, { -1, -1, -1, -1, -1, -1, -1, -1 }, 0, 0, false }
+#define F_INIT(out) { (out), { 0 }, { -1, -1, -1, -1, -1, -1, -1, -1 }, 0, 0, false }
 
 static int
 push(formatter_t *f, int type)
@@ -94,10 +96,10 @@ print(formatter_t *f, const char *s, ssize_t l)
 		char buf[l + 1];
 		strncpy(buf, s, l);
 		buf[l] = '\0';
-		printf("%s", buf);
+		fprintf(f->out, "%s", buf);
 	}
 	else
-		printf("%s", s);
+		fprintf(f->out, "%s", s);
 
 	f->have_output = true;
 } /* print */
@@ -252,7 +254,7 @@ static yajl_callbacks fmts = {
  */
 
 int
-sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf)
+sdb_json_print(FILE *out, sdb_input_t *input, int type, sdb_strbuf_t *buf)
 {
 #ifdef HAVE_LIBYAJL
 	const unsigned char *json;
@@ -260,13 +262,13 @@ sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf)
 
 	yajl_handle h;
 	yajl_status status;
-	formatter_t f = F_INIT;
+	formatter_t f = F_INIT(out);
 
 	int ret = 0;
 
 	if (!input->interactive) {
 		/* no formatting */
-		printf("%s\n", sdb_strbuf_string(buf));
+		fprintf(out, "%s\n", sdb_strbuf_string(buf));
 		return 0;
 	}
 
@@ -306,7 +308,7 @@ sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf)
 #else /* HAVE_LIBYAJL */
 	(void)input;
 	(void)type;
-	printf("%s\n", sdb_strbuf_string(buf));
+	fprintf(out, "%s\n", sdb_strbuf_string(buf));
 	return 0;
 #endif /* HAVE_LIBYAJL */
 } /* sdb_json_print */

@@ -40,12 +40,81 @@
 #include "utils/proto.h"
 #include "utils/strbuf.h"
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <errno.h>
 
 #include <assert.h>
 #include <ctype.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+static pid_t
+exec_pager(int in)
+{
+	pid_t pid;
+	long fd;
+
+	sigset_t sigs;
+
+	pid = fork();
+	if (pid) /* parent or error */
+		return pid;
+
+	sigemptyset(&sigs);
+	sigprocmask(SIG_SETMASK, &sigs, NULL);
+
+	for (fd = 3; fd <= sysconf(_SC_OPEN_MAX); fd++)
+		if (fd != in)
+			close((int)fd);
+
+	if (dup2(in, STDIN_FILENO) >= 0) {
+		/* TODO: make configurable */
+		char *argv[] = { "less", "-FRX" };
+
+		close(in);
+		in = STDIN_FILENO;
+
+		if (execvp(argv[0], argv)) {
+			char cmdbuf[1024], errbuf[1024];
+			sdb_data_format(&(sdb_data_t){
+						SDB_TYPE_STRING | SDB_TYPE_ARRAY,
+						{ .array = { SDB_STATIC_ARRAY_LEN(argv), argv } },
+					}, cmdbuf, sizeof(cmdbuf), SDB_UNQUOTED);
+			sdb_log(SDB_LOG_WARNING, "Failed to execute pager %s: %s",
+					cmdbuf, sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		}
+	}
+
+	/* else: something failed, simply print all input */
+	while (42) {
+		char buf[1024 + 1];
+		ssize_t n;
+
+		n = read(in, buf, sizeof(buf) - 1);
+		if (!n) /* EOF */
+			break;
+
+		if (n > 0) {
+			buf[n] = '\0';
+			printf("%s", buf);
+			continue;
+		}
+
+		if ((errno == EAGAIN) || (errno == EWOULDBLOCK)
+				|| (errno == EINTR))
+			continue;
+
+		sdb_log(SDB_LOG_ERR, "Failed to read query result: %s",
+				sdb_strerror(errno, buf, sizeof(buf)));
+		exit(1);
+	}
+	exit(0);
+} /* exec_pager */
 
 static void
 ok_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
@@ -73,10 +142,14 @@ log_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 } /* log_printer */
 
 static void
-data_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
+data_printer(sdb_input_t *input, sdb_strbuf_t *buf)
 {
 	size_t len = sdb_strbuf_len(buf);
 	uint32_t type = 0;
+
+	int pipefd[2] = { -1, -1 };
+	FILE *out = stdout;
+	pid_t pager = -1;
 
 	if ((! len) || (len == sizeof(uint32_t))) {
 		/* empty command or empty reply */
@@ -88,11 +161,35 @@ data_printer(sdb_input_t __attribute__((unused)) *input, sdb_strbuf_t *buf)
 		return;
 	}
 
+	if (input->interactive) {
+		if (pipe(pipefd)) {
+			char errbuf[2014];
+			sdb_log(SDB_LOG_WARNING, "Failed to open pipe: %s",
+					sdb_strerror(errno, errbuf, sizeof(errbuf)));
+		}
+		else {
+			out = fdopen(pipefd[1], "w");
+			pager = exec_pager(pipefd[0]);
+			if (pager < 0) {
+				out = stdout;
+				close(pipefd[0]);
+				close(pipefd[1]);
+			}
+			else
+				close(pipefd[0]);
+		}
+	}
+
 	sdb_proto_unmarshal_int32(SDB_STRBUF_STR(buf), &type);
 	sdb_strbuf_skip(buf, 0, sizeof(uint32_t));
-	if (sdb_json_print(input, (int)type, buf))
+	if (sdb_json_print(out, input, (int)type, buf))
 		sdb_log(SDB_LOG_ERR, "Failed to print result");
-	printf("\n");
+	fprintf(out, "\n");
+
+	if (out != stdout)
+		fclose(out); /* will close pipefd[1] */
+	if (pager > 0)
+		waitpid(pager, NULL, 0);
 } /* data_printer */
 
 static struct {

@@ -51,11 +51,10 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 
 #include <sys/types.h>
@@ -357,6 +356,9 @@ main(int argc, char **argv)
 					hist_file, sdb_strerror(errno, errbuf, sizeof(errbuf)));
 		}
 	}
+
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
 
 	sdb_input_mainloop();
 

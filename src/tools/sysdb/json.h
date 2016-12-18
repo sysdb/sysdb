@@ -29,6 +29,8 @@
 
 #include "utils/strbuf.h"
 
+#include <stdio.h>
+
 #ifndef SYSDB_JSON_H
 #define SYSDB_JSON_H 1
 
@@ -38,7 +40,7 @@
  * specified buffer. The output is printed to the standard output channel.
  */
 int
-sdb_json_print(sdb_input_t *input, int type, sdb_strbuf_t *buf);
+sdb_json_print(FILE *out, sdb_input_t *input, int type, sdb_strbuf_t *buf);
 
 #endif /* SYSDB_JSON_H */
 
