@@ -237,7 +237,7 @@ exec_timeseries(sdb_ast_timeseries_t *ts, sdb_strbuf_t *buf, sdb_strbuf_t *errbu
 	metric_store_t st = { NULL, NULL, 0 };
 	sdb_object_wrapper_t obj = SDB_OBJECT_WRAPPER_STATIC(&st);
 	sdb_ast_fetch_t fetch = SDB_AST_FETCH_INIT;
-	sdb_timeseries_opts_t opts = { 0, 0 };
+	sdb_timeseries_opts_t opts = { 0, 0, NULL, 0 };
 	sdb_timeseries_t *series = NULL;
 	int status;
 

@@ -97,6 +97,10 @@ typedef struct {
 typedef struct {
 	sdb_time_t start;
 	sdb_time_t end;
+
+	/* If specified, only fetch time-series with these names. */
+	const char * const *data_names;
+	size_t data_names_len;
 } sdb_timeseries_opts_t;
 
 /*

@@ -159,6 +159,61 @@ sdb_rrd_describe(const char *id, sdb_object_t *user_data)
 	return ts_info;
 } /* sdb_rrd_describe */
 
+static int
+copy_data(sdb_timeseries_t *ts, rrd_value_t *data, time_t step,
+		size_t ds_cnt, char **ds_names)
+{
+	time_t start = SDB_TIME_TO_SECS(ts->start);
+	time_t end = SDB_TIME_TO_SECS(ts->end);
+	time_t t;
+
+	ssize_t ds_target[ds_cnt];
+	size_t i, j;
+
+	/* determine the target index of each data-source,
+	 * or -1 if the data-source isn't wanted */
+	for (i = 0; i < ds_cnt; i++) {
+		ds_target[i] = -1;
+		for (j = 0; j < ts->data_names_len; j++) {
+			if (!strcmp(ds_names[i], ts->data_names[j])) {
+				ds_target[i] = j;
+				break;
+			}
+		}
+	}
+
+	/* check if any wanted data-sources is missing */
+	for (i = 0; i < ts->data_names_len; i++) {
+		bool found = false;
+
+		for (j = 0; j < ds_cnt; j++) {
+			if (!strcmp(ts->data_names[i], ds_names[j])) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			sdb_log(SDB_LOG_ERR, "Requested data-source '%s' not found",
+					ts->data_names[i]);
+			return -1;
+		}
+	}
+
+	for (t = start; t <= end; t += step) {
+		i = (size_t)(t - start) / (size_t)step;
+
+		for (j = 0; j < ds_cnt; ++j) {
+			if (ds_target[j] >= 0) {
+				size_t x = (size_t)ds_target[j];
+				ts->data[x][i].timestamp = SECS_TO_SDB_TIME(t);
+				ts->data[x][i].value = *data;
+			}
+			++data;
+		}
+	}
+	return 0;
+}
+
 static sdb_timeseries_t *
 sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 		sdb_object_t *user_data)
@@ -167,13 +222,12 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 
 	time_t start = (time_t)SDB_TIME_TO_SECS(opts->start);
 	time_t end = (time_t)SDB_TIME_TO_SECS(opts->end);
-	time_t t;
 
 	unsigned long step = 0;
 	unsigned long ds_cnt = 0;
 	unsigned long val_cnt = 0;
 	char **ds_namv = NULL;
-	rrd_value_t *data = NULL, *data_ptr;
+	rrd_value_t *data = NULL;
 
 	if (user_data) {
 		/* -> use RRDCacheD */
@@ -214,7 +268,13 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 
 	val_cnt = (unsigned long)(end - start) / step;
 
-	ts = sdb_timeseries_create(ds_cnt, (const char * const *)ds_namv, val_cnt);
+	/* RRDtool does not support fetching specific data-sources, so we'll have
+	 * to filter the requested ones after fetching them all */
+	if (opts->data_names && opts->data_names_len)
+		ts = sdb_timeseries_create(opts->data_names_len,
+				(const char * const *)opts->data_names, val_cnt);
+	else
+		ts = sdb_timeseries_create(ds_cnt, (const char * const *)ds_namv, val_cnt);
 	if (! ts) {
 		char errbuf[1024];
 		sdb_strerror(errno, errbuf, sizeof(errbuf));
@@ -226,17 +286,10 @@ sdb_rrd_fetch(const char *id, sdb_timeseries_opts_t *opts,
 	ts->start = SECS_TO_SDB_TIME(start + (time_t)step);
 	ts->end = SECS_TO_SDB_TIME(end);
 
-	data_ptr = data;
-	for (t = start + (time_t)step; t <= end; t += (time_t)step) {
-		unsigned long i, j;
-
-		i = (unsigned long)(t - start) / step - 1;
-
-		for (j = 0; j < ds_cnt; ++j) {
-			ts->data[j][i].timestamp = SECS_TO_SDB_TIME(t);
-			ts->data[j][i].value = *data_ptr;
-			++data_ptr;
-		}
+	if (copy_data(ts, data, (time_t)step, (size_t)ds_cnt, ds_namv) < 0) {
+		FREE_RRD_DATA();
+		sdb_timeseries_destroy(ts);
+		return NULL;
 	}
 
 	FREE_RRD_DATA();
