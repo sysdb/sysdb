@@ -159,6 +159,7 @@ ssl_log_err(int prio, SSL *ssl, int status, const char *prefix, ...)
 				sdb_log(prio, "%s: unexpected end-of-file", msg);
 			else if (! errno)
 				errno = EIO;
+			break;
 		case SSL_ERROR_SSL:
 			return ssl_log(prio, msg);
 		default:

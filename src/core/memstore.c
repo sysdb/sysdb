@@ -914,6 +914,7 @@ sdb_memstore_get_field(sdb_memstore_obj_t *obj, int field, sdb_data_t *res)
 				return -1;
 			tmp.type = SDB_TYPE_BOOLEAN;
 			tmp.data.boolean = METRIC(obj)->stores_num > 0;
+			break;
 		default:
 			return -1;
 	}
