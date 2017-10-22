@@ -66,6 +66,7 @@ START_TEST(test_marshal_data)
 #define REGEX_ARRAY "\0\0\1\7"
 
 	regex_t dummy_re;
+	memset(&dummy_re, 0, sizeof(dummy_re));
 	bool bool_values[] = { true, false };
 	int64_t int_values[] = { 47, 11, 23 };
 	double dec_values[] = { 47.11, .5 };

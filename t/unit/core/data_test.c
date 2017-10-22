@@ -262,6 +262,7 @@ END_TEST
 START_TEST(test_cmp)
 {
 	regex_t dummy_re;
+	memset(&dummy_re, 0, sizeof(dummy_re));
 	bool bool_values1[] = { true, false, false, true };
 	bool bool_values2[] = { true, false, true, false };
 	int64_t int_values1[] = { 1, 2, 3 };
