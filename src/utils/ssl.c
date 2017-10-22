@@ -70,7 +70,10 @@ struct sdb_ssl_session {
 static pthread_mutex_t *mutexes = NULL;
 static int mutexes_num = 0;
 
-static void
+/* CRYPTO_set_locking_callback may be no-ops in some versions of OpenSSL which
+ * would make these functions unused. Hence, mark them as such. */
+
+static void __attribute__((unused))
 locking_callback(int mode, int n, const char *file, int line)
 {
 	if (! mutexes) {
@@ -91,8 +94,8 @@ locking_callback(int mode, int n, const char *file, int line)
 		pthread_mutex_unlock(&mutexes[n]);
 } /* locking_callback */
 
-static void
-threadid_callback(CRYPTO_THREADID *id)
+static void __attribute__((unused))
+threadid_callback(CRYPTO_THREADID __attribute__((unused)) *id)
 {
 	CRYPTO_THREADID_set_numeric(id, (unsigned long)pthread_self());
 } /* threadid_callback */
