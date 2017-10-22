@@ -411,44 +411,59 @@ END_TEST
 
 static struct {
 	const char *hostname;
+	const char *metric; /* optional */
 	const char *attr; /* optional */
 	int field;
 	int expected;
 	sdb_data_t value;
+	sdb_metric_store_t metric_store;
 } get_field_data[] = {
-	{ NULL,   NULL, 0, -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } } },
-	{ NULL,   NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", NULL,   SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
-	{ "host", NULL,   SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
+	{ NULL,   NULL,     NULL, 0, -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ NULL,   NULL,     NULL,   SDB_FIELD_TIMESERIES,  -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } }, SDB_METRIC_STORE_INIT },
 	/* the test will handle AGE specially */
-	{ "host", NULL,   SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", NULL,   SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "host" } } },
-	{ "host", NULL,   SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
-	{ "host", NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "attr", SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } } },
-	{ "host", "attr", SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } } },
+	{ "host", NULL,     NULL,   SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "host" } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     NULL,   SDB_FIELD_TIMESERIES,  -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } }, SDB_METRIC_STORE_INIT },
 	/* the test will handle AGE specially */
-	{ "host", "attr", SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "attr", SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "attr" } } },
-	{ "host", "attr", SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } } },
-	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_INTEGER, { .integer = 1 } } },
-	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DECIMAL, { .decimal = 2.0 } } },
-	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_STRING, { .string = "foo" } } },
-	{ "host", "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DATETIME, { .datetime = 1234567890L } } },
-	{ "host", "a",    SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
-	{ "host", "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } } },
+	{ "host", NULL,     "attr", SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "attr" } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_INTEGER, { .integer = 1 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DECIMAL, { .decimal = 2.0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_STRING, { .string = "foo" } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_VALUE,        0, { SDB_TYPE_DATETIME, { .datetime = 1234567890L } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "attr", SDB_FIELD_TIMESERIES,  -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_LAST_UPDATE, -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_INTERVAL,    -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_AGE,         -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_NAME,        -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_BACKEND,     -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", NULL,     "a",    SDB_FIELD_TIMESERIES,  -1, { SDB_TYPE_NULL, { 0 } }, SDB_METRIC_STORE_INIT },
+	{ "host", "metric", NULL,   SDB_FIELD_LAST_UPDATE,  0, { SDB_TYPE_DATETIME, { .datetime = 20 } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_INTERVAL,     0, { SDB_TYPE_DATETIME, { .datetime = 10 } }, { "type", "id", NULL, 20 } },
+	/* the test will handle AGE specially */
+	{ "host", "metric", NULL,   SDB_FIELD_AGE,          0, { SDB_TYPE_NULL, { 0 } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_NAME,         0, { SDB_TYPE_STRING, { .string = "metric" } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_BACKEND,      0, { SDB_TYPE_ARRAY | SDB_TYPE_STRING, { .array = { 0, NULL } } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_VALUE,       -1, { SDB_TYPE_NULL, { 0 } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_TIMESERIES,   0, { SDB_TYPE_BOOLEAN, { .boolean = 1 } }, { "type", "id", NULL, 20 } },
+	{ "host", "metric", NULL,   SDB_FIELD_TIMESERIES,   0, { SDB_TYPE_BOOLEAN, { .boolean = 0 } }, SDB_METRIC_STORE_INIT },
 };
 
 /* returns a tuple <type> <name> */
@@ -465,10 +480,21 @@ START_TEST(test_get_field)
 
 	sdb_memstore_host(store, "host", 20, 10);
 	sdb_memstore_attribute(store, "host", "attr", &get_field_data[_i].value, 20, 10);
+	if (get_field_data[_i].metric_store.type)
+		sdb_memstore_metric(store, "host", "metric", &get_field_data[_i].metric_store, 20, 10);
+	else
+		sdb_memstore_metric(store, "host", "metric", NULL, 20, 10);
 
 	if (get_field_data[_i].hostname) {
 		obj = sdb_memstore_get_host(store, get_field_data[_i].hostname);
 		ck_assert(obj != NULL);
+
+		if (get_field_data[_i].metric) {
+			sdb_memstore_obj_t *tmp = sdb_memstore_get_child(obj,
+					SDB_METRIC, get_field_data[_i].metric);
+			sdb_object_deref(SDB_OBJ(obj));
+			obj = tmp;
+		}
 
 		if (get_field_data[_i].attr) {
 			sdb_memstore_obj_t *tmp = sdb_memstore_get_child(obj,

@@ -131,6 +131,7 @@ typedef struct {
 	const sdb_timeseries_info_t *info;
 	sdb_time_t last_update;
 } sdb_metric_store_t;
+#define SDB_METRIC_STORE_INIT { NULL, NULL, NULL, 0 }
 
 /*
  * sdb_store_metric_t represents the meta-data of a stored metric object.
